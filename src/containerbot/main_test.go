@@ -13,9 +13,9 @@ func TestArgParse(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 	os.Args = []string{"this", "-poll", "20", "/root/examples/test.sh", "doStuff", "--debug"}
-	parseArgs()
-	if pollTime != 20 {
-		t.Errorf("Expected pollTime to be 20 but got: %d", pollTime)
+	config := parseArgs()
+	if config.pollTime != 20 {
+		t.Errorf("Expected pollTime to be 20 but got: %d", config.pollTime)
 	}
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/root/examples/test.sh" {
@@ -26,7 +26,7 @@ func TestArgParse(t *testing.T) {
 // Verify we have no obvious crashing paths in the poll code and that we handle
 // a closed channel immediately as expected and gracefully.
 func TestPoll(t *testing.T) {
-	quit := poll(func(args ...string) {
+	quit := poll(&Config{pollTime: 1}, func(config *Config, args ...string) {
 		time.Sleep(5 * time.Second)
 		t.Errorf("We should never reach this code because the channel should close.")
 		return

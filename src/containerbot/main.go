@@ -1,7 +1,6 @@
 package main
 
 import (
-	// consul "github.com/hashicorp/consul/api"
 	"flag"
 	"log"
 	"os"
@@ -10,17 +9,10 @@ import (
 	"time"
 )
 
-// these are populated by the flag variables
-var (
-	pollTime        int    // interval to poll in seconds
-	healthCheckExec string // executable to run to check the health of the application
-	changeExec      string // executable to run if the source of truth changes
-)
-
 func main() {
-	parseArgs()
-	healthQuit := poll(checkHealth, healthCheckExec)
-	changeQuit := poll(checkForChanges, changeExec)
+	config := parseArgs()
+	healthQuit := poll(config, checkHealth, config.healthCheckExec)
+	changeQuit := poll(config, checkForChanges, config.onChangeExec)
 
 	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
 	// TODO: do we really need this?
@@ -45,24 +37,18 @@ func main() {
 	select {}
 }
 
-func parseArgs() {
-	flag.IntVar(&pollTime, "poll", 10, "Number of seconds to wait between polling health check")
-	flag.StringVar(&healthCheckExec, "health", "", "Executable to run to check the health of the application.")
-	flag.Parse()
-}
-
-type pollingFunc func(...string)
+type pollingFunc func(*Config, ...string)
 
 // Every `pollTime` seconds, run the `pollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
-func poll(fn pollingFunc, args ...string) chan bool {
-	ticker := time.NewTicker(time.Duration(pollTime) * time.Second)
+func poll(config *Config, fn pollingFunc, args ...string) chan bool {
+	ticker := time.NewTicker(time.Duration(config.pollTime) * time.Second)
 	quit := make(chan bool)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				fn(args...)
+				fn(config, args...)
 			case <-quit:
 				return
 			}
@@ -74,29 +60,18 @@ func poll(fn pollingFunc, args ...string) chan bool {
 // Implements `pollingFunc`; args are the executable we use to check the
 // application health and its arguments. If the error code on that exectable is
 // 0, we write a TTL health check to the health check store.
-func checkHealth(args ...string) {
+func checkHealth(config *Config, args ...string) {
 	if code, _ := run(args...); code == 0 {
-		writeHealthCheck()
+		config.DiscoveryService.WriteHealthCheck()
 	}
 }
 
 // Implements `pollingFunc`; args are the executable we run if the values in
 // the central store have changed since the last run.
-func checkForChanges(args ...string) {
-	if upstreamChanged() {
+func checkForChanges(config *Config, args ...string) {
+	if config.DiscoveryService.CheckForUpstreamChanges() {
 		run(args...)
 	}
-}
-
-// TODO: dummy implementations
-func writeHealthCheck() {
-	log.Printf("health check is ok!")
-}
-
-// TODO: dummy implementations
-func upstreamChanged() bool {
-	log.Printf("no change!")
-	return false
 }
 
 // Runs an arbitrary string of arguments as an executable and its arguments.
