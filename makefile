@@ -6,7 +6,7 @@ SHELL := /bin/bash
 .PHONY: clean test
 
 ROOT := $(shell pwd)
-GO := docker run --rm -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
+GO := docker run --rm --link consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
 
 clean:
 	rm -rf build # .godeps

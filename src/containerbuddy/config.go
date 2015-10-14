@@ -25,7 +25,7 @@ func (i *arrayFlags) Set(value string) error {
 
 func parseArgs() *Config {
 	var (
-		discoveryUri    = flag.String("consul", "consul=8500", "Hostname and port for consul.")
+		discoveryUri    = flag.String("consul", "consul:8500", "Hostname and port for consul.")
 		pollTime        = flag.Int("poll", 10, "Number of seconds to wait between polling health check")
 		healthCheckExec = flag.String("health", "", "Executable to run to check the health of the application.")
 		serviceName     = flag.String("name", "", "Name of service to register.")
@@ -36,15 +36,10 @@ func parseArgs() *Config {
 	flag.Parse()
 
 	config := &Config{
-		DiscoveryService: &Consul{
-			Url:              *discoveryUri,
-			ServiceName:      *serviceName,
-			TTL:              0,
-			UpstreamServices: toCheck,
-		},
-		pollTime:        *pollTime,
-		healthCheckExec: *healthCheckExec,
-		onChangeExec:    *onChangeExec,
+		DiscoveryService: NewConsulConfig(*discoveryUri, *serviceName, *pollTime, toCheck),
+		pollTime:         *pollTime,
+		healthCheckExec:  *healthCheckExec,
+		onChangeExec:     *onChangeExec,
 	}
 	return config
 }
