@@ -23,6 +23,7 @@ _testmain.go
 *.test
 *.prof
 
-# Runtime stuff
+# more build and test outputs
 coverage.out
 .godeps/
+build/
