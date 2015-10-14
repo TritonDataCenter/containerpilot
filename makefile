@@ -6,7 +6,7 @@ SHELL := /bin/bash
 .PHONY: clean test
 
 ROOT := $(shell pwd)
-GO := docker run --rm -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbot golang go
+GO := docker run --rm -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
 
 clean:
 	rm -rf build # .godeps
@@ -19,8 +19,8 @@ clean:
 # build our binary in a container
 build: .godeps
 	mkdir -p build
-	${GO} build -a -o /root/build/containerbot
-	chmod +x ${ROOT}/build/containerbot
+	${GO} build -a -o /root/build/containerbuddy
+	chmod +x ${ROOT}/build/containerbuddy
 
 # run unit tests and exec test
 test: .godeps
@@ -29,5 +29,5 @@ test: .godeps
 
 # run main
 run: .godeps
-	@docker rm containerbot || true
-	docker run -d --name containerbot -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbot golang go run main.go /root/examples/test.sh sleepStuff -debug
+	@docker rm containerbuddy || true
+	docker run -d --name containerbuddy -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go run main.go /root/examples/test.sh sleepStuff -debug
