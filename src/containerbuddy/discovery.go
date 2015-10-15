@@ -4,7 +4,7 @@ import (
 	"fmt"
 	consul "github.com/hashicorp/consul/api"
 	"log"
-	"os"
+	"sort"
 )
 
 type DiscoveryService interface {
@@ -23,18 +23,17 @@ type Consul struct {
 	LastState        interface{}
 }
 
-func NewConsulConfig(uri, serviceName, address string, ports []int, ttl int, toCheck []string) Consul {
+func NewConsulConfig(uri, serviceId, serviceName, address string, ports []int, ttl int, toCheck []string) Consul {
 	client, _ := consul.NewClient(&consul.Config{
 		Address: uri,
 		Scheme:  "http",
 	})
-	hostname, _ := os.Hostname()
 	config := &Consul{
 		client:           client,
 		Address:          address,
 		Ports:            ports,
 		ServiceName:      serviceName,
-		ServiceId:        fmt.Sprintf("%s-%s", serviceName, hostname),
+		ServiceId:        serviceId,
 		TTL:              ttl,
 		UpstreamServices: toCheck,
 	}
@@ -81,7 +80,54 @@ func (c *Consul) registerCheck() error {
 	)
 }
 
+var upstreams = make(map[string][]*consul.ServiceEntry)
+
 func (c Consul) CheckForUpstreamChanges() bool {
-	log.Printf("no change!")
+	for _, service := range c.UpstreamServices {
+		if c.checkHealth(service) {
+			return true
+		}
+	}
 	return false
 }
+
+func (c *Consul) checkHealth(upstream string) bool {
+	if services, meta, err := c.client.Health().Service(upstream, "", true, nil); err != nil {
+		log.Printf("Failed to query %v: %s [%v]", upstream, err, meta)
+		return false
+	} else {
+		didChange := compareForChange(upstreams[c.ServiceId], services)
+		if didChange || len(services) == 0 {
+			// We don't want to cause an onChange event the first time we read-in
+			// but we do want to make sure we've written the key for this map
+			upstreams[c.ServiceId] = services
+		}
+		return didChange
+	}
+}
+
+// Compare the two arrays to see if the address or port has changed
+// or if we've added or removed entries.
+func compareForChange(existing, new []*consul.ServiceEntry) (changed bool) {
+
+	if len(existing) != len(new) {
+		return true
+	}
+
+	sort.Sort(ByServiceId(existing))
+	sort.Sort(ByServiceId(new))
+	for i, ex := range existing {
+		if ex.Service.Address != new[i].Service.Address ||
+			ex.Service.Port != new[i].Service.Port {
+			return true
+		}
+	}
+	return false
+}
+
+// Implement the Sort interface because Go can't sort without it.
+type ByServiceId []*consul.ServiceEntry
+
+func (se ByServiceId) Len() int           { return len(se) }
+func (se ByServiceId) Swap(i, j int)      { se[i], se[j] = se[j], se[i] }
+func (se ByServiceId) Less(i, j int) bool { return se[i].Service.ID < se[j].Service.ID }

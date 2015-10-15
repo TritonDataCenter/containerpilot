@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -47,11 +49,13 @@ func parseArgs() *Config {
 
 	// TODO: we need a better way to determine the right TTL
 	ttl := *pollTime * 2
+	hostname, _ := os.Hostname()
 
 	config := &Config{
 		DiscoveryService: NewConsulConfig(
 			*discoveryUri,
 			*serviceName,
+			fmt.Sprintf("%s-%s", *serviceName, hostname),
 			getIp(*usePublicIP),
 			ports,
 			ttl,

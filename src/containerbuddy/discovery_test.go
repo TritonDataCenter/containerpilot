@@ -2,17 +2,19 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
-func setupConsul() *Config {
+func setupConsul(serviceName string) *Config {
 	config := &Config{
 		DiscoveryService: NewConsulConfig(
 			"consul:8500",
-			"testService",
+			serviceName,
+			serviceName,
 			"192.168.1.1",
 			[]int{8500, 9000},
-			60, // ttl
-			[]string{"upstream1", "upstream2"}),
+			1, // ttl
+			[]string{serviceName}),
 		PollTime:        30,
 		HealthCheckExec: "/bin/true",
 		OnChangeExec:    "/bin/true",
@@ -21,7 +23,7 @@ func setupConsul() *Config {
 }
 
 func TestTTLPass(t *testing.T) {
-	config := setupConsul()
+	config := setupConsul("service-TestTTLPass")
 	consul := config.DiscoveryService.(Consul)
 	id := consul.ServiceId
 
@@ -29,13 +31,39 @@ func TestTTLPass(t *testing.T) {
 	checks, _ := consul.client.Agent().Checks()
 	check := checks[id]
 	if check.Status != "critical" {
-		t.Errorf("status of check %s should be 'critical' but is %s", id, check.Status)
+		t.Fatalf("status of check %s should be 'critical' but is %s", id, check.Status)
 	}
 
 	config.DiscoveryService.WriteHealthCheck() // write TTL and verify
 	checks, _ = consul.client.Agent().Checks()
 	check = checks[id]
 	if check.Status != "passing" {
-		t.Errorf("status of check %s should be 'passing' but is %s", id, check.Status)
+		t.Fatalf("status of check %s should be 'passing' but is %s", id, check.Status)
+	}
+}
+
+func TestCheckForChanges(t *testing.T) {
+	config := setupConsul("service-TestCheckForChanges")
+	consul := config.DiscoveryService.(Consul)
+	id := consul.ServiceId
+	if consul.checkHealth(id) {
+		t.Fatalf("First read of %s should show `false` for change", id)
+	}
+	config.DiscoveryService.WriteHealthCheck() // force registration
+	config.DiscoveryService.WriteHealthCheck() // write TTL
+
+	if !consul.checkHealth(id) {
+		t.Errorf("%v should have changed after first health check TTL", id)
+	}
+	if consul.checkHealth(id) {
+		t.Errorf("%v should not have changed without TTL expiring", id)
+	}
+	time.Sleep(2 * time.Second) // wait for TTL to expire
+	if !consul.checkHealth(id) {
+		t.Errorf("%v should have changed after TTL expired.", id)
+	}
+	config.DiscoveryService.WriteHealthCheck() // re-write TTL
+	if !consul.checkHealth(id) {
+		t.Errorf("%v should have changed after TTL re-entered.", id)
 	}
 }
