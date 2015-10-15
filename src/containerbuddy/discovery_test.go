@@ -63,7 +63,13 @@ func TestCheckForChanges(t *testing.T) {
 		t.Errorf("%v should have changed after TTL expired.", id)
 	}
 	config.DiscoveryService.WriteHealthCheck() // re-write TTL
-	if !consul.checkHealth(id) {
+
+	// switch to top-level caller to make sure we have test coverage of that loop
+	if !consul.CheckForUpstreamChanges() {
 		t.Errorf("%v should have changed after TTL re-entered.", id)
 	}
+	if consul.CheckForUpstreamChanges() {
+		t.Errorf("%v should not have changed without TTL expiring.", id)
+	}
+
 }

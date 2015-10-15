@@ -71,7 +71,7 @@ func (c *Consul) registerCheck() error {
 		&consul.AgentCheckRegistration{
 			ID:        c.ServiceId,
 			Name:      c.ServiceId,
-			Notes:     "???",
+			Notes:     fmt.Sprintf("TTL for %s set by containerbuddy", c.ServiceName),
 			ServiceID: c.ServiceId,
 			AgentServiceCheck: consul.AgentServiceCheck{
 				TTL: fmt.Sprintf("%ds", c.TTL),
