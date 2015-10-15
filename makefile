@@ -6,7 +6,7 @@ SHELL := /bin/bash
 .PHONY: clean test
 
 ROOT := $(shell pwd)
-GO := docker run --rm --link consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
+GO := docker run --rm --link containerbuddy_consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
 
 clean:
 	rm -rf build # .godeps
@@ -23,11 +23,18 @@ build: .godeps
 	chmod +x ${ROOT}/build/containerbuddy
 
 # run unit tests and exec test
-test: .godeps
+test: .godeps consul
 	${GO} vet
 	${GO} test -v -coverprofile=/root/coverage.out
+	docker rm -f containerbuddy_consul || true
 
 # run main
-run: .godeps
+run: .godeps consul
 	@docker rm containerbuddy || true
 	docker run -d --name containerbuddy -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go run main.go /root/examples/test.sh sleepStuff -debug
+
+# run consul
+consul:
+	docker rm -f containerbuddy_consul || true
+	docker run -d -m 256m --name containerbuddy_consul \
+		progrium/consul:latest -server -bootstrap-expect 1 -ui-dir /ui
