@@ -13,19 +13,23 @@ type DiscoveryService interface {
 
 type Consul struct {
 	client           *consul.Client
+	Address          string
+	Ports            []int
 	ServiceName      string
 	TTL              int
 	UpstreamServices []string
 	LastState        interface{}
 }
 
-func NewConsulConfig(uri, serviceName string, ttl int, toCheck []string) *Consul {
+func NewConsulConfig(uri, serviceName, address string, ports []int, ttl int, toCheck []string) *Consul {
 	client, _ := consul.NewClient(&consul.Config{
 		Address: uri,
 		Scheme:  "http",
 	})
 	config := &Consul{
 		client:           client,
+		Address:          address,
+		Ports:            ports,
 		ServiceName:      serviceName,
 		TTL:              ttl,
 		UpstreamServices: toCheck,
@@ -43,8 +47,8 @@ func (c *Consul) WriteHealthCheck() {
 			&consul.AgentServiceRegistration{
 				ID:      c.ServiceName, // TODO: name vs ID???
 				Name:    c.ServiceName, // TODO: name vs ID???
-				Port:    0,             // TODO: need to get address:port from config
-				Address: "127.0.0.1",   // TODO: need to get address:port from config
+				Port:    c.Ports[0],    // TODO: need to support multiple ports
+				Address: c.Address,
 				Check: &consul.AgentServiceCheck{
 					TTL: fmt.Sprintf("%ds", c.TTL),
 				},

@@ -11,8 +11,8 @@ import (
 
 func main() {
 	config := parseArgs()
-	healthQuit := poll(config, checkHealth, config.healthCheckExec)
-	changeQuit := poll(config, checkForChanges, config.onChangeExec)
+	healthQuit := poll(config, checkHealth, config.HealthCheckExec)
+	changeQuit := poll(config, checkForChanges, config.OnChangeExec)
 
 	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
 	// TODO: do we really need this?
@@ -42,7 +42,7 @@ type pollingFunc func(*Config, ...string)
 // Every `pollTime` seconds, run the `pollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
 func poll(config *Config, fn pollingFunc, args ...string) chan bool {
-	ticker := time.NewTicker(time.Duration(config.pollTime) * time.Second)
+	ticker := time.NewTicker(time.Duration(config.PollTime) * time.Second)
 	quit := make(chan bool)
 	go func() {
 		for {

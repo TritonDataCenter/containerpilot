@@ -8,7 +8,7 @@ import (
 // Verify we have no obvious crashing paths in the poll code and that we handle
 // a closed channel immediately as expected and gracefully.
 func TestPoll(t *testing.T) {
-	quit := poll(&Config{pollTime: 1}, func(config *Config, args ...string) {
+	quit := poll(&Config{PollTime: 1}, func(config *Config, args ...string) {
 		time.Sleep(5 * time.Second)
 		t.Errorf("We should never reach this code because the channel should close.")
 		return
