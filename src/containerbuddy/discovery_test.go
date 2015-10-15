@@ -5,7 +5,7 @@ import (
 )
 
 func setupConsul() *Config {
-	return &Config{
+	config := &Config{
 		DiscoveryService: NewConsulConfig(
 			"consul:8500",
 			"testService",
@@ -17,9 +17,25 @@ func setupConsul() *Config {
 		HealthCheckExec: "/bin/true",
 		OnChangeExec:    "/bin/true",
 	}
+	return config
 }
 
 func TestTTLPass(t *testing.T) {
 	config := setupConsul()
-	config.DiscoveryService.WriteHealthCheck()
+	consul := config.DiscoveryService.(Consul)
+	id := consul.ServiceId
+
+	config.DiscoveryService.WriteHealthCheck() // force registration
+	checks, _ := consul.client.Agent().Checks()
+	check := checks[id]
+	if check.Status != "critical" {
+		t.Errorf("status of check %s should be 'critical' but is %s", id, check.Status)
+	}
+
+	config.DiscoveryService.WriteHealthCheck() // write TTL and verify
+	checks, _ = consul.client.Agent().Checks()
+	check = checks[id]
+	if check.Status != "passing" {
+		t.Errorf("status of check %s should be 'passing' but is %s", id, check.Status)
+	}
 }
