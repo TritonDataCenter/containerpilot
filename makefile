@@ -17,7 +17,7 @@ clean:
 	GOPATH=${ROOT}/.godeps:${ROOT} go get github.com/hashicorp/consul/api
 
 # build our binary in a container
-build: .godeps
+build: .godeps consul
 	mkdir -p build
 	${GO} build -a -o /root/build/containerbuddy
 	chmod +x ${ROOT}/build/containerbuddy

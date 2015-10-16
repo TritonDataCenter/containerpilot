@@ -1,0 +1,42 @@
+consul:
+    image: progrium/consul:latest
+    command: >
+      -server
+      -bootstrap-expect 1
+      -ui-dir /ui
+    mem_limit: 256m
+    ports:
+    - 53
+    - 8300
+    - 8301
+    - 8302
+    - 8400
+    - 8500
+    - 8600
+    restart: always
+
+nginx:
+    image: 0x74696d/containerbuddy-demo-nginx
+    mem_limit: 512m
+    ports:
+    - 80
+    links:
+    - consul:consul
+    restart: always
+    command: >
+      /opt/containerbuddy/containerbuddy
+      -config file:///opt/containerbuddy/nginx.json
+      nginx -g "daemon off;"
+
+app:
+    image: 0x74696d/containerbuddy-demo-nginx
+    mem_limit: 512m
+    ports:
+    - 80
+    links:
+    - consul:consul
+    restart: always
+    command: >
+      /opt/containerbuddy/containerbuddy
+      -config file:///opt/containerbuddy/app.json
+      nginx -g "daemon off;"
