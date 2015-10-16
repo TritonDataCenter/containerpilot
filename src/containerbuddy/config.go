@@ -12,9 +12,9 @@ import (
 )
 
 type Config struct {
-	DiscoveryUri string          `json:"consul"` // TODO: allow choice of discovery here
-	Services     []ServiceConfig `json:"services"`
-	Backends     []BackendConfig `json:"backends"`
+	DiscoveryUri string           `json:"consul"` // TODO: allow choice of discovery here
+	Services     []*ServiceConfig `json:"services"`
+	Backends     []*BackendConfig `json:"backends"`
 }
 
 type ServiceConfig struct {
@@ -46,14 +46,14 @@ type Pollable interface {
 func (b BackendConfig) PollTime() int {
 	return b.Poll
 }
-func (b BackendConfig) CheckForUpstreamChanges() bool {
+func (b *BackendConfig) CheckForUpstreamChanges() bool {
 	return b.discoveryService.CheckForUpstreamChanges(b)
 }
 
 func (s ServiceConfig) PollTime() int {
 	return s.Poll
 }
-func (s ServiceConfig) WriteHealthCheck() {
+func (s *ServiceConfig) WriteHealthCheck() {
 	s.discoveryService.WriteHealthCheck(s)
 }
 

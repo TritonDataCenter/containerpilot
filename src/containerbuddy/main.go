@@ -13,10 +13,10 @@ func main() {
 	config := loadConfig()
 	var quit []chan bool
 	for _, backend := range config.Backends {
-		quit = append(quit, poll(backend, checkForChanges, backend.OnChangeExec))
+		quit = append(quit, poll(backend, checkForChanges, backend.onChangeArgs))
 	}
 	for _, service := range config.Services {
-		quit = append(quit, poll(service, checkHealth, service.HealthCheckExec))
+		quit = append(quit, poll(service, checkHealth, service.healthArgs))
 	}
 
 	// gracefully clean up so that our docker logs aren't cluttered after an exit 0

@@ -8,8 +8,8 @@ import (
 func setupConsul(serviceName string) *Config {
 	consul := NewConsulConfig("consul:8500")
 	config := &Config{
-		Services: []ServiceConfig{
-			ServiceConfig{
+		Services: []*ServiceConfig{
+			&ServiceConfig{
 				Id:               serviceName,
 				Name:             serviceName,
 				ipAddress:        "192.168.1.1",
@@ -18,8 +18,8 @@ func setupConsul(serviceName string) *Config {
 				discoveryService: consul,
 			},
 		},
-		Backends: []BackendConfig{
-			BackendConfig{
+		Backends: []*BackendConfig{
+			&BackendConfig{
 				Name:             serviceName,
 				discoveryService: consul,
 			},
@@ -55,20 +55,20 @@ func TestCheckForChanges(t *testing.T) {
 	service := config.Services[0]
 	consul := backend.discoveryService.(Consul)
 	id := service.Id
-	if consul.checkHealth(backend) {
+	if consul.checkHealth(*backend) {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
 	service.WriteHealthCheck() // force registration
 	service.WriteHealthCheck() // write TTL
 
-	if !consul.checkHealth(backend) {
+	if !consul.checkHealth(*backend) {
 		t.Errorf("%v should have changed after first health check TTL", id)
 	}
-	if consul.checkHealth(backend) {
+	if consul.checkHealth(*backend) {
 		t.Errorf("%v should not have changed without TTL expiring", id)
 	}
 	time.Sleep(2 * time.Second) // wait for TTL to expire
-	if !consul.checkHealth(backend) {
+	if !consul.checkHealth(*backend) {
 		t.Errorf("%v should have changed after TTL expired.", id)
 	}
 	service.WriteHealthCheck() // re-write TTL
