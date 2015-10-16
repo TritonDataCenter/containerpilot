@@ -7,15 +7,49 @@ import (
 	"testing"
 )
 
-func TestArgParse(t *testing.T) {
+var testJson = `{
+    "consul": "consul:8500",
+    "services": [
+        {
+            "name": "serviceA",
+            "port": 8080,
+            "health": "/bin/to/healthcheck/for/service/A.sh",
+            "poll": 30,
+            "ttl": 19
+        },
+        {
+            "name": "serviceB",
+            "port": 5000,
+            "health": "/bin/to/healthcheck/for/service/B.sh",
+            "poll": 30,
+            "ttl": 103
+        }
+    ],
+    "backends": [
+        {
+            "name": "upstreamA",
+            "poll": 11,
+            "onChange": "/bin/to/onChangeEvent/for/upstream/A.sh"
+        },
+        {
+            "name": "upstreamB",
+            "poll": 79,
+            "onChange": "/bin/to/onChangeEvent/for/upstream/B.sh"
+        }
+    ]
+}
+`
+
+func TestConfigParse(t *testing.T) {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	flag.Usage = nil
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
-	os.Args = []string{"this", "-poll", "20", "/root/examples/test.sh", "doStuff", "--debug"}
-	config := parseArgs()
-	if config.PollTime != 20 {
-		t.Errorf("Expected PollTime to be 20 but got: %d", config.PollTime)
+	os.Args = []string{"this", "-config", testJson, "/root/examples/test.sh", "doStuff", "--debug"}
+	config := loadConfig()
+
+	if len(config.Backends) != 2 || len(config.Services) != 2 {
+		t.Errorf("Expected 2 backends and 2 services but got: %v", config)
 	}
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/root/examples/test.sh" {

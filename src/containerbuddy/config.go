@@ -1,82 +1,105 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 )
 
 type Config struct {
-	DiscoveryService DiscoveryService
-	PollTime         int
-	HealthCheckExec  string
-	OnChangeExec     string
+	DiscoveryUri string          `json:"consul"` // TODO: allow choice of discovery here
+	Services     []ServiceConfig `json:"services"`
+	Backends     []BackendConfig `json:"backends"`
 }
 
-// type alias to deal with parsing multiple -check params
-type arrayFlags []string
-
-func (i *arrayFlags) String() string { return strings.Join([]string(*i), ",") }
-func (i *arrayFlags) Set(value string) error {
-	*i = append(*i, value)
-	return nil
+type ServiceConfig struct {
+	Id               string
+	Name             string `json:"name"`
+	Poll             int    `json:"poll"` // time in seconds
+	HealthCheckExec  string `json:"health"`
+	Port             int    `json:"port"`
+	TTL              int    `json:"ttl"`
+	IsPublic         bool   `json:"publicIp"` // will default to false
+	discoveryService DiscoveryService
+	healthArgs       []string
+	ipAddress        string
 }
 
-func parseArgs() *Config {
-	var (
-		discoveryUri    = flag.String("consul", "consul:8500", "Hostname and port for consul.")
-		pollTime        = flag.Int("poll", 10, "Number of seconds to wait between polling health check")
-		healthCheckExec = flag.String("health", "", "Executable to run to check the health of the application.")
-		serviceName     = flag.String("name", "", "Name of service to register.")
-		onChangeExec    = flag.String("onChange", "", "Executable to run when the discovery service has changes.")
-		usePublicIP     = flag.Bool("public", false, "Publish the public IP rather than the private IP to the discovery service (default false)")
-		toCheck         arrayFlags
-		portArgs        arrayFlags
-	)
+type BackendConfig struct {
+	Name             string `json:"name"`
+	Poll             int    `json:"poll"` // time in seconds
+	OnChangeExec     string `json:"onChange"`
+	discoveryService DiscoveryService
+	onChangeArgs     []string
+	lastState        interface{}
+}
 
-	flag.Var(&portArgs, "port", "Port(s) to publish to the discovery service (accepts multiple).")
-	flag.Var(&toCheck, "check", "Service(s) to check for changes (accepts multiple).")
+type Pollable interface {
+	PollTime() int
+}
+
+func (b BackendConfig) PollTime() int {
+	return b.Poll
+}
+func (b BackendConfig) CheckForUpstreamChanges() bool {
+	return b.discoveryService.CheckForUpstreamChanges(b)
+}
+
+func (s ServiceConfig) PollTime() int {
+	return s.Poll
+}
+func (s ServiceConfig) WriteHealthCheck() {
+	s.discoveryService.WriteHealthCheck(s)
+}
+
+func loadConfig() *Config {
+	var configFlag = flag.String("config", "", "JSON config or file:// path to JSON config file.")
 	flag.Parse()
+	config := parseConfig(*configFlag)
+	discovery := NewConsulConfig(config.DiscoveryUri)
 
-	ports, err := arrayAtoi(portArgs)
-	if err != nil {
-		log.Fatalf("Invalid -port argument(s): %s", portArgs)
+	for _, backend := range config.Backends {
+		backend.discoveryService = discovery
+		backend.onChangeArgs = strings.Split(backend.OnChangeExec, " ")
 	}
 
-	// TODO: we need a better way to determine the right TTL
-	ttl := *pollTime * 2
 	hostname, _ := os.Hostname()
-
-	config := &Config{
-		DiscoveryService: NewConsulConfig(
-			*discoveryUri,
-			*serviceName,
-			fmt.Sprintf("%s-%s", *serviceName, hostname),
-			getIp(*usePublicIP),
-			ports,
-			ttl,
-			toCheck),
-		PollTime:        *pollTime,
-		HealthCheckExec: *healthCheckExec,
-		OnChangeExec:    *onChangeExec,
+	for _, service := range config.Services {
+		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
+		service.discoveryService = discovery
+		service.healthArgs = strings.Split(service.HealthCheckExec, " ")
+		service.ipAddress = getIp(service.IsPublic)
 	}
+
 	return config
 }
 
-func arrayAtoi(args arrayFlags) ([]int, error) {
-	var ints = []int{}
-	for _, i := range args {
-		if j, err := strconv.Atoi(i); err != nil {
-			return nil, err
-		} else {
-			ints = append(ints, j)
-		}
+func parseConfig(configFlag string) *Config {
+	if configFlag == "" {
+		log.Fatal("-config flag is required.")
 	}
-	return ints, nil
+
+	var data []byte
+	if strings.HasPrefix(configFlag, "file://") {
+		var err error
+		if data, err = ioutil.ReadFile(strings.SplitAfter(configFlag, "file://")[1]); err != nil {
+			log.Fatalf("Could not read config file: %s", err)
+		}
+	} else {
+		data = []byte(configFlag)
+	}
+
+	config := &Config{}
+	if err := json.Unmarshal(data, &config); err != nil {
+		log.Fatalf("Could not parse configuration: %s", err)
+	}
+
+	return config
 }
 
 // determine the IP address of the container

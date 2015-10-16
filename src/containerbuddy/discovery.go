@@ -8,73 +8,56 @@ import (
 )
 
 type DiscoveryService interface {
-	WriteHealthCheck()
-	CheckForUpstreamChanges() bool
+	WriteHealthCheck(ServiceConfig)
+	CheckForUpstreamChanges(BackendConfig) bool
 }
 
-type Consul struct {
-	client           *consul.Client
-	Address          string
-	Ports            []int
-	ServiceName      string
-	ServiceId        string
-	TTL              int
-	UpstreamServices []string
-	LastState        interface{}
-}
+type Consul struct{ consul.Client }
 
-func NewConsulConfig(uri, serviceId, serviceName, address string, ports []int, ttl int, toCheck []string) Consul {
+func NewConsulConfig(uri string) Consul {
 	client, _ := consul.NewClient(&consul.Config{
 		Address: uri,
 		Scheme:  "http",
 	})
-	config := &Consul{
-		client:           client,
-		Address:          address,
-		Ports:            ports,
-		ServiceName:      serviceName,
-		ServiceId:        serviceId,
-		TTL:              ttl,
-		UpstreamServices: toCheck,
-	}
+	config := &Consul{*client}
 	return *config
 }
 
 // WriteHealthCheck writes a TTL check status=ok to the consul store.
 // If consul has never seen this service, we register the service and
 // its TTL check.
-func (c Consul) WriteHealthCheck() {
-	if err := c.client.Agent().PassTTL(c.ServiceId, "ok"); err != nil {
+func (c Consul) WriteHealthCheck(service ServiceConfig) {
+	if err := c.Agent().PassTTL(service.Id, "ok"); err != nil {
 		log.Printf("%v\nService not registered, registering...", err)
-		if err = c.registerService(); err != nil {
+		if err = c.registerService(service); err != nil {
 			log.Printf("Service registration failed: %s\n", err)
 		}
-		if err = c.registerCheck(); err != nil {
+		if err = c.registerCheck(service); err != nil {
 			log.Printf("Check registration failed: %s\n", err)
 		}
 	}
 }
 
-func (c *Consul) registerService() error {
-	return c.client.Agent().ServiceRegister(
+func (c *Consul) registerService(service ServiceConfig) error {
+	return c.Agent().ServiceRegister(
 		&consul.AgentServiceRegistration{
-			ID:      c.ServiceId,
-			Name:    c.ServiceName,
-			Port:    c.Ports[0], // TODO: need to support multiple ports
-			Address: c.Address,
+			ID:      service.Id,
+			Name:    service.Name,
+			Port:    service.Port,
+			Address: service.ipAddress,
 		},
 	)
 }
 
-func (c *Consul) registerCheck() error {
-	return c.client.Agent().CheckRegister(
+func (c *Consul) registerCheck(service ServiceConfig) error {
+	return c.Agent().CheckRegister(
 		&consul.AgentCheckRegistration{
-			ID:        c.ServiceId,
-			Name:      c.ServiceId,
-			Notes:     fmt.Sprintf("TTL for %s set by containerbuddy", c.ServiceName),
-			ServiceID: c.ServiceId,
+			ID:        service.Id,
+			Name:      service.Id,
+			Notes:     fmt.Sprintf("TTL for %s set by containerbuddy", service.Name),
+			ServiceID: service.Id,
 			AgentServiceCheck: consul.AgentServiceCheck{
-				TTL: fmt.Sprintf("%ds", c.TTL),
+				TTL: fmt.Sprintf("%ds", service.TTL),
 			},
 		},
 	)
@@ -82,25 +65,20 @@ func (c *Consul) registerCheck() error {
 
 var upstreams = make(map[string][]*consul.ServiceEntry)
 
-func (c Consul) CheckForUpstreamChanges() bool {
-	for _, service := range c.UpstreamServices {
-		if c.checkHealth(service) {
-			return true
-		}
-	}
-	return false
+func (c Consul) CheckForUpstreamChanges(backend BackendConfig) bool {
+	return c.checkHealth(backend)
 }
 
-func (c *Consul) checkHealth(upstream string) bool {
-	if services, meta, err := c.client.Health().Service(upstream, "", true, nil); err != nil {
-		log.Printf("Failed to query %v: %s [%v]", upstream, err, meta)
+func (c *Consul) checkHealth(backend BackendConfig) bool {
+	if services, meta, err := c.Health().Service(backend.Name, "", true, nil); err != nil {
+		log.Printf("Failed to query %v: %s [%v]", backend.Name, err, meta)
 		return false
 	} else {
-		didChange := compareForChange(upstreams[c.ServiceId], services)
+		didChange := compareForChange(upstreams[backend.Name], services)
 		if didChange || len(services) == 0 {
 			// We don't want to cause an onChange event the first time we read-in
 			// but we do want to make sure we've written the key for this map
-			upstreams[c.ServiceId] = services
+			upstreams[backend.Name] = services
 		}
 		return didChange
 	}

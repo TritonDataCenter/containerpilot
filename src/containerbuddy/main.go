@@ -10,15 +10,21 @@ import (
 )
 
 func main() {
-	config := parseArgs()
-	healthQuit := poll(config, checkHealth, config.HealthCheckExec)
-	changeQuit := poll(config, checkForChanges, config.OnChangeExec)
+	config := loadConfig()
+	var quit []chan bool
+	for _, backend := range config.Backends {
+		quit = append(quit, poll(backend, checkForChanges, backend.OnChangeExec))
+	}
+	for _, service := range config.Services {
+		quit = append(quit, poll(service, checkHealth, service.HealthCheckExec))
+	}
 
 	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
 	// TODO: do we really need this?
 	defer func() {
-		close(healthQuit)
-		close(changeQuit)
+		for _, ch := range quit {
+			close(ch)
+		}
 	}()
 
 	if len(flag.Args()) != 0 {
@@ -37,12 +43,12 @@ func main() {
 	select {}
 }
 
-type pollingFunc func(*Config, ...string)
+type pollingFunc func(Pollable, ...string)
 
 // Every `pollTime` seconds, run the `pollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
-func poll(config *Config, fn pollingFunc, args ...string) chan bool {
-	ticker := time.NewTicker(time.Duration(config.PollTime) * time.Second)
+func poll(config Pollable, fn pollingFunc, args ...string) chan bool {
+	ticker := time.NewTicker(time.Duration(config.PollTime()) * time.Second)
 	quit := make(chan bool)
 	go func() {
 		for {
@@ -60,16 +66,18 @@ func poll(config *Config, fn pollingFunc, args ...string) chan bool {
 // Implements `pollingFunc`; args are the executable we use to check the
 // application health and its arguments. If the error code on that exectable is
 // 0, we write a TTL health check to the health check store.
-func checkHealth(config *Config, args ...string) {
+func checkHealth(pollable Pollable, args ...string) {
+	service := pollable.(ServiceConfig) // if we pass a bad type here we crash intentionally
 	if code, _ := run(args...); code == 0 {
-		config.DiscoveryService.WriteHealthCheck()
+		service.WriteHealthCheck()
 	}
 }
 
 // Implements `pollingFunc`; args are the executable we run if the values in
 // the central store have changed since the last run.
-func checkForChanges(config *Config, args ...string) {
-	if config.DiscoveryService.CheckForUpstreamChanges() {
+func checkForChanges(pollable Pollable, args ...string) {
+	backend := pollable.(BackendConfig) // if we pass a bad type here we crash intentionally
+	if backend.CheckForUpstreamChanges() {
 		run(args...)
 	}
 }
