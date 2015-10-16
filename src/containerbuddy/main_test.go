@@ -9,17 +9,17 @@ import (
 // a closed channel immediately as expected and gracefully.
 func TestPoll(t *testing.T) {
 	service := &ServiceConfig{Poll: 1}
-	quit := poll(service, func(service Pollable, args ...string) {
+	quit := poll(service, func(service Pollable, args []string) {
 		time.Sleep(5 * time.Second)
 		t.Errorf("We should never reach this code because the channel should close.")
 		return
-	}, "exec", "arg1")
+	}, []string{"exec", "arg1"})
 	close(quit)
 }
 
 func TestRunSuccess(t *testing.T) {
 	args := []string{"/root/examples/test/test.sh", "doStuff", "--debug"}
-	if exitCode, _ := run(args...); exitCode != 0 {
+	if exitCode, _ := run(args); exitCode != 0 {
 		t.Errorf("Expected exit code 0 but got %d", exitCode)
 	}
 }
@@ -31,7 +31,7 @@ func TestRunFailed(t *testing.T) {
 		}
 	}()
 	args := []string{"/root/examples/test/test.sh", "failStuff", "--debug"}
-	if exitCode, _ := run(args...); exitCode != 255 {
+	if exitCode, _ := run(args); exitCode != 255 {
 		t.Errorf("Expected exit code 255 but got %d", exitCode)
 	}
 }
