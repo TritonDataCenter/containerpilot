@@ -3,21 +3,21 @@
   "services": [
     {
       "name": "app",
-      "port": 80,
-      "health": "/usr/bin/curl --fail -s http://localhost/app",
+      "port": 8000,
+      "health": "/usr/bin/curl --fail -s http://localhost:8000",
       "poll": 10,
-      "ttl": 30
+      "ttl": 25
     }
   ],
   "backends": [
     {
       "name": "nginx",
-      "poll": 30,
+      "poll": 7,
       "onChange": "/opt/containerbuddy/reload-app.sh"
     },
     {
       "name": "app",
-      "poll": 10,
+      "poll": 5,
       "onChange": "/opt/containerbuddy/reload-app.sh"
     }
   ]

@@ -29,14 +29,14 @@ nginx:
       nginx -g "daemon off;"
 
 app:
-    image: 0x74696d/containerbuddy-demo-nginx
+    image: 0x74696d/containerbuddy-demo-app
     mem_limit: 512m
     ports:
-    - 80
+    - 8000
     links:
     - consul:consul
     restart: always
     command: >
       /opt/containerbuddy/containerbuddy
       -config file:///opt/containerbuddy/app.json
-      nginx -g "daemon off;"
+      /usr/local/bin/node /usr/local/bin/http-server /srv -p 8000
