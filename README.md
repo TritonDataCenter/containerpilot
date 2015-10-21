@@ -1,22 +1,22 @@
 # containerbuddy
 
-*A service for assisting discovery and configuration of legacy applications running in containers.*
+*A service for assisting discovery and configuration of applications running in containers.*
 
 
-### Container-Native vs Legacy Applications
+### Container-native applications vs all the rest
 
-Applications in containers typically need to talk to a source of truth to discover their upstream services and tell their downstream services where to find them. Container-native applications come into the world understanding this responsibility, but no one wants to rewrite all our legacy applications to do this.
+Applications in containers typically need to talk to a source of truth to discover their upstream services and tell their downstream services where to find them. Container-native applications come into the world understanding this responsibility, but no one wants to rewrite all our current applications to do this.
 
-We can wrap each legacy application in a shell script that registers itself with the discovery service easily enough, but watching for changes to that service and ensuring that health checks are being made is more complicated. We can put a second process in the container, but unless we make a supervisor as PID1 then there's no way of knowing whether our buddy process has died.
+We can wrap each application in a shell script that registers itself with the discovery service easily enough, but watching for changes to that service and ensuring that health checks are being made is more complicated. We can put a second process in the container, but unless we make a supervisor as PID1 then there's no way of knowing whether our buddy process has died.
 
 Additionally, discovery services like Consul provide a means of performing health checks from outside our container, but that means packaging the tooling we need into the Consul container. If we need to change the health check, then we end up re-deploying both our application and Consul, which unnecessarily couples the two.
 
 
 ### containerbuddy to the rescue!
 
-containerbuddy is a shim written in Go for legacy applications in containers. It can act as PID1 in the container and fork/exec the legacy application. If the application exits then so does containerbuddy.
+containerbuddy is a shim written in Go to help make it easier to containerize existing applications. It can act as PID1 in the container and fork/exec the application. If the application exits then so does containerbuddy.
 
-Alternately, if your application double-forks (which is not recommended for containerized applications but hey we are taking about legacy apps here!), you can run containerbuddy as a side-by-side buddy process within the container. In that case the container will not die if the application dies, which can create complicated failure modes but which can be mitigated by having a good TTL health check to detect the problem and alert you.
+Alternately, if your application double-forks (which is not recommended for containerized applications but hey we are taking about pre-container apps here!), you can run containerbuddy as a side-by-side buddy process within the container. In that case the container will not die if the application dies, which can create complicated failure modes but which can be mitigated by having a good TTL health check to detect the problem and alert you.
 
 containerbuddy registers the application with Consul on start and periodically sends TTL health checks to Consul; should the application fail then Consul will not receive the health check and once the TTL expires will no longer consider the application node healthy. Meanwhile, containerbuddy runs background workers that poll Consul, checking for changes in dependent/upstream service, and calling an external executable on change.
 
@@ -90,7 +90,7 @@ As yet unimplemented features of containerbuddy include:
 
 ### Running the example
 
-In the `examples/nginx` directory is a simple application demonstrating how containerbuddy works. In this application, an nginx node acts as a reverse proxy for any number of upstream application nodes. The application nodes register themselves with Consul as they come online, and the Nginx application is configured with an `onChange` handler that writes out the new list of upstream nodes in its virtualhost configuration file and then fires a `kill -HUP` signal to Nginx, which causes it to gracefully reload its configuration.
+In the `examples` directory is a simple application demonstrating how containerbuddy works. In this application, an Nginx node acts as a reverse proxy for any number of upstream application nodes. The application nodes register themselves with Consul as they come online, and the Nginx application is configured with an `onChange` handler that writes out the new list of upstream nodes in its virtualhost configuration file and then fires a `kill -HUP` signal to Nginx, which causes it to gracefully reload its configuration.
 
 To try this example on your own:
 
@@ -106,10 +106,8 @@ curl -O https://raw.githubusercontent.com/joyent/sdc-docker/master/tools/sdc-doc
 At this point you can run the example on Triton:
 
 ```bash
-cd ./examples/nginx
-docker-compose -p example up -d
-open http://$(sdc-listmachines -name test_nginx_1 | json -a ips.1)
-open http://$(sdc-listmachines -name test_consul_1 | json -a ips.1):8500/ui
+cd ./examples
+./start -p example
 
 ```
 
@@ -117,9 +115,7 @@ or in your local Docker environment:
 
 ```bash
 cd ./examples/nginx
-docker-compose -f docker-compose-local -p example up -d
-open $(docker-machine ip default):8080
-open $(docker-machine ip default):8500/ui
+./start -p example -f docker-compose-local.yml
 
 ```
 
@@ -129,4 +125,4 @@ Let's scale up the number of `app` nodes:
 docker-compose -p example scale app=3
 ```
 
-As the nodes launch and register themselves with Consul, you'll see them appear in the Consul UI. The example configuration here polls only every 30 seconds, so it will take a moment for the web page for Nginx to show the new upstreams.
+As the nodes launch and register themselves with Consul, you'll see them appear in the Consul UI. The web page that the start script opens refreshes itself every 5 seconds, so once you've added new application containers you'll start seeing the "This page served by app server: <container ID>" change in a round-robin fashion.
