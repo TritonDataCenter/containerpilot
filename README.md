@@ -30,7 +30,11 @@ containerbuddy takes a single file argument (or a JSON string) as its configurat
 
 ```bash
 # configure via passing a file argument
-containerbuddy -config file:///opt/containerbuddy/app.json myapp --args --for --my --app
+$ containerbuddy -config file:///opt/containerbuddy/app.json myapp --args --for --my --app
+
+# configure via environment variable
+$ export CONTAINERBUDDY=file:///opt/containerbuddy/app.json
+$ containerbuddy myapp --args --for --my --app
 
 ```
 

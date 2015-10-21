@@ -23,9 +23,10 @@ nginx:
     links:
     - consul:consul
     restart: always
+    environment:
+    - CONTAINERBUDDY=file:///opt/containerbuddy/nginx.json
     command: >
       /opt/containerbuddy/containerbuddy
-      -config file:///opt/containerbuddy/nginx.json
       nginx -g "daemon off;"
 
 app:

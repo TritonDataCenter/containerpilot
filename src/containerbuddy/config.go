@@ -58,9 +58,15 @@ func (s *ServiceConfig) WriteHealthCheck() {
 }
 
 func loadConfig() *Config {
-	var configFlag = flag.String("config", "", "JSON config or file:// path to JSON config file.")
+
+	var configFlag string
+	flag.StringVar(&configFlag, "config", "", "JSON config or file:// path to JSON config file.")
 	flag.Parse()
-	config := parseConfig(*configFlag)
+	if configFlag == "" {
+		configFlag = os.Getenv("CONTAINERBUDDY")
+	}
+
+	config := parseConfig(configFlag)
 	discovery := NewConsulConfig(config.DiscoveryUri)
 
 	for _, backend := range config.Backends {
