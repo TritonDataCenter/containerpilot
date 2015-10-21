@@ -27,5 +27,4 @@ _testmain.go
 coverage.out
 .godeps/
 build/
-examples/nginx/containerbuddy/containerbuddy
-examples/nginx/.base
+containerbuddy

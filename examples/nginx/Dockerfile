@@ -13,8 +13,5 @@ RUN curl -Lo /tmp/consul_template_0.11.0_linux_amd64.zip https://github.com/hash
     mv consul-template /bin
 
 # add containerbuddy and all our configuration
-RUN mkdir /opt/containerbuddy
-ADD containerbuddy/* /opt/containerbuddy/
-
-# add a default Nginx configuration
-ADD nginx/default.conf /etc/nginx/conf.d/default.conf
+ADD opt/containerbuddy /opt/containerbuddy/
+ADD etc/nginx/conf.d /etc/nginx/conf.d/

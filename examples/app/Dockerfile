@@ -11,5 +11,4 @@ RUN apt-get update && \
 RUN npm install -g json http-server
 
 # add containerbuddy and all our configuration
-RUN mkdir /opt/containerbuddy
-ADD containerbuddy/* /opt/containerbuddy/
+ADD opt/containerbuddy /opt/containerbuddy/

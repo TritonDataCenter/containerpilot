@@ -21,8 +21,7 @@ consul:
     restart: always
 
 nginx:
-    build: .
-    dockerfile: Dockerfile-nginx
+    build: nginx/
     mem_limit: 512m
     expose:
     - 80
@@ -37,8 +36,7 @@ nginx:
       nginx -g "daemon off;"
 
 app:
-    build: .
-    dockerfile: Dockerfile-app
+    build: app/
     mem_limit: 512m
     expose:
     - 8000

@@ -7,9 +7,10 @@ SHELL := /bin/bash
 
 ROOT := $(shell pwd)
 
-# build Nginx example
+# build Nginx and App examples
 build:
-	cp ${ROOT}/../../build/containerbuddy ${ROOT}/containerbuddy
+	cp ${ROOT}/../build/containerbuddy ${ROOT}/nginx/opt/containerbuddy/containerbuddy
+	cp ${ROOT}/../build/containerbuddy ${ROOT}/app/opt/containerbuddy/containerbuddy
 	docker-compose -f docker-compose-local.yml -p example build --no-cache
 
 # ship Nginx and App example to registry
