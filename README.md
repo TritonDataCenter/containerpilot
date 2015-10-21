@@ -90,7 +90,7 @@ As yet unimplemented features of containerbuddy include:
 
 ### Running the example
 
-In the `examples` directory is a simple application demonstrating how containerbuddy works. In this application, an Nginx node acts as a reverse proxy for any number of upstream application nodes. The application nodes register themselves with Consul as they come online, and the Nginx application is configured with an `onChange` handler that writes out the new list of upstream nodes in its virtualhost configuration file and then fires a `kill -HUP` signal to Nginx, which causes it to gracefully reload its configuration.
+In the `examples` directory is a simple application demonstrating how containerbuddy works. In this application, an Nginx node acts as a reverse proxy for any number of upstream application nodes. The application nodes register themselves with Consul as they come online, and the Nginx application is configured with an `onChange` handler that uses `consul-template` to write out a new virtualhost configuration file and then fires an `nginx -s reload` signal to Nginx, which causes it to gracefully reload its configuration.
 
 To try this example on your own:
 
