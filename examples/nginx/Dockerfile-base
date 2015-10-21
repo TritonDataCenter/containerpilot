@@ -1,3 +1,0 @@
-# minimal Nginx base with curl and jq
-FROM nginx:latest
-RUN apt-get update && apt-get install -y curl jq

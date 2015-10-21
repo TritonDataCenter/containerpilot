@@ -1,6 +1,3 @@
-# This demonstration of containerbuddy has port mappings so we can use it
-# on docker-machine locally.
-
 consul:
     image: progrium/consul:latest
     command: >
@@ -8,7 +5,7 @@ consul:
       -bootstrap-expect 1
       -ui-dir /ui
     mem_limit: 256m
-    expose:
+    ports:
     - 53
     - 8300
     - 8301
@@ -16,19 +13,15 @@ consul:
     - 8400
     - 8500
     - 8600
-    ports:
-    - 8500:8500
     restart: always
 
 nginx:
-    build: .
+    image: 0x74696d/containerbuddy-demo-nginx
     mem_limit: 512m
-    expose:
+    ports:
     - 80
     links:
     - consul:consul
-    ports:
-    - 8080:80
     restart: always
     command: >
       /opt/containerbuddy/containerbuddy
@@ -36,16 +29,14 @@ nginx:
       nginx -g "daemon off;"
 
 app:
-    build: .
+    image: 0x74696d/containerbuddy-demo-app
     mem_limit: 512m
-    expose:
-    - 80
+    ports:
+    - 8000
     links:
     - consul:consul
-    ports:
-    - 8000:80
     restart: always
     command: >
       /opt/containerbuddy/containerbuddy
       -config file:///opt/containerbuddy/app.json
-      nginx -g "daemon off;"
+      /usr/local/bin/node /usr/local/bin/http-server /srv -p 8000
