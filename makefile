@@ -13,8 +13,9 @@ clean:
 
 # fetch dependencies
 .godeps:
-	mkdir -p .godeps/
-	GOPATH=${ROOT}/.godeps:${ROOT} go get github.com/hashicorp/consul/api
+	mkdir -p .godeps/src/github.com/hashicorp
+	git clone https://github.com/hashicorp/consul.git .godeps/src/github.com/hashicorp/consul
+	cd .godeps/src/github.com/hashicorp/consul && git checkout 158eabdd6f2408067c1d7656fa10e49434f96480
 
 # build our binary in a container
 build: .godeps consul
