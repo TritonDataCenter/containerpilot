@@ -27,4 +27,5 @@ _testmain.go
 coverage.out
 .godeps/
 build/
+release/
 containerbuddy
