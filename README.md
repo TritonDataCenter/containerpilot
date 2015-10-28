@@ -48,7 +48,7 @@ The format of the JSON file configuration is as follows:
       "name": "app",
       "port": 80,
       "health": "/usr/bin/curl --fail -s http://localhost/app",
-      "public": false,
+      "publicIp": false,
       "poll": 10,
       "ttl": 30
     }
@@ -72,7 +72,7 @@ Service fields:
 - `name` is the name of the service as it will appear in Consul. Each instance of the service will have a unique ID made up from `name`+hostname of the container.
 - `port` is the port the service will advertise to Consul.
 - `health` is the executable (and its arguments) used to check the health of the service.
-- `public` is an optional boolean flag indicating whether the service should advertise its public IP, rather than its private IP (defaults to private/`false`).
+- `publicIp` is an optional boolean flag indicating whether the service should advertise its public IP, rather than its private IP (defaults to private/`false`).
 - `poll` is the time in seconds between polling for health checks.
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 
