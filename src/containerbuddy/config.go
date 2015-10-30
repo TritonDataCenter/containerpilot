@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	DiscoveryUri string           `json:"consul"` // TODO: allow choice of discovery here
+	Consul	     *string          `json:"consul"`
 	Services     []*ServiceConfig `json:"services"`
 	Backends     []*BackendConfig `json:"backends"`
 }
@@ -60,6 +60,8 @@ func (s *ServiceConfig) WriteHealthCheck() {
 func loadConfig() *Config {
 
 	var configFlag string
+	var discovery DiscoveryService
+	discoveryCount := 0
 	flag.StringVar(&configFlag, "config", "", "JSON config or file:// path to JSON config file.")
 	flag.Parse()
 	if configFlag == "" {
@@ -67,7 +69,22 @@ func loadConfig() *Config {
 	}
 
 	config := parseConfig(configFlag)
-	discovery := NewConsulConfig(config.DiscoveryUri)
+
+	for _, discoveryBackend := range []string{"Consul"} {
+		switch discoveryBackend {
+		case "Consul":
+			if config.Consul != nil {
+				discovery = NewConsulConfig(*config.Consul)
+				discoveryCount += 1
+			}
+		}
+	}
+
+	if discoveryCount == 0 {
+		log.Fatal("No discovery backend defined")
+	} else if discoveryCount > 1 {
+		log.Fatal("More than one discovery backend defined")
+	}
 
 	for _, backend := range config.Backends {
 		backend.discoveryService = discovery
