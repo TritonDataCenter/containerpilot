@@ -111,15 +111,20 @@ At this point you can run the example on Triton:
 
 ```bash
 cd ./examples
-./start -p example
+./start.sh -p example
 
 ```
 
 or in your local Docker environment:
 
 ```bash
-cd ./examples/nginx
-./start -p example -f docker-compose-local.yml
+cd ./examples
+curl -Lo containerbuddy-0.0.1-alpha.tar.gz \
+https://github.com/joyent/containerbuddy/releases/download/0.0.1-alpha/containerbuddy-0.0.1-alpha.tar.gz
+tar -xf containerbuddy-0.0.1-alpha.tar.gz
+cp ./build/containerbuddy ./nginx/opt/containerbuddy/
+cp ./build/containerbuddy ./app/opt/containerbuddy/
+./start.sh -p example -f docker-compose-local.yml
 
 ```
 
@@ -128,5 +133,7 @@ Let's scale up the number of `app` nodes:
 ```bash
 docker-compose -p example scale app=3
 ```
+
+(Note that if we scale up app nodes locally we don't have an IP-per-container and this will result in port conflicts.)
 
 As the nodes launch and register themselves with Consul, you'll see them appear in the Consul UI. The web page that the start script opens refreshes itself every 5 seconds, so once you've added new application containers you'll start seeing the "This page served by app server: <container ID>" change in a round-robin fashion.
