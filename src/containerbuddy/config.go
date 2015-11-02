@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	Consul	     *string          `json:"consul"`
+	Consul	     string          `json:"consul,omitempty"`
 	Services     []*ServiceConfig `json:"services"`
 	Backends     []*BackendConfig `json:"backends"`
 }
@@ -73,8 +73,8 @@ func loadConfig() *Config {
 	for _, discoveryBackend := range []string{"Consul"} {
 		switch discoveryBackend {
 		case "Consul":
-			if config.Consul != nil {
-				discovery = NewConsulConfig(*config.Consul)
+			if config.Consul != "" {
+				discovery = NewConsulConfig(config.Consul)
 				discoveryCount += 1
 			}
 		}
