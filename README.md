@@ -83,14 +83,9 @@ Backend fields:
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
 
-### Roadmap
+### Contributing
 
-As yet unimplemented features of containerbuddy include:
-- Accept a `kill -HUP` to force a reload of configuration on external changes.
-- Allow polling or TTLs to be tuned live, maybe by querying a key in Consul.
-- Allow configuration to include tags about the service to register in Consul (ex. "prod", "dev").
-- Allow alternative service discovery backends other than Consul.
-- Reaping health checks from Consul some time after an application has been scaled away; currently if an instance is removed intentionally (rather than simply failing health checks) it will not be automatically removed from Consul.
+Please report any issues you encounter with Containerbuddy or its documentation by opening a Github issue (https://github.com/joyent/containerbuddy/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerbuddy/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
 
 ### Running the example
 
