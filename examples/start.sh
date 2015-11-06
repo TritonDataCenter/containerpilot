@@ -54,7 +54,7 @@ if [ -z "${COMPOSE_CFG}" ]; then
 else
     NGINX_IP=${NGINX_IP:-$(docker-machine ip default)}
 fi
-NGINX_PORT=$(docker inspect ${PREFIX}_nginx_1 | json -a NetworkSettings.Ports."80/tcp".0.HostPort)
+NGINX_PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "80/tcp") 0).HostPort}}' ${PREFIX}_nginx_1)
 echo "Waiting for Nginx at ${NGINX_IP}:${NGINX_PORT} to pick up initial configuration."
 while :
 do

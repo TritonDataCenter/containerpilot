@@ -83,14 +83,9 @@ Backend fields:
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
 
-### Roadmap
+### Contributing
 
-As yet unimplemented features of containerbuddy include:
-- Accept a `kill -HUP` to force a reload of configuration on external changes.
-- Allow polling or TTLs to be tuned live, maybe by querying a key in Consul.
-- Allow configuration to include tags about the service to register in Consul (ex. "prod", "dev").
-- Allow alternative service discovery backends other than Consul.
-- Reaping health checks from Consul some time after an application has been scaled away; currently if an instance is removed intentionally (rather than simply failing health checks) it will not be automatically removed from Consul.
+Please report any issues you encounter with Containerbuddy or its documentation by opening a Github issue (https://github.com/joyent/containerbuddy/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerbuddy/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
 
 ### Running the example
 
@@ -111,15 +106,20 @@ At this point you can run the example on Triton:
 
 ```bash
 cd ./examples
-./start -p example
+./start.sh -p example
 
 ```
 
 or in your local Docker environment:
 
 ```bash
-cd ./examples/nginx
-./start -p example -f docker-compose-local.yml
+cd ./examples
+curl -Lo containerbuddy-0.0.1-alpha.tar.gz \
+https://github.com/joyent/containerbuddy/releases/download/0.0.1-alpha/containerbuddy-0.0.1-alpha.tar.gz
+tar -xf containerbuddy-0.0.1-alpha.tar.gz
+cp ./build/containerbuddy ./nginx/opt/containerbuddy/
+cp ./build/containerbuddy ./app/opt/containerbuddy/
+./start.sh -p example -f docker-compose-local.yml
 
 ```
 
@@ -128,5 +128,7 @@ Let's scale up the number of `app` nodes:
 ```bash
 docker-compose -p example scale app=3
 ```
+
+(Note that if we scale up app nodes locally we don't have an IP-per-container and this will result in port conflicts.)
 
 As the nodes launch and register themselves with Consul, you'll see them appear in the Consul UI. The web page that the start script opens refreshes itself every 5 seconds, so once you've added new application containers you'll start seeing the "This page served by app server: <container ID>" change in a round-robin fashion.
