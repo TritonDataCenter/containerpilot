@@ -91,12 +91,12 @@ func loadConfig() *Config {
 		backend.onChangeArgs = strings.Split(backend.OnChangeExec, " ")
 	}
 
-	hostname, _ := os.Hostname()
 	for _, service := range config.Services {
-		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
+		hostIP := getIp(service.IsPublic)
+		service.Id = fmt.Sprintf("%s-%s", service.Name, hostIP)
 		service.discoveryService = discovery
 		service.healthArgs = strings.Split(service.HealthCheckExec, " ")
-		service.ipAddress = getIp(service.IsPublic)
+		service.ipAddress = hostIP
 	}
 
 	return config
