@@ -12,9 +12,9 @@ import (
 )
 
 type Config struct {
-	Consul	     string          `json:"consul,omitempty"`
-	Services     []*ServiceConfig `json:"services"`
-	Backends     []*BackendConfig `json:"backends"`
+	Consul   string           `json:"consul,omitempty"`
+	Services []*ServiceConfig `json:"services"`
+	Backends []*BackendConfig `json:"backends"`
 }
 
 type ServiceConfig struct {
@@ -55,6 +55,10 @@ func (s ServiceConfig) PollTime() int {
 }
 func (s *ServiceConfig) SendHeartbeat() {
 	s.discoveryService.SendHeartbeat(s)
+}
+
+func (s *ServiceConfig) MarkForMaintenance() {
+	s.discoveryService.MarkForMaintenance(s)
 }
 
 func loadConfig() *Config {

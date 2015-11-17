@@ -10,7 +10,12 @@ import (
 )
 
 func main() {
+
 	config := loadConfig()
+
+	// Set up signal handler for placing instance into maintenance mode
+	handleSignals(config)
+
 	var quit []chan bool
 	for _, backend := range config.Backends {
 		quit = append(quit, poll(backend, checkForChanges, backend.onChangeArgs))
@@ -54,7 +59,9 @@ func poll(config Pollable, fn pollingFunc, args []string) chan bool {
 		for {
 			select {
 			case <-ticker.C:
-				fn(config, args)
+				if !inMaintenanceMode() {
+					fn(config, args)
+				}
 			case <-quit:
 				return
 			}

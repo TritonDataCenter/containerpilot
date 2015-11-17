@@ -18,7 +18,14 @@ func NewConsulConfig(uri string) Consul {
 	return *config
 }
 
-// WriteHealthCheck writes a TTL check status=ok to the consul store.
+// MarkForMaintenance sets the TTL check in Consul to the failing state.
+func (c Consul) MarkForMaintenance(service *ServiceConfig) {
+	if err := c.Agent().FailTTL(service.Id, "maintenance"); err != nil {
+		log.Printf("Marking for maintenance failed: %s\n", err)
+	}
+}
+
+// SendHeartbeat writes a TTL check status=ok to the consul store.
 // If consul has never seen this service, we register the service and
 // its TTL check.
 func (c Consul) SendHeartbeat(service *ServiceConfig) {
