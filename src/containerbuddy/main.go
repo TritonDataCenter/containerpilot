@@ -10,7 +10,10 @@ import (
 )
 
 func main() {
-	config := loadConfig()
+	config, configErr := loadConfig()
+	if configErr != nil {
+		log.Fatal(configErr)
+	}
 
 	// Run the onStart handler, if any, and exit if it returns an error
 	if config.OnStart != "" {

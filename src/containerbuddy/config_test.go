@@ -47,7 +47,7 @@ func TestConfigParse(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 	os.Args = []string{"this", "-config", testJson, "/root/examples/test.sh", "doStuff", "--debug"}
-	config := loadConfig()
+	config, _ := loadConfig()
 
 	if len(config.Backends) != 2 || len(config.Services) != 2 {
 		t.Errorf("Expected 2 backends and 2 services but got: %v", config)
