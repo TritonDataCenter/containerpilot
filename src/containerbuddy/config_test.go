@@ -9,6 +9,7 @@ import (
 
 var testJson = `{
     "consul": "consul:8500",
+    "onStart": "/bin/to/onStart.sh",
     "services": [
         {
             "name": "serviceA",
@@ -54,6 +55,9 @@ func TestConfigParse(t *testing.T) {
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/root/examples/test.sh" {
 		t.Errorf("Expected 3 args but got unexpected results: %v", args)
+	}
+	if config.OnStart != "/bin/to/onStart.sh" {
+		t.Errorf("onStart not configured")
 	}
 }
 

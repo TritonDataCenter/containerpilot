@@ -43,6 +43,7 @@ The format of the JSON file configuration is as follows:
 ```json
 {
   "consul": "consul:8500",
+  "onStart": "/opt/containerbuddy/onStart-script.sh",
   "services": [
     {
       "name": "app",
@@ -80,6 +81,10 @@ Backend fields:
 - `name` is the name of a backend service that this container depends on, as it will appear in Consul.
 - `poll` is the time in seconds between polling for changes.
 - `onChange` is the executable (and its arguments) that is called when there is a change in the list of IPs and ports for this backend.
+
+Other fields:
+- `consul` is the hostname and port of the Consul discovery service.
+- `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional.
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
 

@@ -12,9 +12,11 @@ import (
 )
 
 type Config struct {
-	Consul	     string          `json:"consul,omitempty"`
-	Services     []*ServiceConfig `json:"services"`
-	Backends     []*BackendConfig `json:"backends"`
+	Consul      string `json:"consul,omitempty"`
+	OnStart     string `json:"onStart"`
+	onStartArgs []string
+	Services    []*ServiceConfig `json:"services"`
+	Backends    []*BackendConfig `json:"backends"`
 }
 
 type ServiceConfig struct {
@@ -85,6 +87,8 @@ func loadConfig() *Config {
 	} else if discoveryCount > 1 {
 		log.Fatal("More than one discovery backend defined")
 	}
+
+	config.onStartArgs = strings.Split(config.OnStart, " ")
 
 	for _, backend := range config.Backends {
 		backend.discoveryService = discovery
