@@ -22,6 +22,11 @@ test: .godeps consul
 	${GO} test -v -coverprofile=/root/coverage.out
 	docker rm -f containerbuddy_consul || true
 
+cover: test
+	@sed -i 's/_\/root\/src\///' coverage.out
+	go tool cover -html=coverage.out
+
+
 # fetch dependencies
 .godeps:
 	mkdir -p .godeps/src/github.com/hashicorp
