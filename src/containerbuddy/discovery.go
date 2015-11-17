@@ -1,7 +1,7 @@
 package main
 
 type DiscoveryService interface {
-	WriteHealthCheck(*ServiceConfig)
+	SendHeartbeat(*ServiceConfig)
 	CheckForUpstreamChanges(*BackendConfig) bool
 }
 

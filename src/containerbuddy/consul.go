@@ -21,7 +21,7 @@ func NewConsulConfig(uri string) Consul {
 // WriteHealthCheck writes a TTL check status=ok to the consul store.
 // If consul has never seen this service, we register the service and
 // its TTL check.
-func (c Consul) WriteHealthCheck(service *ServiceConfig) {
+func (c Consul) SendHeartbeat(service *ServiceConfig) {
 	if err := c.Agent().PassTTL(service.Id, "ok"); err != nil {
 		log.Printf("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {

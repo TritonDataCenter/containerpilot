@@ -34,14 +34,14 @@ func TestTTLPass(t *testing.T) {
 	consul := service.discoveryService.(Consul)
 	id := service.Id
 
-	service.WriteHealthCheck() // force registration
+	service.SendHeartbeat() // force registration
 	checks, _ := consul.Agent().Checks()
 	check := checks[id]
 	if check.Status != "critical" {
 		t.Fatalf("status of check %s should be 'critical' but is %s", id, check.Status)
 	}
 
-	service.WriteHealthCheck() // write TTL and verify
+	service.SendHeartbeat() // write TTL and verify
 	checks, _ = consul.Agent().Checks()
 	check = checks[id]
 	if check.Status != "passing" {
@@ -58,8 +58,8 @@ func TestCheckForChanges(t *testing.T) {
 	if consul.checkHealth(*backend) {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
-	service.WriteHealthCheck() // force registration
-	service.WriteHealthCheck() // write TTL
+	service.SendHeartbeat() // force registration
+	service.SendHeartbeat() // write TTL
 
 	if !consul.checkHealth(*backend) {
 		t.Errorf("%v should have changed after first health check TTL", id)
@@ -71,7 +71,7 @@ func TestCheckForChanges(t *testing.T) {
 	if !consul.checkHealth(*backend) {
 		t.Errorf("%v should have changed after TTL expired.", id)
 	}
-	service.WriteHealthCheck() // re-write TTL
+	service.SendHeartbeat() // re-write TTL
 
 	// switch to top-level caller to make sure we have test coverage there
 	if !backend.CheckForUpstreamChanges() {

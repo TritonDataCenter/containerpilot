@@ -69,7 +69,7 @@ func poll(config Pollable, fn pollingFunc, args []string) chan bool {
 func checkHealth(pollable Pollable, args []string) {
 	service := pollable.(*ServiceConfig) // if we pass a bad type here we crash intentionally
 	if code, _ := run(args); code == 0 {
-		service.WriteHealthCheck()
+		service.SendHeartbeat()
 	}
 }
 
