@@ -10,7 +10,20 @@ import (
 )
 
 func main() {
-	config := loadConfig()
+	config, configErr := loadConfig()
+	if configErr != nil {
+		log.Fatal(configErr)
+	}
+
+	// Run the onStart handler, if any, and exit if it returns an error
+	if config.OnStart != "" {
+		code, err := run(config.onStartArgs)
+		if err != nil {
+			log.Println(err)
+			os.Exit(code)
+		}
+	}
+
 	var quit []chan bool
 	for _, backend := range config.Backends {
 		quit = append(quit, poll(backend, checkForChanges, backend.onChangeArgs))
