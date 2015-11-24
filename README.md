@@ -91,7 +91,7 @@ Other fields:
 ### Operating Containerbuddy
 
 Containerbuddy accepts POSIX signals to change its runtime behavior. Currently, Containerbuddy accepts the following signals.
-- `SIGUSR1` will cause Containerbuddy to mark its advertised service for maintenance. Containerbuddy will stop sending heartbeat messages to the discovery service. The discovery service backend's `MarkForMaintenance` method will also be called (in the default Consul implementation, this forces an immediate `FailTTL` message to be sent to Consul).
+- `SIGUSR1` will cause Containerbuddy to mark its advertised service for maintenance. Containerbuddy will stop sending heartbeat messages to the discovery service. The discovery service backend's `MarkForMaintenance` method will also be called (in the default Consul implementation, this deregisters the node from Consul).
 
 Delivering a signal to Containerbuddy is most easily done by using `docker exec` and relying on the fact that it is being used as PID1.
 

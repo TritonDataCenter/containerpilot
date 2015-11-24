@@ -18,10 +18,10 @@ func NewConsulConfig(uri string) Consul {
 	return *config
 }
 
-// MarkForMaintenance sets the TTL check in Consul to the failing state.
+// MarkForMaintenance removes the node from Consul.
 func (c Consul) MarkForMaintenance(service *ServiceConfig) {
-	if err := c.Agent().FailTTL(service.Id, "maintenance"); err != nil {
-		log.Printf("Marking for maintenance failed: %s\n", err)
+	if err := c.Agent().ServiceDeregister(service.Id); err != nil {
+		log.Printf("Deregistering failed: %s\n", err)
 	}
 }
 
