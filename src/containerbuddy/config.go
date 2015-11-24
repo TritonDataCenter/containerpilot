@@ -55,8 +55,12 @@ func (b *BackendConfig) CheckForUpstreamChanges() bool {
 func (s ServiceConfig) PollTime() int {
 	return s.Poll
 }
-func (s *ServiceConfig) WriteHealthCheck() {
-	s.discoveryService.WriteHealthCheck(s)
+func (s *ServiceConfig) SendHeartbeat() {
+	s.discoveryService.SendHeartbeat(s)
+}
+
+func (s *ServiceConfig) MarkForMaintenance() {
+	s.discoveryService.MarkForMaintenance(s)
 }
 
 func loadConfig() (*Config, error) {

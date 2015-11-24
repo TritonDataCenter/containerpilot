@@ -28,5 +28,5 @@ coverage.out
 .godeps/
 build/
 release/
-containerbuddy
+examples/*/opt/containerbuddy/containerbuddy
 *.tar.gz
