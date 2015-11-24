@@ -5,7 +5,7 @@ SHELL := /bin/bash
 
 .PHONY: clean test consul run example ship
 
-VERSION := 0.0.1-alpha
+VERSION := 0.0.2-alpha
 ROOT := $(shell pwd)
 GO := docker run --rm --link containerbuddy_consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
 
