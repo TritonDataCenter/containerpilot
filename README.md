@@ -88,6 +88,19 @@ Other fields:
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
 
+### Operating Containerbuddy
+
+Containerbuddy accepts POSIX signals to change its runtime behavior. Currently, Containerbuddy accepts the following signals.
+- `SIGUSR1` will cause Containerbuddy to mark its advertised service for maintenance. Containerbuddy will stop sending heartbeat messages to the discovery service. The discovery service backend's `MarkForMaintenance` method will also be called (in the default Consul implementation, this forces an immediate `FailTTL` message to be sent to Consul).
+
+Delivering a signal to Containerbuddy is most easily done by using `docker exec` and relying on the fact that it is being used as PID1.
+
+```bash
+docker exec myapp_1 kill -USR1 1
+
+```
+
+
 ### Contributing
 
 Please report any issues you encounter with Containerbuddy or its documentation by [opening a Github issue](https://github.com/joyent/containerbuddy/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerbuddy/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
