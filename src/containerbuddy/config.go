@@ -2,19 +2,21 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"strings"
 )
 
 type Config struct {
-	Consul   string           `json:"consul,omitempty"`
-	Services []*ServiceConfig `json:"services"`
-	Backends []*BackendConfig `json:"backends"`
+	Consul      string `json:"consul,omitempty"`
+	OnStart     string `json:"onStart"`
+	onStartArgs []string
+	Services    []*ServiceConfig `json:"services"`
+	Backends    []*BackendConfig `json:"backends"`
 }
 
 type ServiceConfig struct {
@@ -61,7 +63,7 @@ func (s *ServiceConfig) MarkForMaintenance() {
 	s.discoveryService.MarkForMaintenance(s)
 }
 
-func loadConfig() *Config {
+func loadConfig() (*Config, error) {
 
 	var configFlag string
 	var discovery DiscoveryService
@@ -72,7 +74,10 @@ func loadConfig() *Config {
 		configFlag = os.Getenv("CONTAINERBUDDY")
 	}
 
-	config := parseConfig(configFlag)
+	config, err := parseConfig(configFlag)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, discoveryBackend := range []string{"Consul"} {
 		switch discoveryBackend {
@@ -85,10 +90,12 @@ func loadConfig() *Config {
 	}
 
 	if discoveryCount == 0 {
-		log.Fatal("No discovery backend defined")
+		return nil, errors.New("No discovery backend defined")
 	} else if discoveryCount > 1 {
-		log.Fatal("More than one discovery backend defined")
+		return nil, errors.New("More than one discovery backend defined")
 	}
+
+	config.onStartArgs = strings.Split(config.OnStart, " ")
 
 	for _, backend := range config.Backends {
 		backend.discoveryService = discovery
@@ -103,19 +110,19 @@ func loadConfig() *Config {
 		service.ipAddress = getIp(service.IsPublic)
 	}
 
-	return config
+	return config, nil
 }
 
-func parseConfig(configFlag string) *Config {
+func parseConfig(configFlag string) (*Config, error) {
 	if configFlag == "" {
-		log.Fatal("-config flag is required.")
+		return nil, errors.New("-config flag is required.")
 	}
 
 	var data []byte
 	if strings.HasPrefix(configFlag, "file://") {
 		var err error
 		if data, err = ioutil.ReadFile(strings.SplitAfter(configFlag, "file://")[1]); err != nil {
-			log.Fatalf("Could not read config file: %s", err)
+			return nil, errors.New(fmt.Sprintf("Could not read config file: %s", err))
 		}
 	} else {
 		data = []byte(configFlag)
@@ -123,10 +130,10 @@ func parseConfig(configFlag string) *Config {
 
 	config := &Config{}
 	if err := json.Unmarshal(data, &config); err != nil {
-		log.Fatalf("Could not parse configuration: %s", err)
+		return nil, errors.New(fmt.Sprintf("Could not parse configuration: %s", err))
 	}
 
-	return config
+	return config, nil
 }
 
 // determine the IP address of the container

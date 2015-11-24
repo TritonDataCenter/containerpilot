@@ -11,7 +11,19 @@ import (
 
 func main() {
 
-	config := loadConfig()
+	config, configErr := loadConfig()
+	if configErr != nil {
+		log.Fatal(configErr)
+	}
+
+	// Run the onStart handler, if any, and exit if it returns an error
+	if config.OnStart != "" {
+		code, err := run(config.onStartArgs)
+		if err != nil {
+			log.Println(err)
+			os.Exit(code)
+		}
+	}
 
 	// Set up signal handler for placing instance into maintenance mode
 	handleSignals(config)

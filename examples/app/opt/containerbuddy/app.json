@@ -1,5 +1,6 @@
 {
   "consul": "consul:8500",
+  "onStart": "/opt/containerbuddy/reload-app.sh",
   "services": [
     {
       "name": "app",
