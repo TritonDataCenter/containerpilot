@@ -27,6 +27,7 @@ type ServiceConfig struct {
 	Port             int    `json:"port"`
 	TTL              int    `json:"ttl"`
 	IsPublic         bool   `json:"publicIp"` // will default to false
+	Interface        string `json:"interface"`
 	discoveryService DiscoveryService
 	healthArgs       []string
 	ipAddress        string
@@ -107,7 +108,7 @@ func loadConfig() (*Config, error) {
 		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
 		service.healthArgs = strings.Split(service.HealthCheckExec, " ")
-		service.ipAddress = getIp(service.IsPublic)
+		service.ipAddress = getIp(service.IsPublic,service.Interface)
 	}
 
 	return config, nil
@@ -137,7 +138,7 @@ func parseConfig(configFlag string) (*Config, error) {
 }
 
 // determine the IP address of the container
-func getIp(usePublic bool) string {
+func getIp(usePublic bool, interfaceName string) string {
 	interfaces, _ := net.Interfaces()
 	var ips []net.IP
 	_, loopback, _ := net.ParseCIDR("127.0.0.0/8")
@@ -146,6 +147,10 @@ func getIp(usePublic bool) string {
 		// We're assuming each interface has one IP here because neither Docker
 		// nor Triton sets up IP aliasing.
 		ipAddr, _, _ := net.ParseCIDR(ipAddrs[0].String())
+		// Use specific interface if given
+		if interfaceName == intf.Name {
+			return ipAddr.String()
+		}
 		if !loopback.Contains(ipAddr) {
 			ips = append(ips, ipAddr)
 		}

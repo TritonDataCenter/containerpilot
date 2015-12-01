@@ -84,11 +84,14 @@ func TestInvalidConfigParseNotJson(t *testing.T) {
 }
 
 func TestGetIp(t *testing.T) {
-	if ip := getIp(false); ip == "" {
+	if ip := getIp(false,""); ip == "" {
 		t.Errorf("Expected private IP but got nothing")
 	}
-	if ip := getIp(true); ip != "" {
+	if ip := getIp(true,""); ip != "" {
 		t.Errorf("Expected no public IP but got: %s", ip)
+	}
+	if ip := getIp(true,"eth0"); ip == "" {
+		t.Errorf("Expected interface IP but got nothing")
 	}
 }
 
