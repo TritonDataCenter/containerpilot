@@ -21,12 +21,12 @@ type Config struct {
 
 type ServiceConfig struct {
 	Id               string
-	Name             string `json:"name"`
-	Poll             int    `json:"poll"` // time in seconds
-	HealthCheckExec  string `json:"health"`
-	Port             int    `json:"port"`
-	TTL              int    `json:"ttl"`
-	Interface        string `json:"interface"`
+	Name             string   `json:"name"`
+	Poll             int      `json:"poll"` // time in seconds
+	HealthCheckExec  string   `json:"health"`
+	Port             int      `json:"port"`
+	TTL              int      `json:"ttl"`
+	Interfaces       []string `json:"interface"`
 	discoveryService DiscoveryService
 	healthArgs       []string
 	ipAddress        string
@@ -107,7 +107,7 @@ func loadConfig() (*Config, error) {
 		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
 		service.healthArgs = strings.Split(service.HealthCheckExec, " ")
-		if service.ipAddress, err = getIp(service.Interface); err != nil {
+		if service.ipAddress, err = getIp(service.Interfaces); err != nil {
 			return nil, err
 		}
 	}
@@ -138,27 +138,45 @@ func parseConfig(configFlag string) (*Config, error) {
 	return config, nil
 }
 
-// determine the IP address of the container
-func getIp(interfaceName string) (string, error) {
-	if interfaceName == "" {
-		// Use a sane default
-		interfaceName = "eth0"
-	}
-	interfaces, _ := net.Interfaces()
-	var foundInterfaces []string
+type InterfaceIp struct {
+	Name string
+	IP   string
+}
 
-	// Find the interface matching the name given
+func getInterfaceIps() []InterfaceIp {
+	var ifaceIps []InterfaceIp
+	interfaces, _ := net.Interfaces()
 	for _, intf := range interfaces {
 		ipAddrs, _ := intf.Addrs()
 		// We're assuming each interface has one IP here because neither Docker
 		// nor Triton sets up IP aliasing.
 		ipAddr, _, _ := net.ParseCIDR(ipAddrs[0].String())
-		if interfaceName == intf.Name {
-			return ipAddr.String(), nil
-		}
-		foundInterfaces = append(foundInterfaces, intf.Name)
+		ifaceIp := InterfaceIp{Name: intf.Name, IP: ipAddr.String()}
+		ifaceIps = append(ifaceIps, ifaceIp)
 	}
-	return "", errors.New(fmt.Sprintf("Unable to find interface %s in %s", interfaceName, foundInterfaces))
+	return ifaceIps
+}
+
+// determine the IP address of the container
+func getIp(interfaceNames []string) (string, error) {
+
+	if interfaceNames == nil || len(interfaceNames) == 0 {
+		// Use a sane default
+		interfaceNames = []string{"eth0"}
+	}
+	interfaces := getInterfaceIps()
+
+	// Find the interface matching the name given
+	for _, interfaceName := range interfaceNames {
+		for _, intf := range interfaces {
+			if interfaceName == intf.Name {
+				return intf.IP, nil
+			}
+		}
+	}
+
+	// Interface not found, return error
+	return "", errors.New(fmt.Sprintf("Unable to find interfaces %s in %#v", interfaceNames, interfaces))
 }
 
 // parse an IPv4 address and return true if it's a public IP
