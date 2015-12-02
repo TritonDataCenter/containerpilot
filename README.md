@@ -49,7 +49,7 @@ The format of the JSON file configuration is as follows:
       "name": "app",
       "port": 80,
       "health": "/usr/bin/curl --fail -s http://localhost/app",
-      "publicIp": false,
+      "interface": "eth0",
       "poll": 10,
       "ttl": 30
     }
@@ -70,19 +70,22 @@ The format of the JSON file configuration is as follows:
 ```
 
 Service fields:
+
 - `name` is the name of the service as it will appear in Consul. Each instance of the service will have a unique ID made up from `name`+hostname of the container.
 - `port` is the port the service will advertise to Consul.
 - `health` is the executable (and its arguments) used to check the health of the service.
-- `publicIp` is an optional boolean flag indicating whether the service should advertise its public IP, rather than its private IP (defaults to private/`false`).
+- `interface` is an optional setting indicating the interface from which the IP will be discovered. Default value is `eth0` if not given.
 - `poll` is the time in seconds between polling for health checks.
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 
 Backend fields:
+
 - `name` is the name of a backend service that this container depends on, as it will appear in Consul.
 - `poll` is the time in seconds between polling for changes.
 - `onChange` is the executable (and its arguments) that is called when there is a change in the list of IPs and ports for this backend.
 
 Other fields:
+
 - `consul` is the hostname and port of the Consul discovery service.
 - `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, Containerbuddy will exit.
 
