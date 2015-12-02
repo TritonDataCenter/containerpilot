@@ -139,7 +139,7 @@ func parseConfig(configFlag string) (*Config, error) {
 }
 
 // determine the IP address of the container
-func getIp(interfaceName string) (string,error) {
+func getIp(interfaceName string) (string, error) {
 	if interfaceName == "" {
 		// Use a sane default
 		interfaceName = "eth0"
@@ -154,11 +154,11 @@ func getIp(interfaceName string) (string,error) {
 		// nor Triton sets up IP aliasing.
 		ipAddr, _, _ := net.ParseCIDR(ipAddrs[0].String())
 		if interfaceName == intf.Name {
-			return ipAddr.String(),nil
+			return ipAddr.String(), nil
 		}
 		foundInterfaces = append(foundInterfaces, intf.Name)
 	}
-	return "",errors.New(fmt.Sprintf("Unable to find interface %s in %s", interfaceName, foundInterfaces))
+	return "", errors.New(fmt.Sprintf("Unable to find interface %s in %s", interfaceName, foundInterfaces))
 }
 
 // parse an IPv4 address and return true if it's a public IP

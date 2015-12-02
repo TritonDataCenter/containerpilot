@@ -83,17 +83,17 @@ func TestInvalidConfigParseNotJson(t *testing.T) {
 }
 
 func TestGetIp(t *testing.T) {
-	if ip,_ := getIp(""); ip == "" {
+	if ip, _ := getIp(""); ip == "" {
 		t.Errorf("Expected default interface to yield an IP, but got nothing.")
 	}
-	if ip,_ := getIp("eth0"); ip == "" {
+	if ip, _ := getIp("eth0"); ip == "" {
 		t.Errorf("Expected to find IP for eth0, but found nothing.")
 	}
-	if ip,_ := getIp("lo"); ip != "127.0.0.1" {
-		t.Errorf("Expected to find loopback ip, but found: %s",ip)
+	if ip, _ := getIp("lo"); ip != "127.0.0.1" {
+		t.Errorf("Expected to find loopback ip, but found: %s", ip)
 	}
-	if ip,err := getIp("interface-does-not-exist"); err == nil {
-		t.Errorf("Expected interface not found, but instead got an IP: %s",ip)
+	if ip, err := getIp("interface-does-not-exist"); err == nil {
+		t.Errorf("Expected interface not found, but instead got an IP: %s", ip)
 	}
 }
 
