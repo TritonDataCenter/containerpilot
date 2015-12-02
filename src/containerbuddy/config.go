@@ -26,7 +26,6 @@ type ServiceConfig struct {
 	HealthCheckExec  string `json:"health"`
 	Port             int    `json:"port"`
 	TTL              int    `json:"ttl"`
-	IsPublic         bool   `json:"publicIp"` // will default to false
 	Interface        string `json:"interface"`
 	discoveryService DiscoveryService
 	healthArgs       []string
@@ -108,7 +107,9 @@ func loadConfig() (*Config, error) {
 		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
 		service.healthArgs = strings.Split(service.HealthCheckExec, " ")
-		service.ipAddress = getIp(service.IsPublic,service.Interface)
+		if service.ipAddress, err = getIp(service.Interface); err != nil {
+			return nil, err
+		}
 	}
 
 	return config, nil
@@ -138,35 +139,26 @@ func parseConfig(configFlag string) (*Config, error) {
 }
 
 // determine the IP address of the container
-func getIp(usePublic bool, interfaceName string) string {
+func getIp(interfaceName string) (string,error) {
+	if interfaceName == "" {
+		// Use a sane default
+		interfaceName = "eth0"
+	}
 	interfaces, _ := net.Interfaces()
-	var ips []net.IP
-	_, loopback, _ := net.ParseCIDR("127.0.0.0/8")
+	var foundInterfaces []string
+
+	// Find the interface matching the name given
 	for _, intf := range interfaces {
 		ipAddrs, _ := intf.Addrs()
 		// We're assuming each interface has one IP here because neither Docker
 		// nor Triton sets up IP aliasing.
 		ipAddr, _, _ := net.ParseCIDR(ipAddrs[0].String())
-		// Use specific interface if given
 		if interfaceName == intf.Name {
-			return ipAddr.String()
+			return ipAddr.String(),nil
 		}
-		if !loopback.Contains(ipAddr) {
-			ips = append(ips, ipAddr)
-		}
+		foundInterfaces = append(foundInterfaces, intf.Name)
 	}
-	var ip string
-	for _, ipAddr := range ips {
-		isPublic := isPublicIp(ipAddr)
-		if isPublic && usePublic {
-			ip = ipAddr.String()
-			break
-		} else if !isPublic && !usePublic {
-			ip = ipAddr.String()
-			break
-		}
-	}
-	return ip
+	return "",errors.New(fmt.Sprintf("Unable to find interface %s in %s", interfaceName, foundInterfaces))
 }
 
 // parse an IPv4 address and return true if it's a public IP

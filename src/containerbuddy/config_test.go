@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"net"
 	"os"
 	"testing"
 )
@@ -84,41 +83,17 @@ func TestInvalidConfigParseNotJson(t *testing.T) {
 }
 
 func TestGetIp(t *testing.T) {
-	if ip := getIp(false,""); ip == "" {
-		t.Errorf("Expected private IP but got nothing")
+	if ip,_ := getIp(""); ip == "" {
+		t.Errorf("Expected default interface to yield an IP, but got nothing.")
 	}
-	if ip := getIp(true,""); ip != "" {
-		t.Errorf("Expected no public IP but got: %s", ip)
+	if ip,_ := getIp("eth0"); ip == "" {
+		t.Errorf("Expected to find IP for eth0, but found nothing.")
 	}
-	if ip := getIp(true,"eth0"); ip == "" {
-		t.Errorf("Expected interface IP but got nothing")
+	if ip,_ := getIp("lo"); ip != "127.0.0.1" {
+		t.Errorf("Expected to find loopback ip, but found: %s",ip)
 	}
-}
-
-func TestIpCheckPrivate(t *testing.T) {
-	var privateIps = []string{
-		"192.168.1.117",
-		"172.17.1.1",
-		"10.1.1.13",
-	}
-	for _, ipAddr := range privateIps {
-		ip := net.ParseIP(ipAddr)
-		if isPublicIp(ip) {
-			t.Errorf("Expected %s to be identified as private IP but got public.", ip)
-		}
-	}
-}
-
-func TestIpCheckPublic(t *testing.T) {
-	var publicIps = []string{
-		"8.8.8.8",
-		"72.2.117.118",
-	}
-	for _, ipAddr := range publicIps {
-		ip := net.ParseIP(ipAddr)
-		if !isPublicIp(ip) {
-			t.Errorf("Expected %s to be identified as public IP but got private.", ip)
-		}
+	if ip,err := getIp("interface-does-not-exist"); err == nil {
+		t.Errorf("Expected interface not found, but instead got an IP: %s",ip)
 	}
 }
 
