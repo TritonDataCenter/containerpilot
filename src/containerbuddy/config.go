@@ -26,7 +26,7 @@ type ServiceConfig struct {
 	HealthCheckExec  string   `json:"health"`
 	Port             int      `json:"port"`
 	TTL              int      `json:"ttl"`
-	Interfaces       []string `json:"interface"`
+	Interfaces       []string `json:"interfaces"`
 	discoveryService DiscoveryService
 	healthArgs       []string
 	ipAddress        string
