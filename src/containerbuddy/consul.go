@@ -18,6 +18,11 @@ func NewConsulConfig(uri string) Consul {
 	return *config
 }
 
+// Deregister removes the node from Consul.
+func (c Consul) Deregister(service *ServiceConfig) {
+	c.MarkForMaintenance(service)
+}
+
 // MarkForMaintenance removes the node from Consul.
 func (c Consul) MarkForMaintenance(service *ServiceConfig) {
 	if err := c.Agent().ServiceDeregister(service.Id); err != nil {

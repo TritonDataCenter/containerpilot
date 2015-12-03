@@ -48,16 +48,26 @@ func main() {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		code, err := run(flag.Args())
+		config.Command = getCmd(flag.Args())
+		code, err := executeAndWait(config.Command)
 		if err != nil {
 			log.Println(err)
 		}
+		deregisterServices(config)
 		os.Exit(code)
 	}
 
 	// block forever, as we're polling in the two polling functions and
 	// did not os.Exit by waiting on an external application.
 	select {}
+}
+
+func deregisterServices(config *Config) {
+	log.Println("Deregister All Services")
+	for _, service := range config.Services {
+		log.Printf("Deregister service: %s\n", service.Name)
+		service.Deregister()
+	}
 }
 
 type pollingFunc func(Pollable, []string)
@@ -101,15 +111,16 @@ func checkForChanges(pollable Pollable, args []string) {
 	}
 }
 
-// Runs an arbitrary string of arguments as an executable and its arguments.
-// Returns the exit code and error message (if any).
-func run(args []string) (int, error) {
-	var cmd *exec.Cmd
+func getCmd(args []string) *exec.Cmd {
 	if len(args) > 1 {
-		cmd = exec.Command(args[0], args[1:]...)
+		return exec.Command(args[0], args[1:]...)
 	} else {
-		cmd = exec.Command(args[0])
+		return exec.Command(args[0])
 	}
+}
+
+// Executes the given command and blocks until completed
+func executeAndWait(cmd *exec.Cmd) (int, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -122,4 +133,10 @@ func run(args []string) (int, error) {
 		log.Fatal(err)
 	}
 	return 0, nil
+}
+
+// Runs an arbitrary string of arguments as an executable and its arguments.
+// Returns the exit code and error message (if any).
+func run(args []string) (int, error) {
+	return executeAndWait(getCmd(args))
 }

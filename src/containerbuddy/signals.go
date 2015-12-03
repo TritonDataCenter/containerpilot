@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 // globals are eeeeevil
@@ -26,10 +27,31 @@ func toggleMaintenanceMode() {
 	paused = !paused
 }
 
+func terminate(config *Config) {
+	cmd := config.Command
+	if config.StopTimeout > 0 {
+		log.Println("Send SIGTERM to application")
+		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+			log.Printf("Error sending SIGTERM to application: %s\n", err)
+		} else {
+			log.Printf("Wait up to %d second(s) for process to end.\n", config.StopTimeout)
+			time.AfterFunc(time.Duration(config.StopTimeout)*time.Second, func() {
+				if !cmd.ProcessState.Exited() {
+					log.Printf("Killing Process %#v\n", cmd.Process)
+					cmd.Process.Kill()
+				}
+			})
+			return
+		}
+	}
+	log.Printf("Killing Process %#v\n", config.Command.Process)
+	cmd.Process.Kill()
+}
+
 // Listen for and capture signals from the OS
 func handleSignals(config *Config) {
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGUSR1)
+	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGTERM)
 	go func() {
 		for signal := range sig {
 			switch signal {
@@ -44,6 +66,9 @@ func handleSignals(config *Config) {
 						service.MarkForMaintenance()
 					}
 				}
+			case syscall.SIGTERM:
+				log.Println("Caught SIGTERM")
+				terminate(config)
 			}
 		}
 	}()
