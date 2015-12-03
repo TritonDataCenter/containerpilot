@@ -28,19 +28,15 @@ func (c *NoopDiscoveryService) Deregister(service *ServiceConfig) {
 
 }
 
-// Note: We can only do handleSignals once
-// or we'll start handling signals multiple times.
-// So all the tests have to be done here.
-func TestSignals(t *testing.T) {
-
-	cmd := getCmd([]string{"/root/examples/test/test.sh", "interruptSleep"})
-	service := &ServiceConfig{Name: "test-service", Poll: 1, discoveryService: &NoopDiscoveryService{}}
-	config := &Config{Command: cmd, StopTimeout: 5, Services: []*ServiceConfig{service}}
+func TestMaintenanceSignal(t *testing.T) {
 
 	if inMaintenanceMode() {
 		t.Errorf("Should not be in maintenance mode before starting handler")
 	}
-	handleSignals(config)
+	handleSignals(&Config{})
+	defer func() {
+		signal.Reset()
+	}()
 	if inMaintenanceMode() {
 		t.Errorf("Should not be in maintenance mode after starting handler")
 	}
@@ -54,6 +50,16 @@ func TestSignals(t *testing.T) {
 	if inMaintenanceMode() {
 		t.Errorf("Should not be in maintenance mode after receiving second SIGUSR1")
 	}
+}
+
+func TestTerminateSignal(t *testing.T) {
+	cmd := getCmd([]string{"/root/examples/test/test.sh", "interruptSleep"})
+	service := &ServiceConfig{Name: "test-service", Poll: 1, discoveryService: &NoopDiscoveryService{}}
+	config := &Config{Command: cmd, StopTimeout: 5, Services: []*ServiceConfig{service}}
+	handleSignals(config)
+	defer func() {
+		signal.Reset()
+	}()
 
 	// Test SIGTERM
 	startTime := time.Now()
