@@ -29,17 +29,16 @@ func toggleMaintenanceMode() {
 
 func terminate(config *Config) {
 	cmd := config.Command
+	if cmd == nil || cmd.Process == nil {
+		panic("cmd or cmd.Process is nil")
+	}
 	if config.StopTimeout > 0 {
-		log.Println("Send SIGTERM to application")
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			log.Printf("Error sending SIGTERM to application: %s\n", err)
 		} else {
-			log.Printf("Wait up to %d second(s) for process to end.\n", config.StopTimeout)
 			time.AfterFunc(time.Duration(config.StopTimeout)*time.Second, func() {
-				if !cmd.ProcessState.Exited() {
-					log.Printf("Killing Process %#v\n", cmd.Process)
-					cmd.Process.Kill()
-				}
+				log.Printf("Killing Process %#v\n", cmd.Process)
+				cmd.Process.Kill()
 			})
 			return
 		}
