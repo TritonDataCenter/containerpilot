@@ -5,7 +5,9 @@ SHELL := /bin/bash
 
 .PHONY: clean test consul run example ship
 
-VERSION := 0.0.3-alpha
+VERSION ?= dev-build-not-for-release
+LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
+
 ROOT := $(shell pwd)
 GO := docker run --rm --link containerbuddy_consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
 
@@ -19,6 +21,7 @@ clean:
 # run unit tests and exec test
 test: .godeps consul
 	${GO} vet
+	${GO} fmt
 	${GO} test -v -coverprofile=/root/coverage.out
 	docker rm -f containerbuddy_consul || true
 
@@ -51,7 +54,7 @@ build: .godeps
 			-v ${ROOT}:/root \
 			-w /root/src/containerbuddy \
 			golang \
-			go build -a -o /root/build/containerbuddy
+			go build -a -o /root/build/containerbuddy -ldflags ${LDFLAGS}
 	chmod +x ${ROOT}/build/containerbuddy
 
 # create the files we need for an official release on Github

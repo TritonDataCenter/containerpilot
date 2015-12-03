@@ -11,6 +11,11 @@ import (
 	"strings"
 )
 
+var (
+	Version string // version for this build, set at build time via LDFLAGS
+	GitHash string // short-form hash of the commit of this build, set at build time
+)
+
 type Config struct {
 	Consul      string `json:"consul,omitempty"`
 	OnStart     string `json:"onStart"`
@@ -66,10 +71,16 @@ func (s *ServiceConfig) MarkForMaintenance() {
 func loadConfig() (*Config, error) {
 
 	var configFlag string
+	var versionFlag bool
 	var discovery DiscoveryService
 	discoveryCount := 0
 	flag.StringVar(&configFlag, "config", "", "JSON config or file:// path to JSON config file.")
+	flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 	flag.Parse()
+	if versionFlag {
+		fmt.Printf("Version: %s\nGitHash: %s\n", Version, GitHash)
+		os.Exit(0)
+	}
 	if configFlag == "" {
 		configFlag = os.Getenv("CONTAINERBUDDY")
 	}
