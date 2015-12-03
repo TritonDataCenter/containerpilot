@@ -5,7 +5,7 @@ SHELL := /bin/bash
 
 .PHONY: clean test consul run example ship
 
-VERSION := 0.0.2-alpha
+VERSION := 0.0.3-alpha
 ROOT := $(shell pwd)
 GO := docker run --rm --link containerbuddy_consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
 
@@ -55,10 +55,10 @@ build: .godeps
 	chmod +x ${ROOT}/build/containerbuddy
 
 # create the files we need for an official release on Github
-release: build
+release:
 	mkdir -p release
 	git tag $(VERSION)
-	git push origin --tags
+	git push joyent/origin --tags
 	tar -czf release/containerbuddy-$(VERSION).tar.gz build/containerbuddy
 	@echo
 	@echo Upload this file to Github release:
