@@ -106,7 +106,7 @@ docker exec myapp_1 kill -USR1 1
 
 ```
 
-Docker will automatically deliver a `SIGTERM` with `docker stop`; Not when using `docker kill`.  When Containerbuddy receives a `SIGTERM`, it will propagate this signal to the application and wait for `stopTimeout` seconds before forcing the application to stop. Make sure this timeout is less than the docker stop timout period or services may not deregister from the discovery service backend. If `-1` is given for `stopTimeout`, Containerbuddy will kill the application immediately with `SIGKILL`, but it will still deregister the services.
+Docker will automatically deliver a `SIGTERM` with `docker stop`, not when using `docker kill`.  When Containerbuddy receives a `SIGTERM`, it will propagate this signal to the application and wait for `stopTimeout` seconds before forcing the application to stop. Make sure this timeout is less than the docker stop timeout period or services may not deregister from the discovery service backend. If `-1` is given for `stopTimeout`, Containerbuddy will kill the application immediately with `SIGKILL`, but it will still deregister the services.
 
 *Caveat*: If Containerbuddy is wrapped as a shell command, such as: `/bin/sh -c '/opt/containerbuddy .... '` then `SIGTERM` will not reach Containerbuddy from `docker stop`.  This is important for systems like Mesos which may use a shell command as the entrypoint under default configuration.
 
