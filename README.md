@@ -88,15 +88,16 @@ Other fields:
 
 - `consul` is the hostname and port of the Consul discovery service.
 - `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, Containerbuddy will exit.
-- `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`) When Containerbuddy receives a SIGTERM, it will propagate this signal to the application and wait this many seconds before forcing the application to stop. Make sure this timeout is less than the docker stop timout period or services may not deregister from the discovery service backend.
+- `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`). Providing `-1` will kill the application immediately.
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
 
 ### Operating Containerbuddy
 
-Containerbuddy accepts POSIX signals to change its runtime behavior. Currently, Containerbuddy accepts the following signals.
+Containerbuddy accepts POSIX signals to change its runtime behavior. Currently, Containerbuddy accepts the following signals:
+
 - `SIGUSR1` will cause Containerbuddy to mark its advertised service for maintenance. Containerbuddy will stop sending heartbeat messages to the discovery service. The discovery service backend's `MarkForMaintenance` method will also be called (in the default Consul implementation, this deregisters the node from Consul).
-- `SIGTERM` will cause Containerbuddy to send SIGTERM to the application, and eventually exit in a timely manner (as specified by StopTimeout).
+- `SIGTERM` will cause Containerbuddy to send `SIGTERM` to the application, and eventually exit in a timely manner (as specified by `stopTimeout`).
 
 Delivering a signal to Containerbuddy is most easily done by using `docker exec` and relying on the fact that it is being used as PID1.
 
@@ -105,6 +106,9 @@ docker exec myapp_1 kill -USR1 1
 
 ```
 
+Docker will automatically deliver a `SIGTERM` with `docker stop`; Not when using `docker kill`.  When Containerbuddy receives a `SIGTERM`, it will propagate this signal to the application and wait for `stopTimeout` seconds before forcing the application to stop. Make sure this timeout is less than the docker stop timout period or services may not deregister from the discovery service backend. If `-1` is given for `stopTimeout`, Containerbuddy will kill the application immediately with `SIGKILL`, but it will still deregister the services.
+
+*Caveat*: If Containerbuddy is wrapped as a shell command, such as: `/bin/sh -c '/opt/containerbuddy .... '` then `SIGTERM` will not reach Containerbuddy from `docker stop`.  This is important for systems like Mesos which may use a shell command as the entrypoint under default configuration.
 
 ### Contributing
 
