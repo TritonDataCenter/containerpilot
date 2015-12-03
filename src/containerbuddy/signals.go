@@ -30,7 +30,8 @@ func toggleMaintenanceMode() {
 func terminate(config *Config) {
 	cmd := config.Command
 	if cmd == nil || cmd.Process == nil {
-		panic("cmd or cmd.Process is nil")
+		// Not managing the process, so don't do anything
+		return
 	}
 	if config.StopTimeout > 0 {
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
