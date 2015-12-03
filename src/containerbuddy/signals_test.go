@@ -74,11 +74,6 @@ func TestSignals(t *testing.T) {
 	}
 }
 
-// helper to ensure that we block for the signal to deliver any signal
-// we need, and then yield execution so that the handler gets a chance
-// at running. If we don't do this there's a race where we can check
-// resulting side-effects of a handler before it's been run
-
 func sendSignal(t *testing.T, s os.Signal) {
 	me, _ := os.FindProcess(os.Getpid())
 	if err := me.Signal(s); err != nil {
@@ -86,6 +81,10 @@ func sendSignal(t *testing.T, s os.Signal) {
 	}
 }
 
+// helper to ensure that we block for the signal to deliver any signal
+// we need, and then yield execution so that the handler gets a chance
+// at running. If we don't do this there's a race where we can check
+// resulting side-effects of a handler before it's been run
 func sendAndWaitForSignal(t *testing.T, s os.Signal) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR1)
