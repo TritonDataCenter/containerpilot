@@ -42,6 +42,9 @@ func terminate(config *Config) {
 		service.Deregister()
 	})
 
+	// Run and wait for preStop command to exit
+	run(config.PreStop)
+
 	cmd := config.Command
 	if cmd == nil || cmd.Process == nil {
 		// Not managing the process, so don't do anything

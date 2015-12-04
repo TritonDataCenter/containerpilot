@@ -20,8 +20,9 @@ var (
 type Config struct {
 	Consul       string `json:"consul,omitempty"`
 	OnStart      string `json:"onStart"`
+	PreStop      string `json:"preStop"`
+	PostStop     string `json:"postStop"`
 	StopTimeout  int    `json:"stopTimeout"`
-	onStartArgs  []string
 	Command      *exec.Cmd
 	QuitChannels []chan bool
 	Services     []*ServiceConfig `json:"services"`
@@ -37,7 +38,6 @@ type ServiceConfig struct {
 	TTL              int      `json:"ttl"`
 	Interfaces       []string `json:"interfaces"`
 	discoveryService DiscoveryService
-	healthArgs       []string
 	ipAddress        string
 }
 
@@ -46,7 +46,6 @@ type BackendConfig struct {
 	Poll             int    `json:"poll"` // time in seconds
 	OnChangeExec     string `json:"onChange"`
 	discoveryService DiscoveryService
-	onChangeArgs     []string
 	lastState        interface{}
 }
 
@@ -123,18 +122,14 @@ func loadConfig() (*Config, error) {
 		config.StopTimeout = defaultStopTimeout
 	}
 
-	config.onStartArgs = strings.Split(config.OnStart, " ")
-
 	for _, backend := range config.Backends {
 		backend.discoveryService = discovery
-		backend.onChangeArgs = strings.Split(backend.OnChangeExec, " ")
 	}
 
 	hostname, _ := os.Hostname()
 	for _, service := range config.Services {
 		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
-		service.healthArgs = strings.Split(service.HealthCheckExec, " ")
 		if service.ipAddress, err = getIp(service.Interfaces); err != nil {
 			return nil, err
 		}

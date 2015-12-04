@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -17,12 +18,8 @@ func main() {
 	}
 
 	// Run the onStart handler, if any, and exit if it returns an error
-	if config.OnStart != "" {
-		code, err := run(config.onStartArgs)
-		if err != nil {
-			log.Println(err)
-			os.Exit(code)
-		}
+	if onStartCode, err := run(config.OnStart); err != nil {
+		os.Exit(onStartCode)
 	}
 
 	// Set up signal handler for placing instance into maintenance mode
@@ -30,10 +27,10 @@ func main() {
 
 	var quit []chan bool
 	for _, backend := range config.Backends {
-		quit = append(quit, poll(backend, checkForChanges, backend.onChangeArgs))
+		quit = append(quit, poll(backend, checkForChanges, backend.OnChangeExec))
 	}
 	for _, service := range config.Services {
-		quit = append(quit, poll(service, checkHealth, service.healthArgs))
+		quit = append(quit, poll(service, checkHealth, service.HealthCheckExec))
 	}
 	config.QuitChannels = quit
 
@@ -54,6 +51,10 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
+		// Run the PostStop handler, if any, and exit if it returns an error
+		if postStopCode, err := run(config.PostStop); err != nil {
+			os.Exit(postStopCode)
+		}
 		os.Exit(code)
 	}
 
@@ -62,11 +63,11 @@ func main() {
 	select {}
 }
 
-type pollingFunc func(Pollable, []string)
+type pollingFunc func(Pollable, string)
 
 // Every `pollTime` seconds, run the `pollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
-func poll(config Pollable, fn pollingFunc, args []string) chan bool {
+func poll(config Pollable, fn pollingFunc, command string) chan bool {
 	ticker := time.NewTicker(time.Duration(config.PollTime()) * time.Second)
 	quit := make(chan bool)
 	go func() {
@@ -74,7 +75,7 @@ func poll(config Pollable, fn pollingFunc, args []string) chan bool {
 			select {
 			case <-ticker.C:
 				if !inMaintenanceMode() {
-					fn(config, args)
+					fn(config, command)
 				}
 			case <-quit:
 				return
@@ -87,19 +88,19 @@ func poll(config Pollable, fn pollingFunc, args []string) chan bool {
 // Implements `pollingFunc`; args are the executable we use to check the
 // application health and its arguments. If the error code on that exectable is
 // 0, we write a TTL health check to the health check store.
-func checkHealth(pollable Pollable, args []string) {
+func checkHealth(pollable Pollable, command string) {
 	service := pollable.(*ServiceConfig) // if we pass a bad type here we crash intentionally
-	if code, _ := run(args); code == 0 {
+	if code, _ := run(command); code == 0 {
 		service.SendHeartbeat()
 	}
 }
 
 // Implements `pollingFunc`; args are the executable we run if the values in
 // the central store have changed since the last run.
-func checkForChanges(pollable Pollable, args []string) {
+func checkForChanges(pollable Pollable, command string) {
 	backend := pollable.(*BackendConfig) // if we pass a bad type here we crash intentionally
 	if backend.CheckForUpstreamChanges() {
-		run(args)
+		run(command)
 	}
 }
 
@@ -129,6 +130,14 @@ func executeAndWait(cmd *exec.Cmd) (int, error) {
 
 // Runs an arbitrary string of arguments as an executable and its arguments.
 // Returns the exit code and error message (if any).
-func run(args []string) (int, error) {
-	return executeAndWait(getCmd(args))
+func run(command string) (int, error) {
+	if command != "" {
+		args := strings.Split(command, " ")
+		code, err := executeAndWait(getCmd(args))
+		if err != nil {
+			log.Println(err)
+		}
+		return code, err
+	}
+	return 0, nil
 }
