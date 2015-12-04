@@ -36,6 +36,7 @@ func setupSignalsTests() *Config {
 			StopTimeout: 5,
 			Services:    []*ServiceConfig{service},
 		}
+		signal.Reset()
 		handleSignals(config)
 		signalConfig = config
 		handlerSet = true
@@ -103,10 +104,9 @@ func sendSignal(t *testing.T, s os.Signal) {
 func sendAndWaitForSignal(t *testing.T, s os.Signal) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR1)
-	me, _ := os.FindProcess(os.Getpid())
-	if err := me.Signal(s); err != nil {
-		t.Errorf("Got error on SIGUSR1: %v", err)
-	}
+	sendSignal(t, s)
+	runtime.Gosched()
 	<-sig
 	runtime.Gosched()
+	signal.Stop(sig)
 }

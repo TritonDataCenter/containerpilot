@@ -74,17 +74,15 @@ func handleSignals(config *Config) {
 			case syscall.SIGUSR1:
 				toggleMaintenanceMode()
 				if inMaintenanceMode() {
-					log.Println("we are paused!")
 					forAllServices(config, func(service *ServiceConfig) {
 						log.Printf("Marking for maintenance: %s\n", service.Name)
 						service.MarkForMaintenance()
 					})
 				}
 			case syscall.SIGTERM:
-				log.Println("Caught SIGTERM")
 				stopPolling(config)
 				forAllServices(config, func(service *ServiceConfig) {
-					log.Printf("Deregister service: %s\n", service.Name)
+					log.Printf("Deregistering service: %s\n", service.Name)
 					service.Deregister()
 				})
 				terminate(config)
