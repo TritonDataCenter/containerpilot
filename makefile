@@ -54,6 +54,7 @@ ifeq "$(TRAVIS)" "true"
 build: .godeps
 	mkdir -p ${ROOT}/build
 	export GOPATH=${ROOT}/.godeps:${ROOT}/src && \
+	export CGO_ENABLED=0 && \
 		cd ${ROOT}/src/containerbuddy && \
 		go build -a -o ${ROOT}/build/containerbuddy -ldflags ${LDFLAGS}
 	chmod +x ${ROOT}/build/containerbuddy
