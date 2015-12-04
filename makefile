@@ -58,11 +58,12 @@ build: .godeps
 	chmod +x ${ROOT}/build/containerbuddy
 
 # create the files we need for an official release on Github
-release:
+# run this target with the VERSION environment variable set
+release: build ship
 	mkdir -p release
 	git tag $(VERSION)
-	git push joyent/origin --tags
-	tar -czf release/containerbuddy-$(VERSION).tar.gz build/containerbuddy
+	git push joyent --tags
+	cd build && tar -czf ../release/containerbuddy-$(VERSION).tar.gz containerbuddy
 	@echo
 	@echo Upload this file to Github release:
 	@sha1sum release/containerbuddy-$(VERSION).tar.gz
@@ -70,20 +71,14 @@ release:
 # ----------------------------------------------
 # example application
 
-# run main
-run: .godeps consul
-	@docker rm containerbuddy || true
-	docker run -d --name containerbuddy -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go run main.go /root/examples/test.sh sleepStuff -debug
-
 # build Nginx and App examples
 example: build
 	cp build/containerbuddy ${ROOT}/examples/nginx/opt/containerbuddy/containerbuddy
 	cp build/containerbuddy ${ROOT}/examples/app/opt/containerbuddy/containerbuddy
-	docker-compose -f ${ROOT}/examples/docker-compose-local.yml -p example build --no-cache
+	cd examples/app && docker build -t 0x74696d/containerbuddy-demo-app .
+	cd examples/nginx && docker build -t 0x74696d/containerbuddy-demo-nginx .
 
-# ship Nginx and App example to registry
-ship:
-	docker tag -f example_nginx 0x74696d/containerbuddy-demo-nginx
-	docker tag -f example_app 0x74696d/containerbuddy-demo-app
+# build example and ship to Docker Hub registry
+ship: example
 	docker push 0x74696d/containerbuddy-demo-nginx
 	docker push 0x74696d/containerbuddy-demo-app
