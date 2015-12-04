@@ -12,17 +12,13 @@ import (
 // Mock Discovery
 type NoopDiscoveryService struct{}
 
-func (c *NoopDiscoveryService) SendHeartbeat(service *ServiceConfig) {
-	return
-}
-
+func (c *NoopDiscoveryService) SendHeartbeat(service *ServiceConfig) { return }
 func (c *NoopDiscoveryService) CheckForUpstreamChanges(backend *BackendConfig) bool {
 	return false
 }
 
-func (c *NoopDiscoveryService) MarkForMaintenance(service *ServiceConfig) {
-
-}
+func (c *NoopDiscoveryService) MarkForMaintenance(service *ServiceConfig) {}
+func (c *NoopDiscoveryService) Deregister(service *ServiceConfig)         {}
 
 var signalConfig *Config
 var handlerSet bool
@@ -86,8 +82,10 @@ func TestTerminateSignal(t *testing.T) {
 	sendSignal(t, syscall.SIGTERM)
 	<-quit
 	close(quit)
-	if elapsed := time.Since(startTime); elapsed.Seconds() > float64(config.StopTimeout) {
-		t.Errorf("Expected elapsed time <= %d seconds, but was %.2f", config.StopTimeout, elapsed.Seconds())
+	elapsed := time.Since(startTime)
+	if elapsed.Seconds() > float64(config.StopTimeout) {
+		t.Errorf("Expected elapsed time <= %d seconds, but was %.2f",
+			config.StopTimeout, elapsed.Seconds())
 	}
 }
 
