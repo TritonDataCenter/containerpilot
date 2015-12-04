@@ -24,24 +24,40 @@ func (c *NoopDiscoveryService) MarkForMaintenance(service *ServiceConfig) {
 
 }
 
-func (c *NoopDiscoveryService) Deregister(service *ServiceConfig) {
+var signalConfig *Config
+var handlerSet bool
 
+func setupSignalsTests() *Config {
+	if !handlerSet {
+		cmd := getCmd([]string{"/root/examples/test/test.sh", "interruptSleep"})
+		service := &ServiceConfig{
+			Name:             "test-service",
+			Poll:             1,
+			discoveryService: &NoopDiscoveryService{},
+		}
+		config := &Config{
+			Command:     cmd,
+			StopTimeout: 5,
+			Services:    []*ServiceConfig{service},
+		}
+		handleSignals(config)
+		signalConfig = config
+		handlerSet = true
+	}
+	return signalConfig
 }
 
+// Test SIGUSR1
 func TestMaintenanceSignal(t *testing.T) {
 
-	if inMaintenanceMode() {
+	if !handlerSet && inMaintenanceMode() {
 		t.Errorf("Should not be in maintenance mode before starting handler")
 	}
-	handleSignals(&Config{})
-	defer func() {
-		signal.Reset()
-	}()
+	setupSignalsTests()
 	if inMaintenanceMode() {
 		t.Errorf("Should not be in maintenance mode after starting handler")
 	}
 
-	// Test SIGUSR1
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	if !inMaintenanceMode() {
 		t.Errorf("Should be in maintenance mode after receiving SIGUSR1")
@@ -52,20 +68,15 @@ func TestMaintenanceSignal(t *testing.T) {
 	}
 }
 
+// test SIGTERM
 func TestTerminateSignal(t *testing.T) {
-	cmd := getCmd([]string{"/root/examples/test/test.sh", "interruptSleep"})
-	service := &ServiceConfig{Name: "test-service", Poll: 1, discoveryService: &NoopDiscoveryService{}}
-	config := &Config{Command: cmd, StopTimeout: 5, Services: []*ServiceConfig{service}}
-	handleSignals(config)
-	defer func() {
-		signal.Reset()
-	}()
 
-	// Test SIGTERM
+	config := setupSignalsTests()
+
 	startTime := time.Now()
 	quit := make(chan int, 1)
 	go func() {
-		if exitCode, _ := executeAndWait(cmd); exitCode != 2 {
+		if exitCode, _ := executeAndWait(config.Command); exitCode != 2 {
 			t.Errorf("Expected exit code 0 but got %d", exitCode)
 		}
 		quit <- 1
