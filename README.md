@@ -2,6 +2,7 @@
 
 *A service for assisting discovery and configuration of applications running in containers.*
 
+[![Build Status](https://travis-ci.org/joyent/containerbuddy.svg)](https://travis-ci.org/joyent/containerbuddy)
 
 ### Container-native applications vs all the rest
 
