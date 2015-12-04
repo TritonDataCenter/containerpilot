@@ -35,6 +35,7 @@ func main() {
 	for _, service := range config.Services {
 		quit = append(quit, poll(service, checkHealth, service.healthArgs))
 	}
+	config.QuitChannels = quit
 
 	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
 	// TODO: do we really need this?
@@ -48,7 +49,8 @@ func main() {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		code, err := run(flag.Args())
+		config.Command = getCmd(flag.Args())
+		code, err := executeAndWait(config.Command)
 		if err != nil {
 			log.Println(err)
 		}
@@ -101,15 +103,16 @@ func checkForChanges(pollable Pollable, args []string) {
 	}
 }
 
-// Runs an arbitrary string of arguments as an executable and its arguments.
-// Returns the exit code and error message (if any).
-func run(args []string) (int, error) {
-	var cmd *exec.Cmd
+func getCmd(args []string) *exec.Cmd {
 	if len(args) > 1 {
-		cmd = exec.Command(args[0], args[1:]...)
+		return exec.Command(args[0], args[1:]...)
 	} else {
-		cmd = exec.Command(args[0])
+		return exec.Command(args[0])
 	}
+}
+
+// Executes the given command and blocks until completed
+func executeAndWait(cmd *exec.Cmd) (int, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -122,4 +125,10 @@ func run(args []string) (int, error) {
 		log.Fatal(err)
 	}
 	return 0, nil
+}
+
+// Runs an arbitrary string of arguments as an executable and its arguments.
+// Returns the exit code and error message (if any).
+func run(args []string) (int, error) {
+	return executeAndWait(getCmd(args))
 }

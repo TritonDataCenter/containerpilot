@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -17,11 +18,14 @@ var (
 )
 
 type Config struct {
-	Consul      string `json:"consul,omitempty"`
-	OnStart     string `json:"onStart"`
-	onStartArgs []string
-	Services    []*ServiceConfig `json:"services"`
-	Backends    []*BackendConfig `json:"backends"`
+	Consul       string `json:"consul,omitempty"`
+	OnStart      string `json:"onStart"`
+	StopTimeout  int    `json:"stopTimeout"`
+	onStartArgs  []string
+	Command      *exec.Cmd
+	QuitChannels []chan bool
+	Services     []*ServiceConfig `json:"services"`
+	Backends     []*BackendConfig `json:"backends"`
 }
 
 type ServiceConfig struct {
@@ -68,6 +72,15 @@ func (s *ServiceConfig) MarkForMaintenance() {
 	s.discoveryService.MarkForMaintenance(s)
 }
 
+func (s *ServiceConfig) Deregister() {
+	s.discoveryService.Deregister(s)
+}
+
+const (
+	// Amount of time to wait before killing the application
+	defaultStopTimeout int = 5
+)
+
 func loadConfig() (*Config, error) {
 
 	var configFlag string
@@ -104,6 +117,10 @@ func loadConfig() (*Config, error) {
 		return nil, errors.New("No discovery backend defined")
 	} else if discoveryCount > 1 {
 		return nil, errors.New("More than one discovery backend defined")
+	}
+
+	if config.StopTimeout == 0 {
+		config.StopTimeout = defaultStopTimeout
 	}
 
 	config.onStartArgs = strings.Split(config.OnStart, " ")

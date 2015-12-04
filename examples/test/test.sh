@@ -1,5 +1,7 @@
 #!/bin/bash
 
+trap 'exit 2' SIGTERM
+
 usage() {
     cat <<EOF
 usage: $0 [COMMAND]
@@ -20,7 +22,14 @@ failStuff() {
 
 sleepStuff() {
     echo "Sleeping 10 seconds..."
-    sleep 5
+    sleep 10
+}
+
+interruptSleep() {
+  for i in {1..10}; do
+    echo -n "."
+    sleep 1
+  done
 }
 
 cmd="${1:-usage}"
