@@ -1,0 +1,13 @@
+---
+sudo: required
+
+language: go
+go:
+  - 1.5.1
+
+services:
+  - docker
+
+script:
+  - make
+  - make test
