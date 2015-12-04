@@ -13,13 +13,14 @@ import (
 )
 
 type Config struct {
-	Consul      string `json:"consul,omitempty"`
-	OnStart     string `json:"onStart"`
-	StopTimeout int    `json:"stopTimeout"`
-	onStartArgs []string
-	Command     *exec.Cmd
-	Services    []*ServiceConfig `json:"services"`
-	Backends    []*BackendConfig `json:"backends"`
+	Consul       string `json:"consul,omitempty"`
+	OnStart      string `json:"onStart"`
+	StopTimeout  int    `json:"stopTimeout"`
+	onStartArgs  []string
+	Command      *exec.Cmd
+	QuitChannels []chan bool
+	Services     []*ServiceConfig `json:"services"`
+	Backends     []*BackendConfig `json:"backends"`
 }
 
 type ServiceConfig struct {

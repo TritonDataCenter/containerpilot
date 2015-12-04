@@ -35,6 +35,7 @@ func main() {
 	for _, service := range config.Services {
 		quit = append(quit, poll(service, checkHealth, service.healthArgs))
 	}
+	config.QuitChannels = quit
 
 	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
 	// TODO: do we really need this?
@@ -53,21 +54,12 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		deregisterServices(config)
 		os.Exit(code)
 	}
 
 	// block forever, as we're polling in the two polling functions and
 	// did not os.Exit by waiting on an external application.
 	select {}
-}
-
-func deregisterServices(config *Config) {
-	log.Println("Deregister All Services")
-	for _, service := range config.Services {
-		log.Printf("Deregister service: %s\n", service.Name)
-		service.Deregister()
-	}
 }
 
 type pollingFunc func(Pollable, []string)

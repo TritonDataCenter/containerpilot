@@ -48,6 +48,20 @@ func terminate(config *Config) {
 	cmd.Process.Kill()
 }
 
+func stopPolling(config *Config) {
+	for _, quit := range config.QuitChannels {
+		quit <- true
+	}
+}
+
+func deregisterServices(config *Config) {
+	log.Println("Deregister All Services")
+	for _, service := range config.Services {
+		log.Printf("Deregister service: %s\n", service.Name)
+		service.Deregister()
+	}
+}
+
 // Listen for and capture signals from the OS
 func handleSignals(config *Config) {
 	sig := make(chan os.Signal, 1)
@@ -68,6 +82,8 @@ func handleSignals(config *Config) {
 				}
 			case syscall.SIGTERM:
 				log.Println("Caught SIGTERM")
+				stopPolling(config)
+				deregisterServices(config)
 				terminate(config)
 			}
 		}
