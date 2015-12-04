@@ -72,7 +72,7 @@ func (s *ServiceConfig) Deregister() {
 
 const (
 	// Amount of time to wait before killing the application
-	DEFAULT_STOP_TIMEOUT int = 5
+	defaultStopTimeout int = 5
 )
 
 func loadConfig() (*Config, error) {
@@ -108,7 +108,7 @@ func loadConfig() (*Config, error) {
 	}
 
 	if config.StopTimeout == 0 {
-		config.StopTimeout = DEFAULT_STOP_TIMEOUT
+		config.StopTimeout = defaultStopTimeout
 	}
 
 	config.onStartArgs = strings.Split(config.OnStart, " ")
