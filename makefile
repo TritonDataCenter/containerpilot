@@ -9,7 +9,9 @@ VERSION ?= dev-build-not-for-release
 LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
 
 ROOT := $(shell pwd)
+
 GO := docker run --rm --link containerbuddy_consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
+
 
 clean:
 	rm -rf build release .godeps
@@ -47,6 +49,15 @@ consul:
 # build and release
 
 # build our binary in a container
+
+ifeq "$(TRAVIS)" "true"
+build: .godeps
+	mkdir -p ${ROOT}/build
+	export GOPATH=${ROOT}/.godeps:${ROOT}/src && \
+		cd ${ROOT}/src/containerbuddy && \
+		go build -a -o ${ROOT}/build/containerbuddy -ldflags ${LDFLAGS}
+	chmod +x ${ROOT}/build/containerbuddy
+else
 build: .godeps
 	mkdir -p build
 	docker run --rm -e CGO_ENABLED=0 \
@@ -56,7 +67,7 @@ build: .godeps
 			golang \
 			go build -a -o /root/build/containerbuddy -ldflags ${LDFLAGS}
 	chmod +x ${ROOT}/build/containerbuddy
-
+endif
 # create the files we need for an official release on Github
 # run this target with the VERSION environment variable set
 release: build ship
