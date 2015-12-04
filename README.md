@@ -44,6 +44,7 @@ The format of the JSON file configuration is as follows:
 {
   "consul": "consul:8500",
   "onStart": "/opt/containerbuddy/onStart-script.sh",
+  "stopTimeout": 5,
   "services": [
     {
       "name": "app",
