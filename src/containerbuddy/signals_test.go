@@ -78,8 +78,10 @@ func TestTerminateSignal(t *testing.T) {
 		}
 		quit <- 1
 	}()
+	// we need time for the forked process to start up and this is async
 	runtime.Gosched()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(1 * time.Second)
+
 	sendSignal(t, syscall.SIGTERM)
 	<-quit
 	close(quit)
@@ -105,8 +107,7 @@ func sendAndWaitForSignal(t *testing.T, s os.Signal) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR1)
 	sendSignal(t, s)
-	runtime.Gosched()
 	<-sig
 	runtime.Gosched()
-	signal.Stop(sig)
+	time.Sleep(1 * time.Second)
 }
