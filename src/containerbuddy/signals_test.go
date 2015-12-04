@@ -9,95 +9,105 @@ import (
 	"time"
 )
 
+// ------------------------------------------
+// Test setup with mock services
+
 // Mock Discovery
 type NoopDiscoveryService struct{}
 
-func (c *NoopDiscoveryService) SendHeartbeat(service *ServiceConfig) {
-	return
-}
-
+func (c *NoopDiscoveryService) SendHeartbeat(service *ServiceConfig) { return }
 func (c *NoopDiscoveryService) CheckForUpstreamChanges(backend *BackendConfig) bool {
 	return false
 }
 
-func (c *NoopDiscoveryService) MarkForMaintenance(service *ServiceConfig) {
+func (c *NoopDiscoveryService) MarkForMaintenance(service *ServiceConfig) {}
+func (c *NoopDiscoveryService) Deregister(service *ServiceConfig)         {}
 
+func getSignalTestConfig() *Config {
+	config := &Config{
+		Command: getCmd([]string{
+			"/root/examples/test/test.sh",
+			"interruptSleep"}),
+		StopTimeout: 5,
+		Services: []*ServiceConfig{
+			&ServiceConfig{
+				Name:             "test-service",
+				Poll:             1,
+				discoveryService: &NoopDiscoveryService{},
+			},
+		},
+	}
+	return config
 }
 
-func (c *NoopDiscoveryService) Deregister(service *ServiceConfig) {
+// ------------------------------------------
 
-}
-
+// Test handler for SIGUSR1
 func TestMaintenanceSignal(t *testing.T) {
-
+	config := getSignalTestConfig()
 	if inMaintenanceMode() {
-		t.Errorf("Should not be in maintenance mode before starting handler")
-	}
-	handleSignals(&Config{})
-	defer func() {
-		signal.Reset()
-	}()
-	if inMaintenanceMode() {
-		t.Errorf("Should not be in maintenance mode after starting handler")
+		t.Fatal("Should not be in maintenance mode by default")
 	}
 
-	// Test SIGUSR1
-	sendAndWaitForSignal(t, syscall.SIGUSR1)
+	toggleMaintenanceMode(config)
 	if !inMaintenanceMode() {
-		t.Errorf("Should be in maintenance mode after receiving SIGUSR1")
+		t.Fatal("Should be in maintenance mode after receiving SIGUSR1")
 	}
-	sendAndWaitForSignal(t, syscall.SIGUSR1)
+
+	toggleMaintenanceMode(config)
 	if inMaintenanceMode() {
-		t.Errorf("Should not be in maintenance mode after receiving second SIGUSR1")
+		t.Fatal("Should not be in maintenance mode after receiving second SIGUSR1")
 	}
 }
 
+// Test handler for SIGTERM
 func TestTerminateSignal(t *testing.T) {
-	cmd := getCmd([]string{"/root/examples/test/test.sh", "interruptSleep"})
-	service := &ServiceConfig{Name: "test-service", Poll: 1, discoveryService: &NoopDiscoveryService{}}
-	config := &Config{Command: cmd, StopTimeout: 5, Services: []*ServiceConfig{service}}
-	handleSignals(config)
-	defer func() {
-		signal.Reset()
-	}()
 
-	// Test SIGTERM
+	config := getSignalTestConfig()
 	startTime := time.Now()
 	quit := make(chan int, 1)
 	go func() {
-		if exitCode, _ := executeAndWait(cmd); exitCode != 2 {
-			t.Errorf("Expected exit code 0 but got %d", exitCode)
+		if exitCode, _ := executeAndWait(config.Command); exitCode != 2 {
+			t.Fatalf("Expected exit code 2 but got %d", exitCode)
 		}
 		quit <- 1
 	}()
+	// we need time for the forked process to start up and this is async
 	runtime.Gosched()
 	time.Sleep(10 * time.Millisecond)
-	sendSignal(t, syscall.SIGTERM)
-	<-quit
+
+	terminate(config)
 	close(quit)
-	if elapsed := time.Since(startTime); elapsed.Seconds() > float64(config.StopTimeout) {
-		t.Errorf("Expected elapsed time <= %d seconds, but was %.2f", config.StopTimeout, elapsed.Seconds())
+	elapsed := time.Since(startTime)
+	if elapsed.Seconds() > float64(config.StopTimeout) {
+		t.Fatalf("Expected elapsed time <= %d seconds, but was %.2f",
+			config.StopTimeout, elapsed.Seconds())
 	}
 }
 
-func sendSignal(t *testing.T, s os.Signal) {
-	me, _ := os.FindProcess(os.Getpid())
-	if err := me.Signal(s); err != nil {
-		t.Errorf("Got error on %s: %v", s.String(), err)
-	}
+// Test that only ensures that we cover a straight-line run through
+// the handleSignals setup code
+func TestSignalWiring(t *testing.T) {
+	handleSignals(&Config{})
+	sendAndWaitForSignal(t, syscall.SIGUSR1)
+	sendAndWaitForSignal(t, syscall.SIGTERM)
 }
 
-// helper to ensure that we block for the signal to deliver any signal
-// we need, and then yield execution so that the handler gets a chance
-// at running. If we don't do this there's a race where we can check
-// resulting side-effects of a handler before it's been run
+// Helper to ensure the signal that we send has been received so that
+// we don't muddy subsequent tests of the signal handler.
 func sendAndWaitForSignal(t *testing.T, s os.Signal) {
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGUSR1)
+	signal.Notify(sig, s)
 	me, _ := os.FindProcess(os.Getpid())
 	if err := me.Signal(s); err != nil {
-		t.Errorf("Got error on SIGUSR1: %v", err)
+		t.Fatalf("Got error on %s: %v\n", s.String(), err)
 	}
-	<-sig
-	runtime.Gosched()
+	select {
+	case recv := <-sig:
+		if recv != s {
+			t.Fatalf("Expected %v but got %v\n", s, recv)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for %v\n", s)
+	}
 }

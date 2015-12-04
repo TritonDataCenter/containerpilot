@@ -11,23 +11,37 @@ import (
 
 // globals are eeeeevil
 var paused bool
-var pauseLock = sync.RWMutex{}
+var signalLock = sync.RWMutex{}
 
 // we wrap access to `paused` in a RLock so that if we're in the middle of
 // marking services for maintenance we don't get stale reads
 func inMaintenanceMode() bool {
-	pauseLock.RLock()
-	defer pauseLock.RUnlock()
+	signalLock.RLock()
+	defer signalLock.RUnlock()
 	return paused
 }
 
-func toggleMaintenanceMode() {
-	pauseLock.Lock()
-	defer pauseLock.Unlock()
+func toggleMaintenanceMode(config *Config) {
+	signalLock.Lock()
+	defer signalLock.Unlock()
 	paused = !paused
+	if paused {
+		forAllServices(config, func(service *ServiceConfig) {
+			log.Printf("Marking for maintenance: %s\n", service.Name)
+			service.MarkForMaintenance()
+		})
+	}
 }
 
 func terminate(config *Config) {
+	signalLock.Lock()
+	defer signalLock.Unlock()
+	stopPolling(config)
+	forAllServices(config, func(service *ServiceConfig) {
+		log.Printf("Deregistering service: %s\n", service.Name)
+		service.Deregister()
+	})
+
 	cmd := config.Command
 	if cmd == nil || cmd.Process == nil {
 		// Not managing the process, so don't do anything
@@ -69,24 +83,9 @@ func handleSignals(config *Config) {
 	go func() {
 		for signal := range sig {
 			switch signal {
-			// there's only one handler today but this makes it obvious
-			// where to add support for new signals
 			case syscall.SIGUSR1:
-				toggleMaintenanceMode()
-				if inMaintenanceMode() {
-					log.Println("we are paused!")
-					forAllServices(config, func(service *ServiceConfig) {
-						log.Printf("Marking for maintenance: %s\n", service.Name)
-						service.MarkForMaintenance()
-					})
-				}
+				toggleMaintenanceMode(config)
 			case syscall.SIGTERM:
-				log.Println("Caught SIGTERM")
-				stopPolling(config)
-				forAllServices(config, func(service *ServiceConfig) {
-					log.Printf("Deregister service: %s\n", service.Name)
-					service.Deregister()
-				})
 				terminate(config)
 			}
 		}
