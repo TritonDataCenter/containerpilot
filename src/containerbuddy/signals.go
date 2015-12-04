@@ -54,11 +54,11 @@ func stopPolling(config *Config) {
 	}
 }
 
-func deregisterServices(config *Config) {
-	log.Println("Deregister All Services")
+type serviceFunc func(service *ServiceConfig)
+
+func forAllServices(config *Config, fn serviceFunc) {
 	for _, service := range config.Services {
-		log.Printf("Deregister service: %s\n", service.Name)
-		service.Deregister()
+		fn(service)
 	}
 }
 
@@ -75,15 +75,18 @@ func handleSignals(config *Config) {
 				toggleMaintenanceMode()
 				if inMaintenanceMode() {
 					log.Println("we are paused!")
-					for _, service := range config.Services {
+					forAllServices(config, func(service *ServiceConfig) {
 						log.Printf("Marking for maintenance: %s\n", service.Name)
 						service.MarkForMaintenance()
-					}
+					})
 				}
 			case syscall.SIGTERM:
 				log.Println("Caught SIGTERM")
 				stopPolling(config)
-				deregisterServices(config)
+				forAllServices(config, func(service *ServiceConfig) {
+					log.Printf("Deregister service: %s\n", service.Name)
+					service.Deregister()
+				})
 				terminate(config)
 			}
 		}
