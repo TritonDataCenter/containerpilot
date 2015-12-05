@@ -34,9 +34,6 @@ func TestMaintenanceSignal(t *testing.T) {
 		t.Errorf("Should not be in maintenance mode before starting handler")
 	}
 	handleSignals(&Config{})
-	defer func() {
-		signal.Reset()
-	}()
 	if inMaintenanceMode() {
 		t.Errorf("Should not be in maintenance mode after starting handler")
 	}
@@ -52,21 +49,24 @@ func TestMaintenanceSignal(t *testing.T) {
 	}
 }
 
+func TestMaintenanceSignalRace(t *testing.T) {
+	for i := 0; i < 10000; i++ {
+		TestMaintenanceSignal(t)
+	}
+}
+
 func TestTerminateSignal(t *testing.T) {
 	cmd := getCmd([]string{"/root/examples/test/test.sh", "interruptSleep"})
 	service := &ServiceConfig{Name: "test-service", Poll: 1, discoveryService: &NoopDiscoveryService{}}
 	config := &Config{Command: cmd, StopTimeout: 5, Services: []*ServiceConfig{service}}
 	handleSignals(config)
-	defer func() {
-		signal.Reset()
-	}()
 
 	// Test SIGTERM
 	startTime := time.Now()
 	quit := make(chan int, 1)
 	go func() {
 		if exitCode, _ := executeAndWait(cmd); exitCode != 2 {
-			t.Errorf("Expected exit code 0 but got %d", exitCode)
+			t.Errorf("Expected exit code 2 but got %d", exitCode)
 		}
 		quit <- 1
 	}()
@@ -96,8 +96,12 @@ func sendAndWaitForSignal(t *testing.T, s os.Signal) {
 	signal.Notify(sig, syscall.SIGUSR1)
 	me, _ := os.FindProcess(os.Getpid())
 	if err := me.Signal(s); err != nil {
-		t.Errorf("Got error on SIGUSR1: %v", err)
+		t.Errorf("Got error on %s: %v", s.String(), err)
 	}
 	<-sig
+	// Gosched is aparently not enough to force the handleSignals goroutine to run
+	// Sleeping virtually any amount of time seems to do it though
+	time.Sleep(1 * time.Nanosecond)
 	runtime.Gosched()
+	signal.Stop(sig)
 }
