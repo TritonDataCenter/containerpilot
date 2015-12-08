@@ -52,8 +52,15 @@ The format of the JSON file configuration is as follows:
     {
       "name": "app",
       "port": 80,
-      "health": "/usr/bin/curl --fail -s http://localhost/app",
-      "interfaces": ["eth0"],
+      "health": [
+        "/usr/bin/curl",
+        "--fail",
+        "-s",
+        "http://localhost/app"
+      ],
+      "interfaces": [
+        "eth0"
+      ],
       "poll": 10,
       "ttl": 30
     }
@@ -97,6 +104,27 @@ Other fields:
 - `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`). Providing `-1` will kill the application immediately.
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
+
+#### Commands & arguments
+
+All executable fields, such as `onStart` and `onChange`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments.
+
+**String Command**
+
+```json
+"health": "/usr/bin/curl --fail -s http://localhost/app"
+```
+
+**Array Command**
+
+```json
+"health": [
+  "/usr/bin/curl",
+  "--fail",
+  "-s",
+  "http://localhost/app"
+]
+```
 
 ### Operating Containerbuddy
 

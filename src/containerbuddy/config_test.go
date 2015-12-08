@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
+	"os/exec"
+	"reflect"
 	"testing"
 )
 
@@ -10,7 +13,9 @@ func TestValidConfigParse(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	var testJson = `{
     "consul": "consul:8500",
-    "onStart": "/bin/to/onStart.sh",
+    "onStart": "/bin/to/onStart.sh arg1 arg2",
+		"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
+		"postStop": ["/bin/to/postStop.sh"],
     "services": [
         {
             "name": "serviceA",
@@ -52,8 +57,59 @@ func TestValidConfigParse(t *testing.T) {
 	if len(args) != 3 || args[0] != "/test.sh" {
 		t.Errorf("Expected 3 args but got unexpected results: %v", args)
 	}
-	if config.OnStart != "/bin/to/onStart.sh" {
-		t.Errorf("onStart not configured")
+	validateCommandParsed(t, "onStart", config.onStartCmd, []string{"/bin/to/onStart.sh", "arg1", "arg2"})
+	validateCommandParsed(t, "preStop", config.preStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
+	validateCommandParsed(t, "postStop", config.postStopCmd, []string{"/bin/to/postStop.sh"})
+	validateCommandParsed(t, "health", config.Services[0].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/A.sh"})
+	validateCommandParsed(t, "health", config.Services[1].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/B.sh"})
+	validateCommandParsed(t, "onChange", config.Backends[0].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/A.sh"})
+	validateCommandParsed(t, "onChange", config.Backends[1].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/B.sh"})
+}
+
+func TestParseCommandArgs(t *testing.T) {
+	if cmd, err := parseCommandArgs(nil); err == nil {
+		validateCommandParsed(t, "command", cmd, nil)
+	} else {
+		t.Errorf("Unexpected parse error: %s", err.Error())
+	}
+
+	expected := []string{"/test.sh", "arg1"}
+	json1 := json.RawMessage(`"/test.sh arg1"`)
+	if cmd, err := parseCommandArgs(json1); err == nil {
+		validateCommandParsed(t, "json1", cmd, expected)
+	} else {
+		t.Errorf("Unexpected parse error json1: %s", err.Error())
+	}
+
+	json2 := json.RawMessage(`["/test.sh","arg1"]`)
+	if cmd, err := parseCommandArgs(json2); err == nil {
+		validateCommandParsed(t, "json2", cmd, expected)
+	} else {
+		t.Errorf("Unexpected parse error json2: %s", err.Error())
+	}
+
+	json3 := json.RawMessage(`{ "a": true }`)
+	if _, err := parseCommandArgs(json3); err == nil {
+		t.Errorf("Expected parse error for json3")
+	}
+
+}
+
+func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
+	if expected == nil {
+		if parsed != nil {
+			t.Errorf("%s has Cmd, but expected nil", name)
+		}
+		return
+	}
+	if parsed == nil {
+		t.Errorf("%s not configured", name)
+	}
+	if parsed.Path != expected[0] {
+		t.Errorf("%s path not configured: %s != %s", name, parsed.Path, expected[0])
+	}
+	if !reflect.DeepEqual(parsed.Args, expected) {
+		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expected)
 	}
 }
 
