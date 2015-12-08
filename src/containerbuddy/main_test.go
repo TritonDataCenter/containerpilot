@@ -9,17 +9,17 @@ import (
 // a closed channel immediately as expected and gracefully.
 func TestPoll(t *testing.T) {
 	service := &ServiceConfig{Poll: 1}
-	quit := poll(service, func(service Pollable, args []string) {
+	quit := poll(service, func(service Pollable, command string) {
 		time.Sleep(5 * time.Second)
 		t.Errorf("We should never reach this code because the channel should close.")
 		return
-	}, []string{"exec", "arg1"})
+	}, "exec arg1")
 	close(quit)
 }
 
 func TestRunSuccess(t *testing.T) {
-	args := []string{"/root/examples/test/test.sh", "doStuff", "--debug"}
-	if exitCode, _ := run(args); exitCode != 0 {
+	command := "/root/examples/test/test.sh doStuff --debug"
+	if exitCode, _ := run(command); exitCode != 0 {
 		t.Errorf("Expected exit code 0 but got %d", exitCode)
 	}
 }
@@ -30,8 +30,14 @@ func TestRunFailed(t *testing.T) {
 			t.Errorf("Expected panic but did not.")
 		}
 	}()
-	args := []string{"/root/examples/test/test.sh", "failStuff", "--debug"}
-	if exitCode, _ := run(args); exitCode != 255 {
+	command := "/root/examples/test/test.sh failStuff --debug"
+	if exitCode, _ := run(command); exitCode != 255 {
 		t.Errorf("Expected exit code 255 but got %d", exitCode)
+	}
+}
+
+func TestRunNothing(t *testing.T) {
+	if code, err := run(""); code != 0 || err != nil {
+		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
 	}
 }

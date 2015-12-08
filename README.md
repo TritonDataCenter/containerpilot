@@ -46,6 +46,8 @@ The format of the JSON file configuration is as follows:
   "consul": "consul:8500",
   "onStart": "/opt/containerbuddy/onStart-script.sh",
   "stopTimeout": 5,
+  "preStop": "/opt/containerbuddy/preStop-script.sh",
+  "postStop": "/opt/containerbuddy/postStop-script.sh",
   "services": [
     {
       "name": "app",
@@ -90,6 +92,8 @@ Other fields:
 
 - `consul` is the hostname and port of the Consul discovery service.
 - `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, Containerbuddy will exit.
+- `preStop` is the executable (and its arguments) that will be called immediately **before** the shimmed application exits. This field is optional. Containerbuddy will wait until this program exits before terminating the shimmed application.
+- `postStop` is the executable (and its arguments) that will be called immediately **after** the shimmed application exits. This field is optional. If the `postStop` handler returns a non-zero exit code, Containerbuddy will exit with this code rather than the application's exit code.
 - `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`). Providing `-1` will kill the application immediately.
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
