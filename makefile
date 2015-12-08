@@ -69,6 +69,7 @@ build: .godeps
 			go build -a -o /root/build/containerbuddy -ldflags ${LDFLAGS}
 	chmod +x ${ROOT}/build/containerbuddy
 endif
+
 # create the files we need for an official release on Github
 # run this target with the VERSION environment variable set
 release: build ship

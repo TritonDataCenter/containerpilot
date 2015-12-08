@@ -146,8 +146,10 @@ func parseConfig(configFlag string) (*Config, error) {
 	var data []byte
 	if strings.HasPrefix(configFlag, "file://") {
 		var err error
-		if data, err = ioutil.ReadFile(strings.SplitAfter(configFlag, "file://")[1]); err != nil {
-			return nil, errors.New(fmt.Sprintf("Could not read config file: %s", err))
+		fName := strings.SplitAfter(configFlag, "file://")[1]
+		if data, err = ioutil.ReadFile(fName); err != nil {
+			return nil, errors.New(
+				fmt.Sprintf("Could not read config file: %s", err))
 		}
 	} else {
 		data = []byte(configFlag)
@@ -155,29 +157,12 @@ func parseConfig(configFlag string) (*Config, error) {
 
 	config := &Config{}
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not parse configuration: %s", err))
+		return nil, errors.New(fmt.Sprintf(
+			"Could not parse configuration: %s",
+			err))
 	}
 
 	return config, nil
-}
-
-type InterfaceIp struct {
-	Name string
-	IP   string
-}
-
-func getInterfaceIps() []InterfaceIp {
-	var ifaceIps []InterfaceIp
-	interfaces, _ := net.Interfaces()
-	for _, intf := range interfaces {
-		ipAddrs, _ := intf.Addrs()
-		// We're assuming each interface has one IP here because neither Docker
-		// nor Triton sets up IP aliasing.
-		ipAddr, _, _ := net.ParseCIDR(ipAddrs[0].String())
-		ifaceIp := InterfaceIp{Name: intf.Name, IP: ipAddr.String()}
-		ifaceIps = append(ifaceIps, ifaceIp)
-	}
-	return ifaceIps
 }
 
 // determine the IP address of the container
@@ -199,20 +184,25 @@ func getIp(interfaceNames []string) (string, error) {
 	}
 
 	// Interface not found, return error
-	return "", errors.New(fmt.Sprintf("Unable to find interfaces %s in %#v", interfaceNames, interfaces))
+	return "", errors.New(fmt.Sprintf("Unable to find interfaces %s in %#v",
+		interfaceNames, interfaces))
 }
 
-// parse an IPv4 address and return true if it's a public IP
-func isPublicIp(ip net.IP) bool {
-	_, c, _ := net.ParseCIDR("192.168.0.0/16")
-	_, b, _ := net.ParseCIDR("172.16.0.0/12")
-	_, a, _ := net.ParseCIDR("10.0.0.0/8")
+type InterfaceIp struct {
+	Name string
+	IP   string
+}
 
-	var privateNetworks = []*net.IPNet{c, b, a}
-	for _, network := range privateNetworks {
-		if network.Contains(ip) {
-			return false
-		}
+func getInterfaceIps() []InterfaceIp {
+	var ifaceIps []InterfaceIp
+	interfaces, _ := net.Interfaces()
+	for _, intf := range interfaces {
+		ipAddrs, _ := intf.Addrs()
+		// We're assuming each interface has one IP here because neither Docker
+		// nor Triton sets up IP aliasing.
+		ipAddr, _, _ := net.ParseCIDR(ipAddrs[0].String())
+		ifaceIp := InterfaceIp{Name: intf.Name, IP: ipAddr.String()}
+		ifaceIps = append(ifaceIps, ifaceIp)
 	}
-	return true
+	return ifaceIps
 }
