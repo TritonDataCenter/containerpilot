@@ -39,7 +39,7 @@ type ServiceConfig struct {
 	HealthCheckExec  json.RawMessage `json:"health"`
 	Port             int             `json:"port"`
 	TTL              int             `json:"ttl"`
-	Interfaces       []string        `json:"interfaces"`
+	Interfaces       json.RawMessage `json:"interfaces"`
 	discoveryService DiscoveryService
 	ipAddress        string
 	healthCheckCmd   *exec.Cmd
@@ -84,6 +84,24 @@ const (
 	// Amount of time to wait before killing the application
 	defaultStopTimeout int = 5
 )
+
+func parseInterfaces(raw json.RawMessage) ([]string, error) {
+	if raw == nil {
+		return nil, nil
+	}
+	// Parse as a string
+	var jsonString string
+	if err := json.Unmarshal(raw, &jsonString); err == nil {
+		return []string{jsonString}, nil
+	}
+
+	var jsonArray []string
+	if err := json.Unmarshal(raw, &jsonArray); err == nil {
+		return jsonArray, nil
+	}
+
+	return nil, errors.New("interfaces must be a string or an array")
+}
 
 func parseCommandArgs(raw json.RawMessage) (*exec.Cmd, error) {
 	if raw == nil {
@@ -176,13 +194,18 @@ func loadConfig() (*Config, error) {
 		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
 
-		cmd, err := parseCommandArgs(service.HealthCheckExec)
-		if err != nil {
+		if cmd, err := parseCommandArgs(service.HealthCheckExec); err != nil {
 			return nil, errors.New(fmt.Sprintf("Could not parse `health` in service %s: %s", service.Name, err.Error()))
+		} else {
+			service.healthCheckCmd = cmd
 		}
-		service.healthCheckCmd = cmd
 
-		if service.ipAddress, err = getIp(service.Interfaces); err != nil {
+		interfaces, ifaceErr := parseInterfaces(service.Interfaces)
+		if ifaceErr != nil {
+			return nil, ifaceErr
+		}
+
+		if service.ipAddress, err = getIp(interfaces); err != nil {
 			return nil, err
 		}
 	}

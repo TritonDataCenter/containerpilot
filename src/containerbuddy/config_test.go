@@ -14,12 +14,13 @@ func TestValidConfigParse(t *testing.T) {
 	var testJson = `{
     "consul": "consul:8500",
     "onStart": "/bin/to/onStart.sh arg1 arg2",
-		"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
-		"postStop": ["/bin/to/postStop.sh"],
+    "preStop": ["/bin/to/preStop.sh","arg1","arg2"],
+    "postStop": ["/bin/to/postStop.sh"],
     "services": [
         {
             "name": "serviceA",
             "port": 8080,
+            "interfaces": "eth0",
             "health": "/bin/to/healthcheck/for/service/A.sh",
             "poll": 30,
             "ttl": 19
@@ -27,6 +28,7 @@ func TestValidConfigParse(t *testing.T) {
         {
             "name": "serviceB",
             "port": 5000,
+            "interfaces": ["ethwe","eth0"],
             "health": "/bin/to/healthcheck/for/service/B.sh",
             "poll": 30,
             "ttl": 103
@@ -57,6 +59,7 @@ func TestValidConfigParse(t *testing.T) {
 	if len(args) != 3 || args[0] != "/test.sh" {
 		t.Errorf("Expected 3 args but got unexpected results: %v", args)
 	}
+
 	validateCommandParsed(t, "onStart", config.onStartCmd, []string{"/bin/to/onStart.sh", "arg1", "arg2"})
 	validateCommandParsed(t, "preStop", config.preStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
 	validateCommandParsed(t, "postStop", config.postStopCmd, []string{"/bin/to/postStop.sh"})
@@ -64,6 +67,33 @@ func TestValidConfigParse(t *testing.T) {
 	validateCommandParsed(t, "health", config.Services[1].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/B.sh"})
 	validateCommandParsed(t, "onChange", config.Backends[0].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/A.sh"})
 	validateCommandParsed(t, "onChange", config.Backends[1].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/B.sh"})
+}
+
+func TestParseInterfaces(t *testing.T) {
+	if interfaces, err := parseInterfaces(nil); err != nil {
+		t.Errorf("Unexpected parse error: %s", err.Error())
+	} else if interfaces != nil {
+		t.Errorf("Expected no interfaces, but got %s", interfaces)
+	}
+
+	json1 := json.RawMessage(`"eth0"`)
+	if interfaces, err := parseInterfaces(json1); err != nil {
+		t.Errorf("Unexpected parse error: %s", err.Error())
+	} else if !reflect.DeepEqual(interfaces, []string{"eth0"}) {
+		t.Errorf("Expected 1 interface, got: %s", interfaces)
+	}
+
+	json2 := json.RawMessage(`["ethwe","eth0"]`)
+	if interfaces, err := parseInterfaces(json2); err != nil {
+		t.Errorf("Unexpected parse error: %s", err.Error())
+	} else if !reflect.DeepEqual(interfaces, []string{"ethwe", "eth0"}) {
+		t.Errorf("Expected 2 interfaces, got: %s", interfaces)
+	}
+
+	json3 := json.RawMessage(`{ "a": true }`)
+	if _, err := parseInterfaces(json3); err == nil {
+		t.Errorf("Expected parse error for json3")
+	}
 }
 
 func TestParseCommandArgs(t *testing.T) {
