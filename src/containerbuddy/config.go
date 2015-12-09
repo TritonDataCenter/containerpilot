@@ -144,19 +144,19 @@ func loadConfig() (*Config, error) {
 
 	onStartCmd, err := parseCommandArgs(config.OnStart)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not parse `onStart`: %s", err.Error()))
+		return nil, fmt.Errorf("Could not parse `onStart`: %s", err)
 	}
 	config.onStartCmd = onStartCmd
 
 	preStopCmd, err := parseCommandArgs(config.PreStop)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not parse `preStop`: %s", err.Error()))
+		return nil, fmt.Errorf("Could not parse `preStop`: %s", err)
 	}
 	config.preStopCmd = preStopCmd
 
 	postStopCmd, err := parseCommandArgs(config.PostStop)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not parse `postStop`: %s", err.Error()))
+		return nil, fmt.Errorf("Could not parse `postStop`: %s", err)
 	}
 	config.postStopCmd = postStopCmd
 
@@ -183,7 +183,8 @@ func loadConfig() (*Config, error) {
 	for _, backend := range config.Backends {
 		cmd, err := parseCommandArgs(backend.OnChangeExec)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Could not parse `onChange` in backend %s: %s", backend.Name, err.Error()))
+			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
+				backend.Name, err)
 		}
 		backend.onChangeCmd = cmd
 		backend.discoveryService = discovery
@@ -195,7 +196,8 @@ func loadConfig() (*Config, error) {
 		service.discoveryService = discovery
 
 		if cmd, err := parseCommandArgs(service.HealthCheckExec); err != nil {
-			return nil, errors.New(fmt.Sprintf("Could not parse `health` in service %s: %s", service.Name, err.Error()))
+			return nil, fmt.Errorf("Could not parse `health` in service %s: %s",
+				service.Name, err)
 		} else {
 			service.healthCheckCmd = cmd
 		}
