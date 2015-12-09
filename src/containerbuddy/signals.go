@@ -43,7 +43,7 @@ func terminate(config *Config) {
 	})
 
 	// Run and wait for preStop command to exit
-	run(config.PreStop)
+	run(config.preStopCmd)
 
 	cmd := config.Command
 	if cmd == nil || cmd.Process == nil {

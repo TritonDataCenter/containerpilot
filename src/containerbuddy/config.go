@@ -18,35 +18,40 @@ var (
 )
 
 type Config struct {
-	Consul       string `json:"consul,omitempty"`
-	OnStart      string `json:"onStart"`
-	PreStop      string `json:"preStop"`
-	PostStop     string `json:"postStop"`
-	StopTimeout  int    `json:"stopTimeout"`
-	Command      *exec.Cmd
-	QuitChannels []chan bool
+	Consul       string           `json:"consul,omitempty"`
+	OnStart      json.RawMessage  `json:"onStart,omitempty"`
+	PreStop      json.RawMessage  `json:"preStop,omitempty"`
+	PostStop     json.RawMessage  `json:"postStop,omitempty"`
+	StopTimeout  int              `json:"stopTimeout"`
 	Services     []*ServiceConfig `json:"services"`
 	Backends     []*BackendConfig `json:"backends"`
+	onStartCmd   *exec.Cmd
+	preStopCmd   *exec.Cmd
+	postStopCmd  *exec.Cmd
+	Command      *exec.Cmd
+	QuitChannels []chan bool
 }
 
 type ServiceConfig struct {
 	Id               string
-	Name             string   `json:"name"`
-	Poll             int      `json:"poll"` // time in seconds
-	HealthCheckExec  string   `json:"health"`
-	Port             int      `json:"port"`
-	TTL              int      `json:"ttl"`
-	Interfaces       []string `json:"interfaces"`
+	Name             string          `json:"name"`
+	Poll             int             `json:"poll"` // time in seconds
+	HealthCheckExec  json.RawMessage `json:"health"`
+	Port             int             `json:"port"`
+	TTL              int             `json:"ttl"`
+	Interfaces       json.RawMessage `json:"interfaces"`
 	discoveryService DiscoveryService
 	ipAddress        string
+	healthCheckCmd   *exec.Cmd
 }
 
 type BackendConfig struct {
-	Name             string `json:"name"`
-	Poll             int    `json:"poll"` // time in seconds
-	OnChangeExec     string `json:"onChange"`
+	Name             string          `json:"name"`
+	Poll             int             `json:"poll"` // time in seconds
+	OnChangeExec     json.RawMessage `json:"onChange"`
 	discoveryService DiscoveryService
 	lastState        interface{}
+	onChangeCmd      *exec.Cmd
 }
 
 type Pollable interface {
@@ -80,6 +85,41 @@ const (
 	defaultStopTimeout int = 5
 )
 
+func parseInterfaces(raw json.RawMessage) ([]string, error) {
+	if raw == nil {
+		return []string{}, nil
+	}
+	// Parse as a string
+	var jsonString string
+	if err := json.Unmarshal(raw, &jsonString); err == nil {
+		return []string{jsonString}, nil
+	}
+
+	var jsonArray []string
+	if err := json.Unmarshal(raw, &jsonArray); err == nil {
+		return jsonArray, nil
+	}
+
+	return []string{}, errors.New("interfaces must be a string or an array")
+}
+
+func parseCommandArgs(raw json.RawMessage) (*exec.Cmd, error) {
+	if raw == nil {
+		return nil, nil
+	}
+	// Parse as a string
+	var stringCmd string
+	if err := json.Unmarshal(raw, &stringCmd); err == nil {
+		return strToCmd(stringCmd), nil
+	}
+
+	var arrayCmd []string
+	if err := json.Unmarshal(raw, &arrayCmd); err == nil {
+		return argsToCmd(arrayCmd), nil
+	}
+	return nil, errors.New("Command argument must be a string or an array")
+}
+
 func loadConfig() (*Config, error) {
 
 	var configFlag string
@@ -102,6 +142,24 @@ func loadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	onStartCmd, err := parseCommandArgs(config.OnStart)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse `onStart`: %s", err)
+	}
+	config.onStartCmd = onStartCmd
+
+	preStopCmd, err := parseCommandArgs(config.PreStop)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse `preStop`: %s", err)
+	}
+	config.preStopCmd = preStopCmd
+
+	postStopCmd, err := parseCommandArgs(config.PostStop)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse `postStop`: %s", err)
+	}
+	config.postStopCmd = postStopCmd
+
 	for _, discoveryBackend := range []string{"Consul"} {
 		switch discoveryBackend {
 		case "Consul":
@@ -123,6 +181,12 @@ func loadConfig() (*Config, error) {
 	}
 
 	for _, backend := range config.Backends {
+		cmd, err := parseCommandArgs(backend.OnChangeExec)
+		if err != nil {
+			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
+				backend.Name, err)
+		}
+		backend.onChangeCmd = cmd
 		backend.discoveryService = discovery
 	}
 
@@ -130,7 +194,20 @@ func loadConfig() (*Config, error) {
 	for _, service := range config.Services {
 		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
-		if service.ipAddress, err = getIp(service.Interfaces); err != nil {
+
+		if cmd, err := parseCommandArgs(service.HealthCheckExec); err != nil {
+			return nil, fmt.Errorf("Could not parse `health` in service %s: %s",
+				service.Name, err)
+		} else {
+			service.healthCheckCmd = cmd
+		}
+
+		interfaces, ifaceErr := parseInterfaces(service.Interfaces)
+		if ifaceErr != nil {
+			return nil, ifaceErr
+		}
+
+		if service.ipAddress, err = getIp(interfaces); err != nil {
 			return nil, err
 		}
 	}
@@ -205,4 +282,22 @@ func getInterfaceIps() []InterfaceIp {
 		ifaceIps = append(ifaceIps, ifaceIp)
 	}
 	return ifaceIps
+}
+
+func argsToCmd(args []string) *exec.Cmd {
+	if len(args) == 0 {
+		return nil
+	}
+	if len(args) > 1 {
+		return exec.Command(args[0], args[1:]...)
+	} else {
+		return exec.Command(args[0])
+	}
+}
+
+func strToCmd(command string) *exec.Cmd {
+	if command != "" {
+		return argsToCmd(strings.Split(command, " "))
+	}
+	return nil
 }

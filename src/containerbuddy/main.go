@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -18,7 +17,7 @@ func main() {
 	}
 
 	// Run the onStart handler, if any, and exit if it returns an error
-	if onStartCode, err := run(config.OnStart); err != nil {
+	if onStartCode, err := run(config.onStartCmd); err != nil {
 		os.Exit(onStartCode)
 	}
 
@@ -27,10 +26,10 @@ func main() {
 
 	var quit []chan bool
 	for _, backend := range config.Backends {
-		quit = append(quit, poll(backend, checkForChanges, backend.OnChangeExec))
+		quit = append(quit, poll(backend, checkForChanges))
 	}
 	for _, service := range config.Services {
-		quit = append(quit, poll(service, checkHealth, service.HealthCheckExec))
+		quit = append(quit, poll(service, checkHealth))
 	}
 	config.QuitChannels = quit
 
@@ -46,13 +45,13 @@ func main() {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		config.Command = getCmd(flag.Args())
+		config.Command = argsToCmd(flag.Args())
 		code, err := executeAndWait(config.Command)
 		if err != nil {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
-		if postStopCode, err := run(config.PostStop); err != nil {
+		if postStopCode, err := run(config.postStopCmd); err != nil {
 			os.Exit(postStopCode)
 		}
 		os.Exit(code)
@@ -63,11 +62,11 @@ func main() {
 	select {}
 }
 
-type pollingFunc func(Pollable, string)
+type pollingFunc func(Pollable)
 
 // Every `pollTime` seconds, run the `pollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
-func poll(config Pollable, fn pollingFunc, command string) chan bool {
+func poll(config Pollable, fn pollingFunc) chan bool {
 	ticker := time.NewTicker(time.Duration(config.PollTime()) * time.Second)
 	quit := make(chan bool)
 	go func() {
@@ -75,7 +74,7 @@ func poll(config Pollable, fn pollingFunc, command string) chan bool {
 			select {
 			case <-ticker.C:
 				if !inMaintenanceMode() {
-					fn(config, command)
+					fn(config)
 				}
 			case <-quit:
 				return
@@ -88,32 +87,27 @@ func poll(config Pollable, fn pollingFunc, command string) chan bool {
 // Implements `pollingFunc`; args are the executable we use to check the
 // application health and its arguments. If the error code on that exectable is
 // 0, we write a TTL health check to the health check store.
-func checkHealth(pollable Pollable, command string) {
+func checkHealth(pollable Pollable) {
 	service := pollable.(*ServiceConfig) // if we pass a bad type here we crash intentionally
-	if code, _ := run(command); code == 0 {
+	if code, _ := run(service.healthCheckCmd); code == 0 {
 		service.SendHeartbeat()
 	}
 }
 
 // Implements `pollingFunc`; args are the executable we run if the values in
 // the central store have changed since the last run.
-func checkForChanges(pollable Pollable, command string) {
+func checkForChanges(pollable Pollable) {
 	backend := pollable.(*BackendConfig) // if we pass a bad type here we crash intentionally
 	if backend.CheckForUpstreamChanges() {
-		run(command)
-	}
-}
-
-func getCmd(args []string) *exec.Cmd {
-	if len(args) > 1 {
-		return exec.Command(args[0], args[1:]...)
-	} else {
-		return exec.Command(args[0])
+		run(backend.onChangeCmd)
 	}
 }
 
 // Executes the given command and blocks until completed
 func executeAndWait(cmd *exec.Cmd) (int, error) {
+	if cmd == nil {
+		return 0, nil
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -128,16 +122,13 @@ func executeAndWait(cmd *exec.Cmd) (int, error) {
 	return 0, nil
 }
 
-// Runs an arbitrary string of arguments as an executable and its arguments.
+// Executes the given command and blocks until completed
 // Returns the exit code and error message (if any).
-func run(command string) (int, error) {
-	if command != "" {
-		args := strings.Split(command, " ")
-		code, err := executeAndWait(getCmd(args))
-		if err != nil {
-			log.Println(err)
-		}
-		return code, err
+// Logs errors
+func run(cmd *exec.Cmd) (int, error) {
+	code, err := executeAndWait(cmd)
+	if err != nil {
+		log.Println(err)
 	}
-	return 0, nil
+	return code, err
 }
