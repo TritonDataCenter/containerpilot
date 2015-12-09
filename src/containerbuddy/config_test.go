@@ -72,22 +72,24 @@ func TestValidConfigParse(t *testing.T) {
 func TestParseInterfaces(t *testing.T) {
 	if interfaces, err := parseInterfaces(nil); err != nil {
 		t.Errorf("Unexpected parse error: %s", err.Error())
-	} else if interfaces != nil {
+	} else if len(interfaces) > 0 {
 		t.Errorf("Expected no interfaces, but got %s", interfaces)
 	}
 
 	json1 := json.RawMessage(`"eth0"`)
+	expected1 := []string{"eth0"}
 	if interfaces, err := parseInterfaces(json1); err != nil {
 		t.Errorf("Unexpected parse error: %s", err.Error())
-	} else if !reflect.DeepEqual(interfaces, []string{"eth0"}) {
-		t.Errorf("Expected 1 interface, got: %s", interfaces)
+	} else if !reflect.DeepEqual(interfaces, expected1) {
+		t.Errorf("Expected %s, got: %s", expected1, interfaces)
 	}
 
 	json2 := json.RawMessage(`["ethwe","eth0"]`)
+	expected2 := []string{"ethwe", "eth0"}
 	if interfaces, err := parseInterfaces(json2); err != nil {
 		t.Errorf("Unexpected parse error: %s", err.Error())
-	} else if !reflect.DeepEqual(interfaces, []string{"ethwe", "eth0"}) {
-		t.Errorf("Expected 2 interfaces, got: %s", interfaces)
+	} else if !reflect.DeepEqual(interfaces, expected2) {
+		t.Errorf("Expected %s, got: %s", expected2, interfaces)
 	}
 
 	json3 := json.RawMessage(`{ "a": true }`)
