@@ -87,7 +87,7 @@ const (
 
 func parseInterfaces(raw json.RawMessage) ([]string, error) {
 	if raw == nil {
-		return nil, nil
+		return []string{}, nil
 	}
 	// Parse as a string
 	var jsonString string
@@ -100,7 +100,7 @@ func parseInterfaces(raw json.RawMessage) ([]string, error) {
 		return jsonArray, nil
 	}
 
-	return nil, errors.New("interfaces must be a string or an array")
+	return []string{}, errors.New("interfaces must be a string or an array")
 }
 
 func parseCommandArgs(raw json.RawMessage) (*exec.Cmd, error) {
