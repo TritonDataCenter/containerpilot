@@ -281,3 +281,21 @@ func getInterfaceIps() []InterfaceIp {
 	}
 	return ifaceIps
 }
+
+func argsToCmd(args []string) *exec.Cmd {
+	if len(args) == 0 {
+		return nil
+	}
+	if len(args) > 1 {
+		return exec.Command(args[0], args[1:]...)
+	} else {
+		return exec.Command(args[0])
+	}
+}
+
+func strToCmd(command string) *exec.Cmd {
+	if command != "" {
+		return argsToCmd(strings.Split(command, " "))
+	}
+	return nil
+}
