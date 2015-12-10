@@ -37,12 +37,12 @@ var testJson = `{
 			{
 					"name": "upstreamA",
 					"poll": 11,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh"
+					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}"
 			},
 			{
 					"name": "upstreamB",
 					"poll": 79,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh"
+					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
 			}
 	]
 }
@@ -51,6 +51,7 @@ var testJson = `{
 func TestValidConfigParse(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 
+	os.Setenv("TEST", "HELLO")
 	os.Args = []string{"this", "-config", testJson, "/test.sh", "valid1", "--debug"}
 	config, _ := loadConfig()
 
@@ -67,7 +68,7 @@ func TestValidConfigParse(t *testing.T) {
 	validateCommandParsed(t, "postStop", config.postStopCmd, []string{"/bin/to/postStop.sh"})
 	validateCommandParsed(t, "health", config.Services[0].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/A.sh"})
 	validateCommandParsed(t, "health", config.Services[1].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/B.sh"})
-	validateCommandParsed(t, "onChange", config.Backends[0].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/A.sh"})
+	validateCommandParsed(t, "onChange", config.Backends[0].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/A.sh", "HELLO"})
 	validateCommandParsed(t, "onChange", config.Backends[1].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/B.sh"})
 }
 

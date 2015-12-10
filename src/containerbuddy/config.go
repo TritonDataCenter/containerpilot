@@ -271,12 +271,19 @@ func parseConfig(configFlag string) (*Config, error) {
 		var err error
 		fName := strings.SplitAfter(configFlag, "file://")[1]
 		if data, err = ioutil.ReadFile(fName); err != nil {
-			return nil, errors.New(
-				fmt.Sprintf("Could not read config file: %s", err))
+			return nil, fmt.Errorf("Could not read config file: %s", err)
 		}
 	} else {
 		data = []byte(configFlag)
 	}
+
+	if template, err := ApplyTemplate(data); err != nil {
+		return nil, fmt.Errorf(
+			"Could not apply template to config: %s", err)
+	} else {
+		data = template
+	}
+
 	return unmarshalConfig(data)
 }
 
@@ -345,7 +352,7 @@ func argsToCmd(args []string) *exec.Cmd {
 
 func strToCmd(command string) *exec.Cmd {
 	if command != "" {
-		return argsToCmd(strings.Split(command, " "))
+		return argsToCmd(strings.Split(strings.TrimSpace(command), " "))
 	}
 	return nil
 }
