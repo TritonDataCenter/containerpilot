@@ -65,6 +65,13 @@ func (b *BackendConfig) CheckForUpstreamChanges() bool {
 	return b.discoveryService.CheckForUpstreamChanges(b)
 }
 
+func (b *BackendConfig) OnChange() (int, error) {
+	exitCode, err := run(b.onChangeCmd)
+	// Reset command object - since it can't be reused
+	b.onChangeCmd = argsToCmd(b.onChangeCmd.Args)
+	return exitCode, err
+}
+
 func (s ServiceConfig) PollTime() int {
 	return s.Poll
 }
@@ -78,6 +85,13 @@ func (s *ServiceConfig) MarkForMaintenance() {
 
 func (s *ServiceConfig) Deregister() {
 	s.discoveryService.Deregister(s)
+}
+
+func (s *ServiceConfig) CheckHealth() (int, error) {
+	exitCode, err := run(s.healthCheckCmd)
+	// Reset command object - since it can't be reused
+	s.healthCheckCmd = argsToCmd(s.healthCheckCmd.Args)
+	return exitCode, err
 }
 
 const (

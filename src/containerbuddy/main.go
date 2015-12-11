@@ -89,7 +89,7 @@ func poll(config Pollable, fn pollingFunc) chan bool {
 // 0, we write a TTL health check to the health check store.
 func checkHealth(pollable Pollable) {
 	service := pollable.(*ServiceConfig) // if we pass a bad type here we crash intentionally
-	if code, _ := run(service.healthCheckCmd); code == 0 {
+	if code, _ := service.CheckHealth(); code == 0 {
 		service.SendHeartbeat()
 	}
 }
@@ -99,7 +99,7 @@ func checkHealth(pollable Pollable) {
 func checkForChanges(pollable Pollable) {
 	backend := pollable.(*BackendConfig) // if we pass a bad type here we crash intentionally
 	if backend.CheckForUpstreamChanges() {
-		run(backend.onChangeCmd)
+		backend.OnChange()
 	}
 }
 
