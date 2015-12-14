@@ -138,9 +138,16 @@ func loadConfig() (*Config, error) {
 
 	var configFlag string
 	var versionFlag bool
-	flag.StringVar(&configFlag, "config", "", "JSON config or file:// path to JSON config file.")
-	flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
-	flag.Parse()
+
+	if !flag.Parsed() {
+		flag.StringVar(&configFlag, "config", "",
+			"JSON config or file:// path to JSON config file.")
+		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
+		flag.Parse()
+	} else {
+		// allows for safe configuration reload
+		configFlag = flag.Lookup("config").Value.String()
+	}
 	if versionFlag {
 		fmt.Printf("Version: %s\nGitHash: %s\n", Version, GitHash)
 		os.Exit(0)

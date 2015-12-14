@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	"runtime"
@@ -85,12 +86,26 @@ func TestTerminateSignal(t *testing.T) {
 	}
 }
 
+// Test handler for SIGHUP
+func TestReloadSignal(t *testing.T) {
+	oldConfig := getSignalTestConfig()
+	flag.Set("config", `invalid`)
+	if badConfig := reloadConfig(oldConfig); badConfig != nil {
+		t.Errorf("Invalid configuration did not return nil")
+	}
+	flag.Set("config", `{ "consul": "newconsul:8500" }`)
+	if newConfig := reloadConfig(oldConfig); newConfig.Consul != "newconsul:8500" {
+		t.Errorf("Configuration was not reloaded.")
+	}
+}
+
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
 	handleSignals(&Config{})
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
+	sendAndWaitForSignal(t, syscall.SIGHUP)
 }
 
 // Helper to ensure the signal that we send has been received so that

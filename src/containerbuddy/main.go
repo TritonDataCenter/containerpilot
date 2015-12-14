@@ -24,19 +24,13 @@ func main() {
 	// Set up signal handler for placing instance into maintenance mode
 	handleSignals(config)
 
-	var quit []chan bool
-	for _, backend := range config.Backends {
-		quit = append(quit, poll(backend, checkForChanges))
-	}
-	for _, service := range config.Services {
-		quit = append(quit, poll(service, checkHealth))
-	}
-	config.QuitChannels = quit
+	// Set up polling operations
+	handlePolling(config)
 
 	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
 	// TODO: do we really need this?
 	defer func() {
-		for _, ch := range quit {
+		for _, ch := range config.QuitChannels {
 			close(ch)
 		}
 	}()
@@ -60,6 +54,19 @@ func main() {
 	// block forever, as we're polling in the two polling functions and
 	// did not os.Exit by waiting on an external application.
 	select {}
+}
+
+// Set up polling functions and write their quit channels
+// back to our Config
+func handlePolling(config *Config) {
+	var quit []chan bool
+	for _, backend := range config.Backends {
+		quit = append(quit, poll(backend, checkForChanges))
+	}
+	for _, service := range config.Services {
+		quit = append(quit, poll(service, checkHealth))
+	}
+	config.QuitChannels = quit
 }
 
 type pollingFunc func(Pollable)

@@ -132,6 +132,7 @@ Containerbuddy accepts POSIX signals to change its runtime behavior. Currently, 
 
 - `SIGUSR1` will cause Containerbuddy to mark its advertised service for maintenance. Containerbuddy will stop sending heartbeat messages to the discovery service. The discovery service backend's `MarkForMaintenance` method will also be called (in the default Consul implementation, this deregisters the node from Consul).
 - `SIGTERM` will cause Containerbuddy to send `SIGTERM` to the application, and eventually exit in a timely manner (as specified by `stopTimeout`).
+- `SIGHUP` will cause Containerbuddy to reload its configuration. `onChange`, `health`, `preStop`, and `postStop` handlers will operate with the new configuration. This forces all advertised services to be re-registered, which may cause temporary unavailability of this node for purposes of service discovery.
 
 Delivering a signal to Containerbuddy is most easily done by using `docker exec` and relying on the fact that it is being used as PID1.
 

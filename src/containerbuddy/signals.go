@@ -65,6 +65,31 @@ func terminate(config *Config) {
 	cmd.Process.Kill()
 }
 
+func reloadConfig(config *Config) *Config {
+	signalLock.Lock()
+	defer signalLock.Unlock()
+
+	log.Printf("Reloading configuration.\n")
+	if newConfig, err := loadConfig(); err != nil {
+		log.Printf("Could not reload config: %v\n", err)
+		return nil
+	} else {
+		// stop advertising the existing services so that we can
+		// make sure we update them if ports, etc. change.
+		stopPolling(config)
+		forAllServices(config, func(service *ServiceConfig) {
+			log.Printf("Deregistering service: %s\n", service.Name)
+			service.Deregister()
+		})
+
+		signal.Reset()
+		handleSignals(newConfig)
+		handlePolling(newConfig)
+
+		return newConfig // return for debuggability
+	}
+}
+
 func stopPolling(config *Config) {
 	for _, quit := range config.QuitChannels {
 		quit <- true
@@ -82,7 +107,7 @@ func forAllServices(config *Config, fn serviceFunc) {
 // Listen for and capture signals from the OS
 func handleSignals(config *Config) {
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGTERM)
+	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		for signal := range sig {
 			switch signal {
@@ -90,6 +115,8 @@ func handleSignals(config *Config) {
 				toggleMaintenanceMode(config)
 			case syscall.SIGTERM:
 				terminate(config)
+			case syscall.SIGHUP:
+				reloadConfig(config)
 			}
 		}
 	}()
