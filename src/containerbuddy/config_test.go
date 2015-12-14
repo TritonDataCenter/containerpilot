@@ -170,7 +170,29 @@ func TestInvalidConfigParseFile(t *testing.T) {
 func TestInvalidConfigParseNotJson(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t, "<>",
-		"Could not parse configuration: invalid character '<' looking for beginning of value")
+		"Parse error at line:col [1:1]")
+}
+
+func TestJsonTemplateParseError(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	testParseExpectError(t,
+		`{
+    "test": {{ .NO_SUCH_KEY }},
+    "test2": "hello"
+}`,
+		"Parse error at line:col [2:13]")
+}
+
+func TestJsonTemplateParseError2(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	testParseExpectError(t,
+		`{
+    "test1": "1",
+    "test2": 2,
+    "test3": false,
+    test2: "hello"
+}`,
+		"Parse error at line:col [5:5]")
 }
 
 func TestGetIp(t *testing.T) {
@@ -295,7 +317,7 @@ func argTestCleanup(oldArgs []string) {
 
 func testParseExpectError(t *testing.T, testJson string, expected string) {
 	os.Args = []string{"this", "-config", testJson, "/test.sh", "test", "--debug"}
-	if _, err := loadConfig(); err != nil && err.Error() != expected {
+	if _, err := loadConfig(); err != nil && !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected %s but got %s", expected, err)
 	}
 }

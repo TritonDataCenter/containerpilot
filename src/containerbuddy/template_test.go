@@ -20,6 +20,9 @@ func TestTemplate(t *testing.T) {
 	env := parseEnvironment([]string{"NAME=Template", "USER=buddy"})
 	validateTemplate(t, "One var", `Hello, {{.NAME}}!`, env, "Hello, Template!")
 	validateTemplate(t, "Var undefined", `Hello, {{.NONAME}}!`, env, "Hello, !")
+	validateTemplate(t, "Default", `Hello, {{.NONAME | default "World" }}!`, env, "Hello, World!")
+	validateTemplate(t, "Default", `Hello, {{.NONAME | default 100 }}!`, env, "Hello, 100!")
+	validateTemplate(t, "Default", `Hello, {{.NONAME | default 10.1 }}!`, env, "Hello, 10.1!")
 }
 
 // Helper Functions
