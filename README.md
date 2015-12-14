@@ -166,20 +166,25 @@ curl -O https://raw.githubusercontent.com/joyent/sdc-docker/master/tools/sdc-doc
 At this point you can run the example on Triton:
 
 ```bash
-cd ./examples
-./start.sh -p example
+$ env | grep -E '(SDC_URL|DOCKER_HOST)'
+SDC_URL=https://us-east-1.api.joyentcloud.com
+DOCKER_HOST=tcp://us-east-1.docker.joyent.com:2376
+$ cd ./examples
+$ ./start.sh -p example
 
 ```
 
 or in your local Docker environment:
 
 ```bash
-cd ./examples
-curl -Lo containerbuddy-0.0.1-alpha.tar.gz \
-https://github.com/joyent/containerbuddy/releases/download/0.0.1-alpha/containerbuddy-0.0.1-alpha.tar.gz
-tar -xf containerbuddy-0.0.1-alpha.tar.gz
-cp ./build/containerbuddy ./nginx/opt/containerbuddy/
-cp ./build/containerbuddy ./app/opt/containerbuddy/
+$ env | grep DOCKER_HOST
+DOCKER_HOST=tcp://192.168.99.100:2376
+$ cd ./examples
+$ curl -Lo containerbuddy-0.0.4.tar.gz \
+  https://github.com/joyent/containerbuddy/releases/download/0.0.4/containerbuddy-0.0.4.tar.gz
+$ tar -xf containerbuddy-0.0.4.tar.gz
+$ cp ./containerbuddy ./nginx/opt/containerbuddy/
+$ cp ./containerbuddy ./app/opt/containerbuddy/
 ./start.sh -p example -f docker-compose-local.yml
 
 ```
