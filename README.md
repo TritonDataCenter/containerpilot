@@ -44,7 +44,7 @@ The format of the JSON file configuration is as follows:
 ```json
 {
   "consul": "consul:8500",
-  "onStart": "/opt/containerbuddy/onStart-script.sh",
+  "onStart": "/opt/containerbuddy/onStart-script.sh {{.ENV_VAR_NAME}}",
   "stopTimeout": 5,
   "preStop": "/opt/containerbuddy/preStop-script.sh",
   "postStop": "/opt/containerbuddy/postStop-script.sh",
@@ -124,6 +124,22 @@ All executable fields, such as `onStart` and `onChange`, accept both a string or
   "-s",
   "http://localhost/app"
 ]
+```
+
+### Template Configuration
+
+Containerbuddy configuration has template support, such as substituting environment variables in the config file. This makes it possible to use the same configuration and alter the behavior per environment. Full documentation about the template language used can be found in the [Go text/template Docs](https://golang.org/pkg/text/template/).
+
+**Example**
+
+```json
+{
+  "consul": "consul:8500",
+  "onStart": "/opt/containerbuddy/onStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
+
+  ...
+
+}
 ```
 
 ### Operating Containerbuddy
