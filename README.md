@@ -128,19 +128,18 @@ All executable fields, such as `onStart` and `onChange`, accept both a string or
 
 ### Template Configuration
 
-Containerbuddy configuration has template support, such as substituting environment variables in the config file. This makes it possible to use the same configuration and alter the behavior per environment. Full documentation about the template language used can be found in the [Go text/template Docs](https://golang.org/pkg/text/template/).
+Containerbuddy configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file and it will be substituted with `BAR`.
 
-**Example**
+**Example Usage**
 
 ```json
 {
   "consul": "consul:8500",
   "onStart": "/opt/containerbuddy/onStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
-
-  ...
-
 }
 ```
+
+_Note:  If you need more than just variable interpolation, check out the [Go text/template Docs](https://golang.org/pkg/text/template/)._
 
 ### Operating Containerbuddy
 
