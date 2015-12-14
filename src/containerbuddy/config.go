@@ -138,8 +138,6 @@ func loadConfig() (*Config, error) {
 
 	var configFlag string
 	var versionFlag bool
-	var discovery DiscoveryService
-	discoveryCount := 0
 	flag.StringVar(&configFlag, "config", "", "JSON config or file:// path to JSON config file.")
 	flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 	flag.Parse()
@@ -155,7 +153,12 @@ func loadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	return initializeConfig(config)
+}
 
+func initializeConfig(config *Config) (*Config, error) {
+	var discovery DiscoveryService
+	discoveryCount := 0
 	onStartCmd, err := parseCommandArgs(config.OnStart)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `onStart`: %s", err)
@@ -195,10 +198,21 @@ func loadConfig() (*Config, error) {
 	}
 
 	for _, backend := range config.Backends {
+		if backend.Name == "" {
+			return nil, fmt.Errorf("backend must have a `name`")
+		}
 		cmd, err := parseCommandArgs(backend.OnChangeExec)
 		if err != nil {
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
 				backend.Name, err)
+		}
+		if cmd == nil {
+			return nil, fmt.Errorf("`onChange` is required in backend %s",
+				backend.Name)
+		}
+		if backend.Poll < 1 {
+			return nil, fmt.Errorf("`poll` must be > 0 in backend %s",
+				backend.Name)
 		}
 		backend.onChangeCmd = cmd
 		backend.discoveryService = discovery
@@ -206,12 +220,30 @@ func loadConfig() (*Config, error) {
 
 	hostname, _ := os.Hostname()
 	for _, service := range config.Services {
+		if service.Name == "" {
+			return nil, fmt.Errorf("service must have a `name`")
+		}
 		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
+		if service.Poll < 1 {
+			return nil, fmt.Errorf("`poll` must be > 0 in service %s",
+				service.Name)
+		}
+		if service.TTL < 1 {
+			return nil, fmt.Errorf("`ttl` must be > 0 in service %s",
+				service.Name)
+		}
+		if service.Port < 1 {
+			return nil, fmt.Errorf("`port` must be > 0 in service %s",
+				service.Name)
+		}
 
 		if cmd, err := parseCommandArgs(service.HealthCheckExec); err != nil {
 			return nil, fmt.Errorf("Could not parse `health` in service %s: %s",
 				service.Name, err)
+		} else if cmd == nil {
+			return nil, fmt.Errorf("`health` is required in service %s",
+				service.Name)
 		} else {
 			service.healthCheckCmd = cmd
 		}
@@ -245,14 +277,16 @@ func parseConfig(configFlag string) (*Config, error) {
 	} else {
 		data = []byte(configFlag)
 	}
+	return unmarshalConfig(data)
+}
 
+func unmarshalConfig(data []byte) (*Config, error) {
 	config := &Config{}
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, errors.New(fmt.Sprintf(
+		return nil, fmt.Errorf(
 			"Could not parse configuration: %s",
-			err))
+			err)
 	}
-
 	return config, nil
 }
 
