@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -271,23 +273,64 @@ func parseConfig(configFlag string) (*Config, error) {
 		var err error
 		fName := strings.SplitAfter(configFlag, "file://")[1]
 		if data, err = ioutil.ReadFile(fName); err != nil {
-			return nil, errors.New(
-				fmt.Sprintf("Could not read config file: %s", err))
+			return nil, fmt.Errorf("Could not read config file: %s", err)
 		}
 	} else {
 		data = []byte(configFlag)
 	}
+
+	if template, err := ApplyTemplate(data); err != nil {
+		return nil, fmt.Errorf(
+			"Could not apply template to config: %s", err)
+	} else {
+		data = template
+	}
+
 	return unmarshalConfig(data)
 }
 
 func unmarshalConfig(data []byte) (*Config, error) {
 	config := &Config{}
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf(
-			"Could not parse configuration: %s",
-			err)
+		syntax, ok := err.(*json.SyntaxError)
+		if !ok {
+			return nil, fmt.Errorf(
+				"Could not parse configuration: %s",
+				err)
+		}
+		return nil, newJSONParseError(data, syntax)
 	}
 	return config, nil
+}
+
+func newJSONParseError(js []byte, syntax *json.SyntaxError) error {
+	line, col, err := highlightError(js, syntax.Offset)
+	return fmt.Errorf("Parse error at line:col [%d:%d]: %s\n%s", line, col, syntax, err)
+}
+
+func highlightError(data []byte, pos int64) (int, int, string) {
+	prevLine := ""
+	thisLine := ""
+	highlight := ""
+	line := 1
+	col := pos
+	offset := int64(0)
+	r := bytes.NewReader(data)
+	scanner := bufio.NewScanner(r)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		prevLine = thisLine
+		thisLine = fmt.Sprintf("%5d: %s\n", line, scanner.Text())
+		readBytes := int64(len(scanner.Bytes()))
+		offset += readBytes
+		if offset >= pos-1 {
+			highlight = fmt.Sprintf("%s^", strings.Repeat("-", int(7+col-1)))
+			break
+		}
+		col -= readBytes + 1
+		line++
+	}
+	return line, int(col), fmt.Sprintf("%s%s%s", prevLine, thisLine, highlight)
 }
 
 // determine the IP address of the container
@@ -345,7 +388,7 @@ func argsToCmd(args []string) *exec.Cmd {
 
 func strToCmd(command string) *exec.Cmd {
 	if command != "" {
-		return argsToCmd(strings.Split(command, " "))
+		return argsToCmd(strings.Split(strings.TrimSpace(command), " "))
 	}
 	return nil
 }
