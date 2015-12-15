@@ -21,19 +21,9 @@ func main() {
 		os.Exit(onStartCode)
 	}
 
-	// Set up signal handler for placing instance into maintenance mode
+	// Set up handlers for polling and to accept signal interrupts
 	handleSignals(config)
-
-	// Set up polling operations
 	handlePolling(config)
-
-	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
-	// TODO: do we really need this?
-	defer func() {
-		for _, ch := range config.QuitChannels {
-			close(ch)
-		}
-	}()
 
 	if len(flag.Args()) != 0 {
 		// Run our main application and capture its stdout/stderr.
@@ -45,7 +35,7 @@ func main() {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
-		if postStopCode, err := run(config.postStopCmd); err != nil {
+		if postStopCode, err := run(getConfig().postStopCmd); err != nil {
 			os.Exit(postStopCode)
 		}
 		os.Exit(code)
