@@ -323,9 +323,6 @@ func highlightError(data []byte, pos int64) (int, int, string) {
 		thisLine = fmt.Sprintf("%5d: %s\n", line, scanner.Text())
 		readBytes := int64(len(scanner.Bytes()))
 		offset += readBytes
-		if offset == pos-1 {
-			col = readBytes
-		}
 		if offset >= pos-1 {
 			highlight = fmt.Sprintf("%s^", strings.Repeat("-", int(7+col-1)))
 			break
