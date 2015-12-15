@@ -303,6 +303,11 @@ func unmarshalConfig(data []byte) (*Config, error) {
 	return config, nil
 }
 
+func newJSONParseError(js []byte, syntax *json.SyntaxError) error {
+	line, col, err := highlightError(js, syntax.Offset)
+	return fmt.Errorf("Parse error at line:col [%d:%d]: %s\n%s", line, col, syntax, err)
+}
+
 func highlightError(data []byte, pos int64) (int, int, string) {
 	prevLine := ""
 	thisLine := ""
@@ -329,11 +334,6 @@ func highlightError(data []byte, pos int64) (int, int, string) {
 		line++
 	}
 	return line, int(col), fmt.Sprintf("%s%s%s", prevLine, thisLine, highlight)
-}
-
-func newJSONParseError(js []byte, syntax *json.SyntaxError) error {
-	line, col, err := highlightError(js, syntax.Offset)
-	return fmt.Errorf("Parse error at line:col [%d:%d]: %s\n%s", line, col, syntax, err)
 }
 
 // determine the IP address of the container
