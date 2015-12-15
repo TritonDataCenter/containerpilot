@@ -37,12 +37,12 @@ var testJson = `{
 			{
 					"name": "upstreamA",
 					"poll": 11,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh"
+					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}"
 			},
 			{
 					"name": "upstreamB",
 					"poll": 79,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh"
+					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
 			}
 	]
 }
@@ -51,6 +51,7 @@ var testJson = `{
 func TestValidConfigParse(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 
+	os.Setenv("TEST", "HELLO")
 	os.Args = []string{"this", "-config", testJson, "/test.sh", "valid1", "--debug"}
 	config, _ := loadConfig()
 
@@ -67,7 +68,7 @@ func TestValidConfigParse(t *testing.T) {
 	validateCommandParsed(t, "postStop", config.postStopCmd, []string{"/bin/to/postStop.sh"})
 	validateCommandParsed(t, "health", config.Services[0].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/A.sh"})
 	validateCommandParsed(t, "health", config.Services[1].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/B.sh"})
-	validateCommandParsed(t, "onChange", config.Backends[0].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/A.sh"})
+	validateCommandParsed(t, "onChange", config.Backends[0].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/A.sh", "HELLO"})
 	validateCommandParsed(t, "onChange", config.Backends[1].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/B.sh"})
 }
 
@@ -169,7 +170,29 @@ func TestInvalidConfigParseFile(t *testing.T) {
 func TestInvalidConfigParseNotJson(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t, "<>",
-		"Could not parse configuration: invalid character '<' looking for beginning of value")
+		"Parse error at line:col [1:1]")
+}
+
+func TestJsonTemplateParseError(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	testParseExpectError(t,
+		`{
+    "test": {{ .NO_SUCH_KEY }},
+    "test2": "hello"
+}`,
+		"Parse error at line:col [2:13]")
+}
+
+func TestJsonTemplateParseError2(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	testParseExpectError(t,
+		`{
+    "test1": "1",
+    "test2": 2,
+    "test3": false,
+    test2: "hello"
+}`,
+		"Parse error at line:col [5:5]")
 }
 
 func TestGetIp(t *testing.T) {
@@ -294,7 +317,7 @@ func argTestCleanup(oldArgs []string) {
 
 func testParseExpectError(t *testing.T, testJson string, expected string) {
 	os.Args = []string{"this", "-config", testJson, "/test.sh", "test", "--debug"}
-	if _, err := loadConfig(); err != nil && err.Error() != expected {
+	if _, err := loadConfig(); err != nil && !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected %s but got %s", expected, err)
 	}
 }
