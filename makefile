@@ -88,10 +88,15 @@ release: build ship
 example: build
 	cp build/containerbuddy ${ROOT}/examples/nginx/opt/containerbuddy/containerbuddy
 	cp build/containerbuddy ${ROOT}/examples/app/opt/containerbuddy/containerbuddy
-	cd examples/app && docker build -t 0x74696d/containerbuddy-demo-app .
-	cd examples/nginx && docker build -t 0x74696d/containerbuddy-demo-nginx .
+	cd examples && docker-compose -p example -f docker-compose-local.yml build
 
-# build example and ship to Docker Hub registry
+# run example application locally for testing
+run: example
+	cd examples && ./start.sh -p example -f docker-compose-local.yml
+
+# tag and ship example to Docker Hub registry
 ship: example
+	docker tag example_nginx 0x74696d/containerbuddy-demo-nginx
+	docker tag example_app 0x74696d/containerbuddy-demo-app
 	docker push 0x74696d/containerbuddy-demo-nginx
 	docker push 0x74696d/containerbuddy-demo-app
