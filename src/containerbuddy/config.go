@@ -12,12 +12,29 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 var (
 	Version string // version for this build, set at build time via LDFLAGS
 	GitHash string // short-form hash of the commit of this build, set at build time
 )
+
+// Passing around config as a context to functions would be the ideomatic way.
+// But we need to support configuration reload from signals and have that reload
+// effect function calls in the main goroutine. Wherever possible we should be
+// accessing via `getConfig` at the "top" of a goroutine and then use the config
+// as context for a function after that.
+var (
+	globalConfig *Config
+	configLock   = new(sync.RWMutex)
+)
+
+func getConfig() *Config {
+	configLock.RLock()
+	defer configLock.RUnlock()
+	return globalConfig
+}
 
 type Config struct {
 	Consul       string           `json:"consul,omitempty"`
@@ -140,9 +157,16 @@ func loadConfig() (*Config, error) {
 
 	var configFlag string
 	var versionFlag bool
-	flag.StringVar(&configFlag, "config", "", "JSON config or file:// path to JSON config file.")
-	flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
-	flag.Parse()
+
+	if !flag.Parsed() {
+		flag.StringVar(&configFlag, "config", "",
+			"JSON config or file:// path to JSON config file.")
+		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
+		flag.Parse()
+	} else {
+		// allows for safe configuration reload
+		configFlag = flag.Lookup("config").Value.String()
+	}
 	if versionFlag {
 		fmt.Printf("Version: %s\nGitHash: %s\n", Version, GitHash)
 		os.Exit(0)
@@ -259,6 +283,10 @@ func initializeConfig(config *Config) (*Config, error) {
 			return nil, err
 		}
 	}
+
+	configLock.Lock()
+	globalConfig = config
+	configLock.Unlock()
 
 	return config, nil
 }

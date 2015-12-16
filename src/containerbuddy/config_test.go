@@ -54,6 +54,9 @@ func TestValidConfigParse(t *testing.T) {
 	os.Setenv("TEST", "HELLO")
 	os.Args = []string{"this", "-config", testJson, "/test.sh", "valid1", "--debug"}
 	config, _ := loadConfig()
+	if !reflect.DeepEqual(config, getConfig()) {
+		t.Errorf("Global config was not written after load")
+	}
 
 	if len(config.Backends) != 2 || len(config.Services) != 2 {
 		t.Errorf("Expected 2 backends and 2 services but got: %v", config)

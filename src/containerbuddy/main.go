@@ -21,25 +21,9 @@ func main() {
 		os.Exit(onStartCode)
 	}
 
-	// Set up signal handler for placing instance into maintenance mode
+	// Set up handlers for polling and to accept signal interrupts
 	handleSignals(config)
-
-	var quit []chan bool
-	for _, backend := range config.Backends {
-		quit = append(quit, poll(backend, checkForChanges))
-	}
-	for _, service := range config.Services {
-		quit = append(quit, poll(service, checkHealth))
-	}
-	config.QuitChannels = quit
-
-	// gracefully clean up so that our docker logs aren't cluttered after an exit 0
-	// TODO: do we really need this?
-	defer func() {
-		for _, ch := range quit {
-			close(ch)
-		}
-	}()
+	handlePolling(config)
 
 	if len(flag.Args()) != 0 {
 		// Run our main application and capture its stdout/stderr.
@@ -51,7 +35,7 @@ func main() {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
-		if postStopCode, err := run(config.postStopCmd); err != nil {
+		if postStopCode, err := run(getConfig().postStopCmd); err != nil {
 			os.Exit(postStopCode)
 		}
 		os.Exit(code)
@@ -60,6 +44,19 @@ func main() {
 	// block forever, as we're polling in the two polling functions and
 	// did not os.Exit by waiting on an external application.
 	select {}
+}
+
+// Set up polling functions and write their quit channels
+// back to our Config
+func handlePolling(config *Config) {
+	var quit []chan bool
+	for _, backend := range config.Backends {
+		quit = append(quit, poll(backend, checkForChanges))
+	}
+	for _, service := range config.Services {
+		quit = append(quit, poll(service, checkHealth))
+	}
+	config.QuitChannels = quit
 }
 
 type pollingFunc func(Pollable)
