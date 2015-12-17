@@ -3,12 +3,31 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"net"
 	"os"
 	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+// ------------------------------------------
+// Test setup with mock services
+
+type MockAddr struct {
+	NetworkAttr string
+	StringAttr  string
+}
+
+func (self MockAddr) Network() string {
+	return self.NetworkAttr
+}
+
+func (self MockAddr) String() string {
+	return self.StringAttr
+}
+
+// ------------------------------------------
 
 var testJson = `{
 	"consul": "consul:8500",
@@ -302,6 +321,159 @@ func validateParseError(t *testing.T, matchStrings []string, config *Config) {
 				t.Errorf("Expected message does not contain %s: %s", match, err)
 			}
 		}
+	}
+}
+
+func TestInterfaceIpsLoopback(t *testing.T) {
+	interfaces := make([]net.Interface, 1)
+
+	interfaces[0] = net.Interface{
+		Index: 1,
+		MTU:   65536,
+		Name:  "lo",
+		Flags: net.FlagUp | net.FlagLoopback,
+	}
+
+	interfaceIps, err := getInterfaceIps(interfaces)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	/* Because we are testing inside of Docker we can expect that the loopback
+	 * interface to always be on the IPv4 address 127.0.0.1 and to be at
+	 * index 1 */
+
+	if len(interfaceIps) != 1 {
+		t.Error("No IPs were parsed from interface. Expecting: 127.0.0.1")
+	}
+
+	if interfaceIps[0].IP != "127.0.0.1" {
+		t.Error("Expecting loopback interface [127.0.0.1] to be returned")
+	}
+}
+
+func TestInterfaceIpsError(t *testing.T) {
+	interfaces := make([]net.Interface, 2)
+
+	interfaces[0] = net.Interface{
+		Index: 1,
+		MTU:   65536,
+		Name:  "lo",
+		Flags: net.FlagUp | net.FlagLoopback,
+	}
+	interfaces[1] = net.Interface{
+		Index:        -1,
+		MTU:          65536,
+		Name:         "barf",
+		Flags:        net.FlagUp | net.FlagBroadcast | net.FlagMulticast,
+		HardwareAddr: []byte{0x10, 0xC3, 0x7B, 0x45, 0xA2, 0xFF},
+	}
+
+	interfaceIps, err := getInterfaceIps(interfaces)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	/* We expect to get only a single valid ip address back because the second
+	 * value is junk. */
+
+	if len(interfaceIps) != 1 {
+		t.Error("No IPs were parsed from interface. Expecting: 127.0.0.1")
+	}
+
+	if interfaceIps[0].IP != "127.0.0.1" {
+		t.Error("Expecting loopback interface [127.0.0.1] to be returned")
+	}
+}
+
+func TestParseIPv4FromSingleAddress(t *testing.T) {
+	expectedIp := "192.168.22.123"
+
+	intf := net.Interface{
+		Index:        -1,
+		MTU:          1500,
+		Name:         "fake",
+		Flags:        net.FlagUp | net.FlagBroadcast | net.FlagMulticast,
+		HardwareAddr: []byte{0x10, 0xC3, 0x7B, 0x45, 0xA2, 0xFF},
+	}
+
+	addr := MockAddr{
+		NetworkAttr: "ip+net",
+		StringAttr:  expectedIp + "/8",
+	}
+
+	ifaceIp, err := parseIpFromAddress(addr, intf)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if ifaceIp.IP != expectedIp {
+		t.Errorf("IP didn't match expectation. Actual: %s Expected: %s",
+			ifaceIp.IP, expectedIp)
+	}
+}
+
+func TestParseIPv4FromIPv6AndIPv4AddressesIPv4First(t *testing.T) {
+	expectedIp := "192.168.22.123"
+
+	intf := net.Interface{
+		Index:        -1,
+		MTU:          1500,
+		Name:         "fake",
+		Flags:        net.FlagUp | net.FlagBroadcast | net.FlagMulticast,
+		HardwareAddr: []byte{0x10, 0xC3, 0x7B, 0x45, 0xA2, 0xFF},
+	}
+
+	addr := MockAddr{
+		NetworkAttr: "ip+net",
+		StringAttr:  expectedIp + "/8" + " fe80::12c3:7bff:fe45:a2ff/64",
+	}
+
+	ifaceIp, err := parseIpFromAddress(addr, intf)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if ifaceIp.IP != expectedIp {
+		t.Errorf("IP didn't match expectation. Actual: %s Expected: %s",
+			ifaceIp.IP, expectedIp)
+	}
+}
+
+func TestParseIPv4FromIPv6AndIPv4AddressesIPv6First(t *testing.T) {
+	expectedIp := "192.168.22.123"
+
+	intf := net.Interface{
+		Index:        -1,
+		MTU:          1500,
+		Name:         "fake",
+		Flags:        net.FlagUp | net.FlagBroadcast | net.FlagMulticast,
+		HardwareAddr: []byte{0x10, 0xC3, 0x7B, 0x45, 0xA2, 0xFF},
+	}
+
+	addr := MockAddr{
+		NetworkAttr: "ip+net",
+		StringAttr:  "fe80::12c3:7bff:fe45:a2ff/64 " + expectedIp + "/8",
+	}
+
+	ifaceIp, err := parseIpFromAddress(addr, intf)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if ifaceIp.IP != expectedIp {
+		t.Errorf("IP didn't match expectation. Actual: %s Expected: %s",
+			ifaceIp.IP, expectedIp)
 	}
 }
 
