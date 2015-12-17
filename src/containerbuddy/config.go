@@ -394,9 +394,18 @@ func getInterfaceIps() []InterfaceIp {
 	interfaces, _ := net.Interfaces()
 	for _, intf := range interfaces {
 		ipAddrs, _ := intf.Addrs()
-		// We're assuming each interface has one IP here because neither Docker
-		// nor Triton sets up IP aliasing.
-		ipAddr, _, _ := net.ParseCIDR(ipAddrs[0].String())
+
+		/* As crazy as it may seem, yes you can have an interface that doesn't
+		 * have an IP address assigned. */
+		if len(ipAddrs) == 0 {
+			continue
+		}
+
+		/* We assume that the default IPV4 address will be the first to appear
+		 * in the list of IPs presented for the interface. */
+		ips := strings.Split(ipAddrs[0].String(), " ")
+
+		ipAddr, _, _ := net.ParseCIDR(ips[0])
 		ifaceIp := InterfaceIp{Name: intf.Name, IP: ipAddr.String()}
 		ifaceIps = append(ifaceIps, ifaceIp)
 	}
