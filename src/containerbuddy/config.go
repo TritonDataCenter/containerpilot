@@ -8,9 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -368,11 +370,32 @@ func getIp(interfaceNames []string) (string, error) {
 		// Use a sane default
 		interfaceNames = []string{"eth0"}
 	}
-	interfaces := getInterfaceIps()
+
+	interfaces, interfacesErr := net.Interfaces()
+
+	if interfacesErr != nil {
+		return "", interfacesErr
+	}
+
+	interfaceIps, interfaceIpsErr := getInterfaceIps(interfaces)
+
+	/* We had an error and there were no interfaces returned, this is clearly
+	 * an error state. */
+	if interfaceIpsErr != nil && len(interfaceIps) < 1 {
+		return "", interfaceIpsErr
+	}
+	/* We had error(s) and there were interfaces returned, this is potentially
+	 * recoverable. Let's pass on the parsed interfaces and log the error
+	 * state. */
+	if interfaceIpsErr != nil && len(interfaceIps) > 0 {
+		log.Printf("We had a problem reading information about some network "+
+			"interfaces. If everything works, it is safe to ignore this"+
+			"message. Details:\n%s\n", interfaceIpsErr)
+	}
 
 	// Find the interface matching the name given
 	for _, interfaceName := range interfaceNames {
-		for _, intf := range interfaces {
+		for _, intf := range interfaceIps {
 			if interfaceName == intf.Name {
 				return intf.IP, nil
 			}
@@ -381,7 +404,7 @@ func getIp(interfaceNames []string) (string, error) {
 
 	// Interface not found, return error
 	return "", errors.New(fmt.Sprintf("Unable to find interfaces %s in %#v",
-		interfaceNames, interfaces))
+		interfaceNames, interfaceIps))
 }
 
 type InterfaceIp struct {
@@ -389,11 +412,19 @@ type InterfaceIp struct {
 	IP   string
 }
 
-func getInterfaceIps() []InterfaceIp {
+// Queries the network interfaces on the running machine and returns a list
+// of IPs for each interface. Currently, this only returns IPv4 addresses.
+func getInterfaceIps(interfaces []net.Interface) ([]InterfaceIp, error) {
 	var ifaceIps []InterfaceIp
-	interfaces, _ := net.Interfaces()
+	var errors []string
+
 	for _, intf := range interfaces {
-		ipAddrs, _ := intf.Addrs()
+		ipAddrs, addrErr := intf.Addrs()
+
+		if addrErr != nil {
+			errors = append(errors, addrErr.Error())
+			continue
+		}
 
 		/* As crazy as it may seem, yes you can have an interface that doesn't
 		 * have an IP address assigned. */
@@ -401,15 +432,70 @@ func getInterfaceIps() []InterfaceIp {
 			continue
 		}
 
-		/* We assume that the default IPV4 address will be the first to appear
-		 * in the list of IPs presented for the interface. */
-		ips := strings.Split(ipAddrs[0].String(), " ")
+		/* We ignore aliases for the time being. We assume that that
+		 * authoritative address is the first address returned from the
+		 * interface. */
+		ifaceIp, parsingErr := parseIpFromAddress(ipAddrs[0], intf)
 
-		ipAddr, _, _ := net.ParseCIDR(ips[0])
-		ifaceIp := InterfaceIp{Name: intf.Name, IP: ipAddr.String()}
+		if parsingErr != nil {
+			errors = append(errors, parsingErr.Error())
+			continue
+		}
+
 		ifaceIps = append(ifaceIps, ifaceIp)
 	}
-	return ifaceIps
+
+	/* If we had any errors parsing interfaces, we accumulate them all and
+	 * then return them so that the caller can decide what they want to do. */
+	if len(errors) > 0 {
+		err := fmt.Errorf(strings.Join(errors, "\n"))
+		println(err.Error())
+		return ifaceIps, err
+	}
+
+	return ifaceIps, nil
+}
+
+// Parses an IP and interface name out of the provided address and interface
+// objects. We assume that the default IPv4 address will be the first IPv4 address
+// to appear in the list of IPs presented for the interface.
+func parseIpFromAddress(address net.Addr, intf net.Interface) (InterfaceIp, error) {
+	ips := strings.Split(address.String(), " ")
+
+	// In Linux, we will typically see a value like:
+	// 192.168.0.7/24 fe80::12c3:7bff:fe45:a2ff/64
+
+	var ipv4 string
+	ipv4Regex := "^\\d+\\.\\d+\\.\\d+\\.\\d+.*$"
+
+	for _, ip := range ips {
+		matched, matchErr := regexp.MatchString(ipv4Regex, ip)
+
+		if matchErr != nil {
+			return InterfaceIp{}, matchErr
+		}
+
+		if matched {
+			ipv4 = ip
+			break
+		}
+	}
+
+	if len(ipv4) < 1 {
+		msg := fmt.Sprintf("No parsable IPv4 address was available for "+
+			"interface: %s", intf.Name)
+		return InterfaceIp{}, errors.New(msg)
+	}
+
+	ipAddr, _, parseErr := net.ParseCIDR(ipv4)
+
+	if parseErr != nil {
+		return InterfaceIp{}, parseErr
+	}
+
+	ifaceIp := InterfaceIp{Name: intf.Name, IP: ipAddr.String()}
+
+	return ifaceIp, nil
 }
 
 func argsToCmd(args []string) *exec.Cmd {
