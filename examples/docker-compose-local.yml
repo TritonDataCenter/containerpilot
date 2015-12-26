@@ -43,7 +43,7 @@ app:
     links:
     - consul:consul
     ports:
-    - 8000:8000
+    - 8000
     restart: always
     command: >
       /opt/containerbuddy/containerbuddy
