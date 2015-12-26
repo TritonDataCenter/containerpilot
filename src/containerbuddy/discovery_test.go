@@ -10,7 +10,7 @@ func setupConsul(serviceName string) *Config {
 	config := &Config{
 		Services: []*ServiceConfig{
 			&ServiceConfig{
-				Id:               serviceName,
+				ID:               serviceName,
 				Name:             serviceName,
 				ipAddress:        "192.168.1.1",
 				TTL:              1,
@@ -32,7 +32,7 @@ func TestTTLPass(t *testing.T) {
 	config := setupConsul("service-TestTTLPass")
 	service := config.Services[0]
 	consul := service.discoveryService.(Consul)
-	id := service.Id
+	id := service.ID
 
 	service.SendHeartbeat() // force registration
 	checks, _ := consul.Agent().Checks()
@@ -54,7 +54,7 @@ func TestCheckForChanges(t *testing.T) {
 	backend := config.Backends[0]
 	service := config.Services[0]
 	consul := backend.discoveryService.(Consul)
-	id := service.Id
+	id := service.ID
 	if consul.checkHealth(*backend) {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}

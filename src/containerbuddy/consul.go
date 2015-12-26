@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
-	consul "github.com/hashicorp/consul/api"
 	"log"
 	"sort"
+
+	consul "github.com/hashicorp/consul/api"
 )
 
+// Consul is a service discovery backend for Hashicorp Consul
 type Consul struct{ consul.Client }
 
+// NewConsulConfig creates a new service discovery backend for Consul
 func NewConsulConfig(uri string) Consul {
 	client, _ := consul.NewClient(&consul.Config{
 		Address: uri,
@@ -25,7 +28,7 @@ func (c Consul) Deregister(service *ServiceConfig) {
 
 // MarkForMaintenance removes the node from Consul.
 func (c Consul) MarkForMaintenance(service *ServiceConfig) {
-	if err := c.Agent().ServiceDeregister(service.Id); err != nil {
+	if err := c.Agent().ServiceDeregister(service.ID); err != nil {
 		log.Printf("Deregistering failed: %s\n", err)
 	}
 }
@@ -34,7 +37,7 @@ func (c Consul) MarkForMaintenance(service *ServiceConfig) {
 // If consul has never seen this service, we register the service and
 // its TTL check.
 func (c Consul) SendHeartbeat(service *ServiceConfig) {
-	if err := c.Agent().PassTTL(service.Id, "ok"); err != nil {
+	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
 		log.Printf("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {
 			log.Printf("Service registration failed: %s\n", err)
@@ -48,7 +51,7 @@ func (c Consul) SendHeartbeat(service *ServiceConfig) {
 func (c *Consul) registerService(service ServiceConfig) error {
 	return c.Agent().ServiceRegister(
 		&consul.AgentServiceRegistration{
-			ID:      service.Id,
+			ID:      service.ID,
 			Name:    service.Name,
 			Port:    service.Port,
 			Address: service.ipAddress,
@@ -59,10 +62,10 @@ func (c *Consul) registerService(service ServiceConfig) error {
 func (c *Consul) registerCheck(service ServiceConfig) error {
 	return c.Agent().CheckRegister(
 		&consul.AgentCheckRegistration{
-			ID:        service.Id,
-			Name:      service.Id,
+			ID:        service.ID,
+			Name:      service.ID,
 			Notes:     fmt.Sprintf("TTL for %s set by containerbuddy", service.Name),
-			ServiceID: service.Id,
+			ServiceID: service.ID,
 			AgentServiceCheck: consul.AgentServiceCheck{
 				TTL: fmt.Sprintf("%ds", service.TTL),
 			},
@@ -72,23 +75,24 @@ func (c *Consul) registerCheck(service ServiceConfig) error {
 
 var upstreams = make(map[string][]*consul.ServiceEntry)
 
+// CheckForUpstreamChanges runs the health check
 func (c Consul) CheckForUpstreamChanges(backend *BackendConfig) bool {
 	return c.checkHealth(*backend)
 }
 
 func (c *Consul) checkHealth(backend BackendConfig) bool {
-	if services, meta, err := c.Health().Service(backend.Name, "", true, nil); err != nil {
+	services, meta, err := c.Health().Service(backend.Name, "", true, nil)
+	if err != nil {
 		log.Printf("Failed to query %v: %s [%v]", backend.Name, err, meta)
 		return false
-	} else {
-		didChange := compareForChange(upstreams[backend.Name], services)
-		if didChange || len(services) == 0 {
-			// We don't want to cause an onChange event the first time we read-in
-			// but we do want to make sure we've written the key for this map
-			upstreams[backend.Name] = services
-		}
-		return didChange
 	}
+	didChange := compareForChange(upstreams[backend.Name], services)
+	if didChange || len(services) == 0 {
+		// We don't want to cause an onChange event the first time we read-in
+		// but we do want to make sure we've written the key for this map
+		upstreams[backend.Name] = services
+	}
+	return didChange
 }
 
 // Compare the two arrays to see if the address or port has changed
@@ -99,8 +103,8 @@ func compareForChange(existing, new []*consul.ServiceEntry) (changed bool) {
 		return true
 	}
 
-	sort.Sort(ByServiceId(existing))
-	sort.Sort(ByServiceId(new))
+	sort.Sort(ByServiceID(existing))
+	sort.Sort(ByServiceID(new))
 	for i, ex := range existing {
 		if ex.Service.Address != new[i].Service.Address ||
 			ex.Service.Port != new[i].Service.Port {
@@ -110,9 +114,9 @@ func compareForChange(existing, new []*consul.ServiceEntry) (changed bool) {
 	return false
 }
 
-// Implement the Sort interface because Go can't sort without it.
-type ByServiceId []*consul.ServiceEntry
+// ByServiceID implements the Sort interface because Go can't sort without it.
+type ByServiceID []*consul.ServiceEntry
 
-func (se ByServiceId) Len() int           { return len(se) }
-func (se ByServiceId) Swap(i, j int)      { se[i], se[j] = se[j], se[i] }
-func (se ByServiceId) Less(i, j int) bool { return se[i].Service.ID < se[j].Service.ID }
+func (se ByServiceID) Len() int           { return len(se) }
+func (se ByServiceID) Swap(i, j int)      { se[i], se[j] = se[j], se[i] }
+func (se ByServiceID) Less(i, j int) bool { return se[i].Service.ID < se[j].Service.ID }

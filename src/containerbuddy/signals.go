@@ -68,26 +68,25 @@ func terminate(config *Config) {
 func reloadConfig(config *Config) *Config {
 	signalLock.Lock()
 	defer signalLock.Unlock()
-
+	newConfig, err := loadConfig()
 	log.Printf("Reloading configuration.\n")
-	if newConfig, err := loadConfig(); err != nil {
+	if err != nil {
 		log.Printf("Could not reload config: %v\n", err)
 		return nil
-	} else {
-		// stop advertising the existing services so that we can
-		// make sure we update them if ports, etc. change.
-		stopPolling(config)
-		forAllServices(config, func(service *ServiceConfig) {
-			log.Printf("Deregistering service: %s\n", service.Name)
-			service.Deregister()
-		})
-
-		signal.Reset()
-		handleSignals(newConfig)
-		handlePolling(newConfig)
-
-		return newConfig // return for debuggability
 	}
+	// stop advertising the existing services so that we can
+	// make sure we update them if ports, etc. change.
+	stopPolling(config)
+	forAllServices(config, func(service *ServiceConfig) {
+		log.Printf("Deregistering service: %s\n", service.Name)
+		service.Deregister()
+	})
+
+	signal.Reset()
+	handleSignals(newConfig)
+	handlePolling(newConfig)
+
+	return newConfig // return for debuggability
 }
 
 func stopPolling(config *Config) {
