@@ -3,75 +3,64 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail
 .DEFAULT_GOAL := build
 
-.PHONY: clean test consul run example ship
+.PHONY: clean test consul run example ship dockerfile docker cover lint
 
 VERSION ?= dev-build-not-for-release
 LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
 
 ROOT := $(shell pwd)
 
-GO := docker run --rm --link containerbuddy_consul:consul -e CGO_ENABLED=0 -e GOPATH=/root/.godeps:/src -v ${ROOT}:/root -w /root/src/containerbuddy golang go
-
+DOCKERMAKE := docker run --rm --link containerbuddy_consul:consul \
+	-v ${ROOT}/src/containerbuddy:/go/src/containerbuddy \
+	-v ${ROOT}/build:/build \
+	-v ${ROOT}/cover:/cover \
+	-v ${ROOT}/examples:/root/examples:ro \
+	-v ${ROOT}/Makefile.docker:/go/makefile:ro \
+	-e LDFLAGS=${LDFLAGS} \
+	containerbuddy_build
 
 clean:
-	rm -rf build release .godeps
+	rm -rf build release cover
+	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
+	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 
+# ----------------------------------------------
+# docker build
+
+build/containerbuddy_build:
+	mkdir -p ${ROOT}/build
+	docker rmi -f containerbuddy_build || true
+	docker build -t containerbuddy_build ${ROOT}
+	docker inspect -f "{{ .ID }}" containerbuddy_build > build/containerbuddy_build
+
+docker: build/containerbuddy_build consul
+
+build: docker
+	${DOCKERMAKE} build
 
 # ----------------------------------------------
 # develop and test
 
+lint: docker
+	${DOCKERMAKE} lint
+
 # run unit tests and exec test
-test: .godeps consul
-	${GO} vet
-	${GO} fmt
-	${GO} test -v -coverprofile=/root/coverage.out
-	docker rm -f containerbuddy_consul || true
+test: docker cover/coverage.out
 
-cover: test
-	@sed -i 's/_\/root\/src\///' coverage.out
-	go tool cover -html=coverage.out
+cover/coverage.out:
+	${DOCKERMAKE} test
 
+cover: cover/coverage.html
 
-# fetch dependencies
-.godeps:
-	mkdir -p .godeps/src/github.com/hashicorp
-	git clone https://github.com/hashicorp/consul.git .godeps/src/github.com/hashicorp/consul
-	cd .godeps/src/github.com/hashicorp/consul && git checkout 158eabdd6f2408067c1d7656fa10e49434f96480
+cover/coverage.html:
+	${DOCKERMAKE} cover
 
 # run consul
 consul:
-	docker rm -f containerbuddy_consul || true
+	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker run -d -m 256m --name containerbuddy_consul \
 		progrium/consul:latest -server -bootstrap-expect 1 -ui-dir /ui
 
-
-# ----------------------------------------------
-# build and release
-
-# build our binary in a container
-
-ifeq "$(TRAVIS)" "true"
-build: .godeps
-	mkdir -p ${ROOT}/build
-	export GOPATH=${ROOT}/.godeps:${ROOT}/src && \
-	export CGO_ENABLED=0 && \
-		cd ${ROOT}/src/containerbuddy && \
-		go build -a -o ${ROOT}/build/containerbuddy -ldflags ${LDFLAGS}
-	chmod +x ${ROOT}/build/containerbuddy
-else
-build: .godeps
-	mkdir -p build
-	docker run --rm -e CGO_ENABLED=0 \
-			-e GOPATH=/root/.godeps:/src \
-			-v ${ROOT}:/root \
-			-w /root/src/containerbuddy \
-			golang \
-			go build -a -o /root/build/containerbuddy -ldflags ${LDFLAGS}
-	chmod +x ${ROOT}/build/containerbuddy
-endif
-
-# create the files we need for an official release on Github
-# run this target with the VERSION environment variable set
 release: build ship
 	mkdir -p release
 	git tag $(VERSION)
