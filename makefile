@@ -29,7 +29,7 @@ clean:
 
 build/containerbuddy_build:
 	mkdir -p ${ROOT}/build
-	docker rmi -f containerbuddy_build || true
+	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker build -t containerbuddy_build ${ROOT}
 	docker inspect -f "{{ .ID }}" containerbuddy_build > build/containerbuddy_build
 
