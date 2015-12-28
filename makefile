@@ -50,7 +50,7 @@ test: docker cover/coverage.out
 cover/coverage.out:
 	${DOCKERMAKE} test
 
-cover: cover/coverage.html
+cover: docker cover/coverage.html
 
 cover/coverage.html:
 	${DOCKERMAKE} cover
