@@ -68,8 +68,8 @@ func terminate(config *Config) {
 func reloadConfig(config *Config) *Config {
 	signalLock.Lock()
 	defer signalLock.Unlock()
-	newConfig, err := loadConfig()
 	log.Printf("Reloading configuration.\n")
+	newConfig, err := loadConfig()
 	if err != nil {
 		log.Printf("Could not reload config: %v\n", err)
 		return nil
