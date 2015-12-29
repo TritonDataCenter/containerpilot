@@ -24,9 +24,9 @@ _testmain.go
 *.prof
 
 # more build and test outputs
-coverage.out
-.godeps/
 build/
 release/
+cover/
 examples/*/opt/containerbuddy/containerbuddy
 *.tar.gz
+build-image
