@@ -18,8 +18,10 @@ import (
 )
 
 var (
-	Version string // version for this build, set at build time via LDFLAGS
-	GitHash string // short-form hash of the commit of this build, set at build time
+	// Version is the version for this build, set at build time via LDFLAGS
+	Version string
+	// GitHash is the short-form commit hash of this build, set at build time
+	GitHash string
 )
 
 // Passing around config as a context to functions would be the ideomatic way.
@@ -38,6 +40,7 @@ func getConfig() *Config {
 	return globalConfig
 }
 
+// Config is the top-level Containerbuddy Configuration
 type Config struct {
 	Consul       string           `json:"consul,omitempty"`
 	OnStart      json.RawMessage  `json:"onStart,omitempty"`
@@ -53,8 +56,9 @@ type Config struct {
 	QuitChannels []chan bool
 }
 
+// ServiceConfig configures the service, discovery data, and health checks
 type ServiceConfig struct {
-	Id               string
+	ID               string
 	Name             string          `json:"name"`
 	Poll             int             `json:"poll"` // time in seconds
 	HealthCheckExec  json.RawMessage `json:"health"`
@@ -66,6 +70,7 @@ type ServiceConfig struct {
 	healthCheckCmd   *exec.Cmd
 }
 
+// BackendConfig represents a command to execute when another application changes
 type BackendConfig struct {
 	Name             string          `json:"name"`
 	Poll             int             `json:"poll"` // time in seconds
@@ -75,17 +80,23 @@ type BackendConfig struct {
 	onChangeCmd      *exec.Cmd
 }
 
+// Pollable is base abstraction for backends and services that support polling
 type Pollable interface {
 	PollTime() int
 }
 
+// PollTime returns the backend's  poll time
 func (b BackendConfig) PollTime() int {
 	return b.Poll
 }
+
+// CheckForUpstreamChanges checks the service discovery endpoint for any changes
+// in a dependent backend. Returns true when there has been a change.
 func (b *BackendConfig) CheckForUpstreamChanges() bool {
 	return b.discoveryService.CheckForUpstreamChanges(b)
 }
 
+// OnChange runs the backend's onChange command, returning the results
 func (b *BackendConfig) OnChange() (int, error) {
 	exitCode, err := run(b.onChangeCmd)
 	// Reset command object - since it can't be reused
@@ -93,21 +104,27 @@ func (b *BackendConfig) OnChange() (int, error) {
 	return exitCode, err
 }
 
+// PollTime returns the service's poll time
 func (s ServiceConfig) PollTime() int {
 	return s.Poll
 }
+
+// SendHeartbeat sends a heartbeat for this service
 func (s *ServiceConfig) SendHeartbeat() {
 	s.discoveryService.SendHeartbeat(s)
 }
 
+// MarkForMaintenance marks this service for maintenance
 func (s *ServiceConfig) MarkForMaintenance() {
 	s.discoveryService.MarkForMaintenance(s)
 }
 
+// Deregister will deregister this instance of the service
 func (s *ServiceConfig) Deregister() {
 	s.discoveryService.Deregister(s)
 }
 
+// CheckHealth runs the service's health command, returning the results
 func (s *ServiceConfig) CheckHealth() (int, error) {
 	exitCode, err := run(s.healthCheckCmd)
 	// Reset command object - since it can't be reused
@@ -210,7 +227,7 @@ func initializeConfig(config *Config) (*Config, error) {
 		case "Consul":
 			if config.Consul != "" {
 				discovery = NewConsulConfig(config.Consul)
-				discoveryCount += 1
+				discoveryCount++
 			}
 		}
 	}
@@ -251,7 +268,7 @@ func initializeConfig(config *Config) (*Config, error) {
 		if service.Name == "" {
 			return nil, fmt.Errorf("service must have a `name`")
 		}
-		service.Id = fmt.Sprintf("%s-%s", service.Name, hostname)
+		service.ID = fmt.Sprintf("%s-%s", service.Name, hostname)
 		service.discoveryService = discovery
 		if service.Poll < 1 {
 			return nil, fmt.Errorf("`poll` must be > 0 in service %s",
@@ -281,7 +298,7 @@ func initializeConfig(config *Config) (*Config, error) {
 			return nil, ifaceErr
 		}
 
-		if service.ipAddress, err = getIp(interfaces); err != nil {
+		if service.ipAddress, err = getIP(interfaces); err != nil {
 			return nil, err
 		}
 	}
@@ -295,7 +312,7 @@ func initializeConfig(config *Config) (*Config, error) {
 
 func parseConfig(configFlag string) (*Config, error) {
 	if configFlag == "" {
-		return nil, errors.New("-config flag is required.")
+		return nil, errors.New("-config flag is required")
 	}
 
 	var data []byte
@@ -309,14 +326,12 @@ func parseConfig(configFlag string) (*Config, error) {
 		data = []byte(configFlag)
 	}
 
-	if template, err := ApplyTemplate(data); err != nil {
+	template, err := ApplyTemplate(data)
+	if err != nil {
 		return nil, fmt.Errorf(
 			"Could not apply template to config: %s", err)
-	} else {
-		data = template
 	}
-
-	return unmarshalConfig(data)
+	return unmarshalConfig(template)
 }
 
 func unmarshalConfig(data []byte) (*Config, error) {
@@ -364,7 +379,7 @@ func highlightError(data []byte, pos int64) (int, int, string) {
 }
 
 // determine the IP address of the container
-func getIp(interfaceNames []string) (string, error) {
+func getIP(interfaceNames []string) (string, error) {
 
 	if interfaceNames == nil || len(interfaceNames) == 0 {
 		// Use a sane default
@@ -377,25 +392,25 @@ func getIp(interfaceNames []string) (string, error) {
 		return "", interfacesErr
 	}
 
-	interfaceIps, interfaceIpsErr := getInterfaceIps(interfaces)
+	interfaceIPs, interfaceIPsErr := getinterfaceIPs(interfaces)
 
 	/* We had an error and there were no interfaces returned, this is clearly
 	 * an error state. */
-	if interfaceIpsErr != nil && len(interfaceIps) < 1 {
-		return "", interfaceIpsErr
+	if interfaceIPsErr != nil && len(interfaceIPs) < 1 {
+		return "", interfaceIPsErr
 	}
 	/* We had error(s) and there were interfaces returned, this is potentially
 	 * recoverable. Let's pass on the parsed interfaces and log the error
 	 * state. */
-	if interfaceIpsErr != nil && len(interfaceIps) > 0 {
+	if interfaceIPsErr != nil && len(interfaceIPs) > 0 {
 		log.Printf("We had a problem reading information about some network "+
 			"interfaces. If everything works, it is safe to ignore this"+
-			"message. Details:\n%s\n", interfaceIpsErr)
+			"message. Details:\n%s\n", interfaceIPsErr)
 	}
 
 	// Find the interface matching the name given
 	for _, interfaceName := range interfaceNames {
-		for _, intf := range interfaceIps {
+		for _, intf := range interfaceIPs {
 			if interfaceName == intf.Name {
 				return intf.IP, nil
 			}
@@ -403,19 +418,19 @@ func getIp(interfaceNames []string) (string, error) {
 	}
 
 	// Interface not found, return error
-	return "", errors.New(fmt.Sprintf("Unable to find interfaces %s in %#v",
-		interfaceNames, interfaceIps))
+	return "", fmt.Errorf("Unable to find interfaces %s in %#v",
+		interfaceNames, interfaceIPs)
 }
 
-type InterfaceIp struct {
+type interfaceIP struct {
 	Name string
 	IP   string
 }
 
 // Queries the network interfaces on the running machine and returns a list
 // of IPs for each interface. Currently, this only returns IPv4 addresses.
-func getInterfaceIps(interfaces []net.Interface) ([]InterfaceIp, error) {
-	var ifaceIps []InterfaceIp
+func getinterfaceIPs(interfaces []net.Interface) ([]interfaceIP, error) {
+	var ifaceIPs []interfaceIP
 	var errors []string
 
 	for _, intf := range interfaces {
@@ -435,14 +450,14 @@ func getInterfaceIps(interfaces []net.Interface) ([]InterfaceIp, error) {
 		/* We ignore aliases for the time being. We assume that that
 		 * authoritative address is the first address returned from the
 		 * interface. */
-		ifaceIp, parsingErr := parseIpFromAddress(ipAddrs[0], intf)
+		ifaceIP, parsingErr := parseIPFromAddress(ipAddrs[0], intf)
 
 		if parsingErr != nil {
 			errors = append(errors, parsingErr.Error())
 			continue
 		}
 
-		ifaceIps = append(ifaceIps, ifaceIp)
+		ifaceIPs = append(ifaceIPs, ifaceIP)
 	}
 
 	/* If we had any errors parsing interfaces, we accumulate them all and
@@ -450,16 +465,16 @@ func getInterfaceIps(interfaces []net.Interface) ([]InterfaceIp, error) {
 	if len(errors) > 0 {
 		err := fmt.Errorf(strings.Join(errors, "\n"))
 		println(err.Error())
-		return ifaceIps, err
+		return ifaceIPs, err
 	}
 
-	return ifaceIps, nil
+	return ifaceIPs, nil
 }
 
 // Parses an IP and interface name out of the provided address and interface
 // objects. We assume that the default IPv4 address will be the first IPv4 address
 // to appear in the list of IPs presented for the interface.
-func parseIpFromAddress(address net.Addr, intf net.Interface) (InterfaceIp, error) {
+func parseIPFromAddress(address net.Addr, intf net.Interface) (interfaceIP, error) {
 	ips := strings.Split(address.String(), " ")
 
 	// In Linux, we will typically see a value like:
@@ -472,7 +487,7 @@ func parseIpFromAddress(address net.Addr, intf net.Interface) (InterfaceIp, erro
 		matched, matchErr := regexp.MatchString(ipv4Regex, ip)
 
 		if matchErr != nil {
-			return InterfaceIp{}, matchErr
+			return interfaceIP{}, matchErr
 		}
 
 		if matched {
@@ -484,18 +499,18 @@ func parseIpFromAddress(address net.Addr, intf net.Interface) (InterfaceIp, erro
 	if len(ipv4) < 1 {
 		msg := fmt.Sprintf("No parsable IPv4 address was available for "+
 			"interface: %s", intf.Name)
-		return InterfaceIp{}, errors.New(msg)
+		return interfaceIP{}, errors.New(msg)
 	}
 
 	ipAddr, _, parseErr := net.ParseCIDR(ipv4)
 
 	if parseErr != nil {
-		return InterfaceIp{}, parseErr
+		return interfaceIP{}, parseErr
 	}
 
-	ifaceIp := InterfaceIp{Name: intf.Name, IP: ipAddr.String()}
+	ifaceIP := interfaceIP{Name: intf.Name, IP: ipAddr.String()}
 
-	return ifaceIp, nil
+	return ifaceIP, nil
 }
 
 func argsToCmd(args []string) *exec.Cmd {
@@ -504,9 +519,8 @@ func argsToCmd(args []string) *exec.Cmd {
 	}
 	if len(args) > 1 {
 		return exec.Command(args[0], args[1:]...)
-	} else {
-		return exec.Command(args[0])
 	}
+	return exec.Command(args[0])
 }
 
 func strToCmd(command string) *exec.Cmd {

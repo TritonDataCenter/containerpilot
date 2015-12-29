@@ -8,6 +8,7 @@ import (
 	"text/template"
 )
 
+// Environment is a map of environment variables to their values
 type Environment map[string]string
 
 func parseEnvironment(environ []string) Environment {
@@ -22,6 +23,8 @@ func parseEnvironment(environ []string) Environment {
 	return env
 }
 
+// ConfigTemplate encapsulates a golang template
+// and its associated environment variables.
 type ConfigTemplate struct {
 	Template *template.Template
 	Env      Environment
@@ -33,14 +36,15 @@ func defaultValue(defaultValue, templateValue interface{}) string {
 			return str
 		}
 	}
-	if defaultStr, ok := defaultValue.(string); !ok {
+	defaultStr, ok := defaultValue.(string)
+	if !ok {
 		return fmt.Sprintf("%v", defaultValue)
-	} else {
-		return defaultStr
 	}
+	return defaultStr
 }
 
-// Interpolate variables
+// NewConfigTemplate creates a ConfigTemplate parsed from the configuration
+// and the current environment variables
 func NewConfigTemplate(config []byte) (*ConfigTemplate, error) {
 	env := parseEnvironment(os.Environ())
 	tmpl, err := template.New("").Funcs(template.FuncMap{
@@ -55,6 +59,7 @@ func NewConfigTemplate(config []byte) (*ConfigTemplate, error) {
 	}, nil
 }
 
+// Execute renders the template
 func (c *ConfigTemplate) Execute() ([]byte, error) {
 	var buffer bytes.Buffer
 	if err := c.Template.Execute(&buffer, c.Env); err != nil {
@@ -63,6 +68,7 @@ func (c *ConfigTemplate) Execute() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// ApplyTemplate creates and renders a template from the given config template
 func ApplyTemplate(config []byte) ([]byte, error) {
 	template, err := NewConfigTemplate(config)
 	if err != nil {

@@ -19,17 +19,17 @@ type MockAddr struct {
 	StringAttr  string
 }
 
-func (self MockAddr) Network() string {
-	return self.NetworkAttr
+func (addr MockAddr) Network() string {
+	return addr.NetworkAttr
 }
 
-func (self MockAddr) String() string {
-	return self.StringAttr
+func (addr MockAddr) String() string {
+	return addr.StringAttr
 }
 
 // ------------------------------------------
 
-var testJson = `{
+var testJSON = `{
 	"consul": "consul:8500",
 	"onStart": "/bin/to/onStart.sh arg1 arg2",
 	"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
@@ -71,7 +71,7 @@ func TestValidConfigParse(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 
 	os.Setenv("TEST", "HELLO")
-	os.Args = []string{"this", "-config", testJson, "/test.sh", "valid1", "--debug"}
+	os.Args = []string{"this", "-config", testJSON, "/test.sh", "valid1", "--debug"}
 	config, _ := loadConfig()
 	if !reflect.DeepEqual(config, getConfig()) {
 		t.Errorf("Global config was not written after load")
@@ -173,7 +173,7 @@ func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	os.Args = []string{"this", "/test.sh", "invalid1", "--debug"}
-	if _, err := loadConfig(); err != nil && err.Error() != "-config flag is required." {
+	if _, err := loadConfig(); err != nil && err.Error() != "-config flag is required" {
 		t.Errorf("Expected error but got %s", err)
 	}
 }
@@ -195,7 +195,7 @@ func TestInvalidConfigParseNotJson(t *testing.T) {
 		"Parse error at line:col [1:1]")
 }
 
-func TestJsonTemplateParseError(t *testing.T) {
+func testJSONTemplateParseError(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t,
 		`{
@@ -205,7 +205,7 @@ func TestJsonTemplateParseError(t *testing.T) {
 		"Parse error at line:col [2:13]")
 }
 
-func TestJsonTemplateParseError2(t *testing.T) {
+func testJSONTemplateParseError2(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t,
 		`{
@@ -218,22 +218,22 @@ func TestJsonTemplateParseError2(t *testing.T) {
 }
 
 func TestGetIp(t *testing.T) {
-	if ip, _ := getIp([]string{}); ip == "" {
+	if ip, _ := getIP([]string{}); ip == "" {
 		t.Errorf("Expected default interface to yield an IP, but got nothing.")
 	}
-	if ip, _ := getIp(nil); ip == "" {
+	if ip, _ := getIP(nil); ip == "" {
 		t.Errorf("Expected default interface to yield an IP, but got nothing.")
 	}
-	if ip, _ := getIp([]string{"eth0"}); ip == "" {
+	if ip, _ := getIP([]string{"eth0"}); ip == "" {
 		t.Errorf("Expected to find IP for eth0, but found nothing.")
 	}
-	if ip, _ := getIp([]string{"eth0", "lo"}); ip == "127.0.0.1" {
+	if ip, _ := getIP([]string{"eth0", "lo"}); ip == "127.0.0.1" {
 		t.Errorf("Expected to find eth0 ip, but found loopback instead")
 	}
-	if ip, _ := getIp([]string{"lo", "eth0"}); ip != "127.0.0.1" {
+	if ip, _ := getIP([]string{"lo", "eth0"}); ip != "127.0.0.1" {
 		t.Errorf("Expected to find loopback ip, but found: %s", ip)
 	}
-	if ip, err := getIp([]string{"interface-does-not-exist"}); err == nil {
+	if ip, err := getIP([]string{"interface-does-not-exist"}); err == nil {
 		t.Errorf("Expected interface not found, but instead got an IP: %s", ip)
 	}
 }
@@ -274,23 +274,23 @@ func TestConfigRequiredFields(t *testing.T) {
 	// --------------
 
 	// Missing `name`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Services[0].Name = ""
 	validateParseError(t, []string{"`name`"}, testConfig)
 	// Missing `poll`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Services[0].Poll = 0
 	validateParseError(t, []string{"`poll`", testConfig.Services[0].Name}, testConfig)
 	// Missing `ttl`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Services[0].TTL = 0
 	validateParseError(t, []string{"`ttl`", testConfig.Services[0].Name}, testConfig)
 	// Missing `health`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Services[0].HealthCheckExec = nil
 	validateParseError(t, []string{"`health`", testConfig.Services[0].Name}, testConfig)
 	// Missing `port`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Services[0].Port = 0
 	validateParseError(t, []string{"`port`", testConfig.Services[0].Name}, testConfig)
 
@@ -299,15 +299,15 @@ func TestConfigRequiredFields(t *testing.T) {
 	// --------------
 
 	// Missing `name`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Backends[0].Name = ""
 	validateParseError(t, []string{"`name`"}, testConfig)
 	// Missing `poll`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Backends[0].Poll = 0
 	validateParseError(t, []string{"`poll`", testConfig.Backends[0].Name}, testConfig)
 	// Missing `onChange`
-	testConfig = unmarshalTestJson()
+	testConfig = unmarshaltestJSON()
 	testConfig.Backends[0].OnChangeExec = nil
 	validateParseError(t, []string{"`onChange`", testConfig.Backends[0].Name}, testConfig)
 }
@@ -334,7 +334,7 @@ func TestInterfaceIpsLoopback(t *testing.T) {
 		Flags: net.FlagUp | net.FlagLoopback,
 	}
 
-	interfaceIps, err := getInterfaceIps(interfaces)
+	interfaceIps, err := getinterfaceIPs(interfaces)
 
 	if err != nil {
 		t.Error(err)
@@ -371,7 +371,7 @@ func TestInterfaceIpsError(t *testing.T) {
 		HardwareAddr: []byte{0x10, 0xC3, 0x7B, 0x45, 0xA2, 0xFF},
 	}
 
-	interfaceIps, err := getInterfaceIps(interfaces)
+	interfaceIps, err := getinterfaceIPs(interfaces)
 
 	if err != nil {
 		t.Error(err)
@@ -391,7 +391,7 @@ func TestInterfaceIpsError(t *testing.T) {
 }
 
 func TestParseIPv4FromSingleAddress(t *testing.T) {
-	expectedIp := "192.168.22.123"
+	expectedIP := "192.168.22.123"
 
 	intf := net.Interface{
 		Index:        -1,
@@ -403,24 +403,24 @@ func TestParseIPv4FromSingleAddress(t *testing.T) {
 
 	addr := MockAddr{
 		NetworkAttr: "ip+net",
-		StringAttr:  expectedIp + "/8",
+		StringAttr:  expectedIP + "/8",
 	}
 
-	ifaceIp, err := parseIpFromAddress(addr, intf)
+	ifaceIP, err := parseIPFromAddress(addr, intf)
 
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if ifaceIp.IP != expectedIp {
+	if ifaceIP.IP != expectedIP {
 		t.Errorf("IP didn't match expectation. Actual: %s Expected: %s",
-			ifaceIp.IP, expectedIp)
+			ifaceIP.IP, expectedIP)
 	}
 }
 
 func TestParseIPv4FromIPv6AndIPv4AddressesIPv4First(t *testing.T) {
-	expectedIp := "192.168.22.123"
+	expectedIP := "192.168.22.123"
 
 	intf := net.Interface{
 		Index:        -1,
@@ -432,24 +432,24 @@ func TestParseIPv4FromIPv6AndIPv4AddressesIPv4First(t *testing.T) {
 
 	addr := MockAddr{
 		NetworkAttr: "ip+net",
-		StringAttr:  expectedIp + "/8" + " fe80::12c3:7bff:fe45:a2ff/64",
+		StringAttr:  expectedIP + "/8" + " fe80::12c3:7bff:fe45:a2ff/64",
 	}
 
-	ifaceIp, err := parseIpFromAddress(addr, intf)
+	ifaceIP, err := parseIPFromAddress(addr, intf)
 
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if ifaceIp.IP != expectedIp {
+	if ifaceIP.IP != expectedIP {
 		t.Errorf("IP didn't match expectation. Actual: %s Expected: %s",
-			ifaceIp.IP, expectedIp)
+			ifaceIP.IP, expectedIP)
 	}
 }
 
 func TestParseIPv4FromIPv6AndIPv4AddressesIPv6First(t *testing.T) {
-	expectedIp := "192.168.22.123"
+	expectedIP := "192.168.22.123"
 
 	intf := net.Interface{
 		Index:        -1,
@@ -461,19 +461,19 @@ func TestParseIPv4FromIPv6AndIPv4AddressesIPv6First(t *testing.T) {
 
 	addr := MockAddr{
 		NetworkAttr: "ip+net",
-		StringAttr:  "fe80::12c3:7bff:fe45:a2ff/64 " + expectedIp + "/8",
+		StringAttr:  "fe80::12c3:7bff:fe45:a2ff/64 " + expectedIP + "/8",
 	}
 
-	ifaceIp, err := parseIpFromAddress(addr, intf)
+	ifaceIP, err := parseIPFromAddress(addr, intf)
 
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if ifaceIp.IP != expectedIp {
+	if ifaceIP.IP != expectedIP {
 		t.Errorf("IP didn't match expectation. Actual: %s Expected: %s",
-			ifaceIp.IP, expectedIp)
+			ifaceIP.IP, expectedIP)
 	}
 }
 
@@ -490,14 +490,14 @@ func argTestCleanup(oldArgs []string) {
 	os.Args = oldArgs
 }
 
-func testParseExpectError(t *testing.T, testJson string, expected string) {
-	os.Args = []string{"this", "-config", testJson, "/test.sh", "test", "--debug"}
+func testParseExpectError(t *testing.T, testJSON string, expected string) {
+	os.Args = []string{"this", "-config", testJSON, "/test.sh", "test", "--debug"}
 	if _, err := loadConfig(); err != nil && !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected %s but got %s", expected, err)
 	}
 }
 
-func unmarshalTestJson() *Config {
-	config, _ := unmarshalConfig([]byte(testJson))
+func unmarshaltestJSON() *Config {
+	config, _ := unmarshalConfig([]byte(testJSON))
 	return config
 }
