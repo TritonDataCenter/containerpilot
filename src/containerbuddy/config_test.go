@@ -135,6 +135,34 @@ func validateParseError(t *testing.T, matchStrings []string, config *Config) {
 	}
 }
 
+func TestOnChangeCmd(t *testing.T) {
+	cmd1 := strToCmd("/root/examples/test/test.sh doStuff --debug")
+	backend := &BackendConfig{
+		onChangeCmd: cmd1,
+	}
+	if _, err := backend.OnChange(); err != nil {
+		t.Errorf("Unexpected error OnChange: %s", err)
+	}
+	// Ensure we can run it more than once
+	if _, err := backend.OnChange(); err != nil {
+		t.Errorf("Unexpected error OnChange (x2): %s", err)
+	}
+}
+
+func TestHealthCheck(t *testing.T) {
+	cmd1 := strToCmd("/root/examples/test/test.sh doStuff --debug")
+	service := &ServiceConfig{
+		healthCheckCmd: cmd1,
+	}
+	if _, err := service.CheckHealth(); err != nil {
+		t.Errorf("Unexpected error CheckHealth: %s", err)
+	}
+	// Ensure we can run it more than once
+	if _, err := service.CheckHealth(); err != nil {
+		t.Errorf("Unexpected error CheckHealth (x2): %s", err)
+	}
+}
+
 func TestParseCommandArgs(t *testing.T) {
 	if cmd, err := parseCommandArgs(nil); err == nil {
 		validateCommandParsed(t, "command", cmd, nil)
