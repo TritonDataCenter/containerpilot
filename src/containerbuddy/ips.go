@@ -195,7 +195,7 @@ func (iip interfaceIP) String() string {
 }
 
 // Queries the network interfaces on the running machine and returns a list
-// of IPs for each interface. Currently, this only returns IPv4 addresses.
+// of IPs for each interface.
 func getinterfaceIPs(interfaces []net.Interface) ([]interfaceIP, error) {
 	var ifaceIPs []interfaceIP
 	var errors []string
