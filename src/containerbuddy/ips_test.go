@@ -6,7 +6,6 @@ import (
 	"net"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 )
 
@@ -104,63 +103,6 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
-func TestConfigRequiredFields(t *testing.T) {
-	var testConfig *Config
-
-	// --------------
-	// Service Tests
-	// --------------
-
-	// Missing `name`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].Name = ""
-	validateParseError(t, []string{"`name`"}, testConfig)
-	// Missing `poll`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].Poll = 0
-	validateParseError(t, []string{"`poll`", testConfig.Services[0].Name}, testConfig)
-	// Missing `ttl`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].TTL = 0
-	validateParseError(t, []string{"`ttl`", testConfig.Services[0].Name}, testConfig)
-	// Missing `health`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].HealthCheckExec = nil
-	validateParseError(t, []string{"`health`", testConfig.Services[0].Name}, testConfig)
-	// Missing `port`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].Port = 0
-	validateParseError(t, []string{"`port`", testConfig.Services[0].Name}, testConfig)
-
-	// --------------
-	// Backend Tests
-	// --------------
-
-	// Missing `name`
-	testConfig = unmarshaltestJSON()
-	testConfig.Backends[0].Name = ""
-	validateParseError(t, []string{"`name`"}, testConfig)
-	// Missing `poll`
-	testConfig = unmarshaltestJSON()
-	testConfig.Backends[0].Poll = 0
-	validateParseError(t, []string{"`poll`", testConfig.Backends[0].Name}, testConfig)
-	// Missing `onChange`
-	testConfig = unmarshaltestJSON()
-	testConfig.Backends[0].OnChangeExec = nil
-	validateParseError(t, []string{"`onChange`", testConfig.Backends[0].Name}, testConfig)
-}
-
-func validateParseError(t *testing.T, matchStrings []string, config *Config) {
-	if _, err := initializeConfig(config); err == nil {
-		t.Errorf("Expected error parsing config")
-	} else {
-		for _, match := range matchStrings {
-			if !strings.Contains(err.Error(), match) {
-				t.Errorf("Expected message does not contain %s: %s", match, err)
-			}
-		}
-	}
-}
 func TestInterfaceIpsLoopback(t *testing.T) {
 	interfaces := make([]net.Interface, 1)
 
