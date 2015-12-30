@@ -123,7 +123,7 @@ func parseInterfaceSpecs(interfaces []string) ([]interfaceSpec, error) {
 	}
 	if len(errors) > 0 {
 		err := fmt.Errorf(strings.Join(errors, "\n"))
-		println(err.Error())
+		log.Println(err.Error())
 		return specs, err
 	}
 	return specs, nil
@@ -231,7 +231,7 @@ func getinterfaceIPs(interfaces []net.Interface) ([]interfaceIP, error) {
 	 * then return them so that the caller can decide what they want to do. */
 	if len(errors) > 0 {
 		err := fmt.Errorf(strings.Join(errors, "\n"))
-		println(err.Error())
+		log.Println(err.Error())
 		return ifaceIPs, err
 	}
 
