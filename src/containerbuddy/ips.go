@@ -42,7 +42,7 @@ func GetIP(specList []string) (string, error) {
 	 * state. */
 	if interfaceIPsErr != nil && len(interfaceIPs) > 0 {
 		log.Printf("We had a problem reading information about some network "+
-			"interfaces. If everything works, it is safe to ignore this"+
+			"interfaces. If everything works, it is safe to ignore this "+
 			"message. Details:\n%s\n", interfaceIPsErr)
 	}
 
