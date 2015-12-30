@@ -57,7 +57,8 @@ var testJSON = `{
 			{
 					"name": "upstreamA",
 					"poll": 11,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}"
+					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}",
+					"tag": "dev"
 			},
 			{
 					"name": "upstreamB",
@@ -89,6 +90,10 @@ func TestValidConfigParse(t *testing.T) {
 	expectedTags := []string{"tag1", "tag2"}
 	if !reflect.DeepEqual(config.Services[0].Tags, expectedTags) {
 		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, config.Services[0].Tags)
+	}
+
+	if config.Backends[0].Tag != "dev" {
+		t.Errorf("Expected tag %s for upstreamA, but got: %s", "dev", config.Backends[0].Tag)
 	}
 
 	validateCommandParsed(t, "onStart", config.onStartCmd, []string{"/bin/to/onStart.sh", "arg1", "arg2"})

@@ -20,7 +20,8 @@
     {
       "name": "app",
       "poll": 5,
-      "onChange": "/opt/containerbuddy/reload-app.sh"
+      "onChange": "/opt/containerbuddy/reload-app.sh",
+      "tag": "application"
     }
   ]
 }
