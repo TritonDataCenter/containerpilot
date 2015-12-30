@@ -45,14 +45,10 @@ lint: docker
 	${DOCKERMAKE} lint
 
 # run unit tests and exec test
-test: docker cover/coverage.out
-
-cover/coverage.out:
+test: docker
 	${DOCKERMAKE} test
 
-cover: docker cover/coverage.html
-
-cover/coverage.html:
+cover: docker
 	${DOCKERMAKE} cover
 
 # run consul
