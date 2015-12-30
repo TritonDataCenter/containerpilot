@@ -54,13 +54,13 @@ func GetIP(specList []string) (string, error) {
 func findIPWithSpecs(specs []interfaceSpec, interfaceIPs []interfaceIP) (string, error) {
 	// Find the interface matching the name given
 	for _, spec := range specs {
-		index := 1
+		index := 0
 		iface := ""
 		for _, iip := range interfaceIPs {
 			// Since the interfaces are ordered by name
 			// a change in interface name can safely reset the index
 			if iface != iip.Name {
-				index = 1
+				index = 0
 				iface = iip.Name
 			} else {
 				index++
@@ -77,11 +77,12 @@ func findIPWithSpecs(specs []interfaceSpec, interfaceIPs []interfaceIP) (string,
 }
 
 type interfaceSpec struct {
-	Spec    string
-	IPv6    bool
-	Name    string
-	Network *net.IPNet
-	Index   int
+	Spec     string
+	IPv6     bool
+	Name     string
+	Network  *net.IPNet
+	Index    int
+	HasIndex bool
 }
 
 func (spec interfaceSpec) String() string {
@@ -92,7 +93,7 @@ func (spec interfaceSpec) Match(index int, iip interfaceIP) bool {
 	// Specific Interface eth1, eth0[1], eth0:inet6, inet, inet6
 	if spec.Name == iip.Name || spec.Name == "*" {
 		// Has index and matches
-		if spec.Index > 0 {
+		if spec.HasIndex {
 			return (spec.Index == index)
 		}
 		// Don't match loopback address for wildcard spec
@@ -145,11 +146,11 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 		index := match[2]
 		inet := match[3]
 		if index != "" {
-			i, _ := strconv.Atoi(index)
-			if i > 0 {
-				return interfaceSpec{Spec: spec, Name: name, Index: i}, nil
+			i, err := strconv.Atoi(index)
+			if err != nil {
+				return interfaceSpec{Spec: spec}, fmt.Errorf("Unable to parse index %s in %s", index, spec)
 			}
-			return interfaceSpec{Spec: spec}, fmt.Errorf("Unable to parse interface spec: %s. Index should be > 0", spec)
+			return interfaceSpec{Spec: spec, Name: name, Index: i, HasIndex: true}, nil
 		}
 		if inet != "" {
 			if inet == "inet" {

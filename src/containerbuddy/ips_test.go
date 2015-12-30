@@ -187,7 +187,7 @@ func TestInterfaceSpecParse(t *testing.T) {
 	testSpecError(t, "!")          // Nonsense
 	testSpecError(t, "127.0.0.1")  // No Network
 	testSpecError(t, "eth0:inet5") // Invalid IP Version
-	testSpecError(t, "eth0[0]")    // Invalid Index
+	testSpecError(t, "eth0[-1]")   // Invalid Index
 
 	// Test Interface Case
 	testSpecInterfaceName(t, "eth0", "eth0", false, 0)
@@ -251,8 +251,8 @@ func TestFindIPWithSpecs(t *testing.T) {
 	testIPSpec(t, iips, "", "eth0:inet6")
 
 	// Indexes
-	testIPSpec(t, iips, "192.168.1.100", "eth0[2]")
-	testIPSpec(t, iips, "", "eth0[3]")
+	testIPSpec(t, iips, "192.168.1.100", "eth0[1]")
+	testIPSpec(t, iips, "", "eth0[2]")
 
 	// IPv4 CIDR
 	testIPSpec(t, iips, "10.0.0.100", "10.0.0.0/16")

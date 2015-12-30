@@ -118,7 +118,7 @@ The `interfaces` parameter allows for one or more specifications to be used when
 
 - `eth0` : Match the first IPv4 address on `eth0` (alias for `eth0:inet`)
 - `eth0:inet6` : Match the first IPv6 address on `eth0`
-- `eth0[2]` : Match the 2nd IP address on `eth0`
+- `eth0[1]` : Match the 2nd IP address on `eth0` (zero-based index)
 - `10.0.0.0/16` : Match the first IP that is contained within the IP Network
 - `fdc6:238c:c4bc::/48` : Match the first IP that is contained within the IPv6 Network
 - `inet` : Match the first IPv4 Address (excluding `127.0.0.0/8`)
