@@ -53,6 +53,7 @@ func (c *Consul) registerService(service ServiceConfig) error {
 		&consul.AgentServiceRegistration{
 			ID:      service.ID,
 			Name:    service.Name,
+			Tags:    service.Tags,
 			Port:    service.Port,
 			Address: service.ipAddress,
 		},

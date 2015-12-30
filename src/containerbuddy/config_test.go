@@ -41,7 +41,8 @@ var testJSON = `{
 					"interfaces": "eth0",
 					"health": "/bin/to/healthcheck/for/service/A.sh",
 					"poll": 30,
-					"ttl": 19
+					"ttl": 19,
+					"tags": ["tag1","tag2"]
 			},
 			{
 					"name": "serviceB",
@@ -83,6 +84,11 @@ func TestValidConfigParse(t *testing.T) {
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/test.sh" {
 		t.Errorf("Expected 3 args but got unexpected results: %v", args)
+	}
+
+	expectedTags := []string{"tag1", "tag2"}
+	if !reflect.DeepEqual(config.Services[0].Tags, expectedTags) {
+		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, config.Services[0].Tags)
 	}
 
 	validateCommandParsed(t, "onStart", config.onStartCmd, []string{"/bin/to/onStart.sh", "arg1", "arg2"})

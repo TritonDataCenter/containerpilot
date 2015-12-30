@@ -65,6 +65,7 @@ type ServiceConfig struct {
 	Port             int             `json:"port"`
 	TTL              int             `json:"ttl"`
 	Interfaces       json.RawMessage `json:"interfaces"`
+	Tags             []string        `json:"tags,omitempty"`
 	discoveryService DiscoveryService
 	ipAddress        string
 	healthCheckCmd   *exec.Cmd
