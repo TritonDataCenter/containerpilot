@@ -216,7 +216,7 @@ $ env | grep -E '(SDC_URL|DOCKER_HOST)'
 SDC_URL=https://us-east-1.api.joyentcloud.com
 DOCKER_HOST=tcp://us-east-1.docker.joyent.com:2376
 $ cd ./examples
-$ ./start.sh -p example
+$ ./run.sh -p example
 
 ```
 
@@ -231,7 +231,7 @@ $ curl -Lo containerbuddy-0.0.4.tar.gz \
 $ tar -xf containerbuddy-0.0.4.tar.gz
 $ cp ./containerbuddy ./nginx/opt/containerbuddy/
 $ cp ./containerbuddy ./app/opt/containerbuddy/
-./start.sh -p example -f docker-compose-local.yml
+./run.sh -p example -f docker-compose-local.yml
 
 ```
 

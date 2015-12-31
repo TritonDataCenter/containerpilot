@@ -3,12 +3,15 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail
 .DEFAULT_GOAL := build
 
-.PHONY: clean test consul etcd run example ship dockerfile docker cover lint
+.PHONY: clean test consul etcd run-consul run-etcd example-consul example-etcd ship dockerfile docker cover lint
 
 VERSION ?= dev-build-not-for-release
 LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
 
 ROOT := $(shell pwd)
+
+COMPOSE_PREFIX_ETCD := exetcd
+COMPOSE_PREFIX_CONSUL := exconsul
 
 DOCKERMAKE := docker run --rm --link containerbuddy_consul:consul \
 	-v ${ROOT}/src/containerbuddy:/go/src/containerbuddy \
@@ -86,14 +89,32 @@ release: build ship
 # example application
 
 # build Nginx and App examples
-example: build
-	cp build/containerbuddy ${ROOT}/examples/nginx/opt/containerbuddy/containerbuddy
-	cp build/containerbuddy ${ROOT}/examples/app/opt/containerbuddy/containerbuddy
-	cd examples && docker-compose -p example -f docker-compose-local.yml build
+example-consul: build
+	cp build/containerbuddy ${ROOT}/examples/consul/nginx/opt/containerbuddy/containerbuddy
+	cp build/containerbuddy ${ROOT}/examples/consul/app/opt/containerbuddy/containerbuddy
+	cd examples/consul && docker-compose -p exconsul -f docker-compose-local.yml build
+
+example-etcd: build
+	cp build/containerbuddy ${ROOT}/examples/etcd/nginx/opt/containerbuddy/containerbuddy
+	cp build/containerbuddy ${ROOT}/examples/etcd/app/opt/containerbuddy/containerbuddy
+	cd examples/etcd && docker-compose -p exetcd -f docker-compose-local.yml build
 
 # run example application locally for testing
-run: example
-	cd examples && ./start.sh -p example -f docker-compose-local.yml
+run-consul: example-consul
+	examples/run.sh consul -p ${COMPOSE_PREFIX_CONSUL} -f docker-compose-local.yml
+
+run-etcd: example-etcd
+	examples/run.sh etcd -p ${COMPOSE_PREFIX_ETCD} -f docker-compose-local.yml
+
+clean-consul:
+	cd examples/consul && docker-compose -p ${COMPOSE_PREFIX_CONSUL} -f docker-compose-local.yml kill
+	cd examples/consul && docker-compose -p ${COMPOSE_PREFIX_CONSUL} -f docker-compose-local.yml rm -f
+	docker rmi -f ${COMPOSE_PREFIX_CONSUL}_app ${COMPOSE_PREFIX_CONSUL}_nginx > /dev/null 2>&1 || true
+
+clean-etcd:
+	cd examples/etcd && docker-compose -p ${COMPOSE_PREFIX_ETCD} -f docker-compose-local.yml kill
+	cd examples/etcd && docker-compose -p ${COMPOSE_PREFIX_ETCD} -f docker-compose-local.yml rm -f
+	docker rmi -f ${COMPOSE_PREFIX_ETCD}_app ${COMPOSE_PREFIX_ETCD}_nginx > /dev/null 2>&1 || true
 
 # tag and ship example to Docker Hub registry
 ship: example
