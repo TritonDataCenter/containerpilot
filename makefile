@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail
 .DEFAULT_GOAL := build
 
-.PHONY: clean test consul run example ship dockerfile docker cover lint
+.PHONY: clean test consul etcd run example ship dockerfile docker cover lint
 
 VERSION ?= dev-build-not-for-release
 LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
@@ -23,6 +23,7 @@ clean:
 	rm -rf build release cover
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
+	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
 
 # ----------------------------------------------
 # docker build
@@ -33,7 +34,7 @@ build/containerbuddy_build:
 	docker build -t containerbuddy_build ${ROOT}
 	docker inspect -f "{{ .ID }}" containerbuddy_build > build/containerbuddy_build
 
-docker: build/containerbuddy_build consul
+docker: build/containerbuddy_build consul etcd
 
 build: docker
 	${DOCKERMAKE} build
@@ -51,11 +52,26 @@ test: docker
 cover: docker
 	${DOCKERMAKE} cover
 
-# run consul
+# ------ Backends
+
+# Consul Backend
 consul:
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker run -d -m 256m --name containerbuddy_consul \
 		progrium/consul:latest -server -bootstrap-expect 1 -ui-dir /ui
+
+# Etcd Backend
+etcd:
+	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
+	docker run -d -m 256m --name containerbuddy_etcd -h etcd quay.io/coreos/etcd:v2.0.8 \
+		-name etcd0 \
+		-advertise-client-urls http://etcd:2379,http://etcd:4001 \
+		-listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
+		-initial-advertise-peer-urls http://etcd:2380 \
+		-listen-peer-urls http://0.0.0.0:2380 \
+		-initial-cluster-token etcd-cluster-1 \
+		-initial-cluster etcd0=http://etcd:2380 \
+		-initial-cluster-state new
 
 release: build ship
 	mkdir -p release
