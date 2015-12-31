@@ -8,6 +8,7 @@ SHELL := /bin/bash
 .PHONY: all build deps check test cover
 
 CONSUL_REF := 158eabdd6f2408067c1d7656fa10e49434f96480
+ETCD_REF := release-2.2
 
 ROOT := /go
 CDWD := cd ${ROOT}/src/containerbuddy
@@ -22,6 +23,9 @@ deps:
 	mkdir -p "${ROOT}/src/github.com/hashicorp"
 	git clone https://github.com/hashicorp/consul.git ${ROOT}/src/github.com/hashicorp/consul
 	cd ${ROOT}/src/github.com/hashicorp/consul && git checkout ${CONSUL_REF}
+	mkdir -p "${ROOT}/src/github.com/coreos"
+	git clone https://github.com/coreos/etcd.git ${ROOT}/src/github.com/coreos/etcd
+	cd ${ROOT}/src/github.com/coreos/etcd && git checkout ${ETCD_REF}
 
 lint:
 	${CDWD} && go vet
