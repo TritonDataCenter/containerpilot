@@ -104,9 +104,32 @@ Backend fields:
 - `poll` is the time in seconds between polling for changes.
 - `onChange` is the executable (and its arguments) that is called when there is a change in the list of IPs and ports for this backend.
 
+Service Discovery Backends:
+
+Must supply only one of the following
+
+- `consul` configures discovery via [Hashicorp Consul](https://www.consul.io/). Expects `hostname:port` string:
+
+    ```
+    "consul": "consul:8500"
+    ```
+
+- `etcd` configures discovery via [CoreOS etcd](https://coreos.com/etcd/). Expects a config object:
+
+    ```
+    "etcd": {
+        "endpoints": [
+            "http://etcd:4001"
+        ],
+        "prefix": "/containerbuddy"
+    }
+    ```
+
+    - `endpoints` is the list of etcd nodes in your cluster
+    - `prefix` is the path that will be prefixed to all service discovery keys.
+
 Other fields:
 
-- `consul` is the hostname and port of the Consul discovery service.
 - `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, Containerbuddy will exit.
 - `preStop` is the executable (and its arguments) that will be called immediately **before** the shimmed application exits. This field is optional. Containerbuddy will wait until this program exits before terminating the shimmed application.
 - `postStop` is the executable (and its arguments) that will be called immediately **after** the shimmed application exits. This field is optional. If the `postStop` handler returns a non-zero exit code, Containerbuddy will exit with this code rather than the application's exit code.
