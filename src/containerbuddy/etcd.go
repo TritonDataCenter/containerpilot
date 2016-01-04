@@ -114,8 +114,7 @@ func (c Etcd) checkHealth(backend *BackendConfig) bool {
 
 func (c Etcd) checkServiceExists(service *ServiceConfig) bool {
 	key := c.getNodeKey(service)
-	_, err := c.API.Get(context.Background(), key, nil)
-	if err != nil {
+	if _, err := c.API.Get(context.Background(), key, nil); err != nil {
 		if etcdErr, ok := err.(client.Error); ok {
 			return etcdErr.Code != client.ErrorCodeKeyNotFound
 		}
