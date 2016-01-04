@@ -162,12 +162,12 @@ func TestInterfaceSpecParse(t *testing.T) {
 	testSpecError(t, "eth0[-1]")   // Invalid Index
 
 	// Test Interface Case
-	testSpecInterfaceName(t, "eth0", "eth0", false, 0)
-	testSpecInterfaceName(t, "eth0:inet6", "eth0", true, 0)
+	testSpecInterfaceName(t, "eth0", "eth0", false, -1)
+	testSpecInterfaceName(t, "eth0:inet6", "eth0", true, -1)
 	testSpecInterfaceName(t, "eth0[1]", "eth0", false, 1)
 	testSpecInterfaceName(t, "eth0[2]", "eth0", false, 2)
-	testSpecInterfaceName(t, "inet", "*", false, 0)
-	testSpecInterfaceName(t, "inet6", "*", true, 0)
+	testSpecInterfaceName(t, "inet", "*", false, -1)
+	testSpecInterfaceName(t, "inet6", "*", true, -1)
 
 	// Test CIDR Case
 	testSpecCIDR(t, "10.0.0.0/16")
@@ -185,18 +185,34 @@ func testSpecInterfaceName(t *testing.T, specStr string, name string, ipv6 bool,
 	if err != nil {
 		t.Errorf("Expected parse to succeed, but got error: %s", err)
 	}
-	if spec.Name != name {
-		t.Errorf("Expected to parse interface name %s but got %s", name, spec.Name)
-	}
-	if spec.IPv6 != ipv6 {
-		if ipv6 {
-			t.Errorf("Expected spec %s to be IPv6", spec)
-		} else {
-			t.Errorf("Expected spec %s to be IPv4", spec)
+	if index < 0 {
+		inetSpec, ok := spec.(inetInterfaceSpec)
+		if !ok {
+			t.Errorf("Expected %s to parse as inetInterfaceSpec", spec)
+			return
 		}
+		if inetSpec.Name != name {
+			t.Errorf("Expected to parse interface name %s but got %s", name, inetSpec.Name)
+		}
+		if inetSpec.IPv6 != ipv6 {
+			if ipv6 {
+				t.Errorf("Expected spec %s to be IPv6", spec)
+			} else {
+				t.Errorf("Expected spec %s to be IPv4", spec)
+			}
+		}
+		return
 	}
-	if spec.Index != index {
-		t.Errorf("Expected index to be %d but was %d", index, spec.Index)
+	indexSpec, ok := spec.(indexInterfaceSpec)
+	if !ok {
+		t.Errorf("Expected %s to parse as indexInterfaceSpec", spec)
+		return
+	}
+	if indexSpec.Name != name {
+		t.Errorf("Expected to parse interface name %s but got %s", name, indexSpec.Name)
+	}
+	if indexSpec.Index != index {
+		t.Errorf("Expected index to be %d but was %d", index, indexSpec.Index)
 	}
 }
 
@@ -205,7 +221,12 @@ func testSpecCIDR(t *testing.T, specStr string) {
 	if err != nil {
 		t.Errorf("Expected parse to succeed, but got error: %s", err)
 	}
-	if spec.Network == nil {
+	cidrSpec, ok := spec.(cidrInterfaceSpec)
+	if !ok {
+		t.Errorf("Expected %s to parse as cidrInterfaceSpec", spec)
+		return
+	}
+	if cidrSpec.Network == nil {
 		t.Errorf("Expected spec to be a network CIDR")
 	}
 }

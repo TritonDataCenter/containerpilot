@@ -76,38 +76,65 @@ func findIPWithSpecs(specs []interfaceSpec, interfaceIPs []interfaceIP) (string,
 		specs, interfaceIPs)
 }
 
-type interfaceSpec struct {
-	Spec     string
-	IPv6     bool
-	Name     string
-	Network  *net.IPNet
-	Index    int
-	HasIndex bool
+// Interface Spec
+type interfaceSpec interface {
+	Match(index int, iip interfaceIP) bool
+	String() string
 }
 
-func (spec interfaceSpec) String() string {
-	return spec.Spec
+// -- Base Struct
+type baseInterfaceSpec struct {
+	Spec string
 }
 
-func (spec interfaceSpec) Match(index int, iip interfaceIP) bool {
-	// Specific Interface eth1, eth0[1], eth0:inet6, inet, inet6
-	if spec.Name == iip.Name || spec.Name == "*" {
-		// Has index and matches
-		if spec.HasIndex {
-			return (spec.Index == index)
-		}
-		// Don't match loopback address for wildcard spec
-		if spec.Name == "*" && iip.IP.IsLoopback() {
-			return false
-		}
-		return spec.IPv6 != iip.IsIPv4()
-	}
-	// CIDR
-	if spec.Network != nil && spec.Network.Contains(iip.IP) {
-		return true
-	}
+func (s baseInterfaceSpec) String() string {
+	return s.Spec
+}
 
+func (s baseInterfaceSpec) Match(index int, iip interfaceIP) bool {
 	return false
+}
+
+// -- matches inet, inet6, interface:inet, and interface:inet6
+type inetInterfaceSpec struct {
+	interfaceSpec
+	Name string
+	IPv6 bool
+}
+
+func (s inetInterfaceSpec) Match(index int, iip interfaceIP) bool {
+	if s.Name != "*" && s.Name != iip.Name {
+		return false
+	}
+	// Don't match loopback address for wildcard spec
+	if s.Name == "*" && iip.IP.IsLoopback() {
+		return false
+	}
+	return s.IPv6 != iip.IsIPv4()
+}
+
+// -- Indexed Interface Spec : eth0[1]
+type indexInterfaceSpec struct {
+	interfaceSpec
+	Name  string
+	Index int
+}
+
+func (spec indexInterfaceSpec) Match(index int, iip interfaceIP) bool {
+	if spec.Name == iip.Name {
+		return (spec.Index == index)
+	}
+	return false
+}
+
+// -- CIDR Interface Spec
+type cidrInterfaceSpec struct {
+	interfaceSpec
+	Network *net.IPNet
+}
+
+func (spec cidrInterfaceSpec) Match(index int, iip interfaceIP) bool {
+	return spec.Network.Contains(iip.IP)
 }
 
 func parseInterfaceSpecs(interfaces []string) ([]interfaceSpec, error) {
@@ -134,11 +161,12 @@ var (
 )
 
 func parseInterfaceSpec(spec string) (interfaceSpec, error) {
+	baseSpec := baseInterfaceSpec{spec}
 	if spec == "inet" {
-		return interfaceSpec{IPv6: false, Name: "*"}, nil
+		return inetInterfaceSpec{baseSpec, "*", false}, nil
 	}
 	if spec == "inet6" {
-		return interfaceSpec{IPv6: true, Name: "*"}, nil
+		return inetInterfaceSpec{baseSpec, "*", true}, nil
 	}
 
 	if match := ifaceSpec.FindStringSubmatch(spec); match != nil {
@@ -148,22 +176,22 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 		if index != "" {
 			i, err := strconv.Atoi(index)
 			if err != nil {
-				return interfaceSpec{Spec: spec}, fmt.Errorf("Unable to parse index %s in %s", index, spec)
+				return baseSpec, fmt.Errorf("Unable to parse index %s in %s", index, spec)
 			}
-			return interfaceSpec{Spec: spec, Name: name, Index: i, HasIndex: true}, nil
+			return indexInterfaceSpec{baseSpec, name, i}, nil
 		}
 		if inet != "" {
 			if inet == "inet" {
-				return interfaceSpec{Spec: spec, Name: name, IPv6: false}, nil
+				return inetInterfaceSpec{baseSpec, name, false}, nil
 			}
-			return interfaceSpec{Spec: spec, Name: name, IPv6: true}, nil
+			return inetInterfaceSpec{baseSpec, name, true}, nil
 		}
-		return interfaceSpec{Spec: spec, Name: name, IPv6: false}, nil
+		return inetInterfaceSpec{baseSpec, name, false}, nil
 	}
 	if _, net, err := net.ParseCIDR(spec); err == nil {
-		return interfaceSpec{Spec: spec, Network: net}, nil
+		return cidrInterfaceSpec{baseSpec, net}, nil
 	}
-	return interfaceSpec{Spec: spec}, fmt.Errorf("Unable to parse interface spec: %s", spec)
+	return baseSpec, fmt.Errorf("Unable to parse interface spec: %s", spec)
 }
 
 type interfaceIP struct {
