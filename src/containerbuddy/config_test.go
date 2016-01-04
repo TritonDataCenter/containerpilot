@@ -92,8 +92,16 @@ func TestValidConfigParse(t *testing.T) {
 		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, config.Services[0].Tags)
 	}
 
+	if config.Services[1].Tags != nil {
+		t.Errorf("Expected no tags for serviceB, but got: %s", config.Services[1].Tags)
+	}
+
 	if config.Backends[0].Tag != "dev" {
 		t.Errorf("Expected tag %s for upstreamA, but got: %s", "dev", config.Backends[0].Tag)
+	}
+
+	if config.Backends[1].Tag != "" {
+		t.Errorf("Expected no tag for upstreamB, but got: %s", config.Backends[1].Tag)
 	}
 
 	validateCommandParsed(t, "onStart", config.onStartCmd, []string{"/bin/to/onStart.sh", "arg1", "arg2"})
