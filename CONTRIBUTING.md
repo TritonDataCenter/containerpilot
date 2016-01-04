@@ -5,3 +5,4 @@ Please report any issues you encounter with Containerbuddy or its documentation 
 
 Thanks to the following contributors:
 - [@bbox-kula](https://github.com/bbox-kula): [first steps to allowing multiple discovery backends](https://github.com/joyent/containerbuddy/pull/4)
+- [@justenwalker](https://github.com/justenwalker): hooks for preStop and postStop, deregistering services on SIGTERM, config templates, TravisCI integration, improved interface config parsing, and many many more code contributions.
