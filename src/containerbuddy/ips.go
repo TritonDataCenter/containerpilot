@@ -79,25 +79,11 @@ func findIPWithSpecs(specs []interfaceSpec, interfaceIPs []interfaceIP) (string,
 // Interface Spec
 type interfaceSpec interface {
 	Match(index int, iip interfaceIP) bool
-	String() string
-}
-
-// -- Base Struct
-type baseInterfaceSpec struct {
-	Spec string
-}
-
-func (s baseInterfaceSpec) String() string {
-	return s.Spec
-}
-
-func (s baseInterfaceSpec) Match(index int, iip interfaceIP) bool {
-	return false
 }
 
 // -- matches inet, inet6, interface:inet, and interface:inet6
 type inetInterfaceSpec struct {
-	interfaceSpec
+	Spec string
 	Name string
 	IPv6 bool
 }
@@ -115,7 +101,7 @@ func (s inetInterfaceSpec) Match(index int, iip interfaceIP) bool {
 
 // -- Indexed Interface Spec : eth0[1]
 type indexInterfaceSpec struct {
-	interfaceSpec
+	Spec  string
 	Name  string
 	Index int
 }
@@ -129,7 +115,7 @@ func (spec indexInterfaceSpec) Match(index int, iip interfaceIP) bool {
 
 // -- CIDR Interface Spec
 type cidrInterfaceSpec struct {
-	interfaceSpec
+	Spec    string
 	Network *net.IPNet
 }
 
@@ -161,12 +147,11 @@ var (
 )
 
 func parseInterfaceSpec(spec string) (interfaceSpec, error) {
-	baseSpec := baseInterfaceSpec{spec}
 	if spec == "inet" {
-		return inetInterfaceSpec{baseSpec, "*", false}, nil
+		return inetInterfaceSpec{Spec: spec, Name: "*", IPv6: false}, nil
 	}
 	if spec == "inet6" {
-		return inetInterfaceSpec{baseSpec, "*", true}, nil
+		return inetInterfaceSpec{Spec: spec, Name: "*", IPv6: true}, nil
 	}
 
 	if match := ifaceSpec.FindStringSubmatch(spec); match != nil {
@@ -176,22 +161,22 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 		if index != "" {
 			i, err := strconv.Atoi(index)
 			if err != nil {
-				return baseSpec, fmt.Errorf("Unable to parse index %s in %s", index, spec)
+				return nil, fmt.Errorf("Unable to parse index %s in %s", index, spec)
 			}
-			return indexInterfaceSpec{baseSpec, name, i}, nil
+			return indexInterfaceSpec{Spec: spec, Name: name, Index: i}, nil
 		}
 		if inet != "" {
 			if inet == "inet" {
-				return inetInterfaceSpec{baseSpec, name, false}, nil
+				return inetInterfaceSpec{Spec: spec, Name: name, IPv6: false}, nil
 			}
-			return inetInterfaceSpec{baseSpec, name, true}, nil
+			return inetInterfaceSpec{Spec: spec, Name: name, IPv6: true}, nil
 		}
-		return inetInterfaceSpec{baseSpec, name, false}, nil
+		return inetInterfaceSpec{Spec: spec, Name: name, IPv6: false}, nil
 	}
 	if _, net, err := net.ParseCIDR(spec); err == nil {
-		return cidrInterfaceSpec{baseSpec, net}, nil
+		return cidrInterfaceSpec{Spec: spec, Network: net}, nil
 	}
-	return baseSpec, fmt.Errorf("Unable to parse interface spec: %s", spec)
+	return nil, fmt.Errorf("Unable to parse interface spec: %s", spec)
 }
 
 type interfaceIP struct {
