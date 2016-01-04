@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail
 .DEFAULT_GOAL := build
 
-.PHONY: clean test consul etcd run-consul run-etcd example-consul example-etcd ship dockerfile docker cover lint
+.PHONY: clean test consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
 
 VERSION ?= dev-build-not-for-release
 LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
@@ -89,6 +89,7 @@ release: build ship
 
 # ----------------------------------------------
 # example application
+example: example-consul example-etcd
 
 # build Nginx and App examples
 example-consul: build
@@ -120,7 +121,11 @@ clean-etcd:
 
 # tag and ship example to Docker Hub registry
 ship: example
-	docker tag example_nginx 0x74696d/containerbuddy-demo-nginx
-	docker tag example_app 0x74696d/containerbuddy-demo-app
+	docker tag ${COMPOSE_PREFIX_CONSUL}_nginx 0x74696d/containerbuddy-demo-nginx
+	docker tag ${COMPOSE_PREFIX_CONSUL}_app 0x74696d/containerbuddy-demo-app
+	docker tag ${COMPOSE_PREFIX_ETCD}_nginx 0x74696d/containerbuddy-etcd-demo-nginx
+	docker tag ${COMPOSE_PREFIX_ETCD}_app 0x74696d/containerbuddy-etcd-demo-app
 	docker push 0x74696d/containerbuddy-demo-nginx
 	docker push 0x74696d/containerbuddy-demo-app
+	docker push 0x74696d/containerbuddy-etcd-demo-nginx
+	docker push 0x74696d/containerbuddy-etcd-demo-app
