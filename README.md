@@ -126,7 +126,7 @@ Must supply only one of the following
     ```
 
     - `endpoints` is the list of etcd nodes in your cluster
-    - `prefix` is the path that will be prefixed to all service discovery keys.
+    - `prefix` is the path that will be prefixed to all service discovery keys. This key is optional. (Default: `/containerbuddy`)
 
 Other fields:
 
