@@ -176,17 +176,19 @@ func etcdCompareForChange(existing, new []EtcdServiceNode) (changed bool) {
 
 func (c Etcd) registerService(service *ServiceConfig) error {
 	key := c.getNodeKey(service)
+	serviceKey := fmt.Sprintf("%s/%s", key, "/service")
 	value := encodeEtcdNodeValue(service)
 	ttl, _ := time.ParseDuration(fmt.Sprintf("%ds", service.TTL))
-	_, err := c.API.Set(context.Background(), key, "", &client.SetOptions{Dir: true, TTL: ttl})
-	if err != nil {
+	// If the directory already exists, then this should silently fail (no error)
+	if _, err := c.API.Set(context.Background(), key, "",
+		&client.SetOptions{Dir: true, TTL: ttl, PrevExist: client.PrevIgnore}); err != nil {
 		return err
 	}
-	_, err = c.API.Set(context.Background(), fmt.Sprintf("%s/%s", key, "/service"), value, nil)
-	if err != nil {
-		return err
-	}
-	return nil
+	// If the key exists, this should silently fail - no work to do, and don't want
+	// to trigger any watches / updates
+	_, err := c.API.Set(context.Background(), serviceKey, value,
+		&client.SetOptions{PrevExist: client.PrevIgnore})
+	return err
 }
 
 func (c Etcd) updateServiceTTL(service *ServiceConfig) error {
