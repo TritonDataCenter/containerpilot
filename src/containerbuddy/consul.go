@@ -53,6 +53,7 @@ func (c *Consul) registerService(service ServiceConfig) error {
 		&consul.AgentServiceRegistration{
 			ID:      service.ID,
 			Name:    service.Name,
+			Tags:    service.Tags,
 			Port:    service.Port,
 			Address: service.ipAddress,
 		},
@@ -81,7 +82,7 @@ func (c Consul) CheckForUpstreamChanges(backend *BackendConfig) bool {
 }
 
 func (c *Consul) checkHealth(backend BackendConfig) bool {
-	services, meta, err := c.Health().Service(backend.Name, "", true, nil)
+	services, meta, err := c.Health().Service(backend.Name, backend.Tag, true, nil)
 	if err != nil {
 		log.Printf("Failed to query %v: %s [%v]", backend.Name, err, meta)
 		return false

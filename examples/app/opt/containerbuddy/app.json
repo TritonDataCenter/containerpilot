@@ -7,7 +7,8 @@
       "port": 8000,
       "health": "/usr/bin/curl --fail -s http://localhost:8000",
       "poll": 10,
-      "ttl": 25
+      "ttl": 25,
+      "tags": ["application"]
     }
   ],
   "backends": [
@@ -19,7 +20,8 @@
     {
       "name": "app",
       "poll": 5,
-      "onChange": "/opt/containerbuddy/reload-app.sh"
+      "onChange": "/opt/containerbuddy/reload-app.sh",
+      "tag": "application"
     }
   ]
 }

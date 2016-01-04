@@ -62,7 +62,8 @@ The format of the JSON file configuration is as follows:
         "eth0"
       ],
       "poll": 10,
-      "ttl": 30
+      "ttl": 30,
+      "tags": ["tag1"]
     }
   ],
   "backends": [
@@ -88,6 +89,7 @@ Service fields:
 - `interfaces` is an optional single interface name or array of interfaces in priority order. If given, the IP of the service will be obtained from the first interface that exits in the container. (Default value is `["eth0"]`)
 - `poll` is the time in seconds between polling for health checks.
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
+- `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
 
 Backend fields:
 
