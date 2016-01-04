@@ -69,14 +69,11 @@ func (c Etcd) MarkForMaintenance(service *ServiceConfig) {
 
 // SendHeartbeat refreshes the TTL of this associated etcd node
 func (c Etcd) SendHeartbeat(service *ServiceConfig) {
-	if c.checkServiceExists(service) {
-		c.updateServiceTTL(service)
-	} else {
+	if err := c.updateServiceTTL(service); err != nil {
 		log.Printf("Service not registered, registering...")
 		if err := c.registerService(service); err != nil {
 			log.Printf("Error registering service %s: %s", service.Name, err)
 		}
-
 	}
 }
 
