@@ -13,7 +13,9 @@ ROOT := $(shell pwd)
 COMPOSE_PREFIX_ETCD := exetcd
 COMPOSE_PREFIX_CONSUL := exconsul
 
-DOCKERMAKE := docker run --rm --link containerbuddy_consul:consul \
+DOCKERMAKE := docker run --rm \
+	--link containerbuddy_consul:consul \
+	--link containerbuddy_etcd:etcd \
 	-v ${ROOT}/src/containerbuddy:/go/src/containerbuddy \
 	-v ${ROOT}/build:/build \
 	-v ${ROOT}/cover:/cover \
