@@ -193,19 +193,15 @@ func (c Etcd) registerService(service *ServiceConfig) error {
 func (c Etcd) updateServiceTTL(service *ServiceConfig) error {
 	key := c.getNodeKey(service)
 	ttl, _ := time.ParseDuration(fmt.Sprintf("%ds", service.TTL))
-	_, err := c.API.Set(context.Background(), key, "", &client.SetOptions{Dir: true, TTL: ttl, PrevExist: client.PrevExist})
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := c.API.Set(context.Background(), key, "",
+		&client.SetOptions{Dir: true, TTL: ttl, PrevExist: client.PrevExist})
+	return err
 }
 
 func (c Etcd) deregisterService(service *ServiceConfig) error {
-	_, err := c.API.Delete(context.Background(), c.getNodeKey(service), &client.DeleteOptions{Dir: true, Recursive: true})
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := c.API.Delete(context.Background(), c.getNodeKey(service),
+		&client.DeleteOptions{Dir: true, Recursive: true})
+	return err
 }
 
 func encodeEtcdNodeValue(service *ServiceConfig) string {
