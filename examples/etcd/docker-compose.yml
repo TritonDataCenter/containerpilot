@@ -14,23 +14,20 @@ etcd:
       -initial-cluster-state new
     mem_limit: 256m
     hostname: etcd
-    expose:
+    ports:
+    - 4001
     - 2379
     - 2380
     - 4001
-    ports:
-    - 4001:4001
     restart: always
 
 nginx:
     image: 0x74696d/containerbuddy-etcd-demo-nginx
     mem_limit: 512m
-    expose:
-    - 80
     links:
     - etcd:etcd
     ports:
-    - 8080:80
+    - 80
     restart: always
     command: >
       /opt/containerbuddy/containerbuddy
@@ -40,8 +37,6 @@ nginx:
 app:
     image: 0x74696d/containerbuddy-etcd-demo-app
     mem_limit: 512m
-    expose:
-    - 8000
     links:
     - etcd:etcd
     ports:
