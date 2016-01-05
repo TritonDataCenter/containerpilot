@@ -59,7 +59,14 @@ The format of the JSON file configuration is as follows:
         "http://localhost/app"
       ],
       "interfaces": [
-        "eth0"
+        "eth0",
+        "eth1[1]",
+        "192.168.0.0/16",
+        "2001:db8::/64",
+        "eth2:inet",
+        "eth2:inet6",
+        "inet",
+        "inet6"
       ],
       "poll": 10,
       "ttl": 30,
@@ -86,7 +93,7 @@ Service fields:
 - `name` is the name of the service as it will appear in Consul. Each instance of the service will have a unique ID made up from `name`+hostname of the container.
 - `port` is the port the service will advertise to Consul.
 - `health` is the executable (and its arguments) used to check the health of the service.
-- `interfaces` is an optional single interface name or array of interfaces in priority order. If given, the IP of the service will be obtained from the first interface that exits in the container. (Default value is `["eth0"]`)
+- `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`)
 - `poll` is the time in seconds between polling for health checks.
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
@@ -106,6 +113,27 @@ Other fields:
 - `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`). Providing `-1` will kill the application immediately.
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
+
+#### Interface Specifications
+
+The `interfaces` parameter allows for one or more specifications to be used when searching for the advertised IP. The first specification that matches stops the search process, so they should be ordered from most specific to least specific.
+
+- `eth0` : Match the first IPv4 address on `eth0` (alias for `eth0:inet`)
+- `eth0:inet6` : Match the first IPv6 address on `eth0`
+- `eth0[1]` : Match the 2nd IP address on `eth0` (zero-based index)
+- `10.0.0.0/16` : Match the first IP that is contained within the IP Network
+- `fdc6:238c:c4bc::/48` : Match the first IP that is contained within the IPv6 Network
+- `inet` : Match the first IPv4 Address (excluding `127.0.0.0/8`)
+- `inet6` : Match the first IPv6 Address (excluding `::1/128`)
+
+Interfaces and their IP addresses are ordered alphabetically by interface name, then by IP address (lexicographically by bytes).
+
+**Sample Ordering**
+
+- eth0 10.2.0.1 192.168.1.100
+- eth1 10.0.0.100 10.0.0.200
+- eth2 10.1.0.200 fdc6:238c:c4bc::1
+- lo ::1 127.0.0.1
 
 #### Commands & arguments
 
