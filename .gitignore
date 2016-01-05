@@ -29,4 +29,4 @@ release/
 cover/
 examples/*/opt/containerbuddy/containerbuddy
 *.tar.gz
-build-image
+.godeps

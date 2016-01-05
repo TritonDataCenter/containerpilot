@@ -5,7 +5,7 @@ SHELL := /bin/bash
 .SHELLFLAGS = -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: all build deps check test cover
+.PHONY: all build check test cover
 
 CONSUL_REF := 158eabdd6f2408067c1d7656fa10e49434f96480
 
@@ -14,11 +14,11 @@ CDWD := cd ${ROOT}/src/containerbuddy
 
 all: build cover
 
-build: deps
+build: /go/src/github.com
 	${CDWD} && go build -a -o /build/containerbuddy -ldflags "$(LDFLAGS)"
 	chmod 755 /build/containerbuddy
 
-deps:
+/go/src/github.com:
 	mkdir -p "${ROOT}/src/github.com/hashicorp"
 	git clone https://github.com/hashicorp/consul.git ${ROOT}/src/github.com/hashicorp/consul
 	cd ${ROOT}/src/github.com/hashicorp/consul && git checkout ${CONSUL_REF}
@@ -28,7 +28,7 @@ lint:
 	${CDWD} && go fmt
 	golint ${ROOT}/src/containerbuddy
 
-test: deps
+test: /go/src/github.com
 	${CDWD} && go test -v -coverprofile=/cover/coverage.out
 
 cover: test
