@@ -39,13 +39,14 @@ func getConfig() *Config {
 
 // Config is the top-level Containerbuddy Configuration
 type Config struct {
-	Consul       string           `json:"consul,omitempty"`
-	OnStart      json.RawMessage  `json:"onStart,omitempty"`
-	PreStop      json.RawMessage  `json:"preStop,omitempty"`
-	PostStop     json.RawMessage  `json:"postStop,omitempty"`
-	StopTimeout  int              `json:"stopTimeout"`
-	Services     []*ServiceConfig `json:"services"`
-	Backends     []*BackendConfig `json:"backends"`
+	Consul       string                 `json:"consul,omitempty"`
+	Etcd         map[string]interface{} `json:"etcd,omitempty"`
+	OnStart      json.RawMessage        `json:"onStart,omitempty"`
+	PreStop      json.RawMessage        `json:"preStop,omitempty"`
+	PostStop     json.RawMessage        `json:"postStop,omitempty"`
+	StopTimeout  int                    `json:"stopTimeout"`
+	Services     []*ServiceConfig       `json:"services"`
+	Backends     []*BackendConfig       `json:"backends"`
 	onStartCmd   *exec.Cmd
 	preStopCmd   *exec.Cmd
 	postStopCmd  *exec.Cmd
@@ -221,11 +222,16 @@ func initializeConfig(config *Config) (*Config, error) {
 	}
 	config.postStopCmd = postStopCmd
 
-	for _, discoveryBackend := range []string{"Consul"} {
+	for _, discoveryBackend := range []string{"Consul", "Etcd"} {
 		switch discoveryBackend {
 		case "Consul":
 			if config.Consul != "" {
 				discovery = NewConsulConfig(config.Consul)
+				discoveryCount++
+			}
+		case "Etcd":
+			if config.Etcd != nil {
+				discovery = NewEtcdConfig(config.Etcd)
 				discoveryCount++
 			}
 		}

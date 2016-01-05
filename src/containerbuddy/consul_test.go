@@ -28,8 +28,8 @@ func setupConsul(serviceName string) *Config {
 	return config
 }
 
-func TestTTLPass(t *testing.T) {
-	config := setupConsul("service-TestTTLPass")
+func TestConsulTTLPass(t *testing.T) {
+	config := setupConsul("service-TestConsulTTLPass")
 	service := config.Services[0]
 	consul := service.discoveryService.(Consul)
 	id := service.ID
@@ -49,8 +49,8 @@ func TestTTLPass(t *testing.T) {
 	}
 }
 
-func TestCheckForChanges(t *testing.T) {
-	config := setupConsul("service-TestCheckForChanges")
+func TestConsulCheckForChanges(t *testing.T) {
+	config := setupConsul("service-TestConsulCheckForChanges")
 	backend := config.Backends[0]
 	service := config.Services[0]
 	consul := backend.discoveryService.(Consul)
