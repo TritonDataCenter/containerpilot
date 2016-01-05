@@ -12,6 +12,7 @@ ROOT := $(shell pwd)
 
 DOCKERMAKE := docker run --rm --link containerbuddy_consul:consul \
 	-v ${ROOT}/src/containerbuddy:/go/src/containerbuddy \
+	-v ${ROOT}/.godeps:/go/src \
 	-v ${ROOT}/build:/build \
 	-v ${ROOT}/cover:/cover \
 	-v ${ROOT}/examples:/root/examples:ro \
@@ -20,7 +21,7 @@ DOCKERMAKE := docker run --rm --link containerbuddy_consul:consul \
 	containerbuddy_build
 
 clean:
-	rm -rf build release cover
+	rm -rf build release cover .godeps
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 
