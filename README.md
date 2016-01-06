@@ -3,6 +3,7 @@
 *A service for assisting discovery and configuration of applications running in containers.*
 
 [![Build Status](https://travis-ci.org/joyent/containerbuddy.svg)](https://travis-ci.org/joyent/containerbuddy)
+[![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerbuddy/blob/master/LICENSE)
 
 ### Container-native applications vs all the rest
 
