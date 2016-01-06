@@ -1,0 +1,20 @@
+{
+  "consul": "consul:8500",
+  "services": [
+    {
+      "name": "nginx",
+      "port": 80,
+      "interfaces": ["eth0"],
+      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost/health.txt",
+      "poll": 10,
+      "ttl": 25
+    }
+  ],
+  "backends": [
+    {
+      "name": "app",
+      "poll": 7,
+      "onChange": "/opt/containerbuddy/reload-nginx.sh"
+    }
+  ]
+}

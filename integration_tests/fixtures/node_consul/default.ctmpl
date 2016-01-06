@@ -1,0 +1,32 @@
+# for each service, create a backend
+{{range services}}
+upstream {{.Name}} {
+    # write the health service address:port pairs for this backend
+    {{range service .Name}}
+    server {{.Address}}:{{.Port}};
+    {{end}}
+}
+{{end}}
+
+server {
+    listen       80;
+    server_name  _;
+
+    # if you have http_stub_status_module compiled-in, then
+    # this would be a good place to use /nginx_status
+    location /health.txt {
+        add_header content-type "text/html";
+        alias /usr/share/nginx/html/index.html;
+    }
+
+    {{range services}}
+    location = /{{.Name}} {
+        return 302 /{{.Name}}/;
+    }
+
+    location /{{.Name}} {
+        proxy_pass http://{{.Name}}/;
+        proxy_redirect off;
+    }
+    {{end}}
+}

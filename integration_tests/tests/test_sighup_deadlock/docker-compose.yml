@@ -1,0 +1,19 @@
+consul:
+    image: "cbfix_consul"
+    mem_limit: 256m
+    hostname: consul
+
+app:
+    image: "cbfix_app_consul"
+    mem_limit: 512m
+    links:
+      - consul:consul
+
+test:
+    image: "cbfix_test_probe"
+    mem_limit: 128m
+    links:
+      - consul:consul
+      - app:app
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
