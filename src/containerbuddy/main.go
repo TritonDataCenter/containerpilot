@@ -22,6 +22,9 @@ func main() {
 	}
 
 	// Set up handlers for polling and to accept signal interrupts
+	if 1 == os.Getpid() {
+		reapChildren()
+	}
 	handleSignals(config)
 	handlePolling(config)
 
