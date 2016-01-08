@@ -5,11 +5,15 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"syscall"
 	"time"
 )
 
 func main() {
+	// make sure we use only a single CPU so as not to cause
+	// contention on the main application
+	runtime.GOMAXPROCS(1)
 
 	config, configErr := loadConfig()
 	if configErr != nil {
