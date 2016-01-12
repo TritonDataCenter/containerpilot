@@ -12,18 +12,21 @@ import (
 // globals are eeeeevil
 var paused bool
 var signalLock = sync.RWMutex{}
+var maintModeLock = sync.RWMutex{}
 
 // we wrap access to `paused` in a RLock so that if we're in the middle of
 // marking services for maintenance we don't get stale reads
 func inMaintenanceMode() bool {
-	signalLock.RLock()
-	defer signalLock.RUnlock()
+	maintModeLock.RLock()
+	defer maintModeLock.RUnlock()
 	return paused
 }
 
 func toggleMaintenanceMode(config *Config) {
+	maintModeLock.RLock()
 	signalLock.Lock()
 	defer signalLock.Unlock()
+	defer maintModeLock.RUnlock()
 	paused = !paused
 	if paused {
 		forAllServices(config, func(service *ServiceConfig) {
