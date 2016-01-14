@@ -30,3 +30,4 @@ cover/
 examples/**/opt/containerbuddy/containerbuddy
 *.tar.gz
 .godeps
+*.log

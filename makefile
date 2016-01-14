@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail
 .DEFAULT_GOAL := build
 
-.PHONY: clean test consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
+.PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
 
 VERSION ?= dev-build-not-for-release
 LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
@@ -30,6 +30,7 @@ clean:
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
+	./test.sh clean
 
 # ----------------------------------------------
 # docker build
@@ -57,6 +58,9 @@ test: docker
 
 cover: docker
 	${DOCKERMAKE} cover
+
+integration: build docker
+	./test.sh
 
 # ------ Backends
 
