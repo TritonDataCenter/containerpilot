@@ -1,0 +1,13 @@
+{
+  "consul": "consul:8500",
+  "services": [
+    {
+      "name": "app",
+      "port": 8000,
+      "health": "/bin/sh /zombie.sh",
+      "poll": 1,
+      "ttl": 5,
+      "tags": ["application"]
+    }
+  ]
+}

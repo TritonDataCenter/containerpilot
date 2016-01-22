@@ -26,6 +26,9 @@ func main() {
 	}
 
 	// Set up handlers for polling and to accept signal interrupts
+	if 1 == os.Getpid() {
+		reapChildren()
+	}
 	handleSignals(config)
 	handlePolling(config)
 
@@ -117,8 +120,12 @@ func executeAndWait(cmd *exec.Cmd) (int, error) {
 				return status.ExitStatus(), err
 			}
 		}
-		// only happens if we misconfigure, so just die here
-		log.Fatal(err)
+		// Should only happen if we misconfigure or there's some more
+		// serious problem with the underlying open/exec syscalls. But
+		// we'll let the lack of heartbeat tell us if something has gone
+		// wrong to that extent.
+		log.Println(err)
+		return 1, err
 	}
 	return 0, nil
 }

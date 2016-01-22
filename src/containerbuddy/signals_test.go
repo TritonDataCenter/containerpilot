@@ -61,7 +61,9 @@ func TestMaintenanceSignal(t *testing.T) {
 	}
 }
 
-// Test handler for SIGTERM
+// Test handler for SIGTERM. Note that the SIGCHLD handler is fired
+// by this same test, but that we don't have a separate unit test
+// because they'll interfere with each other's state.
 func TestTerminateSignal(t *testing.T) {
 
 	config := getSignalTestConfig()
@@ -105,6 +107,7 @@ func TestSignalWiring(t *testing.T) {
 	handleSignals(&Config{})
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
+	sendAndWaitForSignal(t, syscall.SIGCHLD)
 	sendAndWaitForSignal(t, syscall.SIGHUP)
 }
 
