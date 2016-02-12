@@ -5,35 +5,35 @@ SHELL := /bin/bash
 .SHELLFLAGS = -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: all build check test cover
+.PHONY: all build check test cover update-deps restore
 
-CONSUL_REF := 158eabdd6f2408067c1d7656fa10e49434f96480
-ETCD_REF := release-2.2
-
-ROOT := /go
-CDWD := cd ${ROOT}/src/containerbuddy
+PACKAGE := github.com/joyent/containerbuddy
+SRC  := /go/src/${PACKAGE}
+CDWD := cd ${SRC}
+NO_VENDOR:= $(shell cd ${SRC} && go list ./... | grep -v /vendor/)
 
 all: build cover
 
-build: /go/src/github.com
-	${CDWD} && go build -a -o /build/containerbuddy -ldflags "$(LDFLAGS)"
+restore:
+	${CDWD} && godep restore
+
+build: restore
+	${CDWD} && go build -a -o /build/containerbuddy -ldflags "$(LDFLAGS)" ./
 	chmod 755 /build/containerbuddy
 
-/go/src/github.com:
-	mkdir -p "${ROOT}/src/github.com/hashicorp"
-	git clone https://github.com/hashicorp/consul.git ${ROOT}/src/github.com/hashicorp/consul
-	cd ${ROOT}/src/github.com/hashicorp/consul && git checkout ${CONSUL_REF}
-	mkdir -p "${ROOT}/src/github.com/coreos"
-	git clone https://github.com/coreos/etcd.git ${ROOT}/src/github.com/coreos/etcd
-	cd ${ROOT}/src/github.com/coreos/etcd && git checkout ${ETCD_REF}
+update-deps: restore
+	go get -u github.com/hashicorp/consul
+	go get -u github.com/coreos/etcd
+	${CDWD} && godep update github.com/hashicorp/consul
+	${CDWD} && godep update github.com/coreos/etcd
 
 lint:
-	${CDWD} && go vet
-	${CDWD} && go fmt
-	golint ${ROOT}/src/containerbuddy
+	${CDWD} && go vet ${NO_VENDOR}
+	${CDWD} && go fmt ${NO_VENDOR}
+	golint ${SRC}
 
-test: /go/src/github.com
-	${CDWD} && go test -v -coverprofile=/cover/coverage.out
+test:
+	${CDWD} && go test -v -coverprofile=/cover/coverage.out ./containerbuddy
 
 cover: test
 	go tool cover -html=/cover/coverage.out -o /cover/coverage.html
