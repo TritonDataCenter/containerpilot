@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"os"
 
 	consul "github.com/hashicorp/consul/api"
 )
@@ -13,10 +14,16 @@ type Consul struct{ consul.Client }
 
 // NewConsulConfig creates a new service discovery backend for Consul
 func NewConsulConfig(uri string) Consul {
-	client, _ := consul.NewClient(&consul.Config{
+	defaultconfig := consul.Config{
 		Address: uri,
 		Scheme:  "http",
-	})
+	}
+
+	if token := os.Getenv("CONSUL_HTTP_TOKEN"); token != "" {
+		defaultconfig.Token = token
+	}
+
+	client, _ := consul.NewClient(&defaultconfig)
 	config := &Consul{*client}
 	return *config
 }
