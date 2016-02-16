@@ -27,6 +27,8 @@ _testmain.go
 build/
 release/
 cover/
+/vendor/
+/Godeps/_workspace/
 examples/**/opt/containerbuddy/containerbuddy
 *.tar.gz
 .godeps
