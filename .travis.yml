@@ -19,7 +19,10 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
 
+install:
+  - make vendor
+
 script:
-  - make clean lint build
+  - make lint build
   - make test
   - make integration
