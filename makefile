@@ -20,7 +20,7 @@ COMPOSE_PREFIX_CONSUL := exconsul
 DOCKERMAKE := docker run --rm \
 	--link containerbuddy_consul:consul \
 	--link containerbuddy_etcd:etcd \
-	-v ${ROOT}/.godeps:/go/src \
+	-v ${ROOT}/vendor:/go/src \
 	-v ${ROOT}:/go/src/${PACKAGE} \
 	-v ${ROOT}/build:/build \
 	-v ${ROOT}/cover:/cover \
@@ -30,7 +30,7 @@ DOCKERMAKE := docker run --rm \
 	containerbuddy_build
 
 clean:
-	rm -rf build release cover .godeps
+	rm -rf build release cover vendor
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
@@ -50,8 +50,8 @@ docker: build/containerbuddy_build consul etcd
 build: docker
 	${DOCKERMAKE} build
 
-update-deps: docker
-	${DOCKERMAKE} update-deps
+vendor: docker
+	${DOCKERMAKE} vendor
 
 # ----------------------------------------------
 # develop and test

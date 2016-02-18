@@ -5,27 +5,23 @@ SHELL := /bin/bash
 .SHELLFLAGS = -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: all build check test cover update-deps restore
+.PHONY: all build check test cover update-deps vendor
 
 PACKAGE := github.com/joyent/containerbuddy
 SRC  := /go/src/${PACKAGE}
 CDWD := cd ${SRC}
 NO_VENDOR:= $(shell cd ${SRC} && go list ./... | grep -v /vendor/)
+GO15VENDOREXPERIMENT := 1
+export GO15VENDOREXPERIMENT
 
 all: build cover
 
-restore:
+vendor:
 	${CDWD} && godep restore
 
-build: restore
+build: vendor
 	${CDWD} && go build -a -o /build/containerbuddy -ldflags "$(LDFLAGS)" ./
 	chmod 755 /build/containerbuddy
-
-update-deps: restore
-	go get -u github.com/hashicorp/consul
-	go get -u github.com/coreos/etcd
-	${CDWD} && godep update github.com/hashicorp/consul
-	${CDWD} && godep update github.com/coreos/etcd
 
 lint:
 	${CDWD} && go vet ${NO_VENDOR}
