@@ -1,0 +1,52 @@
+{
+	"ImportPath": "github.com/joyent/containerbuddy",
+	"GoVersion": "go1.5",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/client",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/pathutil",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/types",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/docker/go-units",
+			"Comment": "v0.1.0-23-g5d2041e",
+			"Rev": "5d2041e26a699eaca682e2ea41c8f891e1060444"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/consul/api",
+			"Comment": "v0.5.2-461-g158eabd",
+			"Rev": "158eabdd6f2408067c1d7656fa10e49434f96480"
+		},
+		{
+			"ImportPath": "github.com/samalba/dockerclient",
+			"Rev": "4278ba330b9475a8fa85520226479697f6c84482"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "7f88271ea9913b72aca44fa7fc8af919eacc17ce"
+		}
+	]
+}

@@ -1,4 +1,4 @@
-package main
+package containerbuddy
 
 import (
 	"flag"
@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-func main() {
+// Main executes the containerbuddy CLI
+func Main() {
 	// make sure we use only a single CPU so as not to cause
 	// contention on the main application
 	runtime.GOMAXPROCS(1)

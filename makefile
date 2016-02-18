@@ -6,18 +6,22 @@ SHELL := /bin/bash
 .PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
 
 VERSION ?= dev-build-not-for-release
-LDFLAGS := '-X main.GitHash=$(shell git rev-parse --short HEAD) -X main.Version=${VERSION}'
+LDFLAGS := '-X containerbuddy.GitHash=$(shell git rev-parse --short HEAD) -X containerbuddy.Version=${VERSION}'
 
 ROOT := $(shell pwd)
+PACKAGE := github.com/joyent/containerbuddy
+GO15VENDOREXPERIMENT := 1
+export GO15VENDOREXPERIMENT
 
 COMPOSE_PREFIX_ETCD := exetcd
 COMPOSE_PREFIX_CONSUL := exconsul
 
+
 DOCKERMAKE := docker run --rm \
 	--link containerbuddy_consul:consul \
 	--link containerbuddy_etcd:etcd \
-	-v ${ROOT}/src/containerbuddy:/go/src/containerbuddy \
-	-v ${ROOT}/.godeps:/go/src \
+	-v ${ROOT}/vendor:/go/src \
+	-v ${ROOT}:/go/src/${PACKAGE} \
 	-v ${ROOT}/build:/build \
 	-v ${ROOT}/cover:/cover \
 	-v ${ROOT}/examples:/root/examples:ro \
@@ -26,7 +30,7 @@ DOCKERMAKE := docker run --rm \
 	containerbuddy_build
 
 clean:
-	rm -rf build release cover .godeps
+	rm -rf build release cover vendor
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
@@ -45,6 +49,9 @@ docker: build/containerbuddy_build consul etcd
 
 build: docker
 	${DOCKERMAKE} build
+
+vendor: docker
+	${DOCKERMAKE} vendor
 
 # ----------------------------------------------
 # develop and test

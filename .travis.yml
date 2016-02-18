@@ -11,6 +11,7 @@ services:
 ## Need docker-compose 1.5.x for Variable Interpolation
 env:
   DOCKER_COMPOSE_VERSION: 1.5.2
+  GO15VENDOREXPERIMENT: 1
 
 before_install:
   - sudo rm /usr/local/bin/docker-compose
@@ -18,7 +19,10 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
 
+install:
+  - make vendor
+
 script:
-  - make clean lint build
+  - make lint build
   - make test
   - make integration
