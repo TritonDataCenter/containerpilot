@@ -133,10 +133,10 @@ clean-etcd:
 
 # tag and ship example to Docker Hub registry
 ship: example
-	docker tag ${COMPOSE_PREFIX_CONSUL}_nginx 0x74696d/containerbuddy-demo-nginx
-	docker tag ${COMPOSE_PREFIX_CONSUL}_app 0x74696d/containerbuddy-demo-app
-	docker tag ${COMPOSE_PREFIX_ETCD}_nginx 0x74696d/containerbuddy-etcd-demo-nginx
-	docker tag ${COMPOSE_PREFIX_ETCD}_app 0x74696d/containerbuddy-etcd-demo-app
+	docker tag -f ${COMPOSE_PREFIX_CONSUL}_nginx 0x74696d/containerbuddy-demo-nginx
+	docker tag -f ${COMPOSE_PREFIX_CONSUL}_app 0x74696d/containerbuddy-demo-app
+	docker tag -f ${COMPOSE_PREFIX_ETCD}_nginx 0x74696d/containerbuddy-etcd-demo-nginx
+	docker tag -f ${COMPOSE_PREFIX_ETCD}_app 0x74696d/containerbuddy-etcd-demo-app
 	docker push 0x74696d/containerbuddy-demo-nginx
 	docker push 0x74696d/containerbuddy-demo-app
 	docker push 0x74696d/containerbuddy-etcd-demo-nginx
