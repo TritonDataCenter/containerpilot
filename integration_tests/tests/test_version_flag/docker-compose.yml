@@ -1,0 +1,6 @@
+app:
+    image: "cbfix_test_probe"
+    mem_limit: 128m
+    volumes:
+      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
+    command: /bin/containerbuddy -version
