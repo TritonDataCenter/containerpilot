@@ -4,7 +4,7 @@ consul:
     hostname: consul
 
 app:
-    image: "cbfix_app_consul"
+    image: "cbfix_app"
     mem_limit: 512m
     links:
       - consul:consul
