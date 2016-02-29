@@ -16,6 +16,7 @@ func runTest(testName string, args []string) {
 	AllTests = map[string]TestCommand{
 		"test_sigterm":         TestSigterm,
 		"test_sighup_deadlock": TestSighupDeadlock,
+		"test_demo":            TestDemo,
 	}
 
 	if test := AllTests[testName]; test != nil {

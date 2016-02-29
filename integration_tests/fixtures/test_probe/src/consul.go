@@ -33,9 +33,23 @@ func NewConsulProbe() (ConsulProbe, error) {
 // WaitForServices waits for the healthy services count to equal the count
 // provided or it returns an error
 func (c consulClient) WaitForServices(service string, tag string, count int) error {
+
 	maxRetry := 30
 	retry := 0
 	var err error
+
+	// we need to wait for Consul to start and self-elect
+	for ; retry < maxRetry; retry++ {
+		if retry > 0 {
+			time.Sleep(1 * time.Second)
+		}
+
+		if leader, err := c.Client.Status().Leader(); err == nil && leader != "" {
+			break
+		}
+	}
+
+	retry = 0
 	for ; retry < maxRetry; retry++ {
 		if retry > 0 {
 			time.Sleep(1 * time.Second)

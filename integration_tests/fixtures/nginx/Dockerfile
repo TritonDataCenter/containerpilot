@@ -18,6 +18,8 @@ COPY build/containerbuddy /bin/containerbuddy
 COPY nginx.json /etc/containerbuddy/nginx.json
 COPY nginx.ctmpl /etc/containerbuddy/nginx.ctmpl
 
+EXPOSE 80
+
 ENTRYPOINT [ "/bin/containerbuddy", \
              "-config=file:///etc/containerbuddy/nginx.json", \
              "nginx", "-g", "daemon off;"]
