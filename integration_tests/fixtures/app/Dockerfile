@@ -9,8 +9,9 @@ RUN npm install -g json http-server
 
 COPY build/containerbuddy /bin/containerbuddy
 COPY app-with-consul.json /app-with-consul.json
-COPY app-with-etcd.json /app-with-consul.json
+COPY app-with-etcd.json /app-with-etcd.json
 COPY reload-app.sh /reload-app.sh
+COPY reload-app-etcd.sh /reload-app-etcd.sh
 
 # by default use app-consul.json, allows for override in docker-compose
 ENV CONTAINERBUDDY=file:///app-with-consul.json

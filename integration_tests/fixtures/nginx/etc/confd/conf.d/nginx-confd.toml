@@ -1,0 +1,10 @@
+[template]
+src = "nginx-etcd.tmpl"
+dest = "/etc/nginx/nginx.conf"
+owner = "nginx"
+prefix = "/containerbuddy"
+mode = "0644"
+keys = [
+  "/app"
+]
+reload_cmd = "/usr/sbin/nginx -s reload"

@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
-
 	consul "github.com/hashicorp/consul/api"
+	"time"
 )
 
 const consulAddress = "consul:8500"
@@ -43,10 +42,12 @@ func (c consulClient) WaitForServices(service string, tag string, count int) err
 		if retry > 0 {
 			time.Sleep(1 * time.Second)
 		}
-
 		if leader, err := c.Client.Status().Leader(); err == nil && leader != "" {
 			break
 		}
+	}
+	if err != nil {
+		return err
 	}
 
 	retry = 0

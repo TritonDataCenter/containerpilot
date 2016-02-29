@@ -1,6 +1,9 @@
 {
-  "consul": "consul:8500",
-  "onStart": "/reload-app.sh",
+  "etcd":{
+      "endpoints": "http://etcd:4001",
+      "prefix": "/containerbuddy"
+  },
+  "onStart": "/reload-app-etcd.sh",
   "services": [
     {
       "name": "app",
@@ -15,12 +18,12 @@
     {
       "name": "nginx",
       "poll": 7,
-      "onChange": "/reload-app.sh"
+      "onChange": "/reload-app-etcd.sh"
     },
     {
       "name": "app",
       "poll": 5,
-      "onChange": "/reload-app.sh",
+      "onChange": "/reload-app-etcd.sh",
       "tag": "application"
     }
   ]

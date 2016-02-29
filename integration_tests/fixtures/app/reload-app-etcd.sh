@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # get all the healthy application servers and write the json to file
-curl -s consul:8500/v1/health/service/app?passing | json > /tmp/lastQuery.json
+curl -s etcd:4001/v2/keys/containerbuddy/app | json > /tmp/lastQuery.json
 
 cat <<EOF > /srv/index.html
 <html>

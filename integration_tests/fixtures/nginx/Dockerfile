@@ -13,13 +13,18 @@ RUN curl -Lo /tmp/consul_template_0.11.0_linux_amd64.zip https://github.com/hash
     unzip /tmp/consul_template_0.11.0_linux_amd64.zip && \
     mv consul-template /bin
 
+# Add confd to re-write our Nginx config from etcd
+RUN curl -Lo /bin/confd https://github.com/kelseyhightower/confd/releases/download/v0.11.0/confd-0.11.0-linux-amd64 && \
+    chmod 755 /bin/confd
+
 # add Containerbuddy build and configuration
 COPY build/containerbuddy /bin/containerbuddy
-COPY nginx.json /etc/containerbuddy/nginx.json
-COPY nginx.ctmpl /etc/containerbuddy/nginx.ctmpl
+COPY etc /etc
 
 EXPOSE 80
 
+# by default use nginx-with-consul.json, allows for override in docker-compose
+ENV CONTAINERBUDDY=file:///etc/nginx-with-consul.json
+
 ENTRYPOINT [ "/bin/containerbuddy", \
-             "-config=file:///etc/containerbuddy/nginx.json", \
              "nginx", "-g", "daemon off;"]

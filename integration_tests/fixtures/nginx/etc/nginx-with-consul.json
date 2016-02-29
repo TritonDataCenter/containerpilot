@@ -2,7 +2,7 @@
   "consul": "consul:8500",
   "onStart": [
     "consul-template", "-once", "-retry", "30s", "-consul", "consul:8500", "-template",
-    "/etc/containerbuddy/nginx.ctmpl:/etc/nginx/nginx.conf"
+    "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf"
   ],
   "services": [
     {
@@ -10,17 +10,17 @@
       "port": 80,
       "interfaces": ["eth0"],
       "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost/health.txt",
-      "poll": 10,
-      "ttl": 25
+      "poll": 1,
+      "ttl": 5
     }
   ],
   "backends": [
     {
       "name": "app",
-      "poll": 7,
+      "poll": 1,
       "onChange": [
           "consul-template", "-once", "-consul", "consul:8500", "-template",
-          "/etc/containerbuddy/nginx.ctmpl:/etc/nginx/nginx.conf:nginx -s reload"
+          "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf:nginx -s reload"
       ]
     }
   ]
