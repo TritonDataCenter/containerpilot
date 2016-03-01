@@ -218,53 +218,15 @@ Docker will automatically deliver a `SIGTERM` with `docker stop`, not when using
 
 Please report any issues you encounter with Containerbuddy or its documentation by [opening a Github issue](https://github.com/joyent/containerbuddy/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerbuddy/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
 
-### Running the example
+### Examples
 
-In the `examples` directory is a simple application demonstrating how Containerbuddy works. In this application, an Nginx node acts as a reverse proxy for any number of upstream application nodes. The application nodes register themselves with Consul as they come online, and the Nginx application is configured with an `onChange` handler that uses `consul-template` to write out a new virtualhost configuration file and then fires an `nginx -s reload` signal to Nginx, which causes it to gracefully reload its configuration.
+We've published a number of example applications demonstrating how Containerbuddy works.
 
-To try this example on your own:
-
-1. [Get a Joyent account](https://my.joyent.com/landing/signup/) and [add your SSH key](https://docs.joyent.com/public-cloud/getting-started).
-1. Install the [Docker Toolbox](https://docs.docker.com/installation/mac/) (including `docker` and `docker-compose`) on your laptop or other environment, as well as the [Joyent CloudAPI CLI tools](https://apidocs.joyent.com/cloudapi/#getting-started) (including the `smartdc` and `json` tools)
-1. [Configure Docker and Docker Compose for use with Joyent](https://docs.joyent.com/public-cloud/api-access/docker):
-
-```bash
-curl -O https://raw.githubusercontent.com/joyent/sdc-docker/master/tools/sdc-docker-setup.sh && chmod +x sdc-docker-setup.sh
-./sdc-docker-setup.sh -k us-east-1.api.joyent.com <ACCOUNT> ~/.ssh/<PRIVATE_KEY_FILE>
-```
-
-At this point you can run the example on Triton:
-
-```bash
-$ env | grep -E '(SDC_URL|DOCKER_HOST)'
-SDC_URL=https://us-east-1.api.joyentcloud.com
-DOCKER_HOST=tcp://us-east-1.docker.joyent.com:2376
-$ cd ./examples
-$ ./run.sh consul -p example
-
-```
-
-or in your local Docker environment:
-
-```bash
-$ env | grep DOCKER_HOST
-DOCKER_HOST=tcp://192.168.99.100:2376
-$ cd ./examples
-$ curl -Lo containerbuddy-0.0.4.tar.gz \
-  https://github.com/joyent/containerbuddy/releases/download/0.0.4/containerbuddy-0.0.4.tar.gz
-$ tar -xf containerbuddy-0.0.4.tar.gz
-$ cp ./containerbuddy ./consul/nginx/opt/containerbuddy/
-$ cp ./containerbuddy ./consul/app/opt/containerbuddy/
-./run.sh consul -p example -f docker-compose-local.yml
-
-```
-
-Let's scale up the number of `app` nodes:
-
-```bash
-docker-compose -p example scale app=3
-```
-
-(Note that if we scale up app nodes locally we don't have an IP-per-container and this will result in port conflicts.)
-
-As the nodes launch and register themselves with Consul, you'll see them appear in the Consul UI. The web page that the start script opens refreshes itself every 5 seconds, so once you've added new application containers you'll start seeing the "This page served by app server: <container ID>" change in a round-robin fashion.
+- [CloudFlare DNS and CDN with dynamic origins](https://github.com/tgross/triton-cloudflare)
+- [Consul, running as an HA raft](https://github.com/misterbisson/triton-consul)
+- [Couchbase](https://www.joyent.com/blog/couchbase-in-docker-containers)
+- [ELK stack](https://github.com/tgross/triton-elk)
+- [Mesos on Joyent Triton](https://www.joyent.com/blog/mesos-by-the-pound)
+- [Nginx with dynamic upstreams](https://www.joyent.com/blog/dynamic-nginx-upstreams-with-containerbuddy)
+- [MySQL (Percona Server) with auto scaling and fail-over](https://www.joyent.com/blog/dbaas-simplicity-no-lock-in)
+- [Node.js + Nginx + Couchbase](https://www.joyent.com/blog/how-to-dockerize-a-complete-application)
