@@ -134,13 +134,13 @@ Must supply only one of the following
     - `endpoints` is the list of etcd nodes in your cluster
     - `prefix` is the path that will be prefixed to all service discovery keys. This key is optional. (Default: `/containerbuddy`)
 
-Logging Config:
+Logging Config (Optional):
 
 The logging config adjust the output format and verbosity of Containerbuddy logs.
 
-- `level` adjusts the verbosity of the messages output by containerbuddy. Must be one of: DEBUG, INFO, WARN, ERROR, FATAL, PANIC (Default: INFO)
-- `format` adjust the output format for log messages. Can be "go", "text", or "json" (Default: "go")
-- `output` picks the output stream for log messages. Can be "stderr" or "stdout" (Default: "stdout")
+- `level` adjusts the verbosity of the messages output by containerbuddy. Must be one of: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `PANIC` (Default is `INFO`)
+- `format` adjust the output format for log messages. Can be `go`, `text`, or `json` (Default is `go`)
+- `output` picks the output stream for log messages. Can be `stderr` or `stdout` (Default is `stdout`)
 
 Other fields:
 
