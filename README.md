@@ -46,6 +46,11 @@ The format of the JSON file configuration is as follows:
 {
   "consul": "consul:8500",
   "onStart": "/opt/containerbuddy/onStart-script.sh {{.ENV_VAR_NAME}}",
+  "logging": {
+    "level": "INFO",
+    "format": "go",
+    "output": "stdout"
+  },
   "stopTimeout": 5,
   "preStop": "/opt/containerbuddy/preStop-script.sh",
   "postStop": "/opt/containerbuddy/postStop-script.sh",
@@ -128,6 +133,14 @@ Must supply only one of the following
 
     - `endpoints` is the list of etcd nodes in your cluster
     - `prefix` is the path that will be prefixed to all service discovery keys. This key is optional. (Default: `/containerbuddy`)
+
+Logging Config:
+
+The logging config adjust the output format and verbosity of Containerbuddy logs.
+
+- `level` adjusts the verbosity of the messages output by containerbuddy. Must be one of: DEBUG, INFO, WARN, ERROR, FATAL, PANIC (Default: INFO)
+- `format` adjust the output format for log messages. Can be "go", "text", or "json" (Default: "go")
+- `output` picks the output stream for log messages. Can be "stderr" or "stdout" (Default: "stdout")
 
 Other fields:
 
