@@ -75,7 +75,7 @@ func reloadConfig(config *Config) *Config {
 	log.Infof("Reloading configuration.\n")
 	newConfig, err := loadConfig()
 	if err != nil {
-		log.Warnf("Could not reload config: %v\n", err)
+		log.Errorf("Could not reload config: %v\n", err)
 		return nil
 	}
 	// stop advertising the existing services so that we can
