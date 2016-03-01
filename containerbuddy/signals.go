@@ -1,12 +1,13 @@
 package containerbuddy
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // globals are eeeeevil
@@ -30,7 +31,7 @@ func toggleMaintenanceMode(config *Config) {
 	paused = !paused
 	if paused {
 		forAllServices(config, func(service *ServiceConfig) {
-			log.Printf("Marking for maintenance: %s\n", service.Name)
+			log.Infof("Marking for maintenance: %s", service.Name)
 			service.MarkForMaintenance()
 		})
 	}
@@ -41,7 +42,7 @@ func terminate(config *Config) {
 	defer signalLock.Unlock()
 	stopPolling(config)
 	forAllServices(config, func(service *ServiceConfig) {
-		log.Printf("Deregistering service: %s\n", service.Name)
+		log.Infof("Deregistering service: %s", service.Name)
 		service.Deregister()
 	})
 
@@ -55,33 +56,33 @@ func terminate(config *Config) {
 	}
 	if config.StopTimeout > 0 {
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-			log.Printf("Error sending SIGTERM to application: %s\n", err)
+			log.Warnf("Error sending SIGTERM to application: %s", err)
 		} else {
 			time.AfterFunc(time.Duration(config.StopTimeout)*time.Second, func() {
-				log.Printf("Killing Process %#v\n", cmd.Process)
+				log.Infof("Killing Process %#v", cmd.Process)
 				cmd.Process.Kill()
 			})
 			return
 		}
 	}
-	log.Printf("Killing Process %#v\n", config.Command.Process)
+	log.Infof("Killing Process %#v", config.Command.Process)
 	cmd.Process.Kill()
 }
 
 func reloadConfig(config *Config) *Config {
 	signalLock.Lock()
 	defer signalLock.Unlock()
-	log.Printf("Reloading configuration.\n")
+	log.Infof("Reloading configuration.")
 	newConfig, err := loadConfig()
 	if err != nil {
-		log.Printf("Could not reload config: %v\n", err)
+		log.Errorf("Could not reload config: %v", err)
 		return nil
 	}
 	// stop advertising the existing services so that we can
 	// make sure we update them if ports, etc. change.
 	stopPolling(config)
 	forAllServices(config, func(service *ServiceConfig) {
-		log.Printf("Deregistering service: %s\n", service.Name)
+		log.Infof("Deregistering service: %s", service.Name)
 		service.Deregister()
 	})
 

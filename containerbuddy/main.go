@@ -2,12 +2,13 @@ package containerbuddy
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"syscall"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Main executes the containerbuddy CLI
@@ -40,7 +41,7 @@ func Main() {
 		config.Command = argsToCmd(flag.Args())
 		code, err := executeAndWait(config.Command)
 		if err != nil {
-			log.Println(err)
+			log.Errorln(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
 		if postStopCode, err := run(getConfig().postStopCmd); err != nil {
@@ -125,7 +126,7 @@ func executeAndWait(cmd *exec.Cmd) (int, error) {
 		// serious problem with the underlying open/exec syscalls. But
 		// we'll let the lack of heartbeat tell us if something has gone
 		// wrong to that extent.
-		log.Println(err)
+		log.Errorln(err)
 		return 1, err
 	}
 	return 0, nil
@@ -137,7 +138,7 @@ func executeAndWait(cmd *exec.Cmd) (int, error) {
 func run(cmd *exec.Cmd) (int, error) {
 	code, err := executeAndWait(cmd)
 	if err != nil {
-		log.Println(err)
+		log.Errorln(err)
 	}
 	return code, err
 }
