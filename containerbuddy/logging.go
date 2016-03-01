@@ -20,7 +20,7 @@ type LogConfig struct {
 
 var defaultLog = &LogConfig{
 	Level:  "INFO",
-	Format: "go",
+	Format: "default",
 	Output: "stdout",
 }
 
@@ -52,8 +52,8 @@ func (l *LogConfig) init() error {
 		formatter = &logrus.TextFormatter{}
 	case "json":
 		formatter = &logrus.JSONFormatter{}
-	case "go":
-		formatter = &GoLogFormatter{}
+	case "default":
+		formatter = &DefaultLogFormatter{}
 	default:
 		return fmt.Errorf("Unknown log format '%s'", l.Format)
 	}
@@ -71,12 +71,12 @@ func (l *LogConfig) init() error {
 	return nil
 }
 
-// GoLogFormatter delegates formatting to standard go log package
-type GoLogFormatter struct {
+// DefaultLogFormatter delegates formatting to standard go log package
+type DefaultLogFormatter struct {
 }
 
 // Format formats the logrus entry by passing it to the "log" package
-func (f *GoLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	b := &bytes.Buffer{}
 	logger := log.New(b, "", log.LstdFlags)
 	switch entry.Level {
