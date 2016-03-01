@@ -66,7 +66,7 @@ test: docker
 cover: docker
 	${DOCKERMAKE} cover
 
-integration: build docker
+integration: build/containerbuddy
 	./test.sh
 
 # ------ Backends
