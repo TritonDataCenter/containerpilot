@@ -71,9 +71,9 @@ func (c Etcd) MarkForMaintenance(service *ServiceConfig) {
 // SendHeartbeat refreshes the TTL of this associated etcd node
 func (c Etcd) SendHeartbeat(service *ServiceConfig) {
 	if err := c.updateServiceTTL(service); err != nil {
-		log.Printf("Service not registered, registering...")
+		log.Infof("Service not registered, registering...")
 		if err := c.registerService(service); err != nil {
-			log.Printf("Error registering service %s: %s", service.Name, err)
+			log.Warnf("Error registering service %s: %s", service.Name, err)
 		}
 	}
 }
@@ -97,7 +97,7 @@ func (c Etcd) checkHealth(backend *BackendConfig) bool {
 	services, err := c.getServices(backend.Name)
 	if err != nil {
 		if _, ok := err.(client.Error); !ok {
-			log.Printf("Failed to query %v: %s", backend.Name, err)
+			log.Warnf("Failed to query %v: %s", backend.Name, err)
 		}
 		return false
 	}
@@ -116,7 +116,7 @@ func (c Etcd) checkServiceExists(service *ServiceConfig) bool {
 		if etcdErr, ok := err.(client.Error); ok {
 			return etcdErr.Code != client.ErrorCodeKeyNotFound
 		}
-		log.Printf("Unexpected etcd Error on key %s: %s", key, err)
+		log.Warnf("Unexpected etcd Error on key %s: %s", key, err)
 	}
 	return true
 }
@@ -132,11 +132,11 @@ func (c Etcd) getServices(appName string) ([]EtcdServiceNode, error) {
 				return services, nil
 			}
 		}
-		log.Printf("Unable to get services: %s: %s", key, err)
+		log.Errorf("Unable to get services: %s: %s", key, err)
 		return services, err
 	}
 	if !resp.Node.Dir {
-		log.Printf("Etcd key %s is not a directory", key)
+		log.Errorf("Etcd key %s is not a directory", key)
 		return services, err
 	}
 	for _, instance := range resp.Node.Nodes {
@@ -145,7 +145,7 @@ func (c Etcd) getServices(appName string) ([]EtcdServiceNode, error) {
 		}
 		for _, node := range instance.Nodes {
 			if service, err := decodeEtcdNodeValue(node); err != nil {
-				log.Printf("Could not decode etcd service %s: %s", node.Value, err)
+				log.Warnf("Could not decode etcd service %s: %s", node.Value, err)
 			} else {
 				services = append(services, service)
 			}
@@ -212,7 +212,7 @@ func encodeEtcdNodeValue(service *ServiceConfig) string {
 	}
 	json, err := json.Marshal(&node)
 	if err != nil {
-		log.Printf("Unable to encode service: %s", err)
+		log.Warnf("Unable to encode service: %s", err)
 		return ""
 	}
 	return string(json)

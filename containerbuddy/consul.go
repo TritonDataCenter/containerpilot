@@ -36,7 +36,7 @@ func (c Consul) Deregister(service *ServiceConfig) {
 // MarkForMaintenance removes the node from Consul.
 func (c Consul) MarkForMaintenance(service *ServiceConfig) {
 	if err := c.Agent().ServiceDeregister(service.ID); err != nil {
-		log.Printf("Deregistering failed: %s\n", err)
+		log.Infof("Deregistering failed: %s\n", err)
 	}
 }
 
@@ -45,12 +45,12 @@ func (c Consul) MarkForMaintenance(service *ServiceConfig) {
 // its TTL check.
 func (c Consul) SendHeartbeat(service *ServiceConfig) {
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
-		log.Printf("%v\nService not registered, registering...", err)
+		log.Infof("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {
-			log.Printf("Service registration failed: %s\n", err)
+			log.Warnf("Service registration failed: %s\n", err)
 		}
 		if err = c.registerCheck(*service); err != nil {
-			log.Printf("Check registration failed: %s\n", err)
+			log.Warnf("Check registration failed: %s\n", err)
 		}
 	}
 }
@@ -91,7 +91,7 @@ func (c Consul) CheckForUpstreamChanges(backend *BackendConfig) bool {
 func (c *Consul) checkHealth(backend BackendConfig) bool {
 	services, meta, err := c.Health().Service(backend.Name, backend.Tag, true, nil)
 	if err != nil {
-		log.Printf("Failed to query %v: %s [%v]", backend.Name, err, meta)
+		log.Warnf("Failed to query %v: %s [%v]", backend.Name, err, meta)
 		return false
 	}
 	didChange := compareForChange(upstreams[backend.Name], services)
