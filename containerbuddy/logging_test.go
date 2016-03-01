@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoggingBootstrap(t *testing.T) {
-	//Logging should be initialized when the package loads
+	defaultLog.init()
 	std := logrus.StandardLogger()
 	if std.Level != logrus.InfoLevel {
 		t.Errorf("Expected INFO level logs, but got: %s", std.Level)
@@ -39,4 +39,6 @@ func TestLoggingConfigInit(t *testing.T) {
 	if _, ok := std.Formatter.(*logrus.TextFormatter); !ok {
 		t.Errorf("Expected *logrus.TextFormatter got: %v", reflect.TypeOf(std.Formatter))
 	}
+	// Reset to defaults
+	defaultLog.init()
 }
