@@ -2,10 +2,10 @@ package containerbuddy
 
 import (
 	"fmt"
-	"log"
-	"sort"
 	"os"
+	"sort"
 
+	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
 )
 

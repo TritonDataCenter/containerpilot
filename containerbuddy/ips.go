@@ -3,12 +3,13 @@ package containerbuddy
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // GetIP determines the IP address of the container

@@ -1,12 +1,13 @@
 package containerbuddy
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // globals are eeeeevil

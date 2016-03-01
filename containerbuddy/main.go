@@ -2,12 +2,13 @@ package containerbuddy
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"syscall"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Main executes the containerbuddy CLI

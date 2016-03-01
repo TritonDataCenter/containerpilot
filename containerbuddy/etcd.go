@@ -2,7 +2,6 @@ package containerbuddy
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"time"
 
@@ -10,6 +9,8 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Etcd is a service discovery backend for CoreOS etcd
