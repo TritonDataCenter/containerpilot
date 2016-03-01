@@ -50,8 +50,6 @@ docker: build/containerbuddy_build consul etcd
 build: docker
 	${DOCKERMAKE} build
 
-build/containerbuddy: build
-
 vendor: docker
 	${DOCKERMAKE} vendor
 
