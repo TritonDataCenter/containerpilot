@@ -3,8 +3,8 @@ package containerbuddy
 import (
 	"fmt"
 	"log"
-	"os"
 	"sort"
+	"os"
 
 	consul "github.com/hashicorp/consul/api"
 )
