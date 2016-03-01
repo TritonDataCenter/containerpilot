@@ -155,7 +155,7 @@ func validateParseError(t *testing.T, matchStrings []string, config *Config) {
 }
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1 := strToCmd("/root/examples/test/test.sh doStuff --debug")
+	cmd1 := strToCmd("./test.sh doStuff --debug")
 	backend := &BackendConfig{
 		onChangeCmd: cmd1,
 	}
@@ -169,7 +169,7 @@ func TestOnChangeCmd(t *testing.T) {
 }
 
 func TestHealthCheck(t *testing.T) {
-	cmd1 := strToCmd("/root/examples/test/test.sh doStuff --debug")
+	cmd1 := strToCmd("./test.sh doStuff --debug")
 	service := &ServiceConfig{
 		healthCheckCmd: cmd1,
 	}
