@@ -51,7 +51,7 @@ clean:
 # default top-level target
 build: build/containerbuddy
 
-build/containerbuddy:  build/containerbuddy_build vendor
+build/containerbuddy:  build/containerbuddy_build vendor containerbuddy/*.go
 	${DOCKERBUILD} build
 
 # builds the builder container
