@@ -65,7 +65,6 @@ func (l *LogConfig) init() error {
 	default:
 		return fmt.Errorf("Unknown output type '%s'", l.Output)
 	}
-	log.Printf("=== SET FORMAT ===\n%#v\n", formatter)
 	logrus.SetLevel(level)
 	logrus.SetFormatter(formatter)
 	logrus.SetOutput(output)
