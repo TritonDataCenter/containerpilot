@@ -36,7 +36,7 @@ func (c Consul) Deregister(service *ServiceConfig) {
 // MarkForMaintenance removes the node from Consul.
 func (c Consul) MarkForMaintenance(service *ServiceConfig) {
 	if err := c.Agent().ServiceDeregister(service.ID); err != nil {
-		log.Infof("Deregistering failed: %s\n", err)
+		log.Infof("Deregistering failed: %s", err)
 	}
 }
 
@@ -47,10 +47,10 @@ func (c Consul) SendHeartbeat(service *ServiceConfig) {
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
 		log.Infof("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {
-			log.Warnf("Service registration failed: %s\n", err)
+			log.Warnf("Service registration failed: %s", err)
 		}
 		if err = c.registerCheck(*service); err != nil {
-			log.Warnf("Check registration failed: %s\n", err)
+			log.Warnf("Check registration failed: %s", err)
 		}
 	}
 }
