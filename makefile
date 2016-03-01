@@ -39,16 +39,22 @@ clean:
 # ----------------------------------------------
 # docker build
 
+# default top-level target
+build: build/containerbuddy
+
+build/containerbuddy:  build/containerbuddy_build
+	${DOCKERMAKE} build
+
+# builds the builder container
 build/containerbuddy_build:
 	mkdir -p ${ROOT}/build
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker build -t containerbuddy_build ${ROOT}
 	docker inspect -f "{{ .ID }}" containerbuddy_build > build/containerbuddy_build
 
+# shortcut target for other targets: asserts a
+# working test environment
 docker: build/containerbuddy_build consul etcd
-
-build: docker
-	${DOCKERMAKE} build
 
 vendor: docker
 	${DOCKERMAKE} vendor
@@ -56,17 +62,18 @@ vendor: docker
 # ----------------------------------------------
 # develop and test
 
-lint: docker
+lint: build/containerbuddy_build
 	${DOCKERMAKE} lint
 
-# run unit tests and exec test
+# run unit tests
 test: docker
 	${DOCKERMAKE} test
 
 cover: docker
 	${DOCKERMAKE} cover
 
-integration: build docker
+# run integration tests
+integration: build
 	./test.sh
 
 # ------ Backends
