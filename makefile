@@ -16,10 +16,19 @@ export GO15VENDOREXPERIMENT
 COMPOSE_PREFIX_ETCD := exetcd
 COMPOSE_PREFIX_CONSUL := exconsul
 
-
-DOCKERMAKE := docker run --rm \
+DOCKERRUN := docker run --rm \
 	--link containerbuddy_consul:consul \
 	--link containerbuddy_etcd:etcd \
+	-v ${ROOT}/vendor:/go/src \
+	-v ${ROOT}:/go/src/${PACKAGE} \
+	-v ${ROOT}/build:/build \
+	-v ${ROOT}/cover:/cover \
+	-v ${ROOT}/examples:/root/examples:ro \
+	-v ${ROOT}/Makefile.docker:/go/makefile:ro \
+	-e LDFLAGS=${LDFLAGS} \
+	containerbuddy_build
+
+DOCKERBUILD := docker run --rm \
 	-v ${ROOT}/vendor:/go/src \
 	-v ${ROOT}:/go/src/${PACKAGE} \
 	-v ${ROOT}/build:/build \
@@ -42,8 +51,8 @@ clean:
 # default top-level target
 build: build/containerbuddy
 
-build/containerbuddy:  build/containerbuddy_build
-	${DOCKERMAKE} build
+build/containerbuddy:  build/containerbuddy_build vendor
+	${DOCKERBUILD} build
 
 # builds the builder container
 build/containerbuddy_build:
@@ -56,21 +65,21 @@ build/containerbuddy_build:
 # working test environment
 docker: build/containerbuddy_build consul etcd
 
-vendor: docker
-	${DOCKERMAKE} vendor
+vendor: build/containerbuddy_build
+	${DOCKERBUILD} vendor
 
 # ----------------------------------------------
 # develop and test
 
-lint: build/containerbuddy_build
-	${DOCKERMAKE} lint
+lint: vendor
+	${DOCKERBUILD} lint
 
 # run unit tests
-test: docker
-	${DOCKERMAKE} test
+test: docker vendor
+	${DOCKERRUN} test
 
-cover: docker
-	${DOCKERMAKE} cover
+cover: docker vendor
+	${DOCKERRUN} cover
 
 # run integration tests
 integration: build

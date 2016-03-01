@@ -19,7 +19,7 @@ all: build cover
 vendor:
 	${CDWD} && godep restore
 
-build: vendor
+build:
 	${CDWD} && go build -a -o /build/containerbuddy -ldflags "$(LDFLAGS)" ./
 	chmod 755 /build/containerbuddy
 
