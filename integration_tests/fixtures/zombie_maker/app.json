@@ -2,7 +2,7 @@
   "consul": "consul:8500",
   "services": [
     {
-      "name": "app",
+      "name": "zombies",
       "port": 8000,
       "health": "/bin/sh /zombie.sh",
       "poll": 1,

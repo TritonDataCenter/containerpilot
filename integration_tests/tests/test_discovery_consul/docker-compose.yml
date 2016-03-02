@@ -1,11 +1,19 @@
 consul:
     image: "cbfix_consul"
-    mem_limit: 256m
+    mem_limit: 128m
     hostname: consul
 
 app:
     image: "cbfix_app"
-    mem_limit: 512m
+    mem_limit: 128m
+    links:
+      - consul:consul
+    volumes:
+      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
+
+nginx:
+    image: "cbfix_nginx"
+    mem_limit: 128m
     links:
       - consul:consul
     volumes:
@@ -15,7 +23,8 @@ test:
     image: "cbfix_test_probe"
     mem_limit: 128m
     links:
-      - consul:consul
       - app:app
+      - nginx:nginx
+      - consul:consul
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'

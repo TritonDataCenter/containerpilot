@@ -27,7 +27,7 @@ func (c *NoopDiscoveryService) Deregister(service *ServiceConfig)         {}
 func getSignalTestConfig() *Config {
 	config := &Config{
 		Command: argsToCmd([]string{
-			"/root/examples/test/test.sh",
+			"./testdata/test.sh",
 			"interruptSleep"}),
 		StopTimeout: 5,
 		Services: []*ServiceConfig{

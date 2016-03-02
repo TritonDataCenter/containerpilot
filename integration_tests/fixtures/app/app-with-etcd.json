@@ -1,0 +1,30 @@
+{
+  "etcd":{
+      "endpoints": "http://etcd:4001",
+      "prefix": "/containerbuddy"
+  },
+  "onStart": "/reload-app-etcd.sh",
+  "services": [
+    {
+      "name": "app",
+      "port": 8000,
+      "health": "/usr/bin/curl --fail -s http://localhost:8000",
+      "poll": 1,
+      "ttl": 5,
+      "tags": ["application"]
+    }
+  ],
+  "backends": [
+    {
+      "name": "nginx",
+      "poll": 7,
+      "onChange": "/reload-app-etcd.sh"
+    },
+    {
+      "name": "app",
+      "poll": 5,
+      "onChange": "/reload-app-etcd.sh",
+      "tag": "application"
+    }
+  ]
+}
