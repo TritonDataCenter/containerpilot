@@ -23,7 +23,6 @@ DOCKERRUN := docker run --rm \
 	-v ${ROOT}:/go/src/${PACKAGE} \
 	-v ${ROOT}/build:/build \
 	-v ${ROOT}/cover:/cover \
-	-v ${ROOT}/examples:/root/examples:ro \
 	-v ${ROOT}/Makefile.docker:/go/makefile:ro \
 	-e LDFLAGS=${LDFLAGS} \
 	containerbuddy_build
@@ -33,7 +32,6 @@ DOCKERBUILD := docker run --rm \
 	-v ${ROOT}:/go/src/${PACKAGE} \
 	-v ${ROOT}/build:/build \
 	-v ${ROOT}/cover:/cover \
-	-v ${ROOT}/examples:/root/examples:ro \
 	-v ${ROOT}/Makefile.docker:/go/makefile:ro \
 	-e LDFLAGS=${LDFLAGS} \
 	containerbuddy_build
