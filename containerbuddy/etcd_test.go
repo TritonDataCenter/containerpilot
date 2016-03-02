@@ -1,14 +1,14 @@
 package containerbuddy
 
 import (
+	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 )
 
 func setupEtcd(serviceName string) *Config {
-	etcd := NewEtcdConfig(map[string]interface{}{
-		"endpoints": []string{"http://etcd:4001"},
-	})
+	etcd := NewEtcdConfig(json.RawMessage(`{"endpoints":["http://etcd:4001"]}`))
 	config := &Config{
 		Services: []*ServiceConfig{
 			&ServiceConfig{
@@ -28,6 +28,24 @@ func setupEtcd(serviceName string) *Config {
 		},
 	}
 	return config
+}
+
+func TestEtcdParseArrayEndpoints(t *testing.T) {
+	cfg := NewEtcdConfig(json.RawMessage(`{"endpoints":["http://etcd:4001"]}`))
+	expected := []string{"http://etcd:4001"}
+	actual := cfg.Client.Endpoints()
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected endpoints %v but got %v", expected, actual)
+	}
+}
+
+func TestEtcdParseStringEndpoints(t *testing.T) {
+	cfg := NewEtcdConfig(json.RawMessage(`{"endpoints":"http://etcd:4001"}`))
+	expected := []string{"http://etcd:4001"}
+	actual := cfg.Client.Endpoints()
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected endpoints %v but got %v", expected, actual)
+	}
 }
 
 func TestEtcdTTLPass(t *testing.T) {

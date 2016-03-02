@@ -29,24 +29,46 @@ type EtcdServiceNode struct {
 	Tags    []string `json:"tags,omitempty"`
 }
 
+type etcdRawConfig struct {
+	Endpoints json.RawMessage `json:"endpoints"`
+	Prefix    string          `json:"prefix,omitempty"`
+}
+
+func parseEndpoints(raw json.RawMessage) []string {
+	var endpoints interface{}
+	json.Unmarshal(raw, &endpoints)
+	switch e := endpoints.(type) {
+	case string:
+		return []string{e}
+	case []string:
+		return e
+	case []interface{}:
+		var result []string
+		for _, i := range e {
+			if str, ok := i.(string); ok {
+				result = append(result, str)
+			}
+		}
+		return result
+	}
+	log.Fatal("Must provide etcd endpoints")
+	return nil
+}
+
 // NewEtcdConfig creates a new service discovery backend for etcd
-func NewEtcdConfig(config map[string]interface{}) Etcd {
+func NewEtcdConfig(config json.RawMessage) Etcd {
 	etcd := Etcd{
 		Prefix: "/containerbuddy",
 	}
+	var rawConfig etcdRawConfig
 	etcdConfig := client.Config{}
-	switch endpoints := config["endpoints"].(type) {
-	case string:
-		etcdConfig.Endpoints = []string{endpoints}
-	case []string:
-		etcdConfig.Endpoints = endpoints
-	default:
-		log.Fatal("Must provide etcd endpoints")
+	err := json.Unmarshal(config, &rawConfig)
+	if err != nil {
+		log.Fatalf("Unable to parse etcd config: %v", err)
 	}
-
-	prefix, ok := config["prefix"].(string)
-	if ok {
-		etcd.Prefix = prefix
+	etcdConfig.Endpoints = parseEndpoints(rawConfig.Endpoints)
+	if rawConfig.Prefix != "" {
+		etcd.Prefix = rawConfig.Prefix
 	}
 
 	etcdClient, err := client.New(etcdConfig)
