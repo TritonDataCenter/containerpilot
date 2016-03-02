@@ -39,15 +39,15 @@ func getConfig() *Config {
 
 // Config is the top-level Containerbuddy Configuration
 type Config struct {
-	Consul       string                 `json:"consul,omitempty"`
-	Etcd         map[string]interface{} `json:"etcd,omitempty"`
-	LogConfig    *LogConfig             `json:"logging,omitempty"`
-	OnStart      json.RawMessage        `json:"onStart,omitempty"`
-	PreStop      json.RawMessage        `json:"preStop,omitempty"`
-	PostStop     json.RawMessage        `json:"postStop,omitempty"`
-	StopTimeout  int                    `json:"stopTimeout"`
-	Services     []*ServiceConfig       `json:"services"`
-	Backends     []*BackendConfig       `json:"backends"`
+	Consul       string           `json:"consul,omitempty"`
+	Etcd         json.RawMessage  `json:"etcd,omitempty"`
+	LogConfig    *LogConfig       `json:"logging,omitempty"`
+	OnStart      json.RawMessage  `json:"onStart,omitempty"`
+	PreStop      json.RawMessage  `json:"preStop,omitempty"`
+	PostStop     json.RawMessage  `json:"postStop,omitempty"`
+	StopTimeout  int              `json:"stopTimeout"`
+	Services     []*ServiceConfig `json:"services"`
+	Backends     []*BackendConfig `json:"backends"`
 	onStartCmd   *exec.Cmd
 	preStopCmd   *exec.Cmd
 	postStopCmd  *exec.Cmd
