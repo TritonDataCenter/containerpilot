@@ -3,12 +3,13 @@ package containerbuddy
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // GetIP determines the IP address of the container
@@ -41,7 +42,7 @@ func GetIP(specList []string) (string, error) {
 	 * recoverable. Let's pass on the parsed interfaces and log the error
 	 * state. */
 	if interfaceIPsErr != nil && len(interfaceIPs) > 0 {
-		log.Printf("We had a problem reading information about some network "+
+		log.Warnf("We had a problem reading information about some network "+
 			"interfaces. If everything works, it is safe to ignore this "+
 			"message. Details:\n%s\n", interfaceIPsErr)
 	}
@@ -136,7 +137,7 @@ func parseInterfaceSpecs(interfaces []string) ([]interfaceSpec, error) {
 	}
 	if len(errors) > 0 {
 		err := fmt.Errorf(strings.Join(errors, "\n"))
-		log.Println(err.Error())
+		log.Errorln(err)
 		return specs, err
 	}
 	return specs, nil
@@ -244,7 +245,7 @@ func getinterfaceIPs(interfaces []net.Interface) ([]interfaceIP, error) {
 	 * then return them so that the caller can decide what they want to do. */
 	if len(errors) > 0 {
 		err := fmt.Errorf(strings.Join(errors, "\n"))
-		log.Println(err.Error())
+		log.Errorln(err)
 		return ifaceIPs, err
 	}
 

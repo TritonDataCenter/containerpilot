@@ -41,6 +41,7 @@ func getConfig() *Config {
 type Config struct {
 	Consul       string                 `json:"consul,omitempty"`
 	Etcd         map[string]interface{} `json:"etcd,omitempty"`
+	LogConfig    *LogConfig             `json:"logging,omitempty"`
 	OnStart      json.RawMessage        `json:"onStart,omitempty"`
 	PreStop      json.RawMessage        `json:"preStop,omitempty"`
 	PostStop     json.RawMessage        `json:"postStop,omitempty"`
@@ -241,6 +242,13 @@ func initializeConfig(config *Config) (*Config, error) {
 		return nil, errors.New("No discovery backend defined")
 	} else if discoveryCount > 1 {
 		return nil, errors.New("More than one discovery backend defined")
+	}
+
+	if config.LogConfig != nil {
+		err := config.LogConfig.init()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if config.StopTimeout == 0 {
