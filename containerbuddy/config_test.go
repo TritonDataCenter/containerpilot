@@ -56,7 +56,7 @@ func TestValidConfigParse(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 
 	os.Setenv("TEST", "HELLO")
-	os.Args = []string{"this", "-config", testJSON, "/test.sh", "valid1", "--debug"}
+	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "valid1", "--debug"}
 	config, _ := loadConfig()
 	if !reflect.DeepEqual(config, getConfig()) {
 		t.Errorf("Global config was not written after load")
@@ -66,7 +66,7 @@ func TestValidConfigParse(t *testing.T) {
 		t.Errorf("Expected 2 backends and 2 services but got: %v", config)
 	}
 	args := flag.Args()
-	if len(args) != 3 || args[0] != "/test.sh" {
+	if len(args) != 3 || args[0] != "/testdata/test.sh" {
 		t.Errorf("Expected 3 args but got unexpected results: %v", args)
 	}
 
@@ -155,7 +155,7 @@ func validateParseError(t *testing.T, matchStrings []string, config *Config) {
 }
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1 := strToCmd("./test.sh doStuff --debug")
+	cmd1 := strToCmd("./testdata/test.sh doStuff --debug")
 	backend := &BackendConfig{
 		onChangeCmd: cmd1,
 	}
@@ -169,7 +169,7 @@ func TestOnChangeCmd(t *testing.T) {
 }
 
 func TestHealthCheck(t *testing.T) {
-	cmd1 := strToCmd("./test.sh doStuff --debug")
+	cmd1 := strToCmd("./testdata/test.sh doStuff --debug")
 	service := &ServiceConfig{
 		healthCheckCmd: cmd1,
 	}
@@ -189,15 +189,15 @@ func TestParseCommandArgs(t *testing.T) {
 		t.Errorf("Unexpected parse error: %s", err.Error())
 	}
 
-	expected := []string{"/test.sh", "arg1"}
-	json1 := json.RawMessage(`"/test.sh arg1"`)
+	expected := []string{"/testdata/test.sh", "arg1"}
+	json1 := json.RawMessage(`"/testdata/test.sh arg1"`)
 	if cmd, err := parseCommandArgs(json1); err == nil {
 		validateCommandParsed(t, "json1", cmd, expected)
 	} else {
 		t.Errorf("Unexpected parse error json1: %s", err.Error())
 	}
 
-	json2 := json.RawMessage(`["/test.sh","arg1"]`)
+	json2 := json.RawMessage(`["/testdata/test.sh","arg1"]`)
 	if cmd, err := parseCommandArgs(json2); err == nil {
 		validateCommandParsed(t, "json2", cmd, expected)
 	} else {
@@ -231,7 +231,7 @@ func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected
 
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	os.Args = []string{"this", "/test.sh", "invalid1", "--debug"}
+	os.Args = []string{"this", "/testdata/test.sh", "invalid1", "--debug"}
 	if _, err := loadConfig(); err != nil && err.Error() != "-config flag is required" {
 		t.Errorf("Expected error but got %s", err)
 	}
@@ -290,7 +290,7 @@ func argTestCleanup(oldArgs []string) {
 }
 
 func testParseExpectError(t *testing.T, testJSON string, expected string) {
-	os.Args = []string{"this", "-config", testJSON, "/test.sh", "test", "--debug"}
+	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "test", "--debug"}
 	if _, err := loadConfig(); err != nil && !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected %s but got %s", expected, err)
 	}

@@ -18,11 +18,11 @@ func TestPoll(t *testing.T) {
 }
 
 func TestRunSuccess(t *testing.T) {
-	cmd1 := strToCmd("./test.sh doStuff --debug")
+	cmd1 := strToCmd("./testdata/test.sh doStuff --debug")
 	if exitCode, _ := run(cmd1); exitCode != 0 {
 		t.Errorf("Expected exit code 0 but got %d", exitCode)
 	}
-	cmd2 := argsToCmd([]string{"./test.sh", "doStuff", "--debug"})
+	cmd2 := argsToCmd([]string{"./testdata/test.sh", "doStuff", "--debug"})
 	if exitCode, _ := run(cmd2); exitCode != 0 {
 		t.Errorf("Expected exit code 0 but got %d", exitCode)
 	}
@@ -34,7 +34,7 @@ func TestRunFailed(t *testing.T) {
 			t.Errorf("Expected panic but did not.")
 		}
 	}()
-	cmd := strToCmd("./test.sh failStuff --debug")
+	cmd := strToCmd("./testdata/test.sh failStuff --debug")
 	if exitCode, _ := run(cmd); exitCode != 255 {
 		t.Errorf("Expected exit code 255 but got %d", exitCode)
 	}
