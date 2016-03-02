@@ -104,7 +104,7 @@ etcd:
 		-initial-cluster etcd0=http://etcd:2380 \
 		-initial-cluster-state new
 
-release: build ship
+release: build
 	mkdir -p release
 	git tag $(VERSION)
 	git push joyent --tags
@@ -112,46 +112,3 @@ release: build ship
 	@echo
 	@echo Upload this file to Github release:
 	@sha1sum release/containerbuddy-$(VERSION).tar.gz
-
-# ----------------------------------------------
-# example application
-example: example-consul example-etcd
-
-# build Nginx and App examples
-example-consul: build
-	cp build/containerbuddy ${ROOT}/examples/consul/nginx/opt/containerbuddy/containerbuddy
-	cp build/containerbuddy ${ROOT}/examples/consul/app/opt/containerbuddy/containerbuddy
-	cd examples/consul && docker-compose -p exconsul -f docker-compose-local.yml build
-
-example-etcd: build
-	cp build/containerbuddy ${ROOT}/examples/etcd/nginx/opt/containerbuddy/containerbuddy
-	cp build/containerbuddy ${ROOT}/examples/etcd/app/opt/containerbuddy/containerbuddy
-	cd examples/etcd && docker-compose -p exetcd -f docker-compose-local.yml build
-
-# run example application locally for testing
-run-consul: example-consul
-	examples/run.sh consul -p ${COMPOSE_PREFIX_CONSUL} -f docker-compose-local.yml
-
-run-etcd: example-etcd
-	examples/run.sh etcd -p ${COMPOSE_PREFIX_ETCD} -f docker-compose-local.yml
-
-clean-consul:
-	cd examples/consul && docker-compose -p ${COMPOSE_PREFIX_CONSUL} -f docker-compose-local.yml kill
-	cd examples/consul && docker-compose -p ${COMPOSE_PREFIX_CONSUL} -f docker-compose-local.yml rm -f
-	docker rmi -f ${COMPOSE_PREFIX_CONSUL}_app ${COMPOSE_PREFIX_CONSUL}_nginx > /dev/null 2>&1 || true
-
-clean-etcd:
-	cd examples/etcd && docker-compose -p ${COMPOSE_PREFIX_ETCD} -f docker-compose-local.yml kill
-	cd examples/etcd && docker-compose -p ${COMPOSE_PREFIX_ETCD} -f docker-compose-local.yml rm -f
-	docker rmi -f ${COMPOSE_PREFIX_ETCD}_app ${COMPOSE_PREFIX_ETCD}_nginx > /dev/null 2>&1 || true
-
-# tag and ship example to Docker Hub registry
-ship: example
-	docker tag -f ${COMPOSE_PREFIX_CONSUL}_nginx 0x74696d/containerbuddy-demo-nginx
-	docker tag -f ${COMPOSE_PREFIX_CONSUL}_app 0x74696d/containerbuddy-demo-app
-	docker tag -f ${COMPOSE_PREFIX_ETCD}_nginx 0x74696d/containerbuddy-etcd-demo-nginx
-	docker tag -f ${COMPOSE_PREFIX_ETCD}_app 0x74696d/containerbuddy-etcd-demo-app
-	docker push 0x74696d/containerbuddy-demo-nginx
-	docker push 0x74696d/containerbuddy-demo-app
-	docker push 0x74696d/containerbuddy-etcd-demo-nginx
-	docker push 0x74696d/containerbuddy-etcd-demo-app
