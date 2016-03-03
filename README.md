@@ -274,6 +274,7 @@ Please report any issues you encounter with Containerbuddy or its documentation 
 
 We've published a number of example applications demonstrating how Containerbuddy works.
 
+- [Applications on autopilot](https://www.joyent.com/blog/applications-on-autopilot)
 - [CloudFlare DNS and CDN with dynamic origins](https://github.com/tgross/triton-cloudflare)
 - [Consul, running as an HA raft](https://github.com/misterbisson/triton-consul)
 - [Couchbase](https://www.joyent.com/blog/couchbase-in-docker-containers)
