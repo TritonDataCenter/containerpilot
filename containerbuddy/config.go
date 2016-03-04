@@ -65,6 +65,7 @@ type ServiceConfig struct {
 	TTL              int             `json:"ttl"`
 	Interfaces       json.RawMessage `json:"interfaces"`
 	Tags             []string        `json:"tags,omitempty"`
+	Ip               string          `json:"ip,omitempty"`
 	discoveryService DiscoveryService
 	ipAddress        string
 	healthCheckCmd   *exec.Cmd
@@ -311,8 +312,10 @@ func initializeConfig(config *Config) (*Config, error) {
 			return nil, ifaceErr
 		}
 
-		if service.ipAddress, err = GetIP(interfaces); err != nil {
-			return nil, err
+		if service.Ip == "" {
+			if service.ipAddress, err = GetIP(interfaces); err != nil {
+				return nil, err
+			}
 		}
 	}
 
