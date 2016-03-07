@@ -1,6 +1,6 @@
 MAKEFLAGS += --warn-undefined-variables
 SHELL := /bin/bash
-.SHELLFLAGS := -eu -o pipefail
+.SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 
 .PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
