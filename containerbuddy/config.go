@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -314,6 +315,11 @@ func initializeConfig(config *Config) (*Config, error) {
 		if service.IpAddress == "" {
 			if service.IpAddress, err = GetIP(interfaces); err != nil {
 				return nil, err
+			}
+		} else {
+			if err := net.ParseIP(service.IpAddress); err == nil {
+				return nil, fmt.Errorf("Could not parse `ipaddress` in service %s",
+					service.Name)
 			}
 		}
 	}
