@@ -242,6 +242,15 @@ func TestInvalidConfigParseNoDiscovery(t *testing.T) {
 	testParseExpectError(t, "{}", "No discovery backend defined")
 }
 
+func TestInvalidConfigIP(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	var testConfig *Config
+	testConfig = unmarshaltestJSON()
+	testConfig.Services[0].IpAddress = "fake"
+	tj, _ := json.Marshal(testConfig)
+	testParseExpectError(t, string(tj), "Could not parse `ipaddress` in service serviceA")
+}
+
 func TestInvalidConfigParseFile(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t, "file:///xxxx",
