@@ -317,7 +317,7 @@ func initializeConfig(config *Config) (*Config, error) {
 				return nil, err
 			}
 		} else {
-			if err := net.ParseIP(service.IpAddress); err == nil {
+			if ok := net.ParseIP(service.IpAddress); ok == nil {
 				return nil, fmt.Errorf("Could not parse `ipaddress` in service %s",
 					service.Name)
 			}
