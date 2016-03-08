@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -65,8 +66,8 @@ type ServiceConfig struct {
 	TTL              int             `json:"ttl"`
 	Interfaces       json.RawMessage `json:"interfaces"`
 	Tags             []string        `json:"tags,omitempty"`
+	IpAddress        string          `json:"ipaddress,omitempty"`
 	discoveryService DiscoveryService
-	ipAddress        string
 	healthCheckCmd   *exec.Cmd
 }
 
@@ -311,8 +312,15 @@ func initializeConfig(config *Config) (*Config, error) {
 			return nil, ifaceErr
 		}
 
-		if service.ipAddress, err = GetIP(interfaces); err != nil {
-			return nil, err
+		if service.IpAddress == "" {
+			if service.IpAddress, err = GetIP(interfaces); err != nil {
+				return nil, err
+			}
+		} else {
+			if ok := net.ParseIP(service.IpAddress); ok == nil {
+				return nil, fmt.Errorf("Could not parse `ipaddress` in service %s",
+					service.Name)
+			}
 		}
 	}
 

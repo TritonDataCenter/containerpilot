@@ -14,7 +14,7 @@ func setupEtcd(serviceName string) *Config {
 			&ServiceConfig{
 				ID:               serviceName,
 				Name:             serviceName,
-				ipAddress:        "192.168.1.1",
+				IpAddress:        "192.168.1.1",
 				TTL:              1,
 				Port:             9000,
 				discoveryService: etcd,
