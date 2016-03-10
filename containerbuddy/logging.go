@@ -79,13 +79,7 @@ type DefaultLogFormatter struct {
 func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	b := &bytes.Buffer{}
 	logger := log.New(b, "", log.LstdFlags)
-	switch entry.Level {
-	case logrus.PanicLevel:
-		logger.Panicln(entry.Message)
-	case logrus.FatalLevel:
-		logger.Fatalln(entry.Message)
-	default:
-		logger.Println(entry.Message)
-	}
+	logger.Println(entry.Message)
+	// Panic and Fatal are handled by logrus automatically
 	return b.Bytes(), nil
 }

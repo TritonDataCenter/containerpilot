@@ -48,7 +48,7 @@ The format of the JSON file configuration is as follows:
   "onStart": "/opt/containerbuddy/onStart-script.sh {{.ENV_VAR_NAME}}",
   "logging": {
     "level": "INFO",
-    "format": "go",
+    "format": "default",
     "output": "stdout"
   },
   "stopTimeout": 5,
