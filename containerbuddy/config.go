@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -65,6 +66,7 @@ type ServiceConfig struct {
 	TTL              int             `json:"ttl"`
 	Interfaces       json.RawMessage `json:"interfaces"`
 	Tags             []string        `json:"tags,omitempty"`
+	Endpoint         string          `json:"endpoint,omitempty"`
 	discoveryService DiscoveryService
 	ipAddress        string
 	healthCheckCmd   *exec.Cmd
@@ -311,8 +313,19 @@ func initializeConfig(config *Config) (*Config, error) {
 			return nil, ifaceErr
 		}
 
-		if service.ipAddress, err = GetIP(interfaces); err != nil {
-			return nil, err
+		if service.Endpoint == "" && service.ipAddress ==  "" {
+			if service.ipAddress, err = GetIP(interfaces); err != nil {
+				return nil, err
+			}
+		} else {
+			if ok := net.ParseIP(service.Endpoint); ok == nil {
+				if ip, err := net.LookupHost(service.Endpoint); err == nil {
+					service.ipAddress = ip[0]
+				} else {
+					return nil, fmt.Errorf("Could not resolve `Endpoint` in service %s",
+						service.Name)
+				}
+			}
 		}
 	}
 
