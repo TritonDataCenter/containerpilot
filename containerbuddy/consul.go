@@ -62,7 +62,7 @@ func (c *Consul) registerService(service ServiceConfig) error {
 			Name:    service.Name,
 			Tags:    service.Tags,
 			Port:    service.Port,
-			Address: service.IpAddress,
+			Address: service.ipAddress,
 		},
 	)
 }

@@ -100,7 +100,6 @@ Service fields:
 - `port` is the port the service will advertise to Consul.
 - `health` is the executable (and its arguments) used to check the health of the service.
 - `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`)
-- `ipaddress` is an optional field to specify an IP that will override what is obtained from traversing network interfaces. This can be useful in special cases such as during testing or when using bridged networking.
 - `poll` is the time in seconds between polling for health checks.
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
