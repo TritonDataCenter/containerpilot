@@ -42,3 +42,26 @@ func TestLoggingConfigInit(t *testing.T) {
 	// Reset to defaults
 	defaultLog.init()
 }
+
+func TestDefaultFormatterEmptyMessage(t *testing.T) {
+	formatter := &DefaultLogFormatter{}
+	_, err := formatter.Format(logrus.WithFields(
+		logrus.Fields{
+			"level": "info",
+			"msg":   "something",
+		},
+	))
+	if err != nil {
+		t.Errorf("Did not expect error: %v", err)
+	}
+}
+
+func TestDefaultFormatterPanic(t *testing.T) {
+	defaultLog.init()
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic but did not")
+		}
+	}()
+	logrus.Panicln("Panic Test")
+}
