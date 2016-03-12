@@ -16,6 +16,7 @@ import (
 	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -55,9 +56,11 @@ type Config struct {
 	StopTimeout     int             `json:"stopTimeout"`
 	ServicesConfig  json.RawMessage `json:"services,omitempty"`
 	BackendsConfig  json.RawMessage `json:"backends,omitempty"`
+	TasksConfig     json.RawMessage `json:"tasks,omitempty"`
 	TelemetryConfig json.RawMessage `json:"telemetry,omitempty"`
 	Services        []*services.Service
 	Backends        []*backends.Backend
+	Tasks           []tasks.Task
 	Telemetry       *telemetry.Telemetry
 	PreStartCmd     *exec.Cmd
 	PreStopCmd      *exec.Cmd
@@ -204,6 +207,14 @@ func initializeConfig(cfg *Config) (*Config, error) {
 				cfg.Services = append(cfg.Services, telemetryService)
 			}
 		}
+	}
+
+	if cfg.TasksConfig != nil {
+		tasks, err := tasks.NewTasks(cfg.TasksConfig)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Tasks = tasks
 	}
 
 	configLock.Lock()

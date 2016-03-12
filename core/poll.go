@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/joyent/containerpilot/config"
 	"time"
+
+	"github.com/joyent/containerpilot/config"
 )
 
 // Set up polling functions and write their quit channels
@@ -20,6 +21,11 @@ func HandlePolling(cfg *config.Config) {
 			quit = append(quit, poll(sensor))
 		}
 		cfg.Telemetry.Serve()
+	}
+	if cfg.Tasks != nil {
+		for _, task := range cfg.Tasks {
+			task.Start()
+		}
 	}
 	cfg.QuitChannels = quit
 }

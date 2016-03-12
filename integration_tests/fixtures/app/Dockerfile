@@ -13,6 +13,7 @@ COPY app-with-etcd.json /app-with-etcd.json
 COPY reload-app.sh /reload-app.sh
 COPY reload-app-etcd.sh /reload-app-etcd.sh
 COPY sensor.sh /sensor.sh
+COPY task.sh /task.sh
 
 # by default use app-consul.json, allows for override in docker-compose
 ENV CONTAINERPILOT=file:///app-with-consul.json
