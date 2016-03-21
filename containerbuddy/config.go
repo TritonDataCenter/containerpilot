@@ -325,6 +325,8 @@ func initializeConfig(config *Config) (*Config, error) {
 					return nil, fmt.Errorf("Could not resolve `Endpoint` in service %s",
 						service.Name)
 				}
+			} else {
+				service.ipAddress = service.Endpoint
 			}
 		}
 	}
