@@ -28,6 +28,30 @@ func setupConsul(serviceName string) *Config {
 	return config
 }
 
+func TestConsulAddressParse(t *testing.T) {
+	// typical valid entries
+	runParseTest(t, "https://consul:8500", "consul:8500", "https")
+	runParseTest(t, "http://consul:8500", "consul:8500", "http")
+	runParseTest(t, "consul:8500", "consul:8500", "http")
+
+	// malformed URI: we won't even try to fix these and just let them bubble up
+	// to the Consul API call where it'll fail there.
+	runParseTest(t, "httpshttps://consul:8500", "httpshttps://consul:8500", "http")
+	runParseTest(t, "https://https://consul:8500", "https://consul:8500", "https")
+	runParseTest(t, "http://https://consul:8500", "https://consul:8500", "http")
+	runParseTest(t, "consul:8500https://", "consul:8500https://", "http")
+	runParseTest(t, "", "", "http")
+}
+
+func runParseTest(t *testing.T, uri, expectedAddress, expectedScheme string) {
+
+	address, scheme := parseRawUri(uri)
+	if address != expectedAddress || scheme != expectedScheme {
+		t.Fatalf("Expected %s over %s but got %s over %s",
+			expectedAddress, expectedScheme, address, scheme)
+	}
+}
+
 func TestConsulTTLPass(t *testing.T) {
 	config := setupConsul("service-TestConsulTTLPass")
 	service := config.Services[0]
