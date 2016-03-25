@@ -1,6 +1,6 @@
 package main
 
-import "github.com/joyent/containerbuddy/containerbuddy"
+import "containerbuddy"
 
 func main() {
 	containerbuddy.Main()
