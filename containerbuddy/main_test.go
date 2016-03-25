@@ -5,15 +5,19 @@ import (
 	"time"
 )
 
+type DummyPollable struct{}
+
+func (p DummyPollable) PollTime() int { return 1 }
+func (p DummyPollable) PollAction() {
+	time.Sleep(5 * time.Second)
+	panic("We should never reach this code because the channel should close.")
+}
+
 // Verify we have no obvious crashing paths in the poll code and that we handle
 // a closed channel immediately as expected and gracefully.
 func TestPoll(t *testing.T) {
-	service := &ServiceConfig{Poll: 1}
-	quit := poll(service, func(service Pollable) {
-		time.Sleep(5 * time.Second)
-		t.Errorf("We should never reach this code because the channel should close.")
-		return
-	})
+	service := &DummyPollable{}
+	quit := poll(service)
 	close(quit)
 }
 
