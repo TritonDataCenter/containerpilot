@@ -1,0 +1,46 @@
+{
+	"ImportPath": "test_probe",
+	"GoVersion": "go1.5",
+	"GodepVersion": "v60",
+	"Deps": [
+		{
+			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/client",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/pathutil",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/types",
+			"Comment": "v2.2.5-1-g6bc9b6e",
+			"Rev": "6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b"
+		},
+		{
+			"ImportPath": "github.com/docker/go-units",
+			"Comment": "v0.3.0",
+			"Rev": "5d2041e26a699eaca682e2ea41c8f891e1060444"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/consul/api",
+			"Comment": "v0.5.2-461-g158eabd",
+			"Rev": "158eabdd6f2408067c1d7656fa10e49434f96480"
+		},
+		{
+			"ImportPath": "github.com/samalba/dockerclient",
+			"Rev": "f274bbd0e2eb35ad1444dc6e6660214f9fbbc08c"
+		}
+	]
+}

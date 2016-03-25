@@ -22,9 +22,9 @@ func Main() {
 		log.Fatal(configErr)
 	}
 
-	// Run the onStart handler, if any, and exit if it returns an error
-	if onStartCode, err := run(config.onStartCmd); err != nil {
-		os.Exit(onStartCode)
+	// Run the preStart handler, if any, and exit if it returns an error
+	if preStartCode, err := run(config.preStartCmd); err != nil {
+		os.Exit(preStartCode)
 	}
 
 	// Set up handlers for polling and to accept signal interrupts

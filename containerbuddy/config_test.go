@@ -14,7 +14,7 @@ import (
 
 var testJSON = `{
 	"consul": "consul:8500",
-	"onStart": "/bin/to/onStart.sh arg1 arg2",
+	"preStart": "/bin/to/preStart.sh arg1 arg2",
 	"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
 	"postStop": ["/bin/to/postStop.sh"],
 	"services": [
@@ -87,7 +87,7 @@ func TestValidConfigParse(t *testing.T) {
 		t.Errorf("Expected no tag for upstreamB, but got: %s", config.Backends[1].Tag)
 	}
 
-	validateCommandParsed(t, "onStart", config.onStartCmd, []string{"/bin/to/onStart.sh", "arg1", "arg2"})
+	validateCommandParsed(t, "preStart", config.preStartCmd, []string{"/bin/to/preStart.sh", "arg1", "arg2"})
 	validateCommandParsed(t, "preStop", config.preStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
 	validateCommandParsed(t, "postStop", config.postStopCmd, []string{"/bin/to/postStop.sh"})
 	validateCommandParsed(t, "health", config.Services[0].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/A.sh"})

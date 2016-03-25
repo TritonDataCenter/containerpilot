@@ -43,12 +43,13 @@ type Config struct {
 	Etcd         json.RawMessage  `json:"etcd,omitempty"`
 	LogConfig    *LogConfig       `json:"logging,omitempty"`
 	OnStart      json.RawMessage  `json:"onStart,omitempty"`
+	PreStart     json.RawMessage  `json:"preStart,omitempty"`
 	PreStop      json.RawMessage  `json:"preStop,omitempty"`
 	PostStop     json.RawMessage  `json:"postStop,omitempty"`
 	StopTimeout  int              `json:"stopTimeout"`
 	Services     []*ServiceConfig `json:"services"`
 	Backends     []*BackendConfig `json:"backends"`
-	onStartCmd   *exec.Cmd
+	preStartCmd  *exec.Cmd
 	preStopCmd   *exec.Cmd
 	postStopCmd  *exec.Cmd
 	Command      *exec.Cmd
@@ -205,11 +206,25 @@ func loadConfig() (*Config, error) {
 func initializeConfig(config *Config) (*Config, error) {
 	var discovery DiscoveryService
 	discoveryCount := 0
-	onStartCmd, err := parseCommandArgs(config.OnStart)
-	if err != nil {
-		return nil, fmt.Errorf("Could not parse `onStart`: %s", err)
+
+	// onStart has been deprecated for preStart. Remove in 2.0
+	if config.PreStart != nil && config.OnStart != nil {
+		fmt.Println("The onStart option has been deprecated in favor of preStart. Containerbuddy will use only the preStart option provided")
 	}
-	config.onStartCmd = onStartCmd
+
+	// alias the onStart behavior to preStart
+	if config.PreStart == nil && config.OnStart != nil {
+		fmt.Println("The onStart option has been deprecated in favor of preStart. Containerbuddy will use the onStart option as a preStart")
+
+		//		"preStart is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. If the preStart handler returns a non-zero exit code, Containerbuddy will exit."
+		config.PreStart = config.OnStart
+	}
+
+	preStartCmd, err := parseCommandArgs(config.PreStart)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse `preStart`: %s", err)
+	}
+	config.preStartCmd = preStartCmd
 
 	preStopCmd, err := parseCommandArgs(config.PreStop)
 	if err != nil {
