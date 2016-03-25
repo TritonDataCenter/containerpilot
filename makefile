@@ -3,15 +3,12 @@ SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
+.PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint vendor
 
 VERSION ?= dev-build-not-for-release
-LDFLAGS := '-X github.com/joyent/containerbuddy/containerbuddy.GitHash=$(shell git rev-parse --short HEAD) -X github.com/joyent/containerbuddy/containerbuddy.Version=${VERSION}'
+LDFLAGS := -X containerbuddy.GitHash='$(shell git rev-parse --short HEAD)' -X containerbuddy.Version='${VERSION}'
 
 ROOT := $(shell pwd)
-PACKAGE := github.com/joyent/containerbuddy
-GO15VENDOREXPERIMENT := 1
-export GO15VENDOREXPERIMENT
 
 COMPOSE_PREFIX_ETCD := exetcd
 COMPOSE_PREFIX_CONSUL := exconsul
@@ -19,25 +16,20 @@ COMPOSE_PREFIX_CONSUL := exconsul
 DOCKERRUN := docker run --rm \
 	--link containerbuddy_consul:consul \
 	--link containerbuddy_etcd:etcd \
-	-v ${ROOT}/vendor:/go/src \
-	-v ${ROOT}:/go/src/${PACKAGE} \
-	-v ${ROOT}/build:/build \
-	-v ${ROOT}/cover:/cover \
-	-v ${ROOT}/Makefile.docker:/go/makefile:ro \
-	-e LDFLAGS=${LDFLAGS} \
+	-v ${ROOT}:/go/cb \
+	-v ${ROOT}:/go/cb/src \
+	-w /go/cb \
 	containerbuddy_build
 
 DOCKERBUILD := docker run --rm \
-	-v ${ROOT}/vendor:/go/src \
-	-v ${ROOT}:/go/src/${PACKAGE} \
-	-v ${ROOT}/build:/build \
-	-v ${ROOT}/cover:/cover \
-	-v ${ROOT}/Makefile.docker:/go/makefile:ro \
-	-e LDFLAGS=${LDFLAGS} \
+	-e LDFLAGS="${LDFLAGS}" \
+	-v ${ROOT}:/go/cb \
+	-v ${ROOT}:/go/cb/src \
+	-w /go/cb \
 	containerbuddy_build
 
 clean:
-	rm -rf build release cover vendor
+	rm -rf build release cover containerbuddy/vendor
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
@@ -49,8 +41,9 @@ clean:
 # default top-level target
 build: build/containerbuddy
 
-build/containerbuddy:  build/containerbuddy_build vendor containerbuddy/*.go
-	${DOCKERBUILD} build
+build/containerbuddy:  build/containerbuddy_build containerbuddy/*.go containerbuddy/vendor
+	${DOCKERBUILD} go build -o build/containerbuddy -ldflags "$(LDFLAGS)"
+	@rmdir src || true
 
 # builds the builder container
 build/containerbuddy_build:
@@ -63,21 +56,49 @@ build/containerbuddy_build:
 # working test environment
 docker: build/containerbuddy_build consul etcd
 
-vendor: build/containerbuddy_build
-	${DOCKERBUILD} vendor
+# top-level target for vendoring our packages: godep restore requires
+# being in the package directory so we have to run this for each package
+vendor: containerbuddy/vendor
+%/vendor: build/containerbuddy_build
+	docker run --rm \
+	    -v ${ROOT}:/go/cb \
+		-v ${ROOT}:/go/cb/src \
+		-e GOPATH=/go/cb/src/$(*F) \
+		-w /go/cb/src/$(*F) \
+		containerbuddy_build godep restore
+	mv $(*F)/src $(*F)/vendor
+
+# fetch a dependency via go get, vendor it, and then save into the parent
+# package's Godeps
+# usage DEP=github.com/owner/package PKG=containerbuddy make add-dep
+add-dep: build/containerbuddy_build
+	docker run --rm \
+	    -v ${ROOT}:/go/cb \
+		-v ${ROOT}:/go/cb/src \
+		-e GOPATH=/go/cb/src/$(PKG) \
+		-w /go/cb/src/$(PKG) \
+		containerbuddy_build go get $(DEP)
+	docker run --rm \
+	    -v ${ROOT}:/go/cb \
+	 	-v ${ROOT}:/go/cb/src \
+	 	-e GOPATH=/go/cb/src/$(PKG) \
+	 	-w /go/cb/src/$(PKG) \
+	 	containerbuddy_build godep save
+	mv $(PKG)/src $(PKG)/vendor
 
 # ----------------------------------------------
 # develop and test
 
 lint: vendor
-	${DOCKERBUILD} lint
+	${DOCKERBUILD} golint src/
 
 # run unit tests
 test: docker vendor
-	${DOCKERRUN} test
+	@mkdir -p cover
+	${DOCKERRUN} go test -v -coverprofile=cover/coverage.out containerbuddy
 
-cover: docker vendor
-	${DOCKERRUN} cover
+cover: test
+	${DOCKERRUN} go tool cover -html=cover/coverage.out -o cover/coverage.html
 
 # run integration tests
 integration: build

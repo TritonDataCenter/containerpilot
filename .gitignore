@@ -28,9 +28,11 @@ _testmain.go
 build/
 release/
 cover/
-/vendor/
-/Godeps/_workspace/
-examples/**/opt/containerbuddy/containerbuddy
+vendor/
+Godeps/_workspace/
 *.tar.gz
-.godeps
 *.log
+
+# fake paths from overlaying volumes in Docker
+/src
+containerbuddy/src/
