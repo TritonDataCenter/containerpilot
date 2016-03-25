@@ -60,27 +60,25 @@ func Main() {
 func handlePolling(config *Config) {
 	var quit []chan bool
 	for _, backend := range config.Backends {
-		quit = append(quit, poll(backend, checkForChanges))
+		quit = append(quit, poll(backend))
 	}
 	for _, service := range config.Services {
-		quit = append(quit, poll(service, checkHealth))
+		quit = append(quit, poll(service))
 	}
 	config.QuitChannels = quit
 }
 
-type pollingFunc func(Pollable)
-
-// Every `pollTime` seconds, run the `pollingFunc` function.
+// Every `pollTime` seconds, run the `PollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
-func poll(config Pollable, fn pollingFunc) chan bool {
-	ticker := time.NewTicker(time.Duration(config.PollTime()) * time.Second)
+func poll(pollable Pollable) chan bool {
+	ticker := time.NewTicker(time.Duration(pollable.PollTime()) * time.Second)
 	quit := make(chan bool)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
 				if !inMaintenanceMode() {
-					fn(config)
+					pollable.PollAction()
 				}
 			case <-quit:
 				return
@@ -88,25 +86,6 @@ func poll(config Pollable, fn pollingFunc) chan bool {
 		}
 	}()
 	return quit
-}
-
-// Implements `pollingFunc`; args are the executable we use to check the
-// application health and its arguments. If the error code on that exectable is
-// 0, we write a TTL health check to the health check store.
-func checkHealth(pollable Pollable) {
-	service := pollable.(*ServiceConfig) // if we pass a bad type here we crash intentionally
-	if code, _ := service.CheckHealth(); code == 0 {
-		service.SendHeartbeat()
-	}
-}
-
-// Implements `pollingFunc`; args are the executable we run if the values in
-// the central store have changed since the last run.
-func checkForChanges(pollable Pollable) {
-	backend := pollable.(*BackendConfig) // if we pass a bad type here we crash intentionally
-	if backend.CheckForUpstreamChanges() {
-		backend.OnChange()
-	}
 }
 
 // Executes the given command and blocks until completed
