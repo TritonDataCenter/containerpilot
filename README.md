@@ -114,7 +114,7 @@ Service Discovery Backends:
 
 Must supply only one of the following
 
-- `consul` configures discovery via [Hashicorp Consul](https://www.consul.io/). Expects `hostname:port` string:
+- `consul` configures discovery via [Hashicorp Consul](https://www.consul.io/). Expects `hostname:port` string. If you are communicating with Consul over TLS you may include the scheme (ex. `https://consul:8500`):
 
     ```
     "consul": "consul:8500"
