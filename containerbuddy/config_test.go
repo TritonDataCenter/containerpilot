@@ -1,13 +1,13 @@
 package containerbuddy
 
 import (
-	"encoding/json"
 	"flag"
 	"os"
 	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
+	"utils"
 )
 
 // ------------------------------------------
@@ -155,7 +155,7 @@ func validateParseError(t *testing.T, matchStrings []string, config *Config) {
 }
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1 := strToCmd("./testdata/test.sh doStuff --debug")
+	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
 	backend := &BackendConfig{
 		onChangeCmd: cmd1,
 	}
@@ -169,7 +169,7 @@ func TestOnChangeCmd(t *testing.T) {
 }
 
 func TestHealthCheck(t *testing.T) {
-	cmd1 := strToCmd("./testdata/test.sh doStuff --debug")
+	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
 	service := &ServiceConfig{
 		healthCheckCmd: cmd1,
 	}
@@ -179,53 +179,6 @@ func TestHealthCheck(t *testing.T) {
 	// Ensure we can run it more than once
 	if _, err := service.CheckHealth(); err != nil {
 		t.Errorf("Unexpected error CheckHealth (x2): %s", err)
-	}
-}
-
-func TestParseCommandArgs(t *testing.T) {
-	if cmd, err := parseCommandArgs(nil); err == nil {
-		validateCommandParsed(t, "command", cmd, nil)
-	} else {
-		t.Errorf("Unexpected parse error: %s", err.Error())
-	}
-
-	expected := []string{"/testdata/test.sh", "arg1"}
-	json1 := json.RawMessage(`"/testdata/test.sh arg1"`)
-	if cmd, err := parseCommandArgs(json1); err == nil {
-		validateCommandParsed(t, "json1", cmd, expected)
-	} else {
-		t.Errorf("Unexpected parse error json1: %s", err.Error())
-	}
-
-	json2 := json.RawMessage(`["/testdata/test.sh","arg1"]`)
-	if cmd, err := parseCommandArgs(json2); err == nil {
-		validateCommandParsed(t, "json2", cmd, expected)
-	} else {
-		t.Errorf("Unexpected parse error json2: %s", err.Error())
-	}
-
-	json3 := json.RawMessage(`{ "a": true }`)
-	if _, err := parseCommandArgs(json3); err == nil {
-		t.Errorf("Expected parse error for json3")
-	}
-
-}
-
-func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
-	if expected == nil {
-		if parsed != nil {
-			t.Errorf("%s has Cmd, but expected nil", name)
-		}
-		return
-	}
-	if parsed == nil {
-		t.Errorf("%s not configured", name)
-	}
-	if parsed.Path != expected[0] {
-		t.Errorf("%s path not configured: %s != %s", name, parsed.Path, expected[0])
-	}
-	if !reflect.DeepEqual(parsed.Args, expected) {
-		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expected)
 	}
 }
 
@@ -299,4 +252,22 @@ func testParseExpectError(t *testing.T, testJSON string, expected string) {
 func unmarshaltestJSON() *Config {
 	config, _ := unmarshalConfig([]byte(testJSON))
 	return config
+}
+
+func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
+	if expected == nil {
+		if parsed != nil {
+			t.Errorf("%s has Cmd, but expected nil", name)
+		}
+		return
+	}
+	if parsed == nil {
+		t.Errorf("%s not configured", name)
+	}
+	if parsed.Path != expected[0] {
+		t.Errorf("%s path not configured: %s != %s", name, parsed.Path, expected[0])
+	}
+	if !reflect.DeepEqual(parsed.Args, expected) {
+		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expected)
+	}
 }

@@ -3,6 +3,7 @@ package containerbuddy
 import (
 	"encoding/json"
 	"os/exec"
+	"utils"
 )
 
 // BackendConfig represents a command to execute when another application changes
@@ -41,6 +42,6 @@ func (b *BackendConfig) CheckForUpstreamChanges() bool {
 func (b *BackendConfig) OnChange() (int, error) {
 	exitCode, err := run(b.onChangeCmd)
 	// Reset command object - since it can't be reused
-	b.onChangeCmd = argsToCmd(b.onChangeCmd.Args)
+	b.onChangeCmd = utils.ArgsToCmd(b.onChangeCmd.Args)
 	return exitCode, err
 }
