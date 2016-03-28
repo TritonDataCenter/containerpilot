@@ -53,6 +53,11 @@ func (s *ServiceConfig) Deregister() {
 
 // CheckHealth runs the service's health command, returning the results
 func (s *ServiceConfig) CheckHealth() (int, error) {
+	// if we have a valid ServiceConfig but there's no health check
+	// set, assume it always passes (ex. metrics service).
+	if s.healthCheckCmd == nil {
+		return 0, nil
+	}
 	exitCode, err := run(s.healthCheckCmd)
 	// Reset command object - since it can't be reused
 	s.healthCheckCmd = utils.ArgsToCmd(s.healthCheckCmd.Args)

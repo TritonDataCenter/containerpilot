@@ -1,6 +1,9 @@
 package main
 
-import "containerbuddy"
+import (
+	"containerbuddy"
+	_ "metrics"
+)
 
 func main() {
 	containerbuddy.Main()

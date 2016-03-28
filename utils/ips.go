@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -11,6 +13,37 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 )
+
+func IpFromInterfaces(raw json.RawMessage) (string, error) {
+	interfaces, ifaceErr := ParseInterfaces(raw)
+	if ifaceErr != nil {
+		return "", ifaceErr
+	}
+
+	if ipAddress, err := GetIP(interfaces); err != nil {
+		return "", err
+	} else {
+		return ipAddress, nil
+	}
+}
+
+func ParseInterfaces(raw json.RawMessage) ([]string, error) {
+	if raw == nil {
+		return []string{}, nil
+	}
+	// Parse as a string
+	var jsonString string
+	if err := json.Unmarshal(raw, &jsonString); err == nil {
+		return []string{jsonString}, nil
+	}
+
+	var jsonArray []string
+	if err := json.Unmarshal(raw, &jsonArray); err == nil {
+		return jsonArray, nil
+	}
+
+	return []string{}, errors.New("interfaces must be a string or an array")
+}
 
 // GetIP determines the IP address of the container
 func GetIP(specList []string) (string, error) {

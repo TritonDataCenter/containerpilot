@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"metrics"
 	"os"
 	"os/exec"
 	"strings"
@@ -50,6 +51,7 @@ type Config struct {
 	StopTimeout  int              `json:"stopTimeout"`
 	Services     []*ServiceConfig `json:"services"`
 	Backends     []*BackendConfig `json:"backends"`
+	Metrics      *metrics.Metrics `json:"metrics,omitempty"`
 	preStartCmd  *exec.Cmd
 	preStopCmd   *exec.Cmd
 	postStopCmd  *exec.Cmd
@@ -209,13 +211,31 @@ func initializeConfig(config *Config) (*Config, error) {
 			service.healthCheckCmd = cmd
 		}
 
-		interfaces, ifaceErr := utils.ParseInterfaces(service.Interfaces)
-		if ifaceErr != nil {
-			return nil, ifaceErr
-		}
-
-		if service.ipAddress, err = utils.GetIP(interfaces); err != nil {
+		if ipAddress, err := utils.IpFromInterfaces(service.Interfaces); err != nil {
 			return nil, err
+		} else {
+			service.ipAddress = ipAddress
+		}
+	}
+
+	if config.Metrics != nil {
+		m := config.Metrics
+		if err := m.Parse(); err != nil {
+			return nil, err
+		} else {
+			// create a new service for Metrics
+			metricsService := &ServiceConfig{
+				ID:               fmt.Sprintf("%s-%s", m.ServiceName, hostname),
+				Name:             m.ServiceName,
+				Poll:             m.Poll,
+				TTL:              m.TTL,
+				Interfaces:       m.Interfaces,
+				Tags:             m.Tags,
+				discoveryService: discovery,
+				ipAddress:        m.IpAddress,
+				healthCheckCmd:   nil, // no health check code
+			}
+			config.Services = append(config.Services, metricsService)
 		}
 	}
 

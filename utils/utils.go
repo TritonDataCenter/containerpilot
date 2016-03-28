@@ -40,21 +40,3 @@ func StrToCmd(command string) *exec.Cmd {
 	}
 	return nil
 }
-
-func ParseInterfaces(raw json.RawMessage) ([]string, error) {
-	if raw == nil {
-		return []string{}, nil
-	}
-	// Parse as a string
-	var jsonString string
-	if err := json.Unmarshal(raw, &jsonString); err == nil {
-		return []string{jsonString}, nil
-	}
-
-	var jsonArray []string
-	if err := json.Unmarshal(raw, &jsonArray); err == nil {
-		return jsonArray, nil
-	}
-
-	return []string{}, errors.New("interfaces must be a string or an array")
-}
