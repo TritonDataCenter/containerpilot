@@ -3,6 +3,7 @@ package containerbuddy
 import (
 	"encoding/json"
 	"os/exec"
+	"utils"
 )
 
 // ServiceConfig configures the service, discovery data, and health checks
@@ -54,6 +55,6 @@ func (s *ServiceConfig) Deregister() {
 func (s *ServiceConfig) CheckHealth() (int, error) {
 	exitCode, err := run(s.healthCheckCmd)
 	// Reset command object - since it can't be reused
-	s.healthCheckCmd = argsToCmd(s.healthCheckCmd.Args)
+	s.healthCheckCmd = utils.ArgsToCmd(s.healthCheckCmd.Args)
 	return exitCode, err
 }

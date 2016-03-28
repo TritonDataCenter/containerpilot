@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+	"utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -38,7 +39,7 @@ func Main() {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		config.Command = argsToCmd(flag.Args())
+		config.Command = utils.ArgsToCmd(flag.Args())
 		code, err := executeAndWait(config.Command)
 		if err != nil {
 			log.Errorln(err)

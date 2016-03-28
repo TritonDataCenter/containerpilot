@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"utils"
 )
 
 var (
@@ -61,41 +62,6 @@ const (
 	defaultStopTimeout int = 5
 )
 
-func parseInterfaces(raw json.RawMessage) ([]string, error) {
-	if raw == nil {
-		return []string{}, nil
-	}
-	// Parse as a string
-	var jsonString string
-	if err := json.Unmarshal(raw, &jsonString); err == nil {
-		return []string{jsonString}, nil
-	}
-
-	var jsonArray []string
-	if err := json.Unmarshal(raw, &jsonArray); err == nil {
-		return jsonArray, nil
-	}
-
-	return []string{}, errors.New("interfaces must be a string or an array")
-}
-
-func parseCommandArgs(raw json.RawMessage) (*exec.Cmd, error) {
-	if raw == nil {
-		return nil, nil
-	}
-	// Parse as a string
-	var stringCmd string
-	if err := json.Unmarshal(raw, &stringCmd); err == nil {
-		return strToCmd(stringCmd), nil
-	}
-
-	var arrayCmd []string
-	if err := json.Unmarshal(raw, &arrayCmd); err == nil {
-		return argsToCmd(arrayCmd), nil
-	}
-	return nil, errors.New("Command argument must be a string or an array")
-}
-
 func loadConfig() (*Config, error) {
 
 	var configFlag string
@@ -142,19 +108,19 @@ func initializeConfig(config *Config) (*Config, error) {
 		config.PreStart = config.OnStart
 	}
 
-	preStartCmd, err := parseCommandArgs(config.PreStart)
+	preStartCmd, err := utils.ParseCommandArgs(config.PreStart)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `preStart`: %s", err)
 	}
 	config.preStartCmd = preStartCmd
 
-	preStopCmd, err := parseCommandArgs(config.PreStop)
+	preStopCmd, err := utils.ParseCommandArgs(config.PreStop)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `preStop`: %s", err)
 	}
 	config.preStopCmd = preStopCmd
 
-	postStopCmd, err := parseCommandArgs(config.PostStop)
+	postStopCmd, err := utils.ParseCommandArgs(config.PostStop)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `postStop`: %s", err)
 	}
@@ -196,7 +162,7 @@ func initializeConfig(config *Config) (*Config, error) {
 		if backend.Name == "" {
 			return nil, fmt.Errorf("backend must have a `name`")
 		}
-		cmd, err := parseCommandArgs(backend.OnChangeExec)
+		cmd, err := utils.ParseCommandArgs(backend.OnChangeExec)
 		if err != nil {
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
 				backend.Name, err)
@@ -233,7 +199,7 @@ func initializeConfig(config *Config) (*Config, error) {
 				service.Name)
 		}
 
-		if cmd, err := parseCommandArgs(service.HealthCheckExec); err != nil {
+		if cmd, err := utils.ParseCommandArgs(service.HealthCheckExec); err != nil {
 			return nil, fmt.Errorf("Could not parse `health` in service %s: %s",
 				service.Name, err)
 		} else if cmd == nil {
@@ -243,12 +209,12 @@ func initializeConfig(config *Config) (*Config, error) {
 			service.healthCheckCmd = cmd
 		}
 
-		interfaces, ifaceErr := parseInterfaces(service.Interfaces)
+		interfaces, ifaceErr := utils.ParseInterfaces(service.Interfaces)
 		if ifaceErr != nil {
 			return nil, ifaceErr
 		}
 
-		if service.ipAddress, err = GetIP(interfaces); err != nil {
+		if service.ipAddress, err = utils.GetIP(interfaces); err != nil {
 			return nil, err
 		}
 	}
@@ -326,21 +292,4 @@ func highlightError(data []byte, pos int64) (int, int, string) {
 		line++
 	}
 	return line, int(col), fmt.Sprintf("%s%s%s", prevLine, thisLine, highlight)
-}
-
-func argsToCmd(args []string) *exec.Cmd {
-	if len(args) == 0 {
-		return nil
-	}
-	if len(args) > 1 {
-		return exec.Command(args[0], args[1:]...)
-	}
-	return exec.Command(args[0])
-}
-
-func strToCmd(command string) *exec.Cmd {
-	if command != "" {
-		return argsToCmd(strings.Split(strings.TrimSpace(command), " "))
-	}
-	return nil
 }
