@@ -92,11 +92,13 @@ add-dep: build/containerbuddy_build
 
 lint: vendor
 	${DOCKERBUILD} golint src/
+	@rmdir src || true
 
 # run unit tests
+TESTS ?= containerbuddy utils metrics
 test: docker vendor
-	@mkdir -p cover
-	${DOCKERRUN} go test -v containerbuddy utils metrics
+	${DOCKERRUN} go test -v $(TESTS)
+	@rmdir src || true
 
 # run unit tests and write out test coverage
 cover: docker
@@ -105,6 +107,7 @@ cover: docker
 		go test -v -coverprofile=cover/$$x.out $$x \
 		&& go tool cover -html=cover/$$x.out -o cover/$$x.html ;\
 		done'
+	@rmdir src || true
 
 # run integration tests
 integration: build
