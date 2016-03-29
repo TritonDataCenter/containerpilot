@@ -40,7 +40,13 @@ func (s Sensor) PollAction() {
 	}
 }
 
-func (s Sensor) getMetrics() (string, error) {
+func (s *Sensor) getMetrics() (string, error) {
+
+	defer func() {
+		// reset command object because it can't be reused
+		s.checkCmd = utils.ArgsToCmd(s.checkCmd.Args)
+	}()
+
 	// we'll pass stderr to the container's stderr, but stdout must
 	// be "clean" and not have anything other than what we intend
 	// to write to our collector.

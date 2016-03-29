@@ -5,7 +5,38 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"testing"
+	"utils"
 )
+
+func TestSensorRecord(t *testing.T) {
+	// TODO
+}
+
+func TestSensorGetMetrics(t *testing.T) {
+
+	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
+	sensor := &Sensor{checkCmd: cmd1}
+	if val, err := sensor.getMetrics(); err != nil {
+		t.Fatalf("Unexpected error from sensor check: %s", err)
+	} else if val != "Running doStuff with args: --debug\n" {
+		t.Fatalf("Unexpected output from sensor check: %s", val)
+	}
+
+	// Ensure we can run it more than once
+	if _, err := sensor.getMetrics(); err != nil {
+		t.Fatalf("Unexpected error from sensor check (x2): %s", err)
+	}
+
+	// Ensure bad commands return error
+	cmd2 := utils.StrToCmd("./testdata/doesNotExist.sh")
+	sensor = &Sensor{checkCmd: cmd2}
+	if val, err := sensor.getMetrics(); err == nil {
+		t.Fatalf("Expected error from sensor check but got %s", val)
+	} else if err.Error() != "fork/exec ./testdata/doesNotExist.sh: no such file or directory" {
+		t.Fatalf("Unexpected error from invalid sensor check: %s", err)
+	}
+
+}
 
 func TestSensorParse(t *testing.T) {
 	jsonFragment := `{
