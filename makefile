@@ -98,11 +98,13 @@ test: docker vendor
 	@mkdir -p cover
 	${DOCKERRUN} go test -v containerbuddy utils metrics
 
-cover:
+# run unit tests and write out test coverage
+cover: docker
 	@mkdir -p cover
-	# TODO we'll want to expand coverage here
-	${DOCKERRUN} go test -v -coverprofile=cover/coverage.out containerbuddy
-	${DOCKERRUN} go tool cover -html=cover/coverage.out -o cover/coverage.html
+	${DOCKERRUN} bash -c 'for x in {containerbuddy,metrics,utils}; do \
+		go test -v -coverprofile=cover/$$x.out $$x \
+		&& go tool cover -html=cover/$$x.out -o cover/$$x.html ;\
+		done'
 
 # run integration tests
 integration: build
