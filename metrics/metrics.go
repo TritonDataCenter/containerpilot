@@ -28,6 +28,9 @@ func (m *Metrics) Parse() error {
 	} else {
 		m.IpAddress = ipAddress
 	}
+	// note that we don't return an error if there are no sensors
+	// because the prometheus handler will still pick up metrics
+	// internal to Containerbuddy (i.e. the golang runtime)
 	for _, sensor := range m.Sensors {
 		if err := sensor.Parse(); err != nil {
 			return err

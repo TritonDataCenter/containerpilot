@@ -207,7 +207,7 @@ func TestInvalidConfigParseNotJson(t *testing.T) {
 		"Parse error at line:col [1:1]")
 }
 
-func testJSONTemplateParseError(t *testing.T) {
+func TestJSONTemplateParseError(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t,
 		`{
@@ -217,7 +217,7 @@ func testJSONTemplateParseError(t *testing.T) {
 		"Parse error at line:col [2:13]")
 }
 
-func testJSONTemplateParseError2(t *testing.T) {
+func TestJSONTemplateParseError2(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t,
 		`{
@@ -227,6 +227,33 @@ func testJSONTemplateParseError2(t *testing.T) {
     test2: "hello"
 }`,
 		"Parse error at line:col [5:5]")
+}
+
+func TestMetricServiceCreation(t *testing.T) {
+
+	jsonFragment := []byte(`{
+	"consul": "consul:8500",
+    "metrics": {
+		"name": "namespace_text",
+		"url": "subsystem_text",
+		"port": 8000,
+		"ttl": 30,
+		"poll": 10
+	 }
+}`)
+	if config, err := unmarshalConfig(jsonFragment); err != nil {
+		t.Errorf("Got unexpected error deserializing JSON config: %v", err)
+	} else {
+		initializeConfig(config)
+		if len(config.Services) != 1 {
+			t.Errorf("Expected metrics service but got %v", config.Services)
+		} else {
+			service := config.Services[0]
+			if service.Name != "namespace_text" {
+				t.Errorf("Got incorrect service back: %v", service)
+			}
+		}
+	}
 }
 
 // ----------------------------------------------------

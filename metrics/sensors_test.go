@@ -7,7 +7,8 @@ import (
 	"testing"
 )
 
-var jsonFragment = `{
+func TestSensorParse(t *testing.T) {
+	jsonFragment := `{
 	"namespace": "namespace_text",
 	"subsystem": "subsystem_text",
 	"name": "%s",
@@ -17,7 +18,6 @@ var jsonFragment = `{
 	"check": ["/bin/sensor.sh"]
 }`
 
-func TestSensorParse(t *testing.T) {
 	test1Json := []byte(fmt.Sprintf(jsonFragment, "sensor_counter", "counter"))
 	collector := parseAndGetCollector(t, test1Json)
 	if _, ok := collector.(prometheus.Counter); !ok {
@@ -54,11 +54,16 @@ func parseAndGetCollector(t *testing.T, testJson []byte) prometheus.Collector {
 	return sensor.collector
 }
 
+// invalid collector type
 func TestSensorBadType(t *testing.T) {
+	jsonFragment := []byte(`{
+	"namespace": "namespace_text",
+	"subsystem": "subsystem_text",
+	"name": "sensor_bad_type",
+	"type": "nonsense"}`)
+
 	sensor := &Sensor{}
-	// invalid collector type
-	test1Json := []byte(fmt.Sprintf(jsonFragment, "sensor_bad_type", "nonsense"))
-	if err := json.Unmarshal(test1Json, &sensor); err != nil {
+	if err := json.Unmarshal(jsonFragment, &sensor); err != nil {
 		t.Fatalf("Could not parse sensor JSON: %s", err)
 	}
 	if err := sensor.Parse(); err == nil {
@@ -66,11 +71,16 @@ func TestSensorBadType(t *testing.T) {
 	}
 }
 
+// invalid metric name
 func TestSensorBadName(t *testing.T) {
+	jsonFragment := []byte(`{
+	"namespace": "namespace_text",
+	"subsystem": "subsystem_text",
+	"name": "sensor.bad.type",
+	"type": "counter"}`)
+
 	sensor := &Sensor{}
-	// invalid metric name
-	test1Json := []byte(fmt.Sprintf(jsonFragment, "sensor.bad.name", "counter"))
-	if err := json.Unmarshal(test1Json, &sensor); err != nil {
+	if err := json.Unmarshal(jsonFragment, &sensor); err != nil {
 		t.Fatalf("Could not parse sensor JSON: %s", err)
 	}
 	if err := sensor.Parse(); err == nil {
