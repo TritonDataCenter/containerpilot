@@ -58,7 +58,7 @@ docker: build/containerbuddy_build consul etcd
 
 # top-level target for vendoring our packages: godep restore requires
 # being in the package directory so we have to run this for each package
-vendor: containerbuddy/vendor
+vendor: containerbuddy/vendor utils/vendor
 %/vendor: build/containerbuddy_build
 	docker run --rm \
 	    -v ${ROOT}:/go/cb \
@@ -95,9 +95,12 @@ lint: vendor
 # run unit tests
 test: docker vendor
 	@mkdir -p cover
-	${DOCKERRUN} go test -v -coverprofile=cover/coverage.out containerbuddy
+	${DOCKERRUN} go test -v containerbuddy utils
 
-cover: test
+cover:
+	@mkdir -p cover
+	# TODO we'll want to expand coverage here
+	${DOCKERRUN} go test -v -coverprofile=cover/coverage.out containerbuddy
 	${DOCKERRUN} go tool cover -html=cover/coverage.out -o cover/coverage.html
 
 # run integration tests

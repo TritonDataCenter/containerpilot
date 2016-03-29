@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"utils"
 )
 
 // ------------------------------------------
@@ -26,7 +27,7 @@ func (c *NoopDiscoveryService) Deregister(service *ServiceConfig)         {}
 
 func getSignalTestConfig() *Config {
 	config := &Config{
-		Command: argsToCmd([]string{
+		Command: utils.ArgsToCmd([]string{
 			"./testdata/test.sh",
 			"interruptSleep"}),
 		StopTimeout: 5,
