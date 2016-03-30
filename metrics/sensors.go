@@ -117,15 +117,5 @@ func (s *Sensor) Parse() (err error) {
 		return fmt.Errorf("Invalid sensor type: %s\n", s.Type)
 	}
 
-	// MustRegister panics rather than returning an error (thanks!) if we
-	// register an invalid collector, even just an invalid name. This would give
-	// end-users a big ugly golang stack trace that they have to dig the error
-	// message out of. So we'll catch the panic so we can return an error.
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
-		}
-	}()
-	prometheus.MustRegister(s.collector)
-	return
+	return prometheus.Register(s.collector)
 }
