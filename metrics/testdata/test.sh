@@ -15,21 +15,8 @@ doStuff() {
     echo "Running doStuff with args: $@"
 }
 
-failStuff() {
-    echo "Running failStuff with args: $@"
-    exit -1
-}
-
-sleepStuff() {
-    echo "Sleeping 10 seconds..."
-    sleep 10
-}
-
-interruptSleep() {
-  for i in {1..10}; do
-    echo -n "."
-    sleep 1
-  done
+measureStuff() {
+    echo "42"
 }
 
 cmd="${1:-usage}"

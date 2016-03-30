@@ -10,18 +10,18 @@ import (
 func TestMetricsParse(t *testing.T) {
 
 	jsonFragment := []byte(`{
-	"name": "namespace_text",
-	"url": "subsystem_text",
+	"name": "metrics",
+	"url": "metrics",
 	"port": 8000,
 	"ttl": 30,
 	"poll": 10,
 	"interfaces": ["eth0"],
 	"sensors": [
        {
-		"namespace": "namespace_text",
-		"subsystem": "subsystem_text",
-		"name": "sensor_name_metrics_test",
-		"help": "help text",
+		"namespace": "metrics",
+		"subsystem": "metrics",
+		"name": "TestMetricsParse",
+		"help": "help",
 		"type": "counter",
 		"poll": 5,
 		"check": ["/bin/sensor.sh"]

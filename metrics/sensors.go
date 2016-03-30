@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"utils"
 
 	log "github.com/Sirupsen/logrus"
@@ -33,7 +34,7 @@ func (s Sensor) PollTime() int {
 
 // PollAction implements Pollable for Sensor.
 func (s Sensor) PollAction() {
-	if metricValue, err := s.getMetrics(); err != nil {
+	if metricValue, err := s.getMetrics(); err == nil {
 		s.record(metricValue)
 	} else {
 		log.Errorln(err)
@@ -59,18 +60,25 @@ func (s *Sensor) getMetrics() (string, error) {
 }
 
 func (s Sensor) record(metricValue string) {
-	if val, err := strconv.ParseFloat(metricValue, 64); err != nil {
+	if val, err := strconv.ParseFloat(
+		strings.TrimSpace(metricValue), 64); err != nil {
 		log.Errorln(err)
 	} else {
-		switch collector := s.collector.(type) {
-		case prometheus.Counter:
-			collector.Add(val)
-		case prometheus.Gauge:
-			collector.Set(val)
-		case prometheus.Histogram:
-			collector.Observe(val)
-		case prometheus.Summary:
-			collector.Observe(val)
+		// we should use a type switch here but the prometheus collector
+		// implementations are themselves interfaces and not structs,
+		// so that doesn't work...
+		switch {
+		case s.Type == "counter":
+			s.collector.(prometheus.Counter).Add(val)
+		case s.Type == "gauge":
+			s.collector.(prometheus.Gauge).Set(val)
+		case s.Type == "histogram":
+			s.collector.(prometheus.Histogram).Observe(val)
+		case s.Type == "summary":
+			s.collector.(prometheus.Summary).Observe(val)
+		default:
+			// ...which is why we end up logging the fall-thru
+			log.Errorf("Invalid sensor type: %s\n", s.Type)
 		}
 	}
 }

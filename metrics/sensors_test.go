@@ -4,12 +4,216 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"regexp"
+	"strings"
 	"testing"
 	"utils"
 )
 
-func TestSensorRecord(t *testing.T) {
-	// TODO
+/*
+The prometheus client library doesn't expose any of the internals of the
+collectors, so we can't ask them directly to find out if we've recorded metrics
+in our tests. So for those tests we'll stand up a test HTTP server and give it
+the prometheus handler and then check the results of a GET.
+*/
+
+func TestSensorPollAction(t *testing.T) {
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+
+	sensor := &Sensor{
+		Type:     "counter",
+		checkCmd: utils.StrToCmd("./testdata/test.sh measureStuff"),
+		collector: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: "metrics",
+			Subsystem: "sensors",
+			Name:      "TestSensorPollAction",
+			Help:      "help",
+		})}
+	prometheus.MustRegister(sensor.collector)
+	sensor.PollAction()
+	resp := getFromTestServer(t, testServer)
+	if strings.Count(resp, "metrics_sensors_TestSensorPollAction 42") != 1 {
+		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+	}
+}
+
+func TestSensorBadPollAction(t *testing.T) {
+	sensor := &Sensor{
+		checkCmd: utils.StrToCmd("./testdata/doesNotExist.sh"),
+	}
+	sensor.PollAction() // logs but no crash
+}
+
+func TestSensorBadRecord(t *testing.T) {
+	sensor := &Sensor{
+		checkCmd: utils.StrToCmd("./testdata/test.sh doStuff --debug"),
+	}
+	sensor.PollAction() // logs but no crash
+}
+
+func TestSensorRecordCounter(t *testing.T) {
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+
+	sensor := &Sensor{
+		Type: "counter",
+		collector: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: "metrics",
+			Subsystem: "sensors",
+			Name:      "TestSensorRecordCounter",
+			Help:      "help",
+		})}
+	prometheus.MustRegister(sensor.collector)
+	sensor.record("1")
+	resp := getFromTestServer(t, testServer)
+	if strings.Count(resp, "metrics_sensors_TestSensorRecordCounter 1") != 1 {
+		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+	}
+	sensor.record("2")
+	resp = getFromTestServer(t, testServer)
+	if strings.Count(resp, "metrics_sensors_TestSensorRecordCounter 3") != 1 {
+		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+	}
+}
+
+func TestSensorRecordGauge(t *testing.T) {
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+
+	sensor := &Sensor{
+		Type: "gauge",
+		collector: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "metrics",
+			Subsystem: "sensors",
+			Name:      "TestSensorRecordGauge",
+			Help:      "help",
+		})}
+
+	prometheus.MustRegister(sensor.collector)
+	sensor.record("1.2")
+	resp := getFromTestServer(t, testServer)
+	if strings.Count(resp, "metrics_sensors_TestSensorRecordGauge 1.2") != 1 {
+		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+	}
+	sensor.record("2.3")
+	resp = getFromTestServer(t, testServer)
+	if strings.Count(resp, "metrics_sensors_TestSensorRecordGauge 2.3") != 1 {
+		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+	}
+}
+
+func TestSensorRecordHistogram(t *testing.T) {
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+
+	sensor := &Sensor{
+		Type: "histogram",
+		collector: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Namespace: "metrics",
+			Subsystem: "sensors",
+			Name:      "TestSensorRecordHistogram",
+			Help:      "help",
+		})}
+	prometheus.MustRegister(sensor.collector)
+	patt := `metrics_sensors_TestSensorRecordHistogram_bucket{le="([\.0-9|\+Inf]*)"} ([1-9])`
+
+	sensor.record("1.2")
+	resp := getFromTestServer(t, testServer)
+	expected := [][]string{{"2.5", "1"}, {"5", "1"}, {"10", "1"}, {"+Inf", "1"}}
+	if !checkBuckets(resp, patt, expected) {
+		t.Fatalf("Failed to get match for sensor in response")
+	}
+	sensor.record("1.2") // same value should add
+	resp = getFromTestServer(t, testServer)
+	expected = [][]string{{"2.5", "2"}, {"5", "2"}, {"10", "2"}, {"+Inf", "2"}}
+	if !checkBuckets(resp, patt, expected) {
+		t.Fatalf("Failed to get match for sensor in response")
+	}
+	sensor.record("4.5") // overlapping should overlap
+	resp = getFromTestServer(t, testServer)
+	expected = [][]string{{"2.5", "2"}, {"5", "3"}, {"10", "3"}, {"+Inf", "3"}}
+	if !checkBuckets(resp, patt, expected) {
+		t.Fatalf("Failed to get match for sensor in response")
+	}
+}
+
+func TestSensorRecordSummary(t *testing.T) {
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+
+	sensor := &Sensor{
+		Type: "summary",
+		collector: prometheus.NewSummary(prometheus.SummaryOpts{
+			Namespace: "metrics",
+			Subsystem: "sensors",
+			Name:      "TestSensorRecordSummary",
+			Help:      "help",
+		})}
+	prometheus.MustRegister(sensor.collector)
+	patt := `metrics_sensors_TestSensorRecordSummary{quantile="([\.0-9]*)"} ([0-9\.]*)`
+
+	// need a bunch of metrics to make quantiles make any sense
+	for i := 1; i <= 10; i++ {
+		sensor.record(fmt.Sprintf("%v", i))
+	}
+	resp := getFromTestServer(t, testServer)
+	expected := [][]string{{"0.5", "5"}, {"0.9", "9"}, {"0.99", "9"}}
+	if !checkBuckets(resp, patt, expected) {
+		t.Fatalf("Failed to get match for sensor in response")
+	}
+
+	for i := 1; i <= 5; i++ {
+		// add a new record for each one in the bottom half
+		sensor.record(fmt.Sprintf("%v", i))
+	}
+	resp = getFromTestServer(t, testServer)
+	expected = [][]string{{"0.5", "4"}, {"0.9", "8"}, {"0.99", "9"}}
+	if !checkBuckets(resp, patt, expected) {
+		t.Fatalf("Failed to get match for sensor in response")
+	}
+}
+
+func checkBuckets(resp, patt string, expected [][]string) bool {
+	re := regexp.MustCompile(patt)
+	matches := re.FindAllStringSubmatch(resp, -1)
+	var buckets [][]string
+	if len(matches) != len(expected) {
+		fmt.Printf("%v matches vs %v expected\n", len(matches), len(expected))
+		return false
+	} else {
+		for _, m := range matches {
+			buckets = append(buckets, []string{m[1], m[2]})
+		}
+		var ok bool
+		if ok = reflect.DeepEqual(buckets, expected); !ok {
+			fmt.Println("Match content:")
+			for _, m := range matches {
+				fmt.Println(m)
+			}
+			fmt.Printf("Expected:\n%v\n-----Actual:\n%v\n", expected, buckets)
+		}
+		return ok
+	}
+}
+
+func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
+	if res, err := http.Get(testServer.URL); err != nil {
+		t.Fatal(err)
+	} else {
+		defer res.Body.Close()
+		if resp, err := ioutil.ReadAll(res.Body); err != nil {
+			t.Fatal(err)
+		} else {
+			response := string(resp)
+			return response
+		}
+	}
+	return ""
 }
 
 func TestSensorGetMetrics(t *testing.T) {
@@ -40,34 +244,38 @@ func TestSensorGetMetrics(t *testing.T) {
 
 func TestSensorParse(t *testing.T) {
 	jsonFragment := `{
-	"namespace": "namespace_text",
-	"subsystem": "subsystem_text",
+	"namespace": "metrics",
+	"subsystem": "sensors",
 	"name": "%s",
-	"help": "help text",
+	"help": "help",
 	"type": "%s",
 	"poll": 10,
 	"check": ["/bin/sensor.sh"]
 }`
 
-	test1Json := []byte(fmt.Sprintf(jsonFragment, "sensor_counter", "counter"))
+	test1Json := []byte(fmt.Sprintf(jsonFragment,
+		"TestSensorParse_counter", "counter"))
 	collector := parseAndGetCollector(t, test1Json)
 	if _, ok := collector.(prometheus.Counter); !ok {
 		t.Fatalf("Incorrect collector; expected Counter but got %v", collector)
 	}
 
-	test2Json := []byte(fmt.Sprintf(jsonFragment, "sensor_gauge", "gauge"))
+	test2Json := []byte(fmt.Sprintf(jsonFragment,
+		"TestSensorParse_gauge", "gauge"))
 	collector = parseAndGetCollector(t, test2Json)
 	if _, ok := collector.(prometheus.Gauge); !ok {
 		t.Fatalf("Incorrect collector; expected Gauge but got %v", collector)
 	}
 
-	test3Json := []byte(fmt.Sprintf(jsonFragment, "sensor_histogram", "histogram"))
+	test3Json := []byte(fmt.Sprintf(jsonFragment,
+		"TestSensorParse_histogram", "histogram"))
 	collector = parseAndGetCollector(t, test3Json)
 	if _, ok := collector.(prometheus.Histogram); !ok {
 		t.Fatalf("Incorrect collector; expected Histogram but got %v", collector)
 	}
 
-	test4Json := []byte(fmt.Sprintf(jsonFragment, "sensor_summary", "summary"))
+	test4Json := []byte(fmt.Sprintf(jsonFragment,
+		"TestSensorParse_summary", "summary"))
 	collector = parseAndGetCollector(t, test4Json)
 	if _, ok := collector.(prometheus.Summary); !ok {
 		t.Fatalf("Incorrect collector; expected Summary but got %v", collector)
@@ -88,9 +296,9 @@ func parseAndGetCollector(t *testing.T, testJson []byte) prometheus.Collector {
 // invalid collector type
 func TestSensorBadType(t *testing.T) {
 	jsonFragment := []byte(`{
-	"namespace": "namespace_text",
-	"subsystem": "subsystem_text",
-	"name": "sensor_bad_type",
+	"namespace": "metrics",
+	"subsystem": "sensors",
+	"name": "TestSensorBadType",
 	"type": "nonsense"}`)
 
 	sensor := &Sensor{}
@@ -105,9 +313,9 @@ func TestSensorBadType(t *testing.T) {
 // invalid metric name
 func TestSensorBadName(t *testing.T) {
 	jsonFragment := []byte(`{
-	"namespace": "namespace_text",
-	"subsystem": "subsystem_text",
-	"name": "sensor.bad.type",
+	"namespace": "metrics",
+	"subsystem": "sensors",
+	"name": "Test.Sensor.Bad.Name",
 	"type": "counter"}`)
 
 	sensor := &Sensor{}
