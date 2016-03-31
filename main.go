@@ -1,7 +1,7 @@
 package main
 
-import "containerbuddy"
+import "core"
 
 func main() {
-	containerbuddy.Main()
+	core.Main()
 }

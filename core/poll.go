@@ -1,4 +1,4 @@
-package containerbuddy
+package core
 
 // Pollable is base abstraction for backends and services that support polling
 type Pollable interface {

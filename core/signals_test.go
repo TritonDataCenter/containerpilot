@@ -1,10 +1,12 @@
-package containerbuddy
+package core
 
 import (
-	"flag"
+	"config"
+	"discovery"
 	"os"
 	"os/signal"
 	"runtime"
+	"services"
 	"syscall"
 	"testing"
 	"time"
@@ -17,29 +19,26 @@ import (
 // Mock Discovery
 type NoopDiscoveryService struct{}
 
-func (c *NoopDiscoveryService) SendHeartbeat(service *ServiceConfig) { return }
-func (c *NoopDiscoveryService) CheckForUpstreamChanges(backend *BackendConfig) bool {
-	return false
-}
+func (c *NoopDiscoveryService) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
+func (c *NoopDiscoveryService) CheckForUpstreamChanges(backend, tag string) bool        { return false }
+func (c *NoopDiscoveryService) MarkForMaintenance(service *discovery.ServiceDefinition) {}
+func (c *NoopDiscoveryService) Deregister(service *discovery.ServiceDefinition)         {}
 
-func (c *NoopDiscoveryService) MarkForMaintenance(service *ServiceConfig) {}
-func (c *NoopDiscoveryService) Deregister(service *ServiceConfig)         {}
-
-func getSignalTestConfig() *Config {
-	config := &Config{
+func getSignalTestConfig() *config.Config {
+	cfg := &config.Config{
 		Command: utils.ArgsToCmd([]string{
 			"./testdata/test.sh",
 			"interruptSleep"}),
 		StopTimeout: 5,
-		Services: []*ServiceConfig{
-			&ServiceConfig{
-				Name:             "test-service",
-				Poll:             1,
-				discoveryService: &NoopDiscoveryService{},
+		Services: []*services.ServiceConfig{
+			&services.ServiceConfig{
+				Name: "test-service",
+				Poll: 1,
 			},
 		},
 	}
-	return config
+	cfg.Services[0].Parse(&NoopDiscoveryService{})
+	return cfg
 }
 
 // ------------------------------------------
@@ -71,7 +70,7 @@ func TestTerminateSignal(t *testing.T) {
 	startTime := time.Now()
 	quit := make(chan int, 1)
 	go func() {
-		if exitCode, _ := executeAndWait(config.Command); exitCode != 2 {
+		if exitCode, _ := utils.ExecuteAndWait(config.Command); exitCode != 2 {
 			t.Fatalf("Expected exit code 2 but got %d", exitCode)
 		}
 		quit <- 1
@@ -92,12 +91,12 @@ func TestTerminateSignal(t *testing.T) {
 // Test handler for SIGHUP
 func TestReloadSignal(t *testing.T) {
 	oldConfig := getSignalTestConfig()
-	flag.Set("config", `invalid`)
+	oldConfig.ConfigFlag = "invalid"
 	if badConfig := reloadConfig(oldConfig); badConfig != nil {
 		t.Errorf("Invalid configuration did not return nil")
 	}
-	flag.Set("config", `{ "consul": "newconsul:8500" }`)
-	if newConfig := reloadConfig(oldConfig); newConfig.Consul != "newconsul:8500" {
+	oldConfig.ConfigFlag = `{ "consul": "newconsul:8500" }`
+	if newConfig := reloadConfig(oldConfig); newConfig == nil || newConfig.Consul != "newconsul:8500" {
 		t.Errorf("Configuration was not reloaded.")
 	}
 }
@@ -105,7 +104,7 @@ func TestReloadSignal(t *testing.T) {
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
-	handleSignals(&Config{})
+	handleSignals(&config.Config{})
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
 	sendAndWaitForSignal(t, syscall.SIGCHLD)

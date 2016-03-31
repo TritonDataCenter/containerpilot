@@ -1,8 +1,10 @@
-package containerbuddy
+package config
 
 import (
+	"backends"
 	"bufio"
 	"bytes"
+	"discovery"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -10,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"services"
 	"strings"
 	"sync"
 	"utils"
@@ -25,14 +28,14 @@ var (
 // Passing around config as a context to functions would be the ideomatic way.
 // But we need to support configuration reload from signals and have that reload
 // effect function calls in the main goroutine. Wherever possible we should be
-// accessing via `getConfig` at the "top" of a goroutine and then use the config
+// accessing via `GetConfig` at the "top" of a goroutine and then use the config
 // as context for a function after that.
 var (
 	globalConfig *Config
 	configLock   = new(sync.RWMutex)
 )
 
-func getConfig() *Config {
+func GetConfig() *Config {
 	configLock.RLock()
 	defer configLock.RUnlock()
 	return globalConfig
@@ -40,21 +43,22 @@ func getConfig() *Config {
 
 // Config is the top-level Containerbuddy Configuration
 type Config struct {
-	Consul       string           `json:"consul,omitempty"`
-	Etcd         json.RawMessage  `json:"etcd,omitempty"`
-	LogConfig    *LogConfig       `json:"logging,omitempty"`
-	OnStart      json.RawMessage  `json:"onStart,omitempty"`
-	PreStart     json.RawMessage  `json:"preStart,omitempty"`
-	PreStop      json.RawMessage  `json:"preStop,omitempty"`
-	PostStop     json.RawMessage  `json:"postStop,omitempty"`
-	StopTimeout  int              `json:"stopTimeout"`
-	Services     []*ServiceConfig `json:"services"`
-	Backends     []*BackendConfig `json:"backends"`
-	preStartCmd  *exec.Cmd
-	preStopCmd   *exec.Cmd
-	postStopCmd  *exec.Cmd
+	Consul       string                    `json:"consul,omitempty"`
+	Etcd         json.RawMessage           `json:"etcd,omitempty"`
+	LogConfig    *LogConfig                `json:"logging,omitempty"`
+	OnStart      json.RawMessage           `json:"onStart,omitempty"`
+	PreStart     json.RawMessage           `json:"preStart,omitempty"`
+	PreStop      json.RawMessage           `json:"preStop,omitempty"`
+	PostStop     json.RawMessage           `json:"postStop,omitempty"`
+	StopTimeout  int                       `json:"stopTimeout"`
+	Services     []*services.ServiceConfig `json:"services"`
+	Backends     []*backends.BackendConfig `json:"backends"`
+	PreStartCmd  *exec.Cmd
+	PreStopCmd   *exec.Cmd
+	PostStopCmd  *exec.Cmd
 	Command      *exec.Cmd
 	QuitChannels []chan bool
+	ConfigFlag   string
 }
 
 const (
@@ -62,7 +66,7 @@ const (
 	defaultStopTimeout int = 5
 )
 
-func loadConfig() (*Config, error) {
+func LoadConfig() (*Config, error) {
 
 	var configFlag string
 	var versionFlag bool
@@ -72,9 +76,6 @@ func loadConfig() (*Config, error) {
 			"JSON config or file:// path to JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 		flag.Parse()
-	} else {
-		// allows for safe configuration reload
-		configFlag = flag.Lookup("config").Value.String()
 	}
 	if versionFlag {
 		fmt.Printf("Version: %s\nGitHash: %s\n", Version, GitHash)
@@ -84,15 +85,23 @@ func loadConfig() (*Config, error) {
 		configFlag = os.Getenv("CONTAINERBUDDY")
 	}
 
-	config, err := parseConfig(configFlag)
-	if err != nil {
+	if cfg, err := parseConfig(configFlag); err != nil {
 		return nil, err
+	} else {
+		return initializeConfig(cfg)
 	}
-	return initializeConfig(config)
+}
+
+func ReloadConfig(configFlag string) (*Config, error) {
+	if cfg, err := parseConfig(configFlag); err != nil {
+		return nil, err
+	} else {
+		return initializeConfig(cfg)
+	}
 }
 
 func initializeConfig(config *Config) (*Config, error) {
-	var discovery DiscoveryService
+	var discoveryService discovery.DiscoveryService
 	discoveryCount := 0
 
 	// onStart has been deprecated for preStart. Remove in 2.0
@@ -112,30 +121,30 @@ func initializeConfig(config *Config) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `preStart`: %s", err)
 	}
-	config.preStartCmd = preStartCmd
+	config.PreStartCmd = preStartCmd
 
 	preStopCmd, err := utils.ParseCommandArgs(config.PreStop)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `preStop`: %s", err)
 	}
-	config.preStopCmd = preStopCmd
+	config.PreStopCmd = preStopCmd
 
 	postStopCmd, err := utils.ParseCommandArgs(config.PostStop)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `postStop`: %s", err)
 	}
-	config.postStopCmd = postStopCmd
+	config.PostStopCmd = postStopCmd
 
 	for _, discoveryBackend := range []string{"Consul", "Etcd"} {
 		switch discoveryBackend {
 		case "Consul":
 			if config.Consul != "" {
-				discovery = NewConsulConfig(config.Consul)
+				discoveryService = discovery.NewConsulConfig(config.Consul)
 				discoveryCount++
 			}
 		case "Etcd":
 			if config.Etcd != nil {
-				discovery = NewEtcdConfig(config.Etcd)
+				discoveryService = discovery.NewEtcdConfig(config.Etcd)
 				discoveryCount++
 			}
 		}
@@ -159,62 +168,13 @@ func initializeConfig(config *Config) (*Config, error) {
 	}
 
 	for _, backend := range config.Backends {
-		if backend.Name == "" {
-			return nil, fmt.Errorf("backend must have a `name`")
+		if err := backend.Parse(discoveryService); err != nil {
+			return nil, err
 		}
-		cmd, err := utils.ParseCommandArgs(backend.OnChangeExec)
-		if err != nil {
-			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
-				backend.Name, err)
-		}
-		if cmd == nil {
-			return nil, fmt.Errorf("`onChange` is required in backend %s",
-				backend.Name)
-		}
-		if backend.Poll < 1 {
-			return nil, fmt.Errorf("`poll` must be > 0 in backend %s",
-				backend.Name)
-		}
-		backend.onChangeCmd = cmd
-		backend.discoveryService = discovery
 	}
 
-	hostname, _ := os.Hostname()
 	for _, service := range config.Services {
-		if service.Name == "" {
-			return nil, fmt.Errorf("service must have a `name`")
-		}
-		service.ID = fmt.Sprintf("%s-%s", service.Name, hostname)
-		service.discoveryService = discovery
-		if service.Poll < 1 {
-			return nil, fmt.Errorf("`poll` must be > 0 in service %s",
-				service.Name)
-		}
-		if service.TTL < 1 {
-			return nil, fmt.Errorf("`ttl` must be > 0 in service %s",
-				service.Name)
-		}
-		if service.Port < 1 {
-			return nil, fmt.Errorf("`port` must be > 0 in service %s",
-				service.Name)
-		}
-
-		if cmd, err := utils.ParseCommandArgs(service.HealthCheckExec); err != nil {
-			return nil, fmt.Errorf("Could not parse `health` in service %s: %s",
-				service.Name, err)
-		} else if cmd == nil {
-			return nil, fmt.Errorf("`health` is required in service %s",
-				service.Name)
-		} else {
-			service.healthCheckCmd = cmd
-		}
-
-		interfaces, ifaceErr := utils.ParseInterfaces(service.Interfaces)
-		if ifaceErr != nil {
-			return nil, ifaceErr
-		}
-
-		if service.ipAddress, err = utils.GetIP(interfaces); err != nil {
+		if err := service.Parse(discoveryService); err != nil {
 			return nil, err
 		}
 	}
@@ -247,7 +207,12 @@ func parseConfig(configFlag string) (*Config, error) {
 		return nil, fmt.Errorf(
 			"Could not apply template to config: %s", err)
 	}
-	return unmarshalConfig(template)
+	cfg, err := unmarshalConfig(template)
+	if cfg != nil {
+		// store so we can reload
+		cfg.ConfigFlag = configFlag
+	}
+	return cfg, err
 }
 
 func unmarshalConfig(data []byte) (*Config, error) {

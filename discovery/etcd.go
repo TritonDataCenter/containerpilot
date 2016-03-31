@@ -1,16 +1,14 @@
-package containerbuddy
+package discovery
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
 
-	"encoding/json"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // Etcd is a service discovery backend for CoreOS etcd
@@ -81,17 +79,17 @@ func NewEtcdConfig(config json.RawMessage) Etcd {
 }
 
 // Deregister removes this instance from the registry
-func (c Etcd) Deregister(service *ServiceConfig) {
+func (c Etcd) Deregister(service *ServiceDefinition) {
 	c.deregisterService(service)
 }
 
 // MarkForMaintenance removes this instance from the registry
-func (c Etcd) MarkForMaintenance(service *ServiceConfig) {
+func (c Etcd) MarkForMaintenance(service *ServiceDefinition) {
 	c.deregisterService(service)
 }
 
 // SendHeartbeat refreshes the TTL of this associated etcd node
-func (c Etcd) SendHeartbeat(service *ServiceConfig) {
+func (c Etcd) SendHeartbeat(service *ServiceDefinition) {
 	if err := c.updateServiceTTL(service); err != nil {
 		log.Infof("Service not registered, registering...")
 		if err := c.registerService(service); err != nil {
@@ -100,12 +98,7 @@ func (c Etcd) SendHeartbeat(service *ServiceConfig) {
 	}
 }
 
-// CheckForUpstreamChanges checks another etcd node for changes
-func (c Etcd) CheckForUpstreamChanges(backend *BackendConfig) bool {
-	return c.checkHealth(backend)
-}
-
-func (c Etcd) getNodeKey(service *ServiceConfig) string {
+func (c Etcd) getNodeKey(service *ServiceDefinition) string {
 	return fmt.Sprintf("%s/%s/%s", c.Prefix, service.Name, service.ID)
 }
 
@@ -115,32 +108,23 @@ func (c Etcd) getAppKey(appName string) string {
 
 var etcdUpstreams = make(map[string][]EtcdServiceNode)
 
-func (c Etcd) checkHealth(backend *BackendConfig) bool {
-	services, err := c.getServices(backend.Name)
+// CheckForUpstreamChanges checks another etcd node for changes
+func (c Etcd) CheckForUpstreamChanges(backendName, backendTag string) bool {
+	// TODO: is there a way to filter by tag in etcd?
+	services, err := c.getServices(backendName)
 	if err != nil {
 		if _, ok := err.(client.Error); !ok {
-			log.Warnf("Failed to query %v: %s", backend.Name, err)
+			log.Warnf("Failed to query %v: %s", backendName, err)
 		}
 		return false
 	}
-	didChange := etcdCompareForChange(etcdUpstreams[backend.Name], services)
+	didChange := etcdCompareForChange(etcdUpstreams[backendName], services)
 	if didChange || len(services) == 0 {
 		// We don't want to cause an onChange event the first time we read-in
 		// but we do want to make sure we've written the key for this map
-		etcdUpstreams[backend.Name] = services
+		etcdUpstreams[backendName] = services
 	}
 	return didChange
-}
-
-func (c Etcd) checkServiceExists(service *ServiceConfig) bool {
-	key := c.getNodeKey(service)
-	if _, err := c.API.Get(context.Background(), key, nil); err != nil {
-		if etcdErr, ok := err.(client.Error); ok {
-			return etcdErr.Code != client.ErrorCodeKeyNotFound
-		}
-		log.Warnf("Unexpected etcd Error on key %s: %s", key, err)
-	}
-	return true
 }
 
 func (c Etcd) getServices(appName string) ([]EtcdServiceNode, error) {
@@ -194,7 +178,7 @@ func etcdCompareForChange(existing, new []EtcdServiceNode) (changed bool) {
 	return false
 }
 
-func (c Etcd) registerService(service *ServiceConfig) error {
+func (c Etcd) registerService(service *ServiceDefinition) error {
 	key := c.getNodeKey(service)
 	serviceKey := fmt.Sprintf("%s/%s", key, "/service")
 	value := encodeEtcdNodeValue(service)
@@ -211,7 +195,7 @@ func (c Etcd) registerService(service *ServiceConfig) error {
 	return err
 }
 
-func (c Etcd) updateServiceTTL(service *ServiceConfig) error {
+func (c Etcd) updateServiceTTL(service *ServiceDefinition) error {
 	key := c.getNodeKey(service)
 	ttl, _ := time.ParseDuration(fmt.Sprintf("%ds", service.TTL))
 	_, err := c.API.Set(context.Background(), key, "",
@@ -219,17 +203,17 @@ func (c Etcd) updateServiceTTL(service *ServiceConfig) error {
 	return err
 }
 
-func (c Etcd) deregisterService(service *ServiceConfig) error {
+func (c Etcd) deregisterService(service *ServiceDefinition) error {
 	_, err := c.API.Delete(context.Background(), c.getNodeKey(service),
 		&client.DeleteOptions{Dir: true, Recursive: true})
 	return err
 }
 
-func encodeEtcdNodeValue(service *ServiceConfig) string {
+func encodeEtcdNodeValue(service *ServiceDefinition) string {
 	node := &EtcdServiceNode{
 		ID:      service.ID,
 		Name:    service.Name,
-		Address: service.ipAddress,
+		Address: service.IpAddress,
 		Port:    service.Port,
 	}
 	json, err := json.Marshal(&node)

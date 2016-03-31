@@ -1,11 +1,10 @@
-package containerbuddy
+package core
 
 import (
+	"config"
 	"flag"
 	"os"
-	"os/exec"
 	"runtime"
-	"syscall"
 	"time"
 	"utils"
 
@@ -18,13 +17,13 @@ func Main() {
 	// contention on the main application
 	runtime.GOMAXPROCS(1)
 
-	config, configErr := loadConfig()
+	cfg, configErr := config.LoadConfig()
 	if configErr != nil {
 		log.Fatal(configErr)
 	}
 
 	// Run the preStart handler, if any, and exit if it returns an error
-	if preStartCode, err := run(config.preStartCmd); err != nil {
+	if preStartCode, err := utils.Run(cfg.PreStartCmd); err != nil {
 		os.Exit(preStartCode)
 	}
 
@@ -32,20 +31,20 @@ func Main() {
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
-	handleSignals(config)
-	handlePolling(config)
+	handleSignals(cfg)
+	handlePolling(cfg)
 
 	if len(flag.Args()) != 0 {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		config.Command = utils.ArgsToCmd(flag.Args())
-		code, err := executeAndWait(config.Command)
+		cfg.Command = utils.ArgsToCmd(flag.Args())
+		code, err := utils.ExecuteAndWait(cfg.Command)
 		if err != nil {
 			log.Errorln(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
-		if postStopCode, err := run(getConfig().postStopCmd); err != nil {
+		if postStopCode, err := utils.Run(config.GetConfig().PostStopCmd); err != nil {
 			os.Exit(postStopCode)
 		}
 		os.Exit(code)
@@ -57,16 +56,16 @@ func Main() {
 }
 
 // Set up polling functions and write their quit channels
-// back to our Config
-func handlePolling(config *Config) {
+// back to our config
+func handlePolling(cfg *config.Config) {
 	var quit []chan bool
-	for _, backend := range config.Backends {
+	for _, backend := range cfg.Backends {
 		quit = append(quit, poll(backend))
 	}
-	for _, service := range config.Services {
+	for _, service := range cfg.Services {
 		quit = append(quit, poll(service))
 	}
-	config.QuitChannels = quit
+	cfg.QuitChannels = quit
 }
 
 // Every `pollTime` seconds, run the `PollingFunc` function.
@@ -87,38 +86,4 @@ func poll(pollable Pollable) chan bool {
 		}
 	}()
 	return quit
-}
-
-// Executes the given command and blocks until completed
-func executeAndWait(cmd *exec.Cmd) (int, error) {
-	if cmd == nil {
-		return 0, nil
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		if exiterr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				return status.ExitStatus(), err
-			}
-		}
-		// Should only happen if we misconfigure or there's some more
-		// serious problem with the underlying open/exec syscalls. But
-		// we'll let the lack of heartbeat tell us if something has gone
-		// wrong to that extent.
-		log.Errorln(err)
-		return 1, err
-	}
-	return 0, nil
-}
-
-// Executes the given command and blocks until completed
-// Returns the exit code and error message (if any).
-// Logs errors
-func run(cmd *exec.Cmd) (int, error) {
-	code, err := executeAndWait(cmd)
-	if err != nil {
-		log.Errorln(err)
-	}
-	return code, err
 }

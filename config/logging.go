@@ -1,4 +1,4 @@
-package containerbuddy
+package config
 
 import (
 	"bytes"

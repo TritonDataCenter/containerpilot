@@ -1,11 +1,14 @@
-package containerbuddy
+package core
 
 import (
+	"config"
 	"os"
 	"os/signal"
+	"services"
 	"sync"
 	"syscall"
 	"time"
+	"utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -23,65 +26,65 @@ func inMaintenanceMode() bool {
 	return paused
 }
 
-func toggleMaintenanceMode(config *Config) {
+func toggleMaintenanceMode(cfg *config.Config) {
 	maintModeLock.RLock()
 	signalLock.Lock()
 	defer signalLock.Unlock()
 	defer maintModeLock.RUnlock()
 	paused = !paused
 	if paused {
-		forAllServices(config, func(service *ServiceConfig) {
+		forAllServices(cfg, func(service *services.ServiceConfig) {
 			log.Infof("Marking for maintenance: %s", service.Name)
 			service.MarkForMaintenance()
 		})
 	}
 }
 
-func terminate(config *Config) {
+func terminate(cfg *config.Config) {
 	signalLock.Lock()
 	defer signalLock.Unlock()
-	stopPolling(config)
-	forAllServices(config, func(service *ServiceConfig) {
+	stopPolling(cfg)
+	forAllServices(cfg, func(service *services.ServiceConfig) {
 		log.Infof("Deregistering service: %s", service.Name)
 		service.Deregister()
 	})
 
 	// Run and wait for preStop command to exit
-	run(config.preStopCmd)
+	utils.Run(cfg.PreStopCmd)
 
-	cmd := config.Command
+	cmd := cfg.Command
 	if cmd == nil || cmd.Process == nil {
 		// Not managing the process, so don't do anything
 		return
 	}
-	if config.StopTimeout > 0 {
+	if cfg.StopTimeout > 0 {
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			log.Warnf("Error sending SIGTERM to application: %s", err)
 		} else {
-			time.AfterFunc(time.Duration(config.StopTimeout)*time.Second, func() {
+			time.AfterFunc(time.Duration(cfg.StopTimeout)*time.Second, func() {
 				log.Infof("Killing Process %#v", cmd.Process)
 				cmd.Process.Kill()
 			})
 			return
 		}
 	}
-	log.Infof("Killing Process %#v", config.Command.Process)
+	log.Infof("Killing Process %#v", cfg.Command.Process)
 	cmd.Process.Kill()
 }
 
-func reloadConfig(config *Config) *Config {
+func reloadConfig(cfg *config.Config) *config.Config {
 	signalLock.Lock()
 	defer signalLock.Unlock()
 	log.Infof("Reloading configuration.")
-	newConfig, err := loadConfig()
+	newConfig, err := config.ReloadConfig(cfg.ConfigFlag)
 	if err != nil {
 		log.Errorf("Could not reload config: %v", err)
 		return nil
 	}
 	// stop advertising the existing services so that we can
 	// make sure we update them if ports, etc. change.
-	stopPolling(config)
-	forAllServices(config, func(service *ServiceConfig) {
+	stopPolling(cfg)
+	forAllServices(cfg, func(service *services.ServiceConfig) {
 		log.Infof("Deregistering service: %s", service.Name)
 		service.Deregister()
 	})
@@ -93,33 +96,33 @@ func reloadConfig(config *Config) *Config {
 	return newConfig // return for debuggability
 }
 
-func stopPolling(config *Config) {
-	for _, quit := range config.QuitChannels {
+func stopPolling(cfg *config.Config) {
+	for _, quit := range cfg.QuitChannels {
 		quit <- true
 	}
 }
 
-type serviceFunc func(service *ServiceConfig)
+type serviceFunc func(service *services.ServiceConfig)
 
-func forAllServices(config *Config, fn serviceFunc) {
-	for _, service := range config.Services {
+func forAllServices(cfg *config.Config, fn serviceFunc) {
+	for _, service := range cfg.Services {
 		fn(service)
 	}
 }
 
 // Listen for and capture signals used for orchestration
-func handleSignals(config *Config) {
+func handleSignals(cfg *config.Config) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		for signal := range sig {
 			switch signal {
 			case syscall.SIGUSR1:
-				toggleMaintenanceMode(config)
+				toggleMaintenanceMode(cfg)
 			case syscall.SIGTERM:
-				terminate(config)
+				terminate(cfg)
 			case syscall.SIGHUP:
-				reloadConfig(config)
+				reloadConfig(cfg)
 			}
 		}
 	}()

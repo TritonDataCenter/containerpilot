@@ -1,4 +1,4 @@
-package containerbuddy
+package discovery
 
 import (
 	"fmt"
@@ -48,12 +48,12 @@ func parseRawUri(raw string) (string, string) {
 }
 
 // Deregister removes the node from Consul.
-func (c Consul) Deregister(service *ServiceConfig) {
+func (c Consul) Deregister(service *ServiceDefinition) {
 	c.MarkForMaintenance(service)
 }
 
 // MarkForMaintenance removes the node from Consul.
-func (c Consul) MarkForMaintenance(service *ServiceConfig) {
+func (c Consul) MarkForMaintenance(service *ServiceDefinition) {
 	if err := c.Agent().ServiceDeregister(service.ID); err != nil {
 		log.Infof("Deregistering failed: %s", err)
 	}
@@ -62,7 +62,7 @@ func (c Consul) MarkForMaintenance(service *ServiceConfig) {
 // SendHeartbeat writes a TTL check status=ok to the consul store.
 // If consul has never seen this service, we register the service and
 // its TTL check.
-func (c Consul) SendHeartbeat(service *ServiceConfig) {
+func (c Consul) SendHeartbeat(service *ServiceDefinition) {
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
 		log.Infof("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {
@@ -74,19 +74,19 @@ func (c Consul) SendHeartbeat(service *ServiceConfig) {
 	}
 }
 
-func (c *Consul) registerService(service ServiceConfig) error {
+func (c *Consul) registerService(service ServiceDefinition) error {
 	return c.Agent().ServiceRegister(
 		&consul.AgentServiceRegistration{
 			ID:      service.ID,
 			Name:    service.Name,
 			Tags:    service.Tags,
 			Port:    service.Port,
-			Address: service.ipAddress,
+			Address: service.IpAddress,
 		},
 	)
 }
 
-func (c *Consul) registerCheck(service ServiceConfig) error {
+func (c *Consul) registerCheck(service ServiceDefinition) error {
 	return c.Agent().CheckRegister(
 		&consul.AgentCheckRegistration{
 			ID:        service.ID,
@@ -103,21 +103,17 @@ func (c *Consul) registerCheck(service ServiceConfig) error {
 var upstreams = make(map[string][]*consul.ServiceEntry)
 
 // CheckForUpstreamChanges runs the health check
-func (c Consul) CheckForUpstreamChanges(backend *BackendConfig) bool {
-	return c.checkHealth(*backend)
-}
-
-func (c *Consul) checkHealth(backend BackendConfig) bool {
-	services, meta, err := c.Health().Service(backend.Name, backend.Tag, true, nil)
+func (c Consul) CheckForUpstreamChanges(backendName, backendTag string) bool {
+	services, meta, err := c.Health().Service(backendName, backendTag, true, nil)
 	if err != nil {
-		log.Warnf("Failed to query %v: %s [%v]", backend.Name, err, meta)
+		log.Warnf("Failed to query %v: %s [%v]", backendName, err, meta)
 		return false
 	}
-	didChange := compareForChange(upstreams[backend.Name], services)
+	didChange := compareForChange(upstreams[backendName], services)
 	if didChange || len(services) == 0 {
 		// We don't want to cause an onChange event the first time we read-in
 		// but we do want to make sure we've written the key for this map
-		upstreams[backend.Name] = services
+		upstreams[backendName] = services
 	}
 	return didChange
 }

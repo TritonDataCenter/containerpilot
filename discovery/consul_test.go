@@ -1,31 +1,20 @@
-package containerbuddy
+package discovery
 
 import (
 	"testing"
 	"time"
 )
 
-func setupConsul(serviceName string) *Config {
+func setupConsul(serviceName string) (Consul, *ServiceDefinition) {
 	consul := NewConsulConfig("consul:8500")
-	config := &Config{
-		Services: []*ServiceConfig{
-			&ServiceConfig{
-				ID:               serviceName,
-				Name:             serviceName,
-				ipAddress:        "192.168.1.1",
-				TTL:              1,
-				Port:             9000,
-				discoveryService: consul,
-			},
-		},
-		Backends: []*BackendConfig{
-			&BackendConfig{
-				Name:             serviceName,
-				discoveryService: consul,
-			},
-		},
+	service := &ServiceDefinition{
+		ID:        serviceName,
+		Name:      serviceName,
+		IpAddress: "192.168.1.1",
+		TTL:       1,
+		Port:      9000,
 	}
-	return config
+	return consul, service
 }
 
 func TestConsulAddressParse(t *testing.T) {
@@ -53,19 +42,17 @@ func runParseTest(t *testing.T, uri, expectedAddress, expectedScheme string) {
 }
 
 func TestConsulTTLPass(t *testing.T) {
-	config := setupConsul("service-TestConsulTTLPass")
-	service := config.Services[0]
-	consul := service.discoveryService.(Consul)
+	consul, service := setupConsul("service-TestConsulTTLPass")
 	id := service.ID
 
-	service.SendHeartbeat() // force registration
+	consul.SendHeartbeat(service) // force registration
 	checks, _ := consul.Agent().Checks()
 	check := checks[id]
 	if check.Status != "critical" {
 		t.Fatalf("status of check %s should be 'critical' but is %s", id, check.Status)
 	}
 
-	service.SendHeartbeat() // write TTL and verify
+	consul.SendHeartbeat(service) // write TTL and verify
 	checks, _ = consul.Agent().Checks()
 	check = checks[id]
 	if check.Status != "passing" {
@@ -74,35 +61,23 @@ func TestConsulTTLPass(t *testing.T) {
 }
 
 func TestConsulCheckForChanges(t *testing.T) {
-	config := setupConsul("service-TestConsulCheckForChanges")
-	backend := config.Backends[0]
-	service := config.Services[0]
-	consul := backend.discoveryService.(Consul)
+	backend := "service-TestConsulCheckForChanges"
+	consul, service := setupConsul(backend)
 	id := service.ID
-	if consul.checkHealth(*backend) {
+	if consul.CheckForUpstreamChanges(backend, "") {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
-	service.SendHeartbeat() // force registration
-	service.SendHeartbeat() // write TTL
+	consul.SendHeartbeat(service) // force registration
+	consul.SendHeartbeat(service) // write TTL
 
-	if !consul.checkHealth(*backend) {
+	if !consul.CheckForUpstreamChanges(backend, "") {
 		t.Errorf("%v should have changed after first health check TTL", id)
 	}
-	if consul.checkHealth(*backend) {
+	if consul.CheckForUpstreamChanges(backend, "") {
 		t.Errorf("%v should not have changed without TTL expiring", id)
 	}
 	time.Sleep(2 * time.Second) // wait for TTL to expire
-	if !consul.checkHealth(*backend) {
+	if !consul.CheckForUpstreamChanges(backend, "") {
 		t.Errorf("%v should have changed after TTL expired.", id)
 	}
-	service.SendHeartbeat() // re-write TTL
-
-	// switch to top-level caller to make sure we have test coverage there
-	if !backend.CheckForUpstreamChanges() {
-		t.Errorf("%v should have changed after TTL re-entered.", id)
-	}
-	if backend.CheckForUpstreamChanges() {
-		t.Errorf("%v should not have changed without TTL expiring.", id)
-	}
-
 }

@@ -1,4 +1,4 @@
-package containerbuddy
+package config
 
 import (
 	"flag"
@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"utils"
 )
 
 // ------------------------------------------
@@ -57,8 +56,8 @@ func TestValidConfigParse(t *testing.T) {
 
 	os.Setenv("TEST", "HELLO")
 	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "valid1", "--debug"}
-	config, _ := loadConfig()
-	if !reflect.DeepEqual(config, getConfig()) {
+	config, _ := LoadConfig()
+	if !reflect.DeepEqual(config, GetConfig()) {
 		t.Errorf("Global config was not written after load")
 	}
 
@@ -87,13 +86,9 @@ func TestValidConfigParse(t *testing.T) {
 		t.Errorf("Expected no tag for upstreamB, but got: %s", config.Backends[1].Tag)
 	}
 
-	validateCommandParsed(t, "preStart", config.preStartCmd, []string{"/bin/to/preStart.sh", "arg1", "arg2"})
-	validateCommandParsed(t, "preStop", config.preStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
-	validateCommandParsed(t, "postStop", config.postStopCmd, []string{"/bin/to/postStop.sh"})
-	validateCommandParsed(t, "health", config.Services[0].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/A.sh"})
-	validateCommandParsed(t, "health", config.Services[1].healthCheckCmd, []string{"/bin/to/healthcheck/for/service/B.sh"})
-	validateCommandParsed(t, "onChange", config.Backends[0].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/A.sh", "HELLO"})
-	validateCommandParsed(t, "onChange", config.Backends[1].onChangeCmd, []string{"/bin/to/onChangeEvent/for/upstream/B.sh"})
+	validateCommandParsed(t, "preStart", config.PreStartCmd, []string{"/bin/to/preStart.sh", "arg1", "arg2"})
+	validateCommandParsed(t, "preStop", config.PreStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
+	validateCommandParsed(t, "postStop", config.PostStopCmd, []string{"/bin/to/postStop.sh"})
 }
 
 func TestConfigRequiredFields(t *testing.T) {
@@ -154,38 +149,10 @@ func validateParseError(t *testing.T, matchStrings []string, config *Config) {
 	}
 }
 
-func TestOnChangeCmd(t *testing.T) {
-	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
-	backend := &BackendConfig{
-		onChangeCmd: cmd1,
-	}
-	if _, err := backend.OnChange(); err != nil {
-		t.Errorf("Unexpected error OnChange: %s", err)
-	}
-	// Ensure we can run it more than once
-	if _, err := backend.OnChange(); err != nil {
-		t.Errorf("Unexpected error OnChange (x2): %s", err)
-	}
-}
-
-func TestHealthCheck(t *testing.T) {
-	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
-	service := &ServiceConfig{
-		healthCheckCmd: cmd1,
-	}
-	if _, err := service.CheckHealth(); err != nil {
-		t.Errorf("Unexpected error CheckHealth: %s", err)
-	}
-	// Ensure we can run it more than once
-	if _, err := service.CheckHealth(); err != nil {
-		t.Errorf("Unexpected error CheckHealth (x2): %s", err)
-	}
-}
-
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	os.Args = []string{"this", "/testdata/test.sh", "invalid1", "--debug"}
-	if _, err := loadConfig(); err != nil && err.Error() != "-config flag is required" {
+	if _, err := LoadConfig(); err != nil && err.Error() != "-config flag is required" {
 		t.Errorf("Expected error but got %s", err)
 	}
 }
@@ -244,7 +211,7 @@ func argTestCleanup(oldArgs []string) {
 
 func testParseExpectError(t *testing.T, testJSON string, expected string) {
 	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "test", "--debug"}
-	if _, err := loadConfig(); err != nil && !strings.Contains(err.Error(), expected) {
+	if _, err := LoadConfig(); err != nil && !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected %s but got %s", expected, err)
 	}
 }
