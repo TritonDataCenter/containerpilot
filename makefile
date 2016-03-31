@@ -29,7 +29,7 @@ DOCKERBUILD := docker run --rm \
 	containerbuddy_build
 
 clean:
-	rm -rf build release cover containerbuddy/vendor
+	rm -rf build release cover */vendor
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
@@ -41,7 +41,7 @@ clean:
 # default top-level target
 build: build/containerbuddy
 
-build/containerbuddy:  build/containerbuddy_build containerbuddy/*.go containerbuddy/vendor
+build/containerbuddy:  build/containerbuddy_build */*.go vendor
 	${DOCKERBUILD} go build -o build/containerbuddy -ldflags "$(LDFLAGS)"
 	@rmdir src || true
 
