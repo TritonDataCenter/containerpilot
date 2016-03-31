@@ -26,7 +26,7 @@ Using local scripts to test health or act on backend changes means that we can r
 
 Containerbuddy is explicitly *not* a supervisor process. Although it can act as PID1 inside a container, if the shimmed process dies, so does Containerbuddy (and therefore the container itself). Containerbuddy will return the exit code of its shimmed process back to the Docker Engine or Triton, so that it appears as expected when you run `docker ps -a` and look for your exit codes. Containerbuddy also attaches stdout/stderr from your application to stdout/stderr of the container, so that `docker logs` works as expected.
 
-### Configuring Containerbuddy
+## Configuring Containerbuddy
 
 Containerbuddy takes a single file argument (or a JSON string) as its configuration. All trailing arguments will be treated as the executable to shim and that executable's arguments.
 
@@ -90,11 +90,31 @@ The format of the JSON file configuration is as follows:
       "poll": 10,
       "onChange": "/opt/containerbuddy/reload-app.sh"
     }
-  ]
+  ],
+  "metrics": {
+	"name": "metrics_service_name",
+	"url": "/metrics",
+	"port": 8000,
+	"ttl": 30,
+	"poll": 10,
+	"interfaces": ["eth0"],
+    "tags": ["tag1"],
+	"sensors": [
+       {
+		"namespace": "metrics_namespace",
+		"subsystem": "metrics_subsystem",
+		"name": "metric_id",
+		"help": "help text",
+		"type": "counter",
+		"poll": 5,
+		"check": ["/bin/sensor.sh"]
+	  }
+	]
+  }
 }
 ```
 
-Service fields:
+#### Service fields:
 
 - `name` is the name of the service as it will appear in Consul. Each instance of the service will have a unique ID made up from `name`+hostname of the container.
 - `port` is the port the service will advertise to Consul.
@@ -104,13 +124,13 @@ Service fields:
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
 
-Backend fields:
+#### Backend fields:
 
 - `name` is the name of a backend service that this container depends on, as it will appear in Consul.
 - `poll` is the time in seconds between polling for changes.
 - `onChange` is the executable (and its arguments) that is called when there is a change in the list of IPs and ports for this backend.
 
-Service Discovery Backends:
+#### Service Discovery Backends:
 
 Must supply only one of the following
 
@@ -134,7 +154,7 @@ Must supply only one of the following
     - `endpoints` is the list of etcd nodes in your cluster
     - `prefix` is the path that will be prefixed to all service discovery keys. This key is optional. (Default: `/containerbuddy`)
 
-Logging Config (Optional):
+#### Logging Config (Optional):
 
 The logging config adjust the output format and verbosity of Containerbuddy logs.
 
@@ -181,7 +201,14 @@ exit status 1
 {"level":"fatal","msg":"The ice breaks!","number":100,"omg":true,"time":"2014-03-10 19:57:38.562543128 -0400 EDT"}
 ```
 
-Other fields:
+#### Metrics (Optional):
+
+If a `metrics` option is provided, Containerbuddy will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance metrics. The metrics interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the metrics service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the metrics endpoint.
+
+Details of how to configure the metrics endpoint and how the metrics endpoint works can be found in the [metrics README](https://github.com/joyent/containerbuddy/blob/master/metrics/README.md).
+
+
+#### Other fields:
 
 - `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, Containerbuddy will exit.
 - `preStop` is the executable (and its arguments) that will be called immediately **before** the shimmed application exits. This field is optional. Containerbuddy will wait until this program exits before terminating the shimmed application.
@@ -232,7 +259,7 @@ All executable fields, such as `onStart` and `onChange`, accept both a string or
 ]
 ```
 
-### Template Configuration
+#### Template Configuration
 
 Containerbuddy configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file and it will be substituted with `BAR`.
 
@@ -247,7 +274,7 @@ Containerbuddy configuration has template support. If you have an environment va
 
 _Note:  If you need more than just variable interpolation, check out the [Go text/template Docs](https://golang.org/pkg/text/template/)._
 
-### Operating Containerbuddy
+## Operating Containerbuddy
 
 Containerbuddy accepts POSIX signals to change its runtime behavior. Currently, Containerbuddy accepts the following signals:
 
@@ -266,11 +293,11 @@ Docker will automatically deliver a `SIGTERM` with `docker stop`, not when using
 
 *Caveat*: If Containerbuddy is wrapped as a shell command, such as: `/bin/sh -c '/opt/containerbuddy .... '` then `SIGTERM` will not reach Containerbuddy from `docker stop`.  This is important for systems like Mesos which may use a shell command as the entrypoint under default configuration.
 
-### Contributing
+## Contributing
 
 Please report any issues you encounter with Containerbuddy or its documentation by [opening a Github issue](https://github.com/joyent/containerbuddy/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerbuddy/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
 
-### Examples
+## Examples
 
 We've published a number of example applications demonstrating how Containerbuddy works.
 
