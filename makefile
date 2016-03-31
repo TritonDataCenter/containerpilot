@@ -6,7 +6,7 @@ SHELL := /bin/bash
 .PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint vendor
 
 VERSION ?= dev-build-not-for-release
-LDFLAGS := -X containerbuddy.GitHash='$(shell git rev-parse --short HEAD)' -X containerbuddy.Version='${VERSION}'
+LDFLAGS := -X config.GitHash='$(shell git rev-parse --short HEAD)' -X config.Version='${VERSION}'
 
 ROOT := $(shell pwd)
 
