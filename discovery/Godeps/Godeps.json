@@ -40,6 +40,6 @@
 		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "7f88271ea9913b72aca44fa7fc8af919eacc17ce"
-		},
+		}
 	]
 }
