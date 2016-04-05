@@ -66,11 +66,11 @@ func handlePolling(config *Config) {
 	for _, service := range config.Services {
 		quit = append(quit, poll(service))
 	}
-	if config.Metrics != nil {
-		for _, sensor := range config.Metrics.Sensors {
+	if config.Telemetry != nil {
+		for _, sensor := range config.Telemetry.Sensors {
 			quit = append(quit, poll(sensor))
 		}
-		config.Metrics.Serve()
+		config.Telemetry.Serve()
 	}
 	config.QuitChannels = quit
 }

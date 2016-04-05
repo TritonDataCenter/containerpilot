@@ -60,7 +60,7 @@ func (s *ServiceConfig) CheckHealth() (int, error) {
 	}()
 
 	// if we have a valid ServiceConfig but there's no health check
-	// set, assume it always passes (ex. metrics service).
+	// set, assume it always passes (ex. telemetry service).
 	if s.healthCheckCmd == nil {
 		return 0, nil
 	}

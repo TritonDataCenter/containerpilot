@@ -1,4 +1,4 @@
-package metrics
+package telemetry
 
 import (
 	"encoding/json"
@@ -8,9 +8,9 @@ import (
 	"utils"
 )
 
-// Metrics represents the service to advertise for finding the metrics
+// Telemetry represents the service to advertise for finding the metrics
 // endpoint, and the collection of Sensors.
-type Metrics struct {
+type Telemetry struct {
 	ServiceName string          `json:"name"`
 	Url         string          `json:"url"`
 	Port        int             `json:"port"`
@@ -22,7 +22,7 @@ type Metrics struct {
 	IpAddress   string
 }
 
-func (m *Metrics) Parse() error {
+func (m *Telemetry) Parse() error {
 	if ipAddress, err := utils.IpFromInterfaces(m.Interfaces); err != nil {
 		return err
 	} else {
@@ -39,7 +39,7 @@ func (m *Metrics) Parse() error {
 	return nil
 }
 
-func (m *Metrics) Serve() {
+func (m *Telemetry) Serve() {
 	http.Handle(m.Url, prometheus.Handler())
 	listen := fmt.Sprintf("%s:%v", m.IpAddress, m.Port)
 	http.ListenAndServe(listen, nil)

@@ -233,7 +233,7 @@ func TestMetricServiceCreation(t *testing.T) {
 
 	jsonFragment := []byte(`{
 	"consul": "consul:8500",
-    "metrics": {
+    "telemetry": {
 		"name": "namespace_text",
 		"url": "subsystem_text",
 		"port": 8000,
@@ -246,7 +246,7 @@ func TestMetricServiceCreation(t *testing.T) {
 	} else {
 		initializeConfig(config)
 		if len(config.Services) != 1 {
-			t.Errorf("Expected metrics service but got %v", config.Services)
+			t.Errorf("Expected telemetry service but got %v", config.Services)
 		} else {
 			service := config.Services[0]
 			if service.Name != "namespace_text" {

@@ -8,11 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"metrics"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+	"telemetry"
 	"utils"
 )
 
@@ -41,17 +41,17 @@ func getConfig() *Config {
 
 // Config is the top-level Containerbuddy Configuration
 type Config struct {
-	Consul       string           `json:"consul,omitempty"`
-	Etcd         json.RawMessage  `json:"etcd,omitempty"`
-	LogConfig    *LogConfig       `json:"logging,omitempty"`
-	OnStart      json.RawMessage  `json:"onStart,omitempty"`
-	PreStart     json.RawMessage  `json:"preStart,omitempty"`
-	PreStop      json.RawMessage  `json:"preStop,omitempty"`
-	PostStop     json.RawMessage  `json:"postStop,omitempty"`
-	StopTimeout  int              `json:"stopTimeout"`
-	Services     []*ServiceConfig `json:"services"`
-	Backends     []*BackendConfig `json:"backends"`
-	Metrics      *metrics.Metrics `json:"metrics,omitempty"`
+	Consul       string               `json:"consul,omitempty"`
+	Etcd         json.RawMessage      `json:"etcd,omitempty"`
+	LogConfig    *LogConfig           `json:"logging,omitempty"`
+	OnStart      json.RawMessage      `json:"onStart,omitempty"`
+	PreStart     json.RawMessage      `json:"preStart,omitempty"`
+	PreStop      json.RawMessage      `json:"preStop,omitempty"`
+	PostStop     json.RawMessage      `json:"postStop,omitempty"`
+	StopTimeout  int                  `json:"stopTimeout"`
+	Services     []*ServiceConfig     `json:"services"`
+	Backends     []*BackendConfig     `json:"backends"`
+	Telemetry    *telemetry.Telemetry `json:"telemetry,omitempty"`
 	preStartCmd  *exec.Cmd
 	preStopCmd   *exec.Cmd
 	postStopCmd  *exec.Cmd
@@ -218,13 +218,13 @@ func initializeConfig(config *Config) (*Config, error) {
 		}
 	}
 
-	if config.Metrics != nil {
-		m := config.Metrics
+	if config.Telemetry != nil {
+		m := config.Telemetry
 		if err := m.Parse(); err != nil {
 			return nil, err
 		} else {
-			// create a new service for Metrics
-			metricsService := &ServiceConfig{
+			// create a new service for Telemetry
+			telemetryService := &ServiceConfig{
 				ID:               fmt.Sprintf("%s-%s", m.ServiceName, hostname),
 				Name:             m.ServiceName,
 				Poll:             m.Poll,
@@ -235,7 +235,7 @@ func initializeConfig(config *Config) (*Config, error) {
 				ipAddress:        m.IpAddress,
 				healthCheckCmd:   nil, // no health check code
 			}
-			config.Services = append(config.Services, metricsService)
+			config.Services = append(config.Services, telemetryService)
 		}
 	}
 

@@ -1,19 +1,19 @@
-# Containerbuddy Metrics
+# Containerbuddy Telemetry
 
-If a `metrics` option is provided, Containerbuddy will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance metrics. The metrics interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the metrics service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the metrics endpoint.
+If a `telemetry` option is provided, Containerbuddy will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
 
-### Configuring Metrics
+### Configuring Telemetry
 
-The top-level metrics configuration defines the metrics HTTP endpoint. This endpoint will be advertised to Consul (or other discovery service) just as a typical Containerbuddy `service` block is. The metrics service will send periodic heartbeats to the discovery service to identify that it is still operating. Unlike a typical Containerbuddy service, there is no user-defined health check for the metrics service endpoint.
+The top-level telemetry configuration defines the telemetry HTTP endpoint. This endpoint will be advertised to Consul (or other discovery service) just as a typical Containerbuddy `service` block is. The telemetry service will send periodic heartbeats to the discovery service to identify that it is still operating. Unlike a typical Containerbuddy service, there is no user-defined health check for the telemetry service endpoint.
 
-A minimal configuration for Containerbuddy including metrics might look like this:
+A minimal configuration for Containerbuddy including telemetry might look like this:
 
 ```json
 {
   "consul": "consul:8500",
-  "metrics": {
-	"name": "metrics_service_name",
-	"url": "/metrics",
+  "telemetry": {
+	"name": "telemetry_service_name",
+	"url": "/telemetry",
 	"port": 8000,
 	"ttl": 30,
 	"poll": 10,
@@ -36,26 +36,26 @@ A minimal configuration for Containerbuddy including metrics might look like thi
 
 The fields are as follows:
 
-- `name` is the name of the metrics service as it will appear in the discovery service. Each instance of the service will have a unique ID made up from `name`+hostname of the container. The Prometheus server should use this name to discover containers exposing metrics.
-- `url` is the path to use for the metrics service. A scrape against any other URL will return 404, and the default value is `/metrics`.
-- `port` is the port the metrics service will advertise to the discovery service.
+- `name` is the name of the telemetry service as it will appear in the discovery service. Each instance of the service will have a unique ID made up from `name`+hostname of the container. The Prometheus server should use this name to discover containers exposing telemetry.
+- `url` is the path to use for the telemetry service. A scrape against any other URL will return 404, and the default value is `/telemetry`.
+- `port` is the port the telemetry service will advertise to the discovery service.
 - `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`)
 - `poll` is the time in seconds between sending heartbeats to the discovery service.
 - `ttl` is the time-to-live of a heartbeat to the discovery service. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
-- `sensor` is an optional array of sensor configurations (see below). If no sensors are provided, then the metrics endpoint will still be exposed and will show only metrics about Containerbuddy internals.
+- `sensor` is an optional array of sensor configurations (see below). If no sensors are provided, then the telemetry endpoint will still be exposed and will show only telemetry about Containerbuddy internals.
 
 ### Configuring Sensors
 
-The `sensors` field is a list of user-defined sensors that the metrics service will use to collect metrics. Each time a sensor is polled, the user-defined `check` executable will be run. If the value that the `check` returns from stdout can be parsed as a 64-bit float, then the metrics collector will receive that value.
+The `sensors` field is a list of user-defined sensors that the telemetry service will use to collect telemetry. Each time a sensor is polled, the user-defined `check` executable will be run. If the value that the `check` returns from stdout can be parsed as a 64-bit float, then the telemetry collector will receive that value.
 
 The fields for a sensor are as follows:
 
-- `namespace`, `subsystem`, and `name` are the names that the Prometheus client library will use to construct the name for the metrics. These three names are concatenated with underscores `_` to become the final name that is scraped recorded by Prometheus. In the example above the metric recorded would be named `my_namespace_my_subsystem_my_event_count`. Please see the [Prometheus documents on naming](http://prometheus.io/docs/practices/naming/) for best practices on how to name your metrics.
+- `namespace`, `subsystem`, and `name` are the names that the Prometheus client library will use to construct the name for the telemetry. These three names are concatenated with underscores `_` to become the final name that is scraped recorded by Prometheus. In the example above the metric recorded would be named `my_namespace_my_subsystem_my_event_count`. Please see the [Prometheus documents on naming](http://prometheus.io/docs/practices/naming/) for best practices on how to name your telemetry.
 - `help` is the help text that will be associated with the metric recorded by Prometheus. This is useful for debugging by giving a more verbose description.
 - `type` is the type of collector Prometheus will use (one of `counter`, `gauge`, `histogram` or `summary`). See [below](#Collector_types) for details.
 - `poll` is the time in seconds between running the `check`.
-- `check` is the executable (and its arguments) that is called when it is time to perform a metrics collection.
+- `check` is the executable (and its arguments) that is called when it is time to perform a telemetry collection.
 
 The check executable is expected to return via stdout a value that can be parsed as a single 64-bit float number. Whitespace will be trimmed, but any other text in the stdout of the executable will cause the metric to be dropped. If you need to return additional information for logging, you should return this via stderr (which Containerbuddy will pass along to the Docker engine).
 
@@ -86,7 +86,7 @@ A metric that represents a single numerical value that can arbitrarily go up and
 
 *Histogram*
 
-A count of observations in "buckets", along with the sum of all observed values. A typical use case might be request durations or response sizes. When the Prometheus server scrapes this metrics endpoint, it will receive a list of buckets and their counts. For example:
+A count of observations in "buckets", along with the sum of all observed values. A typical use case might be request durations or response sizes. When the Prometheus server scrapes this telemetry endpoint, it will receive a list of buckets and their counts. For example:
 
 ```
 namespace_subsystem_response_bucket{le="1"} 0

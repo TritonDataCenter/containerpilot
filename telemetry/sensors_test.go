@@ -1,4 +1,4 @@
-package metrics
+package telemetry
 
 import (
 	"encoding/json"
@@ -29,7 +29,7 @@ func TestSensorPollAction(t *testing.T) {
 		Type:     "counter",
 		checkCmd: utils.StrToCmd("./testdata/test.sh measureStuff"),
 		collector: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "metrics",
+			Namespace: "telemetry",
 			Subsystem: "sensors",
 			Name:      "TestSensorPollAction",
 			Help:      "help",
@@ -37,7 +37,7 @@ func TestSensorPollAction(t *testing.T) {
 	prometheus.MustRegister(sensor.collector)
 	sensor.PollAction()
 	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "metrics_sensors_TestSensorPollAction 42") != 1 {
+	if strings.Count(resp, "telemetry_sensors_TestSensorPollAction 42") != 1 {
 		t.Fatalf("Failed to get match for sensor in response: %s", resp)
 	}
 }
@@ -63,7 +63,7 @@ func TestSensorRecordCounter(t *testing.T) {
 	sensor := &Sensor{
 		Type: "counter",
 		collector: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "metrics",
+			Namespace: "telemetry",
 			Subsystem: "sensors",
 			Name:      "TestSensorRecordCounter",
 			Help:      "help",
@@ -71,12 +71,12 @@ func TestSensorRecordCounter(t *testing.T) {
 	prometheus.MustRegister(sensor.collector)
 	sensor.record("1")
 	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "metrics_sensors_TestSensorRecordCounter 1") != 1 {
+	if strings.Count(resp, "telemetry_sensors_TestSensorRecordCounter 1") != 1 {
 		t.Fatalf("Failed to get match for sensor in response: %s", resp)
 	}
 	sensor.record("2")
 	resp = getFromTestServer(t, testServer)
-	if strings.Count(resp, "metrics_sensors_TestSensorRecordCounter 3") != 1 {
+	if strings.Count(resp, "telemetry_sensors_TestSensorRecordCounter 3") != 1 {
 		t.Fatalf("Failed to get match for sensor in response: %s", resp)
 	}
 }
@@ -88,7 +88,7 @@ func TestSensorRecordGauge(t *testing.T) {
 	sensor := &Sensor{
 		Type: "gauge",
 		collector: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "metrics",
+			Namespace: "telemetry",
 			Subsystem: "sensors",
 			Name:      "TestSensorRecordGauge",
 			Help:      "help",
@@ -97,12 +97,12 @@ func TestSensorRecordGauge(t *testing.T) {
 	prometheus.MustRegister(sensor.collector)
 	sensor.record("1.2")
 	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "metrics_sensors_TestSensorRecordGauge 1.2") != 1 {
+	if strings.Count(resp, "telemetry_sensors_TestSensorRecordGauge 1.2") != 1 {
 		t.Fatalf("Failed to get match for sensor in response: %s", resp)
 	}
 	sensor.record("2.3")
 	resp = getFromTestServer(t, testServer)
-	if strings.Count(resp, "metrics_sensors_TestSensorRecordGauge 2.3") != 1 {
+	if strings.Count(resp, "telemetry_sensors_TestSensorRecordGauge 2.3") != 1 {
 		t.Fatalf("Failed to get match for sensor in response: %s", resp)
 	}
 }
@@ -114,13 +114,13 @@ func TestSensorRecordHistogram(t *testing.T) {
 	sensor := &Sensor{
 		Type: "histogram",
 		collector: prometheus.NewHistogram(prometheus.HistogramOpts{
-			Namespace: "metrics",
+			Namespace: "telemetry",
 			Subsystem: "sensors",
 			Name:      "TestSensorRecordHistogram",
 			Help:      "help",
 		})}
 	prometheus.MustRegister(sensor.collector)
-	patt := `metrics_sensors_TestSensorRecordHistogram_bucket{le="([\.0-9|\+Inf]*)"} ([1-9])`
+	patt := `telemetry_sensors_TestSensorRecordHistogram_bucket{le="([\.0-9|\+Inf]*)"} ([1-9])`
 
 	sensor.record("1.2")
 	resp := getFromTestServer(t, testServer)
@@ -149,13 +149,13 @@ func TestSensorRecordSummary(t *testing.T) {
 	sensor := &Sensor{
 		Type: "summary",
 		collector: prometheus.NewSummary(prometheus.SummaryOpts{
-			Namespace: "metrics",
+			Namespace: "telemetry",
 			Subsystem: "sensors",
 			Name:      "TestSensorRecordSummary",
 			Help:      "help",
 		})}
 	prometheus.MustRegister(sensor.collector)
-	patt := `metrics_sensors_TestSensorRecordSummary{quantile="([\.0-9]*)"} ([0-9\.]*)`
+	patt := `telemetry_sensors_TestSensorRecordSummary{quantile="([\.0-9]*)"} ([0-9\.]*)`
 
 	// need a bunch of metrics to make quantiles make any sense
 	for i := 1; i <= 10; i++ {
@@ -216,25 +216,25 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 	return ""
 }
 
-func TestSensorGetMetrics(t *testing.T) {
+func TestSensorObserve(t *testing.T) {
 
 	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
 	sensor := &Sensor{checkCmd: cmd1}
-	if val, err := sensor.getMetrics(); err != nil {
+	if val, err := sensor.observe(); err != nil {
 		t.Fatalf("Unexpected error from sensor check: %s", err)
 	} else if val != "Running doStuff with args: --debug\n" {
 		t.Fatalf("Unexpected output from sensor check: %s", val)
 	}
 
 	// Ensure we can run it more than once
-	if _, err := sensor.getMetrics(); err != nil {
+	if _, err := sensor.observe(); err != nil {
 		t.Fatalf("Unexpected error from sensor check (x2): %s", err)
 	}
 
 	// Ensure bad commands return error
 	cmd2 := utils.StrToCmd("./testdata/doesNotExist.sh")
 	sensor = &Sensor{checkCmd: cmd2}
-	if val, err := sensor.getMetrics(); err == nil {
+	if val, err := sensor.observe(); err == nil {
 		t.Fatalf("Expected error from sensor check but got %s", val)
 	} else if err.Error() != "fork/exec ./testdata/doesNotExist.sh: no such file or directory" {
 		t.Fatalf("Unexpected error from invalid sensor check: %s", err)
@@ -244,7 +244,7 @@ func TestSensorGetMetrics(t *testing.T) {
 
 func TestSensorParse(t *testing.T) {
 	jsonFragment := `{
-	"namespace": "metrics",
+	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "%s",
 	"help": "help",
@@ -296,7 +296,7 @@ func parseAndGetCollector(t *testing.T, testJson []byte) prometheus.Collector {
 // invalid collector type
 func TestSensorBadType(t *testing.T) {
 	jsonFragment := []byte(`{
-	"namespace": "metrics",
+	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "TestSensorBadType",
 	"type": "nonsense"}`)
@@ -313,7 +313,7 @@ func TestSensorBadType(t *testing.T) {
 // invalid metric name
 func TestSensorBadName(t *testing.T) {
 	jsonFragment := []byte(`{
-	"namespace": "metrics",
+	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "Test.Sensor.Bad.Name",
 	"type": "counter"}`)
