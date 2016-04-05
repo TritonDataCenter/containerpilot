@@ -1,5 +1,5 @@
 {
-	"ImportPath": "metrics",
+	"ImportPath": "telemetry",
 	"GoVersion": "go1.5",
 	"GodepVersion": "v60",
 	"Deps": [

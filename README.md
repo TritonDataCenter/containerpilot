@@ -91,9 +91,9 @@ The format of the JSON file configuration is as follows:
       "onChange": "/opt/containerbuddy/reload-app.sh"
     }
   ],
-  "metrics": {
-	"name": "metrics_service_name",
-	"url": "/metrics",
+  "telemetry": {
+	"name": "telemetry_service_name",
+	"url": "/telemetry",
 	"port": 8000,
 	"ttl": 30,
 	"poll": 10,
@@ -101,8 +101,8 @@ The format of the JSON file configuration is as follows:
     "tags": ["tag1"],
 	"sensors": [
        {
-		"namespace": "metrics_namespace",
-		"subsystem": "metrics_subsystem",
+		"namespace": "telemetry_namespace",
+		"subsystem": "telemetry_subsystem",
 		"name": "metric_id",
 		"help": "help text",
 		"type": "counter",
@@ -201,11 +201,11 @@ exit status 1
 {"level":"fatal","msg":"The ice breaks!","number":100,"omg":true,"time":"2014-03-10 19:57:38.562543128 -0400 EDT"}
 ```
 
-#### Metrics (Optional):
+#### Telemetry (Optional):
 
-If a `metrics` option is provided, Containerbuddy will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance metrics. The metrics interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the metrics service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the metrics endpoint.
+If a `telemetry` option is provided, Containerbuddy will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
 
-Details of how to configure the metrics endpoint and how the metrics endpoint works can be found in the [metrics README](https://github.com/joyent/containerbuddy/blob/master/metrics/README.md).
+Details of how to configure the telemetry endpoint and how the telemetry endpoint works can be found in the [telemetry README](https://github.com/joyent/containerbuddy/blob/master/telemetry/README.md).
 
 
 #### Other fields:
