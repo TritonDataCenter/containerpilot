@@ -228,6 +228,7 @@ func initializeConfig(config *Config) (*Config, error) {
 				ID:               fmt.Sprintf("%s-%s", m.ServiceName, hostname),
 				Name:             m.ServiceName,
 				Poll:             m.Poll,
+				Port:             m.Port,
 				TTL:              m.TTL,
 				Interfaces:       m.Interfaces,
 				Tags:             m.Tags,

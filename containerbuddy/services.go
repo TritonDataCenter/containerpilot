@@ -56,7 +56,9 @@ func (s *ServiceConfig) CheckHealth() (int, error) {
 
 	defer func() {
 		// reset command object because it can't be reused
-		s.healthCheckCmd = utils.ArgsToCmd(s.healthCheckCmd.Args)
+		if s.healthCheckCmd != nil {
+			s.healthCheckCmd = utils.ArgsToCmd(s.healthCheckCmd.Args)
+		}
 	}()
 
 	// if we have a valid ServiceConfig but there's no health check

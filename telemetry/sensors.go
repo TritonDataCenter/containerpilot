@@ -33,7 +33,7 @@ func (s Sensor) PollTime() int {
 }
 
 // PollAction implements Pollable for Sensor.
-func (s Sensor) PollAction() {
+func (s *Sensor) PollAction() {
 	if metricValue, err := s.observe(); err == nil {
 		s.record(metricValue)
 	} else {
@@ -42,7 +42,6 @@ func (s Sensor) PollAction() {
 }
 
 func (s *Sensor) observe() (string, error) {
-
 	defer func() {
 		// reset command object because it can't be reused
 		s.checkCmd = utils.ArgsToCmd(s.checkCmd.Args)

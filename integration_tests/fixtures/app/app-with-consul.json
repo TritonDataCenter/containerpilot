@@ -5,7 +5,7 @@
     {
       "name": "app",
       "port": 8000,
-      "health": "/usr/bin/curl --fail -s http://localhost:8000",
+      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
       "poll": 1,
       "ttl": 5,
       "tags": ["application"]
@@ -23,5 +23,23 @@
       "onChange": "/reload-app.sh",
       "tag": "application"
     }
-  ]
+  ],
+  "telemetry": {
+    "name": "telemetry",
+    "url": "/telemetry",
+    "port": 9090,
+    "ttl": 5,
+    "poll": 1,
+    "sensors": [
+       {
+        "namespace": "containerbuddy",
+        "subsystem": "app",
+        "name": "some_counter",
+        "help": "help text",
+        "type": "counter",
+        "poll": 1,
+        "check": ["/sensor.sh", "count"]
+       }
+    ]
+  }
 }

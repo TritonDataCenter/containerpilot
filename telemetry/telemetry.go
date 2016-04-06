@@ -6,6 +6,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"utils"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Telemetry represents the service to advertise for finding the metrics
@@ -42,5 +44,6 @@ func (m *Telemetry) Parse() error {
 func (m *Telemetry) Serve() {
 	http.Handle(m.Url, prometheus.Handler())
 	listen := fmt.Sprintf("%s:%v", m.IpAddress, m.Port)
-	http.ListenAndServe(listen, nil)
+	log.Debugf("Telemetry listening on %v\n", listen)
+	log.Fatal(http.ListenAndServe(listen, nil))
 }
