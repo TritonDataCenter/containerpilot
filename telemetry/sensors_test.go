@@ -280,7 +280,6 @@ func TestSensorParse(t *testing.T) {
 	if _, ok := collector.(prometheus.Summary); !ok {
 		t.Fatalf("Incorrect collector; expected Summary but got %v", collector)
 	}
-
 }
 
 func parseAndGetCollector(t *testing.T, testJson []byte) prometheus.Collector {
@@ -325,4 +324,32 @@ func TestSensorBadName(t *testing.T) {
 	if err := sensor.Parse(); err == nil {
 		t.Fatalf("Did not get error from sensor.Parse(): %v", sensor)
 	}
+}
+
+// partial metric name parses ok and write out as expected
+func TestSensorPartialName(t *testing.T) {
+
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+
+	jsonFragment := []byte(`{
+	"name": "telemetry_sensors_partial_name",
+	"help": "help text",
+	"type": "counter"}`)
+	collector := parseAndGetCollector(t, jsonFragment)
+	if _, ok := collector.(prometheus.Counter); !ok {
+		t.Fatalf("Incorrect collector; expected Counter but got %v", collector)
+	}
+
+	sensor := &Sensor{
+		Type:      "counter",
+		collector: collector,
+	}
+
+	sensor.record("1")
+	resp := getFromTestServer(t, testServer)
+	if strings.Count(resp, "telemetry_sensors_partial_name 1") != 1 {
+		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+	}
+
 }
