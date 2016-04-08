@@ -12,20 +12,20 @@ A minimal configuration for Containerbuddy including telemetry might look like t
 {
   "consul": "consul:8500",
   "telemetry": {
-	"port": 9090,
-	"interfaces": ["eth0"],
+    "port": 9090,
+    "interfaces": ["eth0"],
     "tags": ["tag1"],
-	"sensors": [
-       {
-		"namespace": "my_namespace",
-		"subsystem": "my_subsystem",
-		"name": "my_events_count",
-		"help": "help text",
-		"type": "counter",
-		"poll": 5,
-		"check": ["/bin/sensor.sh"]
-	  }
-	]
+    "sensors": [
+      {
+        "namespace": "my_namespace",
+        "subsystem": "my_subsystem",
+        "name": "my_events_count",
+        "help": "help text",
+        "type": "counter",
+        "poll": 5,
+        "check": ["/bin/sensor.sh"]
+      }
+    ]
   }
 }
 ```
@@ -40,6 +40,8 @@ The fields are as follows:
 ### Configuring Sensors
 
 The `sensors` field is a list of user-defined sensors that the telemetry service will use to collect telemetry. Each time a sensor is polled, the user-defined `check` executable will be run. If the value that the `check` returns from stdout can be parsed as a 64-bit float, then the telemetry collector will receive that value.
+
+*The protocol between Containerbuddy and the sensors is a preview and may change. Although we'll attempt to keep backwards compatibility with sensors as described below, as real-world use cases are developed we may discover that the current format is more limited than we'd like. If you're using telemetry, be sure to review the changelogs of the next few releases.*
 
 The fields for a sensor are as follows:
 
