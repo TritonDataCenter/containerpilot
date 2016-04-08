@@ -92,16 +92,16 @@ The format of the JSON file configuration is as follows:
     }
   ],
   "telemetry": {
-	"port": 9090,
-	"sensors": [
+    "port": 9090,
+    "sensors": [
        {
-		"name": "metric_id",
-		"help": "help text",
-		"type": "counter",
-		"poll": 5,
-		"check": ["/bin/sensor.sh"]
-	  }
-	]
+        "name": "metric_id",
+        "help": "help text",
+        "type": "counter",
+        "poll": 5,
+        "check": ["/bin/sensor.sh"]
+      }
+    ]
   }
 }
 ```
