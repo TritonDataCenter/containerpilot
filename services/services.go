@@ -9,8 +9,8 @@ import (
 	"utils"
 )
 
-// ServiceConfig configures the service, discovery data, and health checks
-type ServiceConfig struct {
+// Service configures the service, discovery data, and health checks
+type Service struct {
 	ID               string
 	Name             string          `json:"name"`
 	Poll             int             `json:"poll"` // time in seconds
@@ -25,11 +25,11 @@ type ServiceConfig struct {
 	definition       *discovery.ServiceDefinition
 }
 
-func NewServices(raw json.RawMessage, disc discovery.DiscoveryService) ([]*ServiceConfig, error) {
+func NewServices(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Service, error) {
 	if raw == nil {
-		return []*ServiceConfig{}, nil
+		return []*Service{}, nil
 	}
-	services := make([]*ServiceConfig, 0)
+	services := make([]*Service, 0)
 	if err := json.Unmarshal(raw, &services); err != nil {
 		return nil, fmt.Errorf("Service configuration error: %v", err)
 	}
@@ -42,8 +42,8 @@ func NewServices(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Servi
 }
 
 func NewService(name string, poll, port, ttl int, interfaces json.RawMessage,
-	tags []string, disc discovery.DiscoveryService) (*ServiceConfig, error) {
-	service := &ServiceConfig{
+	tags []string, disc discovery.DiscoveryService) (*Service, error) {
+	service := &Service{
 		Name:       name,
 		Poll:       poll,
 		Port:       port,
@@ -57,7 +57,7 @@ func NewService(name string, poll, port, ttl int, interfaces json.RawMessage,
 	return service, nil
 }
 
-func parseService(s *ServiceConfig, disc discovery.DiscoveryService) error {
+func parseService(s *Service, disc discovery.DiscoveryService) error {
 	if s.Name == "" {
 		return fmt.Errorf("service must have a `name`")
 	}
@@ -103,38 +103,38 @@ func parseService(s *ServiceConfig, disc discovery.DiscoveryService) error {
 	return nil
 }
 
-// PollTime implements Pollable for ServiceConfig
+// PollTime implements Pollable for Service
 // It returns the service's poll interval.
-func (s ServiceConfig) PollTime() int {
+func (s Service) PollTime() int {
 	return s.Poll
 }
 
-// PollAction implements Pollable for ServiceConfig.
+// PollAction implements Pollable for Service.
 // If the error code returned by CheckHealth is 0, we write a TTL health check
 // to the discovery service.
-func (s *ServiceConfig) PollAction() {
+func (s *Service) PollAction() {
 	if code, _ := s.CheckHealth(); code == 0 {
 		s.SendHeartbeat()
 	}
 }
 
 // SendHeartbeat sends a heartbeat for this service
-func (s *ServiceConfig) SendHeartbeat() {
+func (s *Service) SendHeartbeat() {
 	s.discoveryService.SendHeartbeat(s.definition)
 }
 
 // MarkForMaintenance marks this service for maintenance
-func (s *ServiceConfig) MarkForMaintenance() {
+func (s *Service) MarkForMaintenance() {
 	s.discoveryService.MarkForMaintenance(s.definition)
 }
 
 // Deregister will deregister this instance of the service
-func (s *ServiceConfig) Deregister() {
+func (s *Service) Deregister() {
 	s.discoveryService.Deregister(s.definition)
 }
 
 // CheckHealth runs the service's health command, returning the results
-func (s *ServiceConfig) CheckHealth() (int, error) {
+func (s *Service) CheckHealth() (int, error) {
 
 	defer func() {
 		// reset command object because it can't be reused
@@ -143,7 +143,7 @@ func (s *ServiceConfig) CheckHealth() (int, error) {
 		}
 	}()
 
-	// if we have a valid ServiceConfig but there's no health check
+	// if we have a valid Service but there's no health check
 	// set, assume it always passes (ex. telemetry service).
 	if s.healthCheckCmd == nil {
 		return 0, nil

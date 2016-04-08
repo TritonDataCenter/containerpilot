@@ -33,7 +33,7 @@ func toggleMaintenanceMode(cfg *config.Config) {
 	defer maintModeLock.RUnlock()
 	paused = !paused
 	if paused {
-		forAllServices(cfg, func(service *services.ServiceConfig) {
+		forAllServices(cfg, func(service *services.Service) {
 			log.Infof("Marking for maintenance: %s", service.Name)
 			service.MarkForMaintenance()
 		})
@@ -44,7 +44,7 @@ func terminate(cfg *config.Config) {
 	signalLock.Lock()
 	defer signalLock.Unlock()
 	stopPolling(cfg)
-	forAllServices(cfg, func(service *services.ServiceConfig) {
+	forAllServices(cfg, func(service *services.Service) {
 		log.Infof("Deregistering service: %s", service.Name)
 		service.Deregister()
 	})
@@ -84,7 +84,7 @@ func reloadConfig(cfg *config.Config) *config.Config {
 	// stop advertising the existing services so that we can
 	// make sure we update them if ports, etc. change.
 	stopPolling(cfg)
-	forAllServices(cfg, func(service *services.ServiceConfig) {
+	forAllServices(cfg, func(service *services.Service) {
 		log.Infof("Deregistering service: %s", service.Name)
 		service.Deregister()
 	})
@@ -102,7 +102,7 @@ func stopPolling(cfg *config.Config) {
 	}
 }
 
-type serviceFunc func(service *services.ServiceConfig)
+type serviceFunc func(service *services.Service)
 
 func forAllServices(cfg *config.Config, fn serviceFunc) {
 	for _, service := range cfg.Services {

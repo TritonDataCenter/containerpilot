@@ -32,7 +32,7 @@ func getSignalTestConfig() *config.Config {
 			"./testdata/test.sh",
 			"interruptSleep"}),
 		StopTimeout: 5,
-		Services:    []*services.ServiceConfig{service},
+		Services:    []*services.Service{service},
 	}
 	return cfg
 }

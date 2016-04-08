@@ -9,7 +9,7 @@ import (
 
 func TestOnChangeCmd(t *testing.T) {
 	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
-	backend := &BackendConfig{
+	backend := &Backend{
 		onChangeCmd: cmd1,
 	}
 	if _, err := backend.OnChange(); err != nil {
@@ -22,7 +22,7 @@ func TestOnChangeCmd(t *testing.T) {
 }
 
 type TestFragmentBackends struct {
-	Backends []BackendConfig
+	Backends []Backend
 }
 
 func TestBackendsParse(t *testing.T) {

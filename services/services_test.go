@@ -9,7 +9,7 @@ import (
 
 func TestHealthCheck(t *testing.T) {
 	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
-	service := &ServiceConfig{
+	service := &Service{
 		healthCheckCmd: cmd1,
 	}
 	if _, err := service.CheckHealth(); err != nil {
@@ -22,7 +22,7 @@ func TestHealthCheck(t *testing.T) {
 }
 
 type TestFragmentServices struct {
-	Services []ServiceConfig
+	Services []Service
 }
 
 func TestServiceParse(t *testing.T) {

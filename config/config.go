@@ -55,8 +55,8 @@ type Config struct {
 	ServicesConfig  json.RawMessage `json:"services,omitempty"`
 	BackendsConfig  json.RawMessage `json:"backends,omitempty"`
 	TelemetryConfig json.RawMessage `json:"telemetry,omitempty"`
-	Services        []*services.ServiceConfig
-	Backends        []*backends.BackendConfig
+	Services        []*services.Service
+	Backends        []*backends.Backend
 	Telemetry       *telemetry.Telemetry
 	PreStartCmd     *exec.Cmd
 	PreStopCmd      *exec.Cmd

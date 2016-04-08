@@ -8,8 +8,8 @@ import (
 	"utils"
 )
 
-// BackendConfig represents a command to execute when another application changes
-type BackendConfig struct {
+// Backend represents a command to execute when another application changes
+type Backend struct {
 	Name             string          `json:"name"`
 	Poll             int             `json:"poll"` // time in seconds
 	OnChangeExec     json.RawMessage `json:"onChange"`
@@ -19,11 +19,11 @@ type BackendConfig struct {
 	onChangeCmd      *exec.Cmd
 }
 
-func NewBackends(raw json.RawMessage, disc discovery.DiscoveryService) ([]*BackendConfig, error) {
+func NewBackends(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Backend, error) {
 	if raw == nil {
-		return []*BackendConfig{}, nil
+		return []*Backend{}, nil
 	}
-	backends := make([]*BackendConfig, 0)
+	backends := make([]*Backend, 0)
 	if err := json.Unmarshal(raw, &backends); err != nil {
 		return nil, fmt.Errorf("Backend configuration error: %v", err)
 	}
@@ -50,16 +50,16 @@ func NewBackends(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Backe
 	return backends, nil
 }
 
-// PollTime implements Pollable for BackendConfig
+// PollTime implements Pollable for Backend
 // It returns the backend's poll interval.
-func (b BackendConfig) PollTime() int {
+func (b Backend) PollTime() int {
 	return b.Poll
 }
 
-// PollAction implements Pollable for BackendConfig.
+// PollAction implements Pollable for Backend.
 // If the values in the discovery service have changed since the last run,
 // we fire the on change handler.
-func (b BackendConfig) PollAction() {
+func (b Backend) PollAction() {
 	if b.CheckForUpstreamChanges() {
 		b.OnChange()
 	}
@@ -67,12 +67,12 @@ func (b BackendConfig) PollAction() {
 
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
 // in a dependent backend. Returns true when there has been a change.
-func (b *BackendConfig) CheckForUpstreamChanges() bool {
+func (b *Backend) CheckForUpstreamChanges() bool {
 	return b.discoveryService.CheckForUpstreamChanges(b.Name, b.Tag)
 }
 
 // OnChange runs the backend's onChange command, returning the results
-func (b *BackendConfig) OnChange() (int, error) {
+func (b *Backend) OnChange() (int, error) {
 	defer func() {
 		// reset command object because it can't be reused
 		b.onChangeCmd = utils.ArgsToCmd(b.onChangeCmd.Args)
