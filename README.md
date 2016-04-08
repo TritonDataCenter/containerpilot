@@ -92,17 +92,9 @@ The format of the JSON file configuration is as follows:
     }
   ],
   "telemetry": {
-	"name": "telemetry_service_name",
-	"url": "/telemetry",
 	"port": 9090,
-	"ttl": 30,
-	"poll": 10,
-	"interfaces": ["eth0"],
-    "tags": ["tag1"],
 	"sensors": [
        {
-		"namespace": "telemetry_namespace",
-		"subsystem": "telemetry_subsystem",
 		"name": "metric_id",
 		"help": "help text",
 		"type": "counter",

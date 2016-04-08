@@ -4,7 +4,7 @@ If a `telemetry` option is provided, Containerbuddy will expose a [Prometheus](h
 
 ### Configuring Telemetry
 
-The top-level telemetry configuration defines the telemetry HTTP endpoint. This endpoint will be advertised to Consul (or other discovery service) just as a typical Containerbuddy `service` block is. The telemetry service will send periodic heartbeats to the discovery service to identify that it is still operating. Unlike a typical Containerbuddy service, there is no user-defined health check for the telemetry service endpoint.
+The top-level telemetry configuration defines the telemetry HTTP endpoint. This endpoint will be advertised to Consul (or other discovery service) just as a typical Containerbuddy `service` block is. The service will be called `containerbuddy` and will be served on the path `/metrics`. The telemetry service will send periodic heartbeats to the discovery service to identify that it is still operating. Unlike a typical Containerbuddy service, there is no user-defined health check for the telemetry service endpoint, and you don't need to configure the poll/TTL; it will send a 15 second heartbeat every 5 seconds.
 
 A minimal configuration for Containerbuddy including telemetry might look like this:
 
@@ -12,11 +12,7 @@ A minimal configuration for Containerbuddy including telemetry might look like t
 {
   "consul": "consul:8500",
   "telemetry": {
-	"name": "telemetry_service_name",
-	"url": "/telemetry",
-	"port": 8000,
-	"ttl": 30,
-	"poll": 10,
+	"port": 9090,
 	"interfaces": ["eth0"],
     "tags": ["tag1"],
 	"sensors": [
@@ -36,14 +32,10 @@ A minimal configuration for Containerbuddy including telemetry might look like t
 
 The fields are as follows:
 
-- `name` is the name of the telemetry service as it will appear in the discovery service. Each instance of the service will have a unique ID made up from `name`+hostname of the container. The Prometheus server should use this name to discover containers exposing telemetry.
-- `url` is the path to use for the telemetry service. A scrape against any other URL will return 404, and the default value is `/telemetry`.
-- `port` is the port the telemetry service will advertise to the discovery service.
+- `port` is the port the telemetry service will advertise to the discovery service. (Default value is 9090.)
 - `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`)
-- `poll` is the time in seconds between sending heartbeats to the discovery service.
-- `ttl` is the time-to-live of a heartbeat to the discovery service. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
-- `sensor` is an optional array of sensor configurations (see below). If no sensors are provided, then the telemetry endpoint will still be exposed and will show only telemetry about Containerbuddy internals.
+- `sensors` is an optional array of sensor configurations (see below). If no sensors are provided, then the telemetry endpoint will still be exposed and will show only telemetry about Containerbuddy internals.
 
 ### Configuring Sensors
 
@@ -51,7 +43,7 @@ The `sensors` field is a list of user-defined sensors that the telemetry service
 
 The fields for a sensor are as follows:
 
-- `namespace`, `subsystem`, and `name` are the names that the Prometheus client library will use to construct the name for the telemetry. These three names are concatenated with underscores `_` to become the final name that is scraped recorded by Prometheus. In the example above the metric recorded would be named `my_namespace_my_subsystem_my_event_count`. Please see the [Prometheus documents on naming](http://prometheus.io/docs/practices/naming/) for best practices on how to name your telemetry.
+- `namespace`, `subsystem`, and `name` are the names that the Prometheus client library will use to construct the name for the telemetry. These three names are concatenated with underscores `_` to become the final name that is scraped recorded by Prometheus. In the example above the metric recorded would be named `my_namespace_my_subsystem_my_event_count`. You can leave off the `namespace` and `subsystem` values and put everything into the `name` field if desired; the option to provide these other fields is simply for convenience of those who might be generating Containerbuddy configurations programmatically. Please see the [Prometheus documents on naming](http://prometheus.io/docs/practices/naming/) for best practices on how to name your telemetry.
 - `help` is the help text that will be associated with the metric recorded by Prometheus. This is useful for debugging by giving a more verbose description.
 - `type` is the type of collector Prometheus will use (one of `counter`, `gauge`, `histogram` or `summary`). See [below](#Collector_types) for details.
 - `poll` is the time in seconds between running the `check`.
