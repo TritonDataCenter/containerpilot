@@ -100,7 +100,7 @@ func TestReloadSignal(t *testing.T) {
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
-	handleSignals(&config.Config{})
+	HandleSignals(&config.Config{})
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
 	sendAndWaitForSignal(t, syscall.SIGCHLD)

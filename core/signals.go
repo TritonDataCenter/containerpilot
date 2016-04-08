@@ -90,8 +90,8 @@ func reloadConfig(cfg *config.Config) *config.Config {
 	})
 
 	signal.Reset()
-	handleSignals(newConfig)
-	handlePolling(newConfig)
+	HandleSignals(newConfig)
+	HandlePolling(newConfig)
 
 	return newConfig // return for debuggability
 }
@@ -111,7 +111,7 @@ func forAllServices(cfg *config.Config, fn serviceFunc) {
 }
 
 // Listen for and capture signals used for orchestration
-func handleSignals(cfg *config.Config) {
+func HandleSignals(cfg *config.Config) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
@@ -130,7 +130,7 @@ func handleSignals(cfg *config.Config) {
 
 // on SIGCHLD send wait4() (ref http://linux.die.net/man/2/waitpid)
 // to clean up any potential zombies
-func reapChildren() {
+func ReapChildren() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGCHLD)
 	go func() {
