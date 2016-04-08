@@ -65,8 +65,10 @@ func (b *BackendConfig) CheckForUpstreamChanges() bool {
 
 // OnChange runs the backend's onChange command, returning the results
 func (b *BackendConfig) OnChange() (int, error) {
+	defer func() {
+		// reset command object because it can't be reused
+		b.onChangeCmd = utils.ArgsToCmd(b.onChangeCmd.Args)
+	}()
 	exitCode, err := utils.Run(b.onChangeCmd)
-	// Reset command object - since it can't be reused
-	b.onChangeCmd = utils.ArgsToCmd(b.onChangeCmd.Args)
 	return exitCode, err
 }

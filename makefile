@@ -58,7 +58,7 @@ docker: build/containerbuddy_build consul etcd
 
 # top-level target for vendoring our packages: godep restore requires
 # being in the package directory so we have to run this for each package
-vendor: backends/vendor config/vendor core/vendor discovery/vendor services/vendor utils/vendor
+vendor: backends/vendor config/vendor core/vendor discovery/vendor services/vendor utils/vendor telemetry/vendor
 %/vendor: build/containerbuddy_build
 	docker run --rm \
 	    -v ${ROOT}:/go/cb \
@@ -86,22 +86,28 @@ add-dep: build/containerbuddy_build
 	 	containerbuddy_build godep save
 	mv $(PKG)/src $(PKG)/vendor
 
+
 # ----------------------------------------------
 # develop and test
 
 lint: vendor
 	${DOCKERBUILD} golint src/
+	@rmdir src || true
 
 # run unit tests
+TESTS ?= backends config core discovery services telemetry utils
 test: docker vendor
-	@mkdir -p cover
-	${DOCKERRUN} go test -v backends config core discovery services utils
+	${DOCKERRUN} go test -v $(TESTS)
+	@rmdir src || true
 
-cover:
+# run unit tests and write out test coverage
+cover: docker
 	@mkdir -p cover
-	# TODO we'll want to expand coverage here
-	${DOCKERRUN} go test -v -coverprofile=cover/coverage.out containerbuddy
-	${DOCKERRUN} go tool cover -html=cover/coverage.out -o cover/coverage.html
+	${DOCKERRUN} bash -c 'for x in {backends,config,core,discovery,services,telemetry,utils}; do \
+		go test -v -coverprofile=cover/$$x.out $$x \
+		&& go tool cover -html=cover/$$x.out -o cover/$$x.html ;\
+		done'
+	@rmdir src || true
 
 # run integration tests
 integration: build

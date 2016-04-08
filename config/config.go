@@ -15,6 +15,7 @@ import (
 	"services"
 	"strings"
 	"sync"
+	"telemetry"
 	"utils"
 )
 
@@ -43,22 +44,24 @@ func GetConfig() *Config {
 
 // Config is the top-level Containerbuddy Configuration
 type Config struct {
-	Consul       string                    `json:"consul,omitempty"`
-	Etcd         json.RawMessage           `json:"etcd,omitempty"`
-	LogConfig    *LogConfig                `json:"logging,omitempty"`
-	OnStart      json.RawMessage           `json:"onStart,omitempty"`
-	PreStart     json.RawMessage           `json:"preStart,omitempty"`
-	PreStop      json.RawMessage           `json:"preStop,omitempty"`
-	PostStop     json.RawMessage           `json:"postStop,omitempty"`
-	StopTimeout  int                       `json:"stopTimeout"`
-	Services     []*services.ServiceConfig `json:"services"`
-	Backends     []*backends.BackendConfig `json:"backends"`
-	PreStartCmd  *exec.Cmd
-	PreStopCmd   *exec.Cmd
-	PostStopCmd  *exec.Cmd
-	Command      *exec.Cmd
-	QuitChannels []chan bool
-	ConfigFlag   string
+	Consul          string                    `json:"consul,omitempty"`
+	Etcd            json.RawMessage           `json:"etcd,omitempty"`
+	LogConfig       *LogConfig                `json:"logging,omitempty"`
+	OnStart         json.RawMessage           `json:"onStart,omitempty"`
+	PreStart        json.RawMessage           `json:"preStart,omitempty"`
+	PreStop         json.RawMessage           `json:"preStop,omitempty"`
+	PostStop        json.RawMessage           `json:"postStop,omitempty"`
+	StopTimeout     int                       `json:"stopTimeout"`
+	Services        []*services.ServiceConfig `json:"services"`
+	Backends        []*backends.BackendConfig `json:"backends"`
+	TelemetryConfig json.RawMessage           `json:"telemetry,omitempty"`
+	Telemetry       *telemetry.Telemetry
+	PreStartCmd     *exec.Cmd
+	PreStopCmd      *exec.Cmd
+	PostStopCmd     *exec.Cmd
+	Command         *exec.Cmd
+	QuitChannels    []chan bool
+	ConfigFlag      string
 }
 
 const (
@@ -176,6 +179,25 @@ func initializeConfig(config *Config) (*Config, error) {
 	for _, service := range config.Services {
 		if err := service.Parse(discoveryService); err != nil {
 			return nil, err
+		}
+	}
+
+	if config.TelemetryConfig != nil {
+		if t, err := telemetry.NewTelemetry(config.TelemetryConfig); err != nil {
+			return nil, err
+		} else {
+			config.Telemetry = t
+			// create a new service for Telemetry
+			telemetryService := &services.ServiceConfig{
+				Name:       t.ServiceName,
+				Poll:       t.Poll,
+				Port:       t.Port,
+				TTL:        t.TTL,
+				Interfaces: t.Interfaces,
+				Tags:       t.Tags,
+			}
+			telemetryService.Parse(discoveryService)
+			config.Services = append(config.Services, telemetryService)
 		}
 	}
 
