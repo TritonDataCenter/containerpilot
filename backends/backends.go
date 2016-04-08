@@ -19,27 +19,35 @@ type BackendConfig struct {
 	onChangeCmd      *exec.Cmd
 }
 
-func (b *BackendConfig) Parse(discoveryService discovery.DiscoveryService) error {
-
-	if b.Name == "" {
-		return fmt.Errorf("backend must have a `name`")
+func NewBackends(raw json.RawMessage, disc discovery.DiscoveryService) ([]*BackendConfig, error) {
+	if raw == nil {
+		return []*BackendConfig{}, nil
 	}
-	cmd, err := utils.ParseCommandArgs(b.OnChangeExec)
-	if err != nil {
-		return fmt.Errorf("Could not parse `onChange` in backend %s: %s",
-			b.Name, err)
+	backends := make([]*BackendConfig, 0)
+	if err := json.Unmarshal(raw, &backends); err != nil {
+		return nil, fmt.Errorf("Backend configuration error: %v", err)
 	}
-	if cmd == nil {
-		return fmt.Errorf("`onChange` is required in backend %s",
-			b.Name)
+	for _, b := range backends {
+		if b.Name == "" {
+			return nil, fmt.Errorf("backend must have a `name`")
+		}
+		cmd, err := utils.ParseCommandArgs(b.OnChangeExec)
+		if err != nil {
+			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
+				b.Name, err)
+		}
+		if cmd == nil {
+			return nil, fmt.Errorf("`onChange` is required in backend %s",
+				b.Name)
+		}
+		if b.Poll < 1 {
+			return nil, fmt.Errorf("`poll` must be > 0 in backend %s",
+				b.Name)
+		}
+		b.onChangeCmd = cmd
+		b.discoveryService = disc
 	}
-	if b.Poll < 1 {
-		return fmt.Errorf("`poll` must be > 0 in backend %s",
-			b.Name)
-	}
-	b.onChangeCmd = cmd
-	b.discoveryService = discoveryService
-	return nil
+	return backends, nil
 }
 
 // PollTime implements Pollable for BackendConfig

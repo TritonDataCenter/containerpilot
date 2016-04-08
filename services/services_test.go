@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"os/exec"
 	"reflect"
 	"testing"
@@ -27,7 +26,7 @@ type TestFragmentServices struct {
 }
 
 func TestServiceParse(t *testing.T) {
-	jsonFragment := []byte(`{"services": [
+	jsonFragment := []byte(`[
 {
   "name": "serviceA",
   "port": 8080,
@@ -45,26 +44,14 @@ func TestServiceParse(t *testing.T) {
   "poll": 30,
   "ttl": 103
 }
-]}`)
-	serviceFragment := &TestFragmentServices{}
-	if err := json.Unmarshal(jsonFragment, serviceFragment); err != nil {
+]`)
+	if services, err := NewServices(jsonFragment, nil); err != nil {
 		t.Fatalf("Could not parse service JSON: %s", err)
 	} else {
-		services := serviceFragment.Services
-		service1 := services[0]
-		if err := service1.Parse(nil); err != nil {
-			t.Fatalf("Could not parse services: %s", err)
-		} else {
-			validateCommandParsed(t, "health", service1.healthCheckCmd,
-				[]string{"/bin/to/healthcheck/for/service/A.sh"})
-		}
-		service2 := services[1]
-		if err := service2.Parse(nil); err != nil {
-			t.Fatalf("Could not parse services: %s", err)
-		} else {
-			validateCommandParsed(t, "health", service2.healthCheckCmd,
-				[]string{"/bin/to/healthcheck/for/service/B.sh"})
-		}
+		validateCommandParsed(t, "health", services[0].healthCheckCmd,
+			[]string{"/bin/to/healthcheck/for/service/A.sh"})
+		validateCommandParsed(t, "health", services[1].healthCheckCmd,
+			[]string{"/bin/to/healthcheck/for/service/B.sh"})
 	}
 }
 

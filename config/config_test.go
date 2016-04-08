@@ -91,63 +91,42 @@ func TestValidConfigParse(t *testing.T) {
 	validateCommandParsed(t, "postStop", config.PostStopCmd, []string{"/bin/to/postStop.sh"})
 }
 
-func TestConfigRequiredFields(t *testing.T) {
-	var testConfig *Config
-
-	// --------------
-	// Service Tests
-	// --------------
-
+func TestServiceConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].Name = ""
-	validateParseError(t, []string{"`name`"}, testConfig)
+	var testJson = []byte(`{"consul": "consul:8500", "services": [
+                           {"name": "", "port": 8080, "poll": 30, "ttl": 19 }]}`)
+	validateParseError(t, testJson, []string{"`name`"})
+
 	// Missing `poll`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].Poll = 0
-	validateParseError(t, []string{"`poll`", testConfig.Services[0].Name}, testConfig)
+	testJson = []byte(`{"consul": "consul:8500", "services": [
+                       {"name": "name", "port": 8080, "ttl": 19}]}`)
+	validateParseError(t, testJson, []string{"`poll`"})
+
 	// Missing `ttl`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].TTL = 0
-	validateParseError(t, []string{"`ttl`", testConfig.Services[0].Name}, testConfig)
-	// Missing `health`
-	// TODO: temporary removal during refactor
-	//	testConfig = unmarshaltestJSON()
-	//	testConfig.Services[0].HealthCheckExec = nil
-	//	validateParseError(t, []string{"`health`", testConfig.Services[0].Name}, testConfig)
-	// Missing `port`
-	testConfig = unmarshaltestJSON()
-	testConfig.Services[0].Port = 0
-	validateParseError(t, []string{"`port`", testConfig.Services[0].Name}, testConfig)
+	testJson = []byte(`{"consul": "consul:8500", "services": [
+                       {"name": "name", "port": 8080, "poll": 19}]}`)
+	validateParseError(t, testJson, []string{"`ttl`"})
 
-	// --------------
-	// Backend Tests
-	// --------------
-
-	// Missing `name`
-	testConfig = unmarshaltestJSON()
-	testConfig.Backends[0].Name = ""
-	validateParseError(t, []string{"`name`"}, testConfig)
-	// Missing `poll`
-	testConfig = unmarshaltestJSON()
-	testConfig.Backends[0].Poll = 0
-	validateParseError(t, []string{"`poll`", testConfig.Backends[0].Name}, testConfig)
-	// Missing `onChange`
-	testConfig = unmarshaltestJSON()
-	testConfig.Backends[0].OnChangeExec = nil
-	validateParseError(t, []string{"`onChange`", testConfig.Backends[0].Name}, testConfig)
+	testJson = []byte(`{"consul": "consul:8500", "services": [
+                       {"name": "name", "poll": 19, "ttl": 19}]}`)
+	validateParseError(t, testJson, []string{"`port`"})
 }
 
-func validateParseError(t *testing.T, matchStrings []string, config *Config) {
-	if _, err := initializeConfig(config); err == nil {
-		t.Errorf("Expected error parsing config")
-	} else {
-		for _, match := range matchStrings {
-			if !strings.Contains(err.Error(), match) {
-				t.Errorf("Expected message does not contain %s: %s", match, err)
-			}
-		}
-	}
+func TestBackendConfigRequiredFields(t *testing.T) {
+	// Missing `name`
+	var testJson = []byte(`{"consul": "consul:8500", "backends": [
+                           {"name": "", "poll": 30, "ttl": 19, "onChange": "true"}]}`)
+	validateParseError(t, testJson, []string{"`name`"})
+
+	// Missing `poll`
+	testJson = []byte(`{"consul": "consul:8500", "backends": [
+                       {"name": "name", "ttl": 19, "onChange": "true"}]}`)
+	validateParseError(t, testJson, []string{"`poll`"})
+
+	// Missing `onChange`
+	testJson = []byte(`{"consul": "consul:8500", "backends": [
+                       {"name": "name", "poll": 19, "ttl": 19 }]}`)
+	validateParseError(t, testJson, []string{"`onChange`"})
 }
 
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
@@ -200,7 +179,7 @@ func TestJSONTemplateParseError2(t *testing.T) {
 func TestMetricServiceCreation(t *testing.T) {
 
 	jsonFragment := []byte(`{
-	"consul": "consul:8500",
+    "consul": "consul:8500",
     "telemetry": {
       "port": 9090
     }
@@ -243,9 +222,20 @@ func testParseExpectError(t *testing.T, testJSON string, expected string) {
 	}
 }
 
-func unmarshaltestJSON() *Config {
-	config, _ := unmarshalConfig([]byte(testJSON))
-	return config
+func validateParseError(t *testing.T, input []byte, matchStrings []string) {
+	if cfg, err := unmarshalConfig([]byte(input)); err != nil {
+		t.Errorf("Unexpected error parsing config: %v", err)
+	} else {
+		if _, err := initializeConfig(cfg); err == nil {
+			t.Errorf("Expected error parsing config")
+		} else {
+			for _, match := range matchStrings {
+				if !strings.Contains(err.Error(), match) {
+					t.Errorf("Expected message does not contain %s: %s", match, err)
+				}
+			}
+		}
+	}
 }
 
 func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {

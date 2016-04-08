@@ -25,14 +25,45 @@ type ServiceConfig struct {
 	definition       *discovery.ServiceDefinition
 }
 
-func (s *ServiceConfig) Parse(discoveryService discovery.DiscoveryService) error {
+func NewServices(raw json.RawMessage, disc discovery.DiscoveryService) ([]*ServiceConfig, error) {
+	if raw == nil {
+		return []*ServiceConfig{}, nil
+	}
+	services := make([]*ServiceConfig, 0)
+	if err := json.Unmarshal(raw, &services); err != nil {
+		return nil, fmt.Errorf("Service configuration error: %v", err)
+	}
+	for _, s := range services {
+		if err := parseService(s, disc); err != nil {
+			return nil, err
+		}
+	}
+	return services, nil
+}
 
+func NewService(name string, poll, port, ttl int, interfaces json.RawMessage,
+	tags []string, disc discovery.DiscoveryService) (*ServiceConfig, error) {
+	service := &ServiceConfig{
+		Name:       name,
+		Poll:       poll,
+		Port:       port,
+		TTL:        ttl,
+		Interfaces: interfaces,
+		Tags:       tags,
+	}
+	if err := parseService(service, disc); err != nil {
+		return nil, err
+	}
+	return service, nil
+}
+
+func parseService(s *ServiceConfig, disc discovery.DiscoveryService) error {
 	if s.Name == "" {
 		return fmt.Errorf("service must have a `name`")
 	}
 	hostname, _ := os.Hostname()
 	s.ID = fmt.Sprintf("%s-%s", s.Name, hostname)
-	s.discoveryService = discoveryService
+	s.discoveryService = disc
 	if s.Poll < 1 {
 		return fmt.Errorf("`poll` must be > 0 in service %s", s.Name)
 	}

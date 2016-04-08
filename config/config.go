@@ -44,17 +44,19 @@ func GetConfig() *Config {
 
 // Config is the top-level Containerbuddy Configuration
 type Config struct {
-	Consul          string                    `json:"consul,omitempty"`
-	Etcd            json.RawMessage           `json:"etcd,omitempty"`
-	LogConfig       *LogConfig                `json:"logging,omitempty"`
-	OnStart         json.RawMessage           `json:"onStart,omitempty"`
-	PreStart        json.RawMessage           `json:"preStart,omitempty"`
-	PreStop         json.RawMessage           `json:"preStop,omitempty"`
-	PostStop        json.RawMessage           `json:"postStop,omitempty"`
-	StopTimeout     int                       `json:"stopTimeout"`
-	Services        []*services.ServiceConfig `json:"services"`
-	Backends        []*backends.BackendConfig `json:"backends"`
-	TelemetryConfig json.RawMessage           `json:"telemetry,omitempty"`
+	Consul          string          `json:"consul,omitempty"`
+	Etcd            json.RawMessage `json:"etcd,omitempty"`
+	LogConfig       *LogConfig      `json:"logging,omitempty"`
+	OnStart         json.RawMessage `json:"onStart,omitempty"`
+	PreStart        json.RawMessage `json:"preStart,omitempty"`
+	PreStop         json.RawMessage `json:"preStop,omitempty"`
+	PostStop        json.RawMessage `json:"postStop,omitempty"`
+	StopTimeout     int             `json:"stopTimeout"`
+	ServicesConfig  json.RawMessage `json:"services,omitempty"`
+	BackendsConfig  json.RawMessage `json:"backends,omitempty"`
+	TelemetryConfig json.RawMessage `json:"telemetry,omitempty"`
+	Services        []*services.ServiceConfig
+	Backends        []*backends.BackendConfig
 	Telemetry       *telemetry.Telemetry
 	PreStartCmd     *exec.Cmd
 	PreStopCmd      *exec.Cmd
@@ -103,51 +105,49 @@ func ReloadConfig(configFlag string) (*Config, error) {
 	}
 }
 
-func initializeConfig(config *Config) (*Config, error) {
+func initializeConfig(cfg *Config) (*Config, error) {
 	var discoveryService discovery.DiscoveryService
 	discoveryCount := 0
 
 	// onStart has been deprecated for preStart. Remove in 2.0
-	if config.PreStart != nil && config.OnStart != nil {
+	if cfg.PreStart != nil && cfg.OnStart != nil {
 		fmt.Println("The onStart option has been deprecated in favor of preStart. Containerbuddy will use only the preStart option provided")
 	}
 
 	// alias the onStart behavior to preStart
-	if config.PreStart == nil && config.OnStart != nil {
+	if cfg.PreStart == nil && cfg.OnStart != nil {
 		fmt.Println("The onStart option has been deprecated in favor of preStart. Containerbuddy will use the onStart option as a preStart")
-
-		//		"preStart is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. If the preStart handler returns a non-zero exit code, Containerbuddy will exit."
-		config.PreStart = config.OnStart
+		cfg.PreStart = cfg.OnStart
 	}
 
-	preStartCmd, err := utils.ParseCommandArgs(config.PreStart)
+	preStartCmd, err := utils.ParseCommandArgs(cfg.PreStart)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `preStart`: %s", err)
 	}
-	config.PreStartCmd = preStartCmd
+	cfg.PreStartCmd = preStartCmd
 
-	preStopCmd, err := utils.ParseCommandArgs(config.PreStop)
+	preStopCmd, err := utils.ParseCommandArgs(cfg.PreStop)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `preStop`: %s", err)
 	}
-	config.PreStopCmd = preStopCmd
+	cfg.PreStopCmd = preStopCmd
 
-	postStopCmd, err := utils.ParseCommandArgs(config.PostStop)
+	postStopCmd, err := utils.ParseCommandArgs(cfg.PostStop)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `postStop`: %s", err)
 	}
-	config.PostStopCmd = postStopCmd
+	cfg.PostStopCmd = postStopCmd
 
 	for _, discoveryBackend := range []string{"Consul", "Etcd"} {
 		switch discoveryBackend {
 		case "Consul":
-			if config.Consul != "" {
-				discoveryService = discovery.NewConsulConfig(config.Consul)
+			if cfg.Consul != "" {
+				discoveryService = discovery.NewConsulConfig(cfg.Consul)
 				discoveryCount++
 			}
 		case "Etcd":
-			if config.Etcd != nil {
-				discoveryService = discovery.NewEtcdConfig(config.Etcd)
+			if cfg.Etcd != nil {
+				discoveryService = discovery.NewEtcdConfig(cfg.Etcd)
 				discoveryCount++
 			}
 		}
@@ -159,53 +159,57 @@ func initializeConfig(config *Config) (*Config, error) {
 		return nil, errors.New("More than one discovery backend defined")
 	}
 
-	if config.LogConfig != nil {
-		err := config.LogConfig.init()
+	if cfg.LogConfig != nil {
+		err := cfg.LogConfig.init()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if config.StopTimeout == 0 {
-		config.StopTimeout = defaultStopTimeout
+	if cfg.StopTimeout == 0 {
+		cfg.StopTimeout = defaultStopTimeout
 	}
 
-	for _, backend := range config.Backends {
-		if err := backend.Parse(discoveryService); err != nil {
-			return nil, err
-		}
+	if backends, err := backends.NewBackends(cfg.BackendsConfig,
+		discoveryService); err != nil {
+		return nil, err
+	} else {
+		cfg.Backends = backends
 	}
 
-	for _, service := range config.Services {
-		if err := service.Parse(discoveryService); err != nil {
-			return nil, err
-		}
+	if services, err := services.NewServices(cfg.ServicesConfig,
+		discoveryService); err != nil {
+		return nil, err
+	} else {
+		cfg.Services = services
 	}
 
-	if config.TelemetryConfig != nil {
-		if t, err := telemetry.NewTelemetry(config.TelemetryConfig); err != nil {
+	if cfg.TelemetryConfig != nil {
+		if t, err := telemetry.NewTelemetry(cfg.TelemetryConfig); err != nil {
 			return nil, err
 		} else {
-			config.Telemetry = t
+			cfg.Telemetry = t
 			// create a new service for Telemetry
-			telemetryService := &services.ServiceConfig{
-				Name:       t.ServiceName,
-				Poll:       t.Poll,
-				Port:       t.Port,
-				TTL:        t.TTL,
-				Interfaces: t.Interfaces,
-				Tags:       t.Tags,
+			if telemetryService, err := services.NewService(
+				t.ServiceName,
+				t.Poll,
+				t.Port,
+				t.TTL,
+				t.Interfaces,
+				t.Tags,
+				discoveryService); err != nil {
+				return nil, err
+			} else {
+				cfg.Services = append(cfg.Services, telemetryService)
 			}
-			telemetryService.Parse(discoveryService)
-			config.Services = append(config.Services, telemetryService)
 		}
 	}
 
 	configLock.Lock()
-	globalConfig = config
+	globalConfig = cfg
 	configLock.Unlock()
 
-	return config, nil
+	return cfg, nil
 }
 
 func parseConfig(configFlag string) (*Config, error) {

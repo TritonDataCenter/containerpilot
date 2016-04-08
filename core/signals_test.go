@@ -25,19 +25,15 @@ func (c *NoopDiscoveryService) MarkForMaintenance(service *discovery.ServiceDefi
 func (c *NoopDiscoveryService) Deregister(service *discovery.ServiceDefinition)         {}
 
 func getSignalTestConfig() *config.Config {
+	service, _ := services.NewService(
+		"test-service", 1, 1, 1, nil, nil, &NoopDiscoveryService{})
 	cfg := &config.Config{
 		Command: utils.ArgsToCmd([]string{
 			"./testdata/test.sh",
 			"interruptSleep"}),
 		StopTimeout: 5,
-		Services: []*services.ServiceConfig{
-			&services.ServiceConfig{
-				Name: "test-service",
-				Poll: 1,
-			},
-		},
+		Services:    []*services.ServiceConfig{service},
 	}
-	cfg.Services[0].Parse(&NoopDiscoveryService{})
 	return cfg
 }
 
