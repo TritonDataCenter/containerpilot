@@ -25,11 +25,7 @@
     }
   ],
   "telemetry": {
-    "name": "telemetry",
-    "url": "/telemetry",
     "port": 9090,
-    "ttl": 5,
-    "poll": 1,
     "sensors": [
        {
         "namespace": "containerbuddy",

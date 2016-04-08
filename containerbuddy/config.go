@@ -41,22 +41,23 @@ func getConfig() *Config {
 
 // Config is the top-level Containerbuddy Configuration
 type Config struct {
-	Consul       string               `json:"consul,omitempty"`
-	Etcd         json.RawMessage      `json:"etcd,omitempty"`
-	LogConfig    *LogConfig           `json:"logging,omitempty"`
-	OnStart      json.RawMessage      `json:"onStart,omitempty"`
-	PreStart     json.RawMessage      `json:"preStart,omitempty"`
-	PreStop      json.RawMessage      `json:"preStop,omitempty"`
-	PostStop     json.RawMessage      `json:"postStop,omitempty"`
-	StopTimeout  int                  `json:"stopTimeout"`
-	Services     []*ServiceConfig     `json:"services"`
-	Backends     []*BackendConfig     `json:"backends"`
-	Telemetry    *telemetry.Telemetry `json:"telemetry,omitempty"`
-	preStartCmd  *exec.Cmd
-	preStopCmd   *exec.Cmd
-	postStopCmd  *exec.Cmd
-	Command      *exec.Cmd
-	QuitChannels []chan bool
+	Consul          string           `json:"consul,omitempty"`
+	Etcd            json.RawMessage  `json:"etcd,omitempty"`
+	LogConfig       *LogConfig       `json:"logging,omitempty"`
+	OnStart         json.RawMessage  `json:"onStart,omitempty"`
+	PreStart        json.RawMessage  `json:"preStart,omitempty"`
+	PreStop         json.RawMessage  `json:"preStop,omitempty"`
+	PostStop        json.RawMessage  `json:"postStop,omitempty"`
+	StopTimeout     int              `json:"stopTimeout"`
+	Services        []*ServiceConfig `json:"services"`
+	Backends        []*BackendConfig `json:"backends"`
+	TelemetryConfig json.RawMessage  `json:"telemetry,omitempty"`
+	Telemetry       *telemetry.Telemetry
+	preStartCmd     *exec.Cmd
+	preStopCmd      *exec.Cmd
+	postStopCmd     *exec.Cmd
+	Command         *exec.Cmd
+	QuitChannels    []chan bool
 }
 
 const (
@@ -218,25 +219,26 @@ func initializeConfig(config *Config) (*Config, error) {
 		}
 	}
 
-	if config.Telemetry != nil {
-		m := config.Telemetry
-		if err := m.Parse(); err != nil {
+	if config.TelemetryConfig != nil {
+		if t, err := telemetry.NewTelemetry(config.TelemetryConfig); err != nil {
 			return nil, err
 		} else {
+			config.Telemetry = t
 			// create a new service for Telemetry
 			telemetryService := &ServiceConfig{
-				ID:               fmt.Sprintf("%s-%s", m.ServiceName, hostname),
-				Name:             m.ServiceName,
-				Poll:             m.Poll,
-				Port:             m.Port,
-				TTL:              m.TTL,
-				Interfaces:       m.Interfaces,
-				Tags:             m.Tags,
+				ID:               fmt.Sprintf("%s-%s", t.ServiceName, hostname),
+				Name:             t.ServiceName,
+				Poll:             t.Poll,
+				Port:             t.Port,
+				TTL:              t.TTL,
+				Interfaces:       t.Interfaces,
+				Tags:             t.Tags,
 				discoveryService: discovery,
-				ipAddress:        m.IpAddress,
+				ipAddress:        t.IpAddress,
 				healthCheckCmd:   nil, // no health check code
 			}
 			config.Services = append(config.Services, telemetryService)
+
 		}
 	}
 

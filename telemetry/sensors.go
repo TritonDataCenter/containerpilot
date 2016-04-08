@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"os"
@@ -82,47 +83,55 @@ func (s Sensor) record(metricValue string) {
 	}
 }
 
-func (s *Sensor) Parse() (err error) {
-	if check, err := utils.ParseCommandArgs(s.CheckExec); err != nil {
-		return err
-	} else {
-		s.checkCmd = check
+func NewSensors(raw json.RawMessage) ([]*Sensor, error) {
+	sensors := make([]*Sensor, 0)
+	if err := json.Unmarshal(raw, &sensors); err != nil {
+		return nil, errors.New("Sensor configuration error: %v, err")
 	}
-	// the prometheus client lib's API here is baffling... they don't expose
-	// an interface or embed their Opts type in each of the Opts "subtypes",
-	// so we can't share the initialization.
-	switch {
-	case s.Type == "counter":
-		s.collector = prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: s.Namespace,
-			Subsystem: s.Subsystem,
-			Name:      s.Name,
-			Help:      s.Help,
-		})
-	case s.Type == "gauge":
-		s.collector = prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: s.Namespace,
-			Subsystem: s.Subsystem,
-			Name:      s.Name,
-			Help:      s.Help,
-		})
-	case s.Type == "histogram":
-		s.collector = prometheus.NewHistogram(prometheus.HistogramOpts{
-			Namespace: s.Namespace,
-			Subsystem: s.Subsystem,
-			Name:      s.Name,
-			Help:      s.Help,
-		})
-	case s.Type == "summary":
-		s.collector = prometheus.NewSummary(prometheus.SummaryOpts{
-			Namespace: s.Namespace,
-			Subsystem: s.Subsystem,
-			Name:      s.Name,
-			Help:      s.Help,
-		})
-	default:
-		return fmt.Errorf("Invalid sensor type: %s\n", s.Type)
+	for _, s := range sensors {
+		if check, err := utils.ParseCommandArgs(s.CheckExec); err != nil {
+			return nil, err
+		} else {
+			s.checkCmd = check
+		}
+		// the prometheus client lib's API here is baffling... they don't expose
+		// an interface or embed their Opts type in each of the Opts "subtypes",
+		// so we can't share the initialization.
+		switch {
+		case s.Type == "counter":
+			s.collector = prometheus.NewCounter(prometheus.CounterOpts{
+				Namespace: s.Namespace,
+				Subsystem: s.Subsystem,
+				Name:      s.Name,
+				Help:      s.Help,
+			})
+		case s.Type == "gauge":
+			s.collector = prometheus.NewGauge(prometheus.GaugeOpts{
+				Namespace: s.Namespace,
+				Subsystem: s.Subsystem,
+				Name:      s.Name,
+				Help:      s.Help,
+			})
+		case s.Type == "histogram":
+			s.collector = prometheus.NewHistogram(prometheus.HistogramOpts{
+				Namespace: s.Namespace,
+				Subsystem: s.Subsystem,
+				Name:      s.Name,
+				Help:      s.Help,
+			})
+		case s.Type == "summary":
+			s.collector = prometheus.NewSummary(prometheus.SummaryOpts{
+				Namespace: s.Namespace,
+				Subsystem: s.Subsystem,
+				Name:      s.Name,
+				Help:      s.Help,
+			})
+		default:
+			return nil, fmt.Errorf("Invalid sensor type: %s\n", s.Type)
+		}
+		if err := prometheus.Register(s.collector); err != nil {
+			return nil, err
+		}
 	}
-
-	return prometheus.Register(s.collector)
+	return sensors, nil
 }

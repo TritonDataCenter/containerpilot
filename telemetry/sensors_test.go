@@ -243,7 +243,7 @@ func TestSensorObserve(t *testing.T) {
 }
 
 func TestSensorParse(t *testing.T) {
-	jsonFragment := `{
+	jsonFragment := `[{
 	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "%s",
@@ -251,78 +251,60 @@ func TestSensorParse(t *testing.T) {
 	"type": "%s",
 	"poll": 10,
 	"check": ["/bin/sensor.sh"]
-}`
+}]`
 
 	test1Json := []byte(fmt.Sprintf(jsonFragment,
 		"TestSensorParse_counter", "counter"))
-	collector := parseAndGetCollector(t, test1Json)
+	collector := parseSensors(t, test1Json)[0].collector
 	if _, ok := collector.(prometheus.Counter); !ok {
 		t.Fatalf("Incorrect collector; expected Counter but got %v", collector)
 	}
 
 	test2Json := []byte(fmt.Sprintf(jsonFragment,
 		"TestSensorParse_gauge", "gauge"))
-	collector = parseAndGetCollector(t, test2Json)
+	collector = parseSensors(t, test2Json)[0].collector
 	if _, ok := collector.(prometheus.Gauge); !ok {
 		t.Fatalf("Incorrect collector; expected Gauge but got %v", collector)
 	}
 
 	test3Json := []byte(fmt.Sprintf(jsonFragment,
 		"TestSensorParse_histogram", "histogram"))
-	collector = parseAndGetCollector(t, test3Json)
+	collector = parseSensors(t, test3Json)[0].collector
 	if _, ok := collector.(prometheus.Histogram); !ok {
 		t.Fatalf("Incorrect collector; expected Histogram but got %v", collector)
 	}
 
 	test4Json := []byte(fmt.Sprintf(jsonFragment,
 		"TestSensorParse_summary", "summary"))
-	collector = parseAndGetCollector(t, test4Json)
+	collector = parseSensors(t, test4Json)[0].collector
 	if _, ok := collector.(prometheus.Summary); !ok {
 		t.Fatalf("Incorrect collector; expected Summary but got %v", collector)
 	}
 }
 
-func parseAndGetCollector(t *testing.T, testJson []byte) prometheus.Collector {
-	sensor := &Sensor{}
-	if err := json.Unmarshal(testJson, &sensor); err != nil {
-		t.Fatalf("Could not parse sensor JSON: %s", err)
-	} else if err := sensor.Parse(); err != nil {
-		t.Fatalf("Could not parse sensor check or collector type: %s", err)
-	}
-	return sensor.collector
-}
-
 // invalid collector type
 func TestSensorBadType(t *testing.T) {
-	jsonFragment := []byte(`{
+	jsonFragment := []byte(`[{
 	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "TestSensorBadType",
-	"type": "nonsense"}`)
+	"type": "nonsense"}]`)
 
-	sensor := &Sensor{}
-	if err := json.Unmarshal(jsonFragment, &sensor); err != nil {
-		t.Fatalf("Could not parse sensor JSON: %s", err)
-	}
-	if err := sensor.Parse(); err == nil {
-		t.Fatalf("Did not get error from sensor.Parse(): %v", sensor)
+	if sensors, err := NewSensors(jsonFragment); err == nil {
+		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
 	}
 }
 
 // invalid metric name
 func TestSensorBadName(t *testing.T) {
-	jsonFragment := []byte(`{
+	jsonFragment := []byte(`[{
 	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "Test.Sensor.Bad.Name",
-	"type": "counter"}`)
+	"type": "counter"}]`)
 
-	sensor := &Sensor{}
-	if err := json.Unmarshal(jsonFragment, &sensor); err != nil {
-		t.Fatalf("Could not parse sensor JSON: %s", err)
-	}
-	if err := sensor.Parse(); err == nil {
-		t.Fatalf("Did not get error from sensor.Parse(): %v", sensor)
+	if sensors, err := NewSensors(jsonFragment); err == nil {
+		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
 	}
 }
 
@@ -332,18 +314,13 @@ func TestSensorPartialName(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
 
-	jsonFragment := []byte(`{
+	jsonFragment := []byte(`[{
 	"name": "telemetry_sensors_partial_name",
 	"help": "help text",
-	"type": "counter"}`)
-	collector := parseAndGetCollector(t, jsonFragment)
-	if _, ok := collector.(prometheus.Counter); !ok {
-		t.Fatalf("Incorrect collector; expected Counter but got %v", collector)
-	}
-
-	sensor := &Sensor{
-		Type:      "counter",
-		collector: collector,
+	"type": "counter"}]`)
+	sensor := parseSensors(t, jsonFragment)[0]
+	if _, ok := sensor.collector.(prometheus.Counter); !ok {
+		t.Fatalf("Incorrect collector; expected Counter but got %v", sensor.collector)
 	}
 
 	sensor.record("1")
@@ -351,5 +328,16 @@ func TestSensorPartialName(t *testing.T) {
 	if strings.Count(resp, "telemetry_sensors_partial_name 1") != 1 {
 		t.Fatalf("Failed to get match for sensor in response: %s", resp)
 	}
+}
 
+func parseSensors(t *testing.T, testJson json.RawMessage) []*Sensor {
+	if sensors, err := NewSensors(testJson); err != nil {
+		t.Fatalf("Could not parse sensor JSON: %s", err)
+	} else {
+		if len(sensors) == 0 {
+			t.Fatalf("Did not get a valid sensor from JSON.")
+		}
+		return sensors
+	}
+	return nil
 }

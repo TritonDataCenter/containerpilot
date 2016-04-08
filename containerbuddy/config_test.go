@@ -234,23 +234,22 @@ func TestMetricServiceCreation(t *testing.T) {
 	jsonFragment := []byte(`{
 	"consul": "consul:8500",
     "telemetry": {
-		"name": "namespace_text",
-		"url": "subsystem_text",
-		"port": 8000,
-		"ttl": 30,
-		"poll": 10
-	 }
+      "port": 9090
+    }
 }`)
 	if config, err := unmarshalConfig(jsonFragment); err != nil {
 		t.Errorf("Got unexpected error deserializing JSON config: %v", err)
 	} else {
-		initializeConfig(config)
-		if len(config.Services) != 1 {
-			t.Errorf("Expected telemetry service but got %v", config.Services)
+		if _, err := initializeConfig(config); err != nil {
+			t.Fatalf("Got error while initializing config: %v", err)
 		} else {
-			service := config.Services[0]
-			if service.Name != "namespace_text" {
-				t.Errorf("Got incorrect service back: %v", service)
+			if len(config.Services) != 1 {
+				t.Errorf("Expected telemetry service but got %v", config.Services)
+			} else {
+				service := config.Services[0]
+				if service.Name != "containerbuddy" {
+					t.Errorf("Got incorrect service back: %v", service)
+				}
 			}
 		}
 	}
