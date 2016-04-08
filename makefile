@@ -43,7 +43,7 @@ build: build/containerbuddy
 
 build/containerbuddy:  build/containerbuddy_build */*.go vendor
 	${DOCKERBUILD} go build -o build/containerbuddy -ldflags "$(LDFLAGS)"
-	@rm -r src || true
+	@rm -rf src || true
 
 # builds the builder container
 build/containerbuddy_build:
@@ -92,7 +92,7 @@ add-dep: build/containerbuddy_build
 
 lint: vendor
 	${DOCKERBUILD} golint src/
-	@rm -r src || true
+	@rm -rf src || true
 
 # run unit tests
 TESTS ?= backends,config,core,discovery,services,telemetry,utils
@@ -101,7 +101,7 @@ test: docker vendor
 	${DOCKERRUN} bash -c 'for x in {$(TESTS)}; do \
 		go test -v github.com/joyent/containerbuddy/$$x; \
 		done'
-	@rm -r src || true
+	@rm -rf src || true
 
 # run unit tests and write out test coverage
 cover: docker
@@ -110,7 +110,7 @@ cover: docker
 		go test -v -coverprofile=cover/$$x.out github.com/joyent/containerbuddy/$$x \
 		&& go tool cover -html=cover/$$x.out -o cover/$$x.html ;\
 		done'
-	@rm -r src || true
+	@rm -rf src || true
 
 # run integration tests
 integration: build
