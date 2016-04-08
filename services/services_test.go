@@ -4,7 +4,8 @@ import (
 	"os/exec"
 	"reflect"
 	"testing"
-	"utils"
+
+	"github.com/joyent/containerbuddy/utils"
 )
 
 func TestHealthCheck(t *testing.T) {

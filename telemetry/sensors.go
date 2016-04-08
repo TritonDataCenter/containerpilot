@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-	"utils"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerbuddy/utils"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // A Sensor is a single measurement of the application.

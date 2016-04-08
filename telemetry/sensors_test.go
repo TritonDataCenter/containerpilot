@@ -3,7 +3,6 @@ package telemetry
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +10,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"utils"
+
+	"github.com/joyent/containerbuddy/utils"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 /*

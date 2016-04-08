@@ -1,13 +1,14 @@
 package main // import "github.com/joyent/containerbuddy"
 
 import (
-	"config"
-	"core"
 	"flag"
 	"log"
 	"os"
 	"runtime"
-	"utils"
+
+	"github.com/joyent/containerbuddy/config"
+	"github.com/joyent/containerbuddy/core"
+	"github.com/joyent/containerbuddy/utils"
 )
 
 // Main executes the containerbuddy CLI

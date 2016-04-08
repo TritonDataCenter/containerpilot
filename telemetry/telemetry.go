@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
-	"utils"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerbuddy/utils"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Telemetry represents the service to advertise for finding the metrics

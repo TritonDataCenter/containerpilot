@@ -1,11 +1,12 @@
 package backends
 
 import (
-	"discovery"
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"utils"
+
+	"github.com/joyent/containerbuddy/discovery"
+	"github.com/joyent/containerbuddy/utils"
 )
 
 // Backend represents a command to execute when another application changes

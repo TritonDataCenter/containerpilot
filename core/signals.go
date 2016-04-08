@@ -1,16 +1,16 @@
 package core
 
 import (
-	"config"
 	"os"
 	"os/signal"
-	"services"
 	"sync"
 	"syscall"
 	"time"
-	"utils"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerbuddy/config"
+	"github.com/joyent/containerbuddy/services"
+	"github.com/joyent/containerbuddy/utils"
 )
 
 // globals are eeeeevil

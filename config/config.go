@@ -1,10 +1,8 @@
 package config
 
 import (
-	"backends"
 	"bufio"
 	"bytes"
-	"discovery"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,11 +10,14 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"services"
 	"strings"
 	"sync"
-	"telemetry"
-	"utils"
+
+	"github.com/joyent/containerbuddy/backends"
+	"github.com/joyent/containerbuddy/discovery"
+	"github.com/joyent/containerbuddy/services"
+	"github.com/joyent/containerbuddy/telemetry"
+	"github.com/joyent/containerbuddy/utils"
 )
 
 var (

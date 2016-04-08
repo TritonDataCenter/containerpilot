@@ -1,12 +1,13 @@
 package services
 
 import (
-	"discovery"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
-	"utils"
+
+	"github.com/joyent/containerbuddy/discovery"
+	"github.com/joyent/containerbuddy/utils"
 )
 
 // Service configures the service, discovery data, and health checks

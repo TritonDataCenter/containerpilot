@@ -1,16 +1,17 @@
 package core
 
 import (
-	"config"
-	"discovery"
 	"os"
 	"os/signal"
 	"runtime"
-	"services"
 	"syscall"
 	"testing"
 	"time"
-	"utils"
+
+	"github.com/joyent/containerbuddy/config"
+	"github.com/joyent/containerbuddy/discovery"
+	"github.com/joyent/containerbuddy/services"
+	"github.com/joyent/containerbuddy/utils"
 )
 
 // ------------------------------------------

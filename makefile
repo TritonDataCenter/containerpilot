@@ -6,7 +6,7 @@ SHELL := /bin/bash
 .PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint vendor
 
 VERSION ?= dev-build-not-for-release
-LDFLAGS := -X config.GitHash='$(shell git rev-parse --short HEAD)' -X config.Version='${VERSION}'
+LDFLAGS := -X github.com/joyent/containerbuddy/config.GitHash='$(shell git rev-parse --short HEAD)' -X github.com/joyent/containerbuddy/config.Version='${VERSION}'
 
 ROOT := $(shell pwd)
 
@@ -17,14 +17,14 @@ DOCKERRUN := docker run --rm \
 	--link containerbuddy_consul:consul \
 	--link containerbuddy_etcd:etcd \
 	-v ${ROOT}:/go/cb \
-	-v ${ROOT}:/go/cb/src \
+	-v ${ROOT}:/go/cb/src/github.com/joyent/containerbuddy \
 	-w /go/cb \
 	containerbuddy_build
 
 DOCKERBUILD := docker run --rm \
 	-e LDFLAGS="${LDFLAGS}" \
 	-v ${ROOT}:/go/cb \
-	-v ${ROOT}:/go/cb/src \
+	-v ${ROOT}:/go/cb/src/github.com/joyent/containerbuddy \
 	-w /go/cb \
 	containerbuddy_build
 
@@ -43,7 +43,7 @@ build: build/containerbuddy
 
 build/containerbuddy:  build/containerbuddy_build */*.go vendor
 	${DOCKERBUILD} go build -o build/containerbuddy -ldflags "$(LDFLAGS)"
-	@rmdir src || true
+	@rm -r src || true
 
 # builds the builder container
 build/containerbuddy_build:
@@ -92,22 +92,25 @@ add-dep: build/containerbuddy_build
 
 lint: vendor
 	${DOCKERBUILD} golint src/
-	@rmdir src || true
+	@rm -r src || true
 
 # run unit tests
-TESTS ?= backends config core discovery services telemetry utils
+TESTS ?= backends,config,core,discovery,services,telemetry,utils
+
 test: docker vendor
-	${DOCKERRUN} go test -v $(TESTS)
-	@rmdir src || true
+	${DOCKERRUN} bash -c 'for x in {$(TESTS)}; do \
+		go test -v github.com/joyent/containerbuddy/$$x; \
+		done'
+	@rm -r src || true
 
 # run unit tests and write out test coverage
 cover: docker
 	@mkdir -p cover
-	${DOCKERRUN} bash -c 'for x in {backends,config,core,discovery,services,telemetry,utils}; do \
-		go test -v -coverprofile=cover/$$x.out $$x \
+	${DOCKERRUN} bash -c 'for x in {$(TESTS)}; do \
+		go test -v -coverprofile=cover/$$x.out github.com/joyent/containerbuddy/$$x \
 		&& go tool cover -html=cover/$$x.out -o cover/$$x.html ;\
 		done'
-	@rmdir src || true
+	@rm -r src || true
 
 # run integration tests
 integration: build
