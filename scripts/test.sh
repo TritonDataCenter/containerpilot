@@ -1,5 +1,5 @@
 #!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
 DEBUG_LOG=${DEBUG_LOG:-"/dev/null"}
 ROOT_DIR="$DIR/integration_tests"

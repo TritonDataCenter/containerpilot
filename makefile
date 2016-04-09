@@ -103,7 +103,7 @@ cover: docker
 
 # run integration tests
 integration: build
-	./test.sh
+	./scripts/test.sh
 
 # ------ Backends
 
