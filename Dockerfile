@@ -5,4 +5,4 @@ RUN  go get github.com/golang/lint/golint \
 
 ENV CGO_ENABLED 0
 ENV GO15VENDOREXPERIMENT 1
-ENV GOPATH /go/cb
+ENV GOPATH /go:/cb

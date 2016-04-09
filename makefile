@@ -5,8 +5,10 @@ SHELL := /bin/bash
 
 .PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint vendor
 
+IMPORT_PATH := github.com/joyent/containerbuddy
+
 VERSION ?= dev-build-not-for-release
-LDFLAGS := -X github.com/joyent/containerbuddy/config.GitHash='$(shell git rev-parse --short HEAD)' -X github.com/joyent/containerbuddy/config.Version='${VERSION}'
+LDFLAGS := -X ${IMPORT_PATH}/config.GitHash='$(shell git rev-parse --short HEAD)' -X ${IMPORT_PATH}/config.Version='${VERSION}'
 
 ROOT := $(shell pwd)
 
@@ -16,20 +18,26 @@ COMPOSE_PREFIX_CONSUL := exconsul
 DOCKERRUN := docker run --rm \
 	--link containerbuddy_consul:consul \
 	--link containerbuddy_etcd:etcd \
-	-v ${ROOT}:/go/cb \
-	-v ${ROOT}:/go/cb/src/github.com/joyent/containerbuddy \
-	-w /go/cb \
+	-v ${ROOT}/vendor:/go/src \
+	-v ${ROOT}:/cb/src/${IMPORT_PATH} \
+	-w /cb/src/${IMPORT_PATH} \
 	containerbuddy_build
 
 DOCKERBUILD := docker run --rm \
 	-e LDFLAGS="${LDFLAGS}" \
-	-v ${ROOT}:/go/cb \
-	-v ${ROOT}:/go/cb/src/github.com/joyent/containerbuddy \
-	-w /go/cb \
+	-v ${ROOT}/vendor:/go/src \
+	-v ${ROOT}:/cb/src/${IMPORT_PATH} \
+	-w /cb/src/${IMPORT_PATH} \
+	containerbuddy_build
+
+DOCKERDEP := docker run --rm \
+	-e LDFLAGS="${LDFLAGS}" \
+	-v ${ROOT}:/cb/src/${IMPORT_PATH} \
+	-w /cb/src/${IMPORT_PATH} \
 	containerbuddy_build
 
 clean:
-	rm -rf build release cover */vendor
+	rm -rf build release cover vendor
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
@@ -58,59 +66,40 @@ docker: build/containerbuddy_build consul etcd
 
 # top-level target for vendoring our packages: godep restore requires
 # being in the package directory so we have to run this for each package
-vendor: backends/vendor config/vendor core/vendor discovery/vendor services/vendor utils/vendor telemetry/vendor
-%/vendor: build/containerbuddy_build
-	docker run --rm \
-	    -v ${ROOT}:/go/cb \
-		-v ${ROOT}:/go/cb/src \
-		-e GOPATH=/go/cb/src/$(*F) \
-		-w /go/cb/src/$(*F) \
-		containerbuddy_build godep restore
-	mv $(*F)/src $(*F)/vendor
+vendor: build/containerbuddy_build
+	${DOCKERBUILD} godep restore
 
 # fetch a dependency via go get, vendor it, and then save into the parent
 # package's Godeps
-# usage DEP=github.com/owner/package PKG=containerbuddy make add-dep
+# usage DEP=github.com/owner/package make add-dep
 add-dep: build/containerbuddy_build
-	docker run --rm \
-	    -v ${ROOT}:/go/cb \
-		-v ${ROOT}:/go/cb/src \
-		-e GOPATH=/go/cb/src/$(PKG) \
-		-w /go/cb/src/$(PKG) \
-		containerbuddy_build go get $(DEP)
-	docker run --rm \
-	    -v ${ROOT}:/go/cb \
-	 	-v ${ROOT}:/go/cb/src \
-	 	-e GOPATH=/go/cb/src/$(PKG) \
-	 	-w /go/cb/src/$(PKG) \
-	 	containerbuddy_build godep save
-	mv $(PKG)/src $(PKG)/vendor
+	${DOCKERDEP} make dockerrun_add_dep DEP=$(DEP)
 
+dockerrun_add_dep:
+	bash ./scripts/add_dep.sh
 
 # ----------------------------------------------
 # develop and test
-
-lint: vendor
-	${DOCKERBUILD} golint src/
-	@rm -rf src || true
-
-# run unit tests
-TESTS ?= backends,config,core,discovery,services,telemetry,utils
-
-test: docker vendor
-	${DOCKERRUN} bash -c 'for x in {$(TESTS)}; do \
-		go test -v github.com/joyent/containerbuddy/$$x; \
-		done'
-	@rm -rf src || true
+dockerrun_lint:
+	bash ./scripts/lint.sh
 
 # run unit tests and write out test coverage
+dockerrun_test:
+	go test -v $(shell go list ./... | grep -v '/vendor/\|_test')
+
+dockerrun_cover:
+	mkdir -p cover
+	bash ./scripts/cover.sh
+
+
+lint: vendor
+	${DOCKERBUILD} make dockerrun_lint
+
+test: docker vendor
+	${DOCKERRUN} make dockerrun_test
+
 cover: docker
-	@mkdir -p cover
-	${DOCKERRUN} bash -c 'for x in {$(TESTS)}; do \
-		go test -v -coverprofile=cover/$$x.out github.com/joyent/containerbuddy/$$x \
-		&& go tool cover -html=cover/$$x.out -o cover/$$x.html ;\
-		done'
-	@rm -rf src || true
+	${DOCKERRUN} make dockerrun_cover
 
 # run integration tests
 integration: build
