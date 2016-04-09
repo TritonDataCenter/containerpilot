@@ -277,11 +277,17 @@ func highlightError(data []byte, pos int64) (int, int, string) {
 		readBytes := int64(len(scanner.Bytes()))
 		offset += readBytes
 		if offset >= pos-1 {
-			highlight = fmt.Sprintf("%s^", strings.Repeat("-", int(7+col-1)))
+			count := int(7 + col - 1)
+			if count > 0 {
+				highlight = fmt.Sprintf("%s^", strings.Repeat("-", count))
+			}
 			break
 		}
 		col -= readBytes + 1
 		line++
+	}
+	if col < 0 {
+		highlight = "Do you have an extra comma somewhere?"
 	}
 	return line, int(col), fmt.Sprintf("%s%s%s", prevLine, thisLine, highlight)
 }
