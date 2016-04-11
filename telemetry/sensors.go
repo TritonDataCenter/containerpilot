@@ -129,6 +129,9 @@ func NewSensors(raw json.RawMessage) ([]*Sensor, error) {
 		default:
 			return nil, fmt.Errorf("Invalid sensor type: %s\n", s.Type)
 		}
+		// we're going to unregister before every attempt to register
+		// so that we can reload config
+		prometheus.Unregister(s.collector)
 		if err := prometheus.Register(s.collector); err != nil {
 			return nil, err
 		}
