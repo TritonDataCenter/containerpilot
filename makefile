@@ -6,7 +6,6 @@ SHELL := /bin/bash
 .PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint vendor
 
 IMPORT_PATH := github.com/joyent/containerbuddy
-
 VERSION ?= dev-build-not-for-release
 LDFLAGS := -X ${IMPORT_PATH}/config.GitHash='$(shell git rev-parse --short HEAD)' -X ${IMPORT_PATH}/config.Version='${VERSION}'
 
@@ -26,12 +25,6 @@ DOCKERRUN := docker run --rm \
 DOCKERBUILD := docker run --rm \
 	-e LDFLAGS="${LDFLAGS}" \
 	-v ${ROOT}/vendor:/go/src \
-	-v ${ROOT}:/cb/src/${IMPORT_PATH} \
-	-w /cb/src/${IMPORT_PATH} \
-	containerbuddy_build
-
-DOCKERDEP := docker run --rm \
-	-e LDFLAGS="${LDFLAGS}" \
 	-v ${ROOT}:/cb/src/${IMPORT_PATH} \
 	-w /cb/src/${IMPORT_PATH} \
 	containerbuddy_build
@@ -73,33 +66,26 @@ vendor: build/containerbuddy_build
 # package's Godeps
 # usage DEP=github.com/owner/package make add-dep
 add-dep: build/containerbuddy_build
-	${DOCKERDEP} make dockerrun_add_dep DEP=$(DEP)
-
-dockerrun_add_dep:
-	bash ./scripts/add_dep.sh
+	docker run --rm \
+		-e LDFLAGS="${LDFLAGS}" \
+		-v ${ROOT}:/cb/src/${IMPORT_PATH} \
+		-w /cb/src/${IMPORT_PATH} \
+		containerbuddy_build \
+		bash ./scripts/add_dep.sh DEP=$(DEP)
 
 # ----------------------------------------------
 # develop and test
-dockerrun_lint:
-	bash ./scripts/lint.sh
-
-# run unit tests and write out test coverage
-dockerrun_test:
-	go test -v $(shell go list ./... | grep -v '/vendor/\|_test')
-
-dockerrun_cover:
-	mkdir -p cover
-	bash ./scripts/cover.sh
-
 
 lint: vendor
-	${DOCKERBUILD} make dockerrun_lint
+	-${DOCKERBUILD} bash ./scripts/lint.sh
 
+# run unit tests and write out test coverage
 test: docker vendor
-	${DOCKERRUN} make dockerrun_test
+	${DOCKERRUN} bash ./scripts/unit_test.sh
 
 cover: docker
-	${DOCKERRUN} make dockerrun_cover
+	mkdir -p cover
+	${DOCKERRUN} bash ./scripts/cover.sh
 
 # run integration tests
 integration: build
