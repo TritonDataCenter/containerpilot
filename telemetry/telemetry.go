@@ -63,7 +63,6 @@ func (t *Telemetry) Serve() {
 	serverLock.Lock()
 	serverLock.Unlock()
 	if server != nil {
-		log.Info("got a runnin http.Server")
 		// no-op if we've created the server previously
 		// otherwise we'll panic when we try to reregister
 		// the HTTP handlers

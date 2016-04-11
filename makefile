@@ -34,7 +34,7 @@ clean:
 	docker rmi -f containerbuddy_build > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_consul > /dev/null 2>&1 || true
 	docker rm -f containerbuddy_etcd > /dev/null 2>&1 || true
-	./test.sh clean
+	./scripts/test.sh clean
 
 # ----------------------------------------------
 # docker build
