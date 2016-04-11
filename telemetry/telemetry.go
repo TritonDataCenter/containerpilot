@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerbuddy/utils"
@@ -55,9 +56,27 @@ func NewTelemetry(raw json.RawMessage) (*Telemetry, error) {
 	return t, nil
 }
 
+var server *http.Server
+var serverLock = sync.RWMutex{}
+
 func (t *Telemetry) Serve() {
-	http.Handle(t.Url, prometheus.Handler())
-	listen := fmt.Sprintf("%s:%v", t.IpAddress, t.Port)
-	log.Debugf("Telemetry listening on %v\n", listen)
-	log.Fatal(http.ListenAndServe(listen, nil))
+	serverLock.Lock()
+	serverLock.Unlock()
+	if server != nil {
+		log.Info("got a runnin http.Server")
+		// no-op if we've created the server previously
+		// otherwise we'll panic when we try to reregister
+		// the HTTP handlers
+		return
+	}
+	go func() {
+		http.Handle(t.Url, prometheus.Handler())
+		address := fmt.Sprintf("%s:%v", t.IpAddress, t.Port)
+		log.Debugf("Telemetry listening on %v\n", address)
+
+		server = &http.Server{
+			Addr: address,
+		}
+		log.Fatal(server.ListenAndServe())
+	}()
 }

@@ -19,7 +19,7 @@ func HandlePolling(cfg *config.Config) {
 		for _, sensor := range cfg.Telemetry.Sensors {
 			quit = append(quit, poll(sensor))
 		}
-		go cfg.Telemetry.Serve()
+		cfg.Telemetry.Serve()
 	}
 	cfg.QuitChannels = quit
 }
