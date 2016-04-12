@@ -1,7 +1,7 @@
 {
   "etcd":{
       "endpoints": "http://etcd:4001",
-      "prefix": "/containerbuddy"
+      "prefix": "/containerpilot"
   },
   "services": [
     {

@@ -13,11 +13,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/joyent/containerbuddy/backends"
-	"github.com/joyent/containerbuddy/discovery"
-	"github.com/joyent/containerbuddy/services"
-	"github.com/joyent/containerbuddy/telemetry"
-	"github.com/joyent/containerbuddy/utils"
+	"github.com/joyent/containerpilot/backends"
+	"github.com/joyent/containerpilot/discovery"
+	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/telemetry"
+	"github.com/joyent/containerpilot/utils"
 )
 
 var (
@@ -43,7 +43,7 @@ func GetConfig() *Config {
 	return globalConfig
 }
 
-// Config is the top-level Containerbuddy Configuration
+// Config is the top-level ContainerPilot Configuration
 type Config struct {
 	Consul          string          `json:"consul,omitempty"`
 	Etcd            json.RawMessage `json:"etcd,omitempty"`
@@ -88,7 +88,7 @@ func LoadConfig() (*Config, error) {
 		os.Exit(0)
 	}
 	if configFlag == "" {
-		configFlag = os.Getenv("CONTAINERBUDDY")
+		configFlag = os.Getenv("CONTAINERPILOT")
 	}
 
 	if cfg, err := parseConfig(configFlag); err != nil {
@@ -112,12 +112,12 @@ func initializeConfig(cfg *Config) (*Config, error) {
 
 	// onStart has been deprecated for preStart. Remove in 2.0
 	if cfg.PreStart != nil && cfg.OnStart != nil {
-		fmt.Println("The onStart option has been deprecated in favor of preStart. Containerbuddy will use only the preStart option provided")
+		fmt.Println("The onStart option has been deprecated in favor of preStart. ContainerPilot will use only the preStart option provided")
 	}
 
 	// alias the onStart behavior to preStart
 	if cfg.PreStart == nil && cfg.OnStart != nil {
-		fmt.Println("The onStart option has been deprecated in favor of preStart. Containerbuddy will use the onStart option as a preStart")
+		fmt.Println("The onStart option has been deprecated in favor of preStart. ContainerPilot will use the onStart option as a preStart")
 		cfg.PreStart = cfg.OnStart
 	}
 

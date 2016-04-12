@@ -194,7 +194,7 @@ func TestMetricServiceCreation(t *testing.T) {
 				t.Errorf("Expected telemetry service but got %v", config.Services)
 			} else {
 				service := config.Services[0]
-				if service.Name != "containerbuddy" {
+				if service.Name != "containerpilot" {
 					t.Errorf("Got incorrect service back: %v", service)
 				}
 			}

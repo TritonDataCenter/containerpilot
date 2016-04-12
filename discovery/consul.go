@@ -91,7 +91,7 @@ func (c *Consul) registerCheck(service ServiceDefinition) error {
 		&consul.AgentCheckRegistration{
 			ID:        service.ID,
 			Name:      service.ID,
-			Notes:     fmt.Sprintf("TTL for %s set by containerbuddy", service.Name),
+			Notes:     fmt.Sprintf("TTL for %s set by containerpilot", service.Name),
 			ServiceID: service.ID,
 			AgentServiceCheck: consul.AgentServiceCheck{
 				TTL: fmt.Sprintf("%ds", service.TTL),

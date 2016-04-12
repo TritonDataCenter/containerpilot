@@ -47,7 +47,7 @@ fi
 export DOCKER_IP
 debug "DOCKER_IP=$DOCKER_IP"
 
-export FIXTURE_PREFIX=${FIXTURE_PREFIX:-"cbfix_"}
+export FIXTURE_PREFIX=${FIXTURE_PREFIX:-"cpfix_"}
 debug "FIXTURE_PREFIX=$FIXTURE_PREFIX"
 
 debug "ROOT_DIR=$ROOT_DIR"
@@ -58,7 +58,7 @@ debug "TESTS_DIR=$TESTS_DIR"
 
 create_test_fixtures() {
   banner "Create Test Fixtures"
-  if [ ! -f "$DIR/build/containerbuddy" ]; then die "Containerbuddy not built. Did you make?"; fi
+  if [ ! -f "$DIR/build/containerpilot" ]; then die "ContainerPilot not built. Did you make?"; fi
   find $FIXTURE_DIR -maxdepth 1 -mindepth 1 -type d | \
     sort | \
     while read FDIR; do
@@ -114,7 +114,7 @@ run_test() {
     cd $TDIR
     export COMPOSE_PROJECT_NAME="$(basename $TDIR)"
     export COMPOSE_FILE="./docker-compose.yml"
-    export CONTAINERBUDDY_BIN="$DIR/build/containerbuddy"
+    export CONTAINERPILOT_BIN="$DIR/build/containerpilot"
     log "TEST: $COMPOSE_PROJECT_NAME"
     build_test_compose
     chmod 755 "./run.sh"

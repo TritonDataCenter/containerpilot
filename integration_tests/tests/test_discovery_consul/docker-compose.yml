@@ -1,26 +1,26 @@
 consul:
-    image: "cbfix_consul"
+    image: "cpfix_consul"
     mem_limit: 128m
     hostname: consul
 
 app:
-    image: "cbfix_app"
+    image: "cpfix_app"
     mem_limit: 128m
     links:
       - consul:consul
     volumes:
-      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
 nginx:
-    image: "cbfix_nginx"
+    image: "cpfix_nginx"
     mem_limit: 128m
     links:
       - consul:consul
     volumes:
-      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
 test:
-    image: "cbfix_test_probe"
+    image: "cpfix_test_probe"
     mem_limit: 128m
     links:
       - app:app

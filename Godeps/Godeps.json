@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/joyent/containerbuddy",
+	"ImportPath": "github.com/joyent/containerpilot",
 	"GoVersion": "go1.6",
 	"Deps": [
 		{

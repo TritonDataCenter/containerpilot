@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerbuddy/utils"
+	"github.com/joyent/containerpilot/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -30,7 +30,7 @@ type Telemetry struct {
 func NewTelemetry(raw json.RawMessage) (*Telemetry, error) {
 	t := &Telemetry{
 		Port:        9090,
-		ServiceName: "containerbuddy",
+		ServiceName: "containerpilot",
 		Url:         "/metrics",
 		TTL:         15,
 		Poll:        5,
@@ -45,7 +45,7 @@ func NewTelemetry(raw json.RawMessage) (*Telemetry, error) {
 	}
 	// note that we don't return an error if there are no sensors
 	// because the prometheus handler will still pick up metrics
-	// internal to Containerbuddy (i.e. the golang runtime)
+	// internal to ContainerPilot (i.e. the golang runtime)
 	if t.SensorConfigs != nil {
 		if sensors, err := NewSensors(t.SensorConfigs); err != nil {
 			return nil, err
