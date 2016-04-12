@@ -1,0 +1,14 @@
+consul:
+    image: "cbfix_consul"
+    mem_limit: 128m
+    hostname: consul
+
+app:
+    image: "cbfix_app"
+    mem_limit: 128m
+    links:
+      - consul:consul
+    ports:
+      - 9090:9090
+    volumes:
+      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
