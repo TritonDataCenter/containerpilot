@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joyent/containerbuddy/utils"
+	"github.com/joyent/containerpilot/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

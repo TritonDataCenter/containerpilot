@@ -1,4 +1,4 @@
-package main // import "github.com/joyent/containerbuddy"
+package main // import "github.com/joyent/containerpilot"
 
 import (
 	"flag"
@@ -6,12 +6,12 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/joyent/containerbuddy/config"
-	"github.com/joyent/containerbuddy/core"
-	"github.com/joyent/containerbuddy/utils"
+	"github.com/joyent/containerpilot/config"
+	"github.com/joyent/containerpilot/core"
+	"github.com/joyent/containerpilot/utils"
 )
 
-// Main executes the containerbuddy CLI
+// Main executes the containerpilot CLI
 func main() {
 	// make sure we use only a single CPU so as not to cause
 	// contention on the main application

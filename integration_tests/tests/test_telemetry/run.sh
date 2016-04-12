@@ -11,7 +11,7 @@ IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${APP_ID})
 # this interface takes a while to converge
 for i in {20..1}; do
     sleep 1
-    docker exec -it ${APP_ID} curl -v -s --fail ${IP}:9090/metrics | grep 'containerbuddy_app_some_counter 42' && break
+    docker exec -it ${APP_ID} curl -v -s --fail ${IP}:9090/metrics | grep 'containerpilot_app_some_counter 42' && break
 done
 
 result=$?

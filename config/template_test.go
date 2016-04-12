@@ -17,7 +17,7 @@ func TestParseEnvironment(t *testing.T) {
 }
 
 func TestTemplate(t *testing.T) {
-	env := parseEnvironment([]string{"NAME=Template", "USER=buddy"})
+	env := parseEnvironment([]string{"NAME=Template", "USER=pilot"})
 	validateTemplate(t, "One var", `Hello, {{.NAME}}!`, env, "Hello, Template!")
 	validateTemplate(t, "Var undefined", `Hello, {{.NONAME}}!`, env, "Hello, !")
 	validateTemplate(t, "Default", `Hello, {{.NONAME | default "World" }}!`, env, "Hello, World!")

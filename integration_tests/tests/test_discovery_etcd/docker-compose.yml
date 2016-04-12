@@ -1,32 +1,32 @@
 etcd:
-    image: "cbfix_etcd"
+    image: "cpfix_etcd"
     mem_limit: 128m
     hostname: etcd
     ports:
       - 4001:4001
 
 app:
-    image: "cbfix_app"
+    image: "cpfix_app"
     mem_limit: 128m
     links:
       - etcd:etcd
     environment:
-      - CONTAINERBUDDY=file:///app-with-etcd.json
+      - CONTAINERPILOT=file:///app-with-etcd.json
     volumes:
-      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
 nginx:
-    image: "cbfix_nginx"
+    image: "cpfix_nginx"
     mem_limit: 128m
     links:
       - etcd:etcd
     environment:
-      - CONTAINERBUDDY=file:///etc/nginx-with-etcd.json
+      - CONTAINERPILOT=file:///etc/nginx-with-etcd.json
     volumes:
-      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
 test:
-    image: "cbfix_test_probe"
+    image: "cpfix_test_probe"
     mem_limit: 128m
     links:
       - app:app

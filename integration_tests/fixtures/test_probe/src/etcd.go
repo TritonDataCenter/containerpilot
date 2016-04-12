@@ -28,7 +28,7 @@ func NewEtcdProbe() (EtcdProbe, error) {
 		return nil, err
 	}
 	kapi := etcd.NewKeysAPI(client)
-	return EtcdProbe(etcdClient{Client: client, API: kapi, Prefix: "/containerbuddy"}), nil
+	return EtcdProbe(etcdClient{Client: client, API: kapi, Prefix: "/containerpilot"}), nil
 }
 
 // WaitForServices waits for the healthy services count to equal the count

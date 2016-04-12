@@ -18,7 +18,7 @@ func TestLoggingBootstrap(t *testing.T) {
 		t.Errorf("Expected output to Stdout")
 	}
 	if _, ok := std.Formatter.(*DefaultLogFormatter); !ok {
-		t.Errorf("Expected *containerbuddy.DefaultLogFormatter got: %v", reflect.TypeOf(std.Formatter))
+		t.Errorf("Expected *containerpilot.DefaultLogFormatter got: %v", reflect.TypeOf(std.Formatter))
 	}
 }
 

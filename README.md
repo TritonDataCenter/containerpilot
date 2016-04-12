@@ -1,42 +1,42 @@
-# Containerbuddy
+# ContainerPilot
 
 *A service for assisting discovery and configuration of applications running in containers.*
 
-[![Build Status](https://travis-ci.org/joyent/containerbuddy.svg)](https://travis-ci.org/joyent/containerbuddy)
-[![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerbuddy/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/joyent/containerpilot.svg)](https://travis-ci.org/joyent/containerpilot)
+[![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerpilot/blob/master/LICENSE)
 
 ### Container-native applications vs all the rest
 
 Applications in containers typically need to talk to a source of truth to discover their upstream services and tell their downstream services where to find them. Container-native applications come into the world understanding this responsibility, but no one wants to rewrite all our current applications to do this.
 
-We can wrap each application in a shell script that registers itself with the discovery service easily enough, but watching for changes to that service and ensuring that health checks are being made is more complicated. We can put a second process in the container, but unless we make a supervisor as PID1 then there's no way of knowing whether our buddy process has died.
+We can wrap each application in a shell script that registers itself with the discovery service easily enough, but watching for changes to that service and ensuring that health checks are being made is more complicated. We can put a second process in the container, but unless we make a supervisor as PID1 then there's no way of knowing whether our shimmed process has died.
 
 Additionally, discovery services like Consul provide a means of performing health checks from outside our container, but that means packaging the tooling we need into the Consul container. If we need to change the health check, then we end up re-deploying both our application and Consul, which unnecessarily couples the two.
 
 
-### Containerbuddy to the rescue!
+### ContainerPilot to the rescue!
 
-Containerbuddy is a shim written in Go to help make it easier to containerize existing applications. It can act as PID1 in the container and fork/exec the application. If the application exits then so does Containerbuddy.
+ContainerPilot is a shim written in Go to help make it easier to containerize existing applications. It can act as PID1 in the container and fork/exec the application. If the application exits then so does ContainerPilot.
 
-Alternately, if your application double-forks (which is not recommended for containerized applications but hey we are taking about pre-container apps here!), you can run Containerbuddy as a side-by-side buddy process within the container. In that case the container will not die if the application dies, which can create complicated failure modes but which can be mitigated by having a good TTL health check to detect the problem and alert you.
+Alternately, if your application double-forks (which is not recommended for containerized applications but hey we are taking about pre-container apps here!), you can run ContainerPilot as a side-by-side process within the container. In that case the container will not die if the application dies, which can create complicated failure modes but which can be mitigated by having a good TTL health check to detect the problem and alert you.
 
-Containerbuddy registers the application with Consul on start and periodically sends TTL health checks to Consul; should the application fail then Consul will not receive the health check and once the TTL expires will no longer consider the application node healthy. Meanwhile, Containerbuddy runs background workers that poll Consul, checking for changes in dependent/upstream service, and calling an external executable on change.
+ContainerPilot registers the application with Consul on start and periodically sends TTL health checks to Consul; should the application fail then Consul will not receive the health check and once the TTL expires will no longer consider the application node healthy. Meanwhile, ContainerPilot runs background workers that poll Consul, checking for changes in dependent/upstream service, and calling an external executable on change.
 
 Using local scripts to test health or act on backend changes means that we can run health checks that are specific to the service in the container, which keeps orchestration and the application bundled together.
 
-Containerbuddy is explicitly *not* a supervisor process. Although it can act as PID1 inside a container, if the shimmed process dies, so does Containerbuddy (and therefore the container itself). Containerbuddy will return the exit code of its shimmed process back to the Docker Engine or Triton, so that it appears as expected when you run `docker ps -a` and look for your exit codes. Containerbuddy also attaches stdout/stderr from your application to stdout/stderr of the container, so that `docker logs` works as expected.
+ContainerPilot is explicitly *not* a supervisor process. Although it can act as PID1 inside a container, if the shimmed process dies, so does ContainerPilot (and therefore the container itself). ContainerPilot will return the exit code of its shimmed process back to the Docker Engine or Triton, so that it appears as expected when you run `docker ps -a` and look for your exit codes. ContainerPilot also attaches stdout/stderr from your application to stdout/stderr of the container, so that `docker logs` works as expected.
 
-## Configuring Containerbuddy
+## Configuring ContainerPilot
 
-Containerbuddy takes a single file argument (or a JSON string) as its configuration. All trailing arguments will be treated as the executable to shim and that executable's arguments.
+ContainerPilot takes a single file argument (or a JSON string) as its configuration. All trailing arguments will be treated as the executable to shim and that executable's arguments.
 
 ```bash
 # configure via passing a file argument
-$ containerbuddy -config file:///opt/containerbuddy/app.json myapp --args --for --my --app
+$ containerpilot -config file:///opt/containerpilot/app.json myapp --args --for --my --app
 
 # configure via environment variable
-$ export CONTAINERBUDDY=file:///opt/containerbuddy/app.json
-$ containerbuddy myapp --args --for --my --app
+$ export CONTAINERPILOT=file:///opt/containerpilot/app.json
+$ containerpilot myapp --args --for --my --app
 
 ```
 
@@ -45,15 +45,15 @@ The format of the JSON file configuration is as follows:
 ```json
 {
   "consul": "consul:8500",
-  "onStart": "/opt/containerbuddy/onStart-script.sh {{.ENV_VAR_NAME}}",
+  "onStart": "/opt/containerpilot/onStart-script.sh {{.ENV_VAR_NAME}}",
   "logging": {
     "level": "INFO",
     "format": "default",
     "output": "stdout"
   },
   "stopTimeout": 5,
-  "preStop": "/opt/containerbuddy/preStop-script.sh",
-  "postStop": "/opt/containerbuddy/postStop-script.sh",
+  "preStop": "/opt/containerpilot/preStop-script.sh",
+  "postStop": "/opt/containerpilot/postStop-script.sh",
   "services": [
     {
       "name": "app",
@@ -83,12 +83,12 @@ The format of the JSON file configuration is as follows:
     {
       "name": "nginx",
       "poll": 30,
-      "onChange": "/opt/containerbuddy/reload-app.sh"
+      "onChange": "/opt/containerpilot/reload-app.sh"
     },
     {
       "name": "app",
       "poll": 10,
-      "onChange": "/opt/containerbuddy/reload-app.sh"
+      "onChange": "/opt/containerpilot/reload-app.sh"
     }
   ],
   "telemetry": {
@@ -139,18 +139,18 @@ Must supply only one of the following
         "endpoints": [
             "http://etcd:4001"
         ],
-        "prefix": "/containerbuddy"
+        "prefix": "/containerpilot"
     }
     ```
 
     - `endpoints` is the list of etcd nodes in your cluster
-    - `prefix` is the path that will be prefixed to all service discovery keys. This key is optional. (Default: `/containerbuddy`)
+    - `prefix` is the path that will be prefixed to all service discovery keys. This key is optional. (Default: `/containerpilot`)
 
 #### Logging Config (Optional):
 
-The logging config adjust the output format and verbosity of Containerbuddy logs.
+The logging config adjust the output format and verbosity of ContainerPilot logs.
 
-- `level` adjusts the verbosity of the messages output by containerbuddy. Must be one of: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `PANIC` (Default is `INFO`)
+- `level` adjusts the verbosity of the messages output by containerpilot. Must be one of: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `PANIC` (Default is `INFO`)
 - `format` adjust the output format for log messages. Can be `default`, `text`, or `json` (Default is `default`)
 - `output` picks the output stream for log messages. Can be `stderr` or `stdout` (Default is `stdout`)
 
@@ -195,16 +195,16 @@ exit status 1
 
 #### Telemetry (Optional):
 
-If a `telemetry` option is provided, Containerbuddy will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
+If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
 
-Details of how to configure the telemetry endpoint and how the telemetry endpoint works can be found in the [telemetry README](https://github.com/joyent/containerbuddy/blob/master/telemetry/README.md).
+Details of how to configure the telemetry endpoint and how the telemetry endpoint works can be found in the [telemetry README](https://github.com/joyent/containerpilot/blob/master/telemetry/README.md).
 
 
 #### Other fields:
 
-- `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, Containerbuddy will exit.
-- `preStop` is the executable (and its arguments) that will be called immediately **before** the shimmed application exits. This field is optional. Containerbuddy will wait until this program exits before terminating the shimmed application.
-- `postStop` is the executable (and its arguments) that will be called immediately **after** the shimmed application exits. This field is optional. If the `postStop` handler returns a non-zero exit code, Containerbuddy will exit with this code rather than the application's exit code.
+- `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, ContainerPilot will exit.
+- `preStop` is the executable (and its arguments) that will be called immediately **before** the shimmed application exits. This field is optional. ContainerPilot will wait until this program exits before terminating the shimmed application.
+- `postStop` is the executable (and its arguments) that will be called immediately **after** the shimmed application exits. This field is optional. If the `postStop` handler returns a non-zero exit code, ContainerPilot will exit with this code rather than the application's exit code.
 - `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`). Providing `-1` will kill the application immediately.
 
 *Note that if you're using `curl` to check HTTP endpoints for health checks, that it doesn't return a non-zero exit code on 404s or similar failure modes by default. Use the `--fail` flag for curl if you need to catch those cases.*
@@ -253,45 +253,45 @@ All executable fields, such as `onStart` and `onChange`, accept both a string or
 
 #### Template Configuration
 
-Containerbuddy configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file and it will be substituted with `BAR`.
+ContainerPilot configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file and it will be substituted with `BAR`.
 
 **Example Usage**
 
 ```json
 {
   "consul": "consul:8500",
-  "onStart": "/opt/containerbuddy/onStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
+  "onStart": "/opt/containerpilot/onStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
 }
 ```
 
 _Note:  If you need more than just variable interpolation, check out the [Go text/template Docs](https://golang.org/pkg/text/template/)._
 
-## Operating Containerbuddy
+## Operating ContainerPilot
 
-Containerbuddy accepts POSIX signals to change its runtime behavior. Currently, Containerbuddy accepts the following signals:
+ContainerPilot accepts POSIX signals to change its runtime behavior. Currently, ContainerPilot accepts the following signals:
 
-- `SIGUSR1` will cause Containerbuddy to mark its advertised service for maintenance. Containerbuddy will stop sending heartbeat messages to the discovery service. The discovery service backend's `MarkForMaintenance` method will also be called (in the default Consul implementation, this deregisters the node from Consul).
-- `SIGTERM` will cause Containerbuddy to send `SIGTERM` to the application, and eventually exit in a timely manner (as specified by `stopTimeout`).
-- `SIGHUP` will cause Containerbuddy to reload its configuration. `onChange`, `health`, `preStop`, and `postStop` handlers will operate with the new configuration. This forces all advertised services to be re-registered, which may cause temporary unavailability of this node for purposes of service discovery.
+- `SIGUSR1` will cause ContainerPilot to mark its advertised service for maintenance. ContainerPilot will stop sending heartbeat messages to the discovery service. The discovery service backend's `MarkForMaintenance` method will also be called (in the default Consul implementation, this deregisters the node from Consul).
+- `SIGTERM` will cause ContainerPilot to send `SIGTERM` to the application, and eventually exit in a timely manner (as specified by `stopTimeout`).
+- `SIGHUP` will cause ContainerPilot to reload its configuration. `onChange`, `health`, `preStop`, and `postStop` handlers will operate with the new configuration. This forces all advertised services to be re-registered, which may cause temporary unavailability of this node for purposes of service discovery.
 
-Delivering a signal to Containerbuddy is most easily done by using `docker exec` and relying on the fact that it is being used as PID1.
+Delivering a signal to ContainerPilot is most easily done by using `docker exec` and relying on the fact that it is being used as PID1.
 
 ```bash
 docker exec myapp_1 kill -USR1 1
 
 ```
 
-Docker will automatically deliver a `SIGTERM` with `docker stop`, not when using `docker kill`.  When Containerbuddy receives a `SIGTERM`, it will propagate this signal to the application and wait for `stopTimeout` seconds before forcing the application to stop. Make sure this timeout is less than the docker stop timeout period or services may not deregister from the discovery service backend. If `-1` is given for `stopTimeout`, Containerbuddy will kill the application immediately with `SIGKILL`, but it will still deregister the services.
+Docker will automatically deliver a `SIGTERM` with `docker stop`, not when using `docker kill`.  When ContainerPilot receives a `SIGTERM`, it will propagate this signal to the application and wait for `stopTimeout` seconds before forcing the application to stop. Make sure this timeout is less than the docker stop timeout period or services may not deregister from the discovery service backend. If `-1` is given for `stopTimeout`, ContainerPilot will kill the application immediately with `SIGKILL`, but it will still deregister the services.
 
-*Caveat*: If Containerbuddy is wrapped as a shell command, such as: `/bin/sh -c '/opt/containerbuddy .... '` then `SIGTERM` will not reach Containerbuddy from `docker stop`.  This is important for systems like Mesos which may use a shell command as the entrypoint under default configuration.
+*Caveat*: If ContainerPilot is wrapped as a shell command, such as: `/bin/sh -c '/opt/containerpilot .... '` then `SIGTERM` will not reach ContainerPilot from `docker stop`.  This is important for systems like Mesos which may use a shell command as the entrypoint under default configuration.
 
 ## Contributing
 
-Please report any issues you encounter with Containerbuddy or its documentation by [opening a Github issue](https://github.com/joyent/containerbuddy/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerbuddy/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
+Please report any issues you encounter with ContainerPilot or its documentation by [opening a Github issue](https://github.com/joyent/containerpilot/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
 
 ## Examples
 
-We've published a number of example applications demonstrating how Containerbuddy works.
+We've published a number of example applications demonstrating how ContainerPilot works.
 
 - [Applications on autopilot](https://www.joyent.com/blog/applications-on-autopilot)
 - [CloudFlare DNS and CDN with dynamic origins](https://github.com/tgross/triton-cloudflare)
@@ -299,6 +299,6 @@ We've published a number of example applications demonstrating how Containerbudd
 - [Couchbase](https://www.joyent.com/blog/couchbase-in-docker-containers)
 - [ELK stack](https://github.com/tgross/triton-elk)
 - [Mesos on Joyent Triton](https://www.joyent.com/blog/mesos-by-the-pound)
-- [Nginx with dynamic upstreams](https://www.joyent.com/blog/dynamic-nginx-upstreams-with-containerbuddy)
+- [Nginx with dynamic upstreams](https://www.joyent.com/blog/dynamic-nginx-upstreams-with-containerpilot)
 - [MySQL (Percona Server) with auto scaling and fail-over](https://www.joyent.com/blog/dbaas-simplicity-no-lock-in)
 - [Node.js + Nginx + Couchbase](https://www.joyent.com/blog/how-to-dockerize-a-complete-application)

@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/joyent/containerbuddy/config"
+	"github.com/joyent/containerpilot/config"
 	"time"
 )
 

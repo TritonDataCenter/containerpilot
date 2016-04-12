@@ -1,6 +1,6 @@
 #!/bin/bash
 result=0
-for pkg in $(go list ./... | grep -v '/vendor/\|_test' | sed 's+_/'$(pwd)'+github.com/joyent/containerbuddy+'); do
+for pkg in $(go list ./... | grep -v '/vendor/\|_test' | sed 's+_/'$(pwd)'+github.com/joyent/containerpilot+'); do
   if golint $pkg; then
     result=1
   fi

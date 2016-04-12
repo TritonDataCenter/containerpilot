@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/joyent/containerbuddy/utils"
+	"github.com/joyent/containerpilot/utils"
 )
 
 func TestHealthCheck(t *testing.T) {

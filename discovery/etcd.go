@@ -56,7 +56,7 @@ func parseEndpoints(raw json.RawMessage) []string {
 // NewEtcdConfig creates a new service discovery backend for etcd
 func NewEtcdConfig(config json.RawMessage) Etcd {
 	etcd := Etcd{
-		Prefix: "/containerbuddy",
+		Prefix: "/containerpilot",
 	}
 	var rawConfig etcdRawConfig
 	etcdConfig := client.Config{}

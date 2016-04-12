@@ -28,7 +28,7 @@
     "port": 9090,
     "sensors": [
        {
-        "namespace": "containerbuddy",
+        "namespace": "containerpilot",
         "subsystem": "app",
         "name": "some_counter",
         "help": "help text",

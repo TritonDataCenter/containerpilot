@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/joyent/containerbuddy/discovery"
-	"github.com/joyent/containerbuddy/utils"
+	"github.com/joyent/containerpilot/discovery"
+	"github.com/joyent/containerpilot/utils"
 )
 
 // Backend represents a command to execute when another application changes

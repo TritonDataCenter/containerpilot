@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// TestDiscovery tests that Containerbuddy registers all services and that
+// TestDiscovery tests that ContainerPilot registers all services and that
 // Nginx has a working route to App
 func TestDiscovery(args []string) bool {
 
