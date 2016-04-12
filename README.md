@@ -5,6 +5,10 @@
 [![Build Status](https://travis-ci.org/joyent/containerpilot.svg)](https://travis-ci.org/joyent/containerpilot)
 [![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerpilot/blob/master/LICENSE)
 
+### News: Containerbuddy is now ContainerPilot
+
+We've renamed Containerbuddy to ContainerPilot to simplify and clarify the relationship between [autopilot pattern](http://autopilotpattern.io)—the approach to automating our applications—and [ContainerPilot](https://www.joyent.com/containerpilot)—the shared library that makes it easy to build autopilot pattern applications. [Please see the Joyent blog for more details](https://www.joyent.com/blog/containerbuddy-is-now-containerpilot).
+
 ### Container-native applications vs all the rest
 
 Applications in containers typically need to talk to a source of truth to discover their upstream services and tell their downstream services where to find them. Container-native applications come into the world understanding this responsibility, but no one wants to rewrite all our current applications to do this.
