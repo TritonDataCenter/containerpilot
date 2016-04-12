@@ -88,8 +88,9 @@ cover: docker
 	${DOCKERRUN} bash ./scripts/cover.sh
 
 # run integration tests
+TEST ?= "all"
 integration: build
-	./scripts/test.sh
+	./scripts/test.sh test $(TEST)
 
 # ------ Backends
 

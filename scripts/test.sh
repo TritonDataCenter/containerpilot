@@ -133,7 +133,7 @@ run_tests() {
   FAILED=$TESTS_DIR/failed.log
   rm -f $FAILED
   TARGET="$1"
-  if [ -z "$TARGET" ]; then
+  if [ -z "$TARGET" ] || [ "$TARGET" = "all" ]; then
     ## Run All Tests
     for TDIR in $(find $TESTS_DIR -maxdepth 1 -mindepth 1 -type d ); do
       run_test $TDIR
