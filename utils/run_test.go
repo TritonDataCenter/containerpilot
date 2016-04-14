@@ -32,3 +32,14 @@ func TestRunNothing(t *testing.T) {
 		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
 	}
 }
+
+func TestReuseCmd(t *testing.T) {
+	cmd := ArgsToCmd([]string{"true"})
+	if code, err := Run(cmd); code != 0 || err != nil {
+		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
+	}
+	cmd = ArgsToCmd(cmd.Args)
+	if code, err := Run(cmd); code != 0 || err != nil {
+		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
+	}
+}

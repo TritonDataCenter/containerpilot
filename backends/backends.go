@@ -60,7 +60,7 @@ func (b Backend) PollTime() int {
 // PollAction implements Pollable for Backend.
 // If the values in the discovery service have changed since the last run,
 // we fire the on change handler.
-func (b Backend) PollAction() {
+func (b *Backend) PollAction() {
 	if b.CheckForUpstreamChanges() {
 		b.OnChange()
 	}
