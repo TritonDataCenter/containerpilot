@@ -6,7 +6,6 @@ import (
 	"io"
 	"os/exec"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -24,7 +23,6 @@ type TaskConfig struct {
 	timeoutDuration time.Duration
 	cmd             *exec.Cmd
 	quitChannel     chan int
-	lock            *sync.Mutex
 	ticker          *time.Ticker
 	logWriters      []io.WriteCloser
 }
@@ -32,7 +30,7 @@ type TaskConfig struct {
 // Task a task that runs periodically until killed
 type Task interface {
 	Start() error
-	Stop() error
+	Stop()
 }
 
 func (t *TaskConfig) closeLogs() {
@@ -78,7 +76,6 @@ func parseTask(task *TaskConfig) error {
 	}
 	task.freqDuration = freq
 	task.timeoutDuration = freq
-	task.lock = &sync.Mutex{}
 	if task.Timeout != "" {
 		timeout, err := time.ParseDuration(task.Timeout)
 		if err != nil {
@@ -96,14 +93,30 @@ func parseTask(task *TaskConfig) error {
 func (t *TaskConfig) Start() error {
 
 	t.ticker = time.NewTicker(t.freqDuration)
+	quit := make(chan int)
 
+	// Accept quit signal
 	go func() {
+		select {
+		case <-t.quitChannel:
+			log.Debugf("task[%s].Start#gofunc <-quitChannel", t.Name)
+			t.ticker.Stop()
+			quit <- 0
+			t.kill(t.cmd)
+			return
+		}
+	}()
+
+	// Run command
+	go func() {
+		defer t.ticker.Stop()
 		for {
 			select {
 			case <-t.ticker.C:
+				log.Debugf("task[%s].Start#gofunc <-t.ticker.C", t.Name)
 				t.execute()
-			case <-t.quitChannel:
-				t.ticker.Stop()
+			case <-quit:
+				log.Debugf("task[%s].Start#gofunc <-quit", t.Name)
 				return
 			}
 		}
@@ -112,6 +125,7 @@ func (t *TaskConfig) Start() error {
 }
 
 func (t *TaskConfig) kill(cmd *exec.Cmd) error {
+	log.Debugf("task[%s].kill", t.Name)
 	if cmd != nil && cmd.Process != nil {
 		log.Warnf("Killing task %s: %d", t.Name, cmd.Process.Pid)
 		return cmd.Process.Kill()
@@ -120,7 +134,6 @@ func (t *TaskConfig) kill(cmd *exec.Cmd) error {
 }
 
 func (t *TaskConfig) execute() {
-	t.lock.Lock()
 	cmd := utils.ArgsToCmd(t.Args)
 	t.cmd = cmd
 	fields := make(map[string]interface{})
@@ -131,18 +144,16 @@ func (t *TaskConfig) execute() {
 	}
 	cmd.Stdout = t.logWriters[0]
 	cmd.Stderr = t.logWriters[1]
+	defer t.closeLogs()
 	if err := cmd.Start(); err != nil {
-		defer t.lock.Unlock()
-		defer t.closeLogs()
 		log.Errorf("Unable to start task %s: %v", t.Name, err)
 		return
 	}
-	t.lock.Unlock()
 	t.run(cmd)
+	log.Debugf("task[%s].execute complete", t.Name)
 }
 
 func (t *TaskConfig) run(cmd *exec.Cmd) {
-	defer t.closeLogs()
 	ticker := time.NewTicker(t.timeoutDuration)
 	quit := make(chan int)
 	go func() {
@@ -154,24 +165,28 @@ func (t *TaskConfig) run(cmd *exec.Cmd) {
 				log.Errorf("Error killing task %s: %v", t.Name, err)
 			}
 			// Swallow quit signal
+			log.Debugf("task[%s].run#gofunc swallow quit", t.Name)
 			<-quit
+			log.Debugf("task[%s].run#gofunc swallow quit complete", t.Name)
 			return
 		case <-quit:
+			log.Debugf("task[%s].run#gofunc received quit", t.Name)
 			return
 		}
 	}()
+	log.Debugf("task[%s].run waiting for PID %d: ", t.Name, cmd.Process.Pid)
 	_, err := cmd.Process.Wait()
 	if err != nil {
 		log.Errorf("Task %s exited with error: %v", t.Name, err)
 	}
+	log.Debugf("task[%s].run sent timeout quit", t.Name)
 	quit <- 0
+	log.Debugf("task[%s].run complete", t.Name)
 }
 
 // Stop stops a task from executing and kills the currently running execution
-func (t *TaskConfig) Stop() error {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-	log.Infof("task.Stop: %s", t.Name)
+func (t *TaskConfig) Stop() {
+	log.Debugf("task[%s].Stop", t.Name)
 	t.quitChannel <- 0
-	return t.kill(t.cmd)
+	log.Debugf("task[%s].Stop quit", t.Name)
 }

@@ -101,9 +101,7 @@ func stopPolling(cfg *config.Config) {
 		quit <- true
 	}
 	for _, task := range cfg.Tasks {
-		if err := task.Stop(); err != nil {
-			log.Errorf("Unable to stop task: %v", err)
-		}
+		task.Stop()
 	}
 }
 
