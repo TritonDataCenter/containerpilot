@@ -176,6 +176,18 @@ func TestJSONTemplateParseError2(t *testing.T) {
 		"Parse error at line:col [5:5]")
 }
 
+func TestParseTrailingComma(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	testParseExpectError(t,
+		`{
+			"consul": "consul:8500",
+			"tasks": [{
+				"command": ["echo","hi"]
+			},
+		]
+	}`, "Do you have an extra comma somewhere?")
+}
+
 func TestMetricServiceCreation(t *testing.T) {
 
 	jsonFragment := []byte(`{
