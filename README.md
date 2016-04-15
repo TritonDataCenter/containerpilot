@@ -106,7 +106,15 @@ The format of the JSON file configuration is as follows:
         "check": ["/bin/sensor.sh"]
       }
     ]
-  }
+  },
+  "tasks": [
+    {
+      "name": "task",
+      "command": ["/bin/task.sh","arg1"],
+      "frequency": "1500ms",
+      "timeout": "100ms"
+    }
+  ]
 }
 ```
 
@@ -203,6 +211,16 @@ If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](h
 
 Details of how to configure the telemetry endpoint and how the telemetry endpoint works can be found in the [telemetry README](https://github.com/joyent/containerpilot/blob/master/telemetry/README.md).
 
+#### Tasks (Optional):
+
+Tasks are commands that are run periodically. They are typically used to perform housekeeping such as incremental back-ups, or pushing metrics to systems that cannot collect metrics through service discovery like Prometheus.
+
+Tasks are defined the following properties:
+
+- `command` is the executable (and its arguments) that will run when the task executes.
+- `frequency` is the time between executions of the task. Supports milliseconds, seconds, minutes. The frequency must be a positive non-zero duration with a time unit suffix. (Example: `60s`) Valid time units are `ns`, `us` (or `µs`), `ms`, `s`, `m`, `h`.
+- `timeout` is the amount of time to wait before forcibly killing the task.  Tasks killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. This value is optional and defaults to the `frequency`
+- `name` is a friendly name given to the task for logging purposes - this has no effect on the task execution. This value is optional, and defaults to the `command` if not given.
 
 #### Other fields:
 
