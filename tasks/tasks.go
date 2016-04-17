@@ -134,6 +134,7 @@ func (t *TaskConfig) kill(cmd *exec.Cmd) error {
 }
 
 func (t *TaskConfig) execute() {
+	log.Debugf("task[%s].execute init", t.Name)
 	cmd := utils.ArgsToCmd(t.Args)
 	t.cmd = cmd
 	fields := make(map[string]interface{})
@@ -145,6 +146,7 @@ func (t *TaskConfig) execute() {
 	cmd.Stdout = t.logWriters[0]
 	cmd.Stderr = t.logWriters[1]
 	defer t.closeLogs()
+	log.Debugf("task[%s].execute start", t.Name)
 	if err := cmd.Start(); err != nil {
 		log.Errorf("Unable to start task %s: %v", t.Name, err)
 		return
