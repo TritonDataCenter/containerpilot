@@ -7,7 +7,7 @@ SHELL := /bin/bash
 
 IMPORT_PATH := github.com/joyent/containerpilot
 VERSION ?= dev-build-not-for-release
-LDFLAGS := -X ${IMPORT_PATH}/config.GitHash='$(shell git rev-parse --short HEAD)' -X ${IMPORT_PATH}/config.Version='${VERSION}'
+LDFLAGS := -X ${IMPORT_PATH}/core.GitHash='$(shell git rev-parse --short HEAD)' -X ${IMPORT_PATH}/core.Version='${VERSION}'
 
 ROOT := $(shell pwd)
 

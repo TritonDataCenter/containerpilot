@@ -1,4 +1,4 @@
-package config
+package core
 
 import (
 	"flag"
@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/joyent/containerpilot/config"
 )
 
 // ------------------------------------------
@@ -56,13 +58,10 @@ func TestValidConfigParse(t *testing.T) {
 
 	os.Setenv("TEST", "HELLO")
 	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "valid1", "--debug"}
-	config, _ := LoadConfig()
-	if !reflect.DeepEqual(config, GetConfig()) {
-		t.Errorf("Global config was not written after load")
-	}
+	app, _ := LoadApp()
 
-	if len(config.Backends) != 2 || len(config.Services) != 2 {
-		t.Errorf("Expected 2 backends and 2 services but got: %v", config)
+	if len(app.Backends) != 2 || len(app.Services) != 2 {
+		t.Errorf("Expected 2 backends and 2 services but got: %v", app)
 	}
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/testdata/test.sh" {
@@ -70,69 +69,69 @@ func TestValidConfigParse(t *testing.T) {
 	}
 
 	expectedTags := []string{"tag1", "tag2"}
-	if !reflect.DeepEqual(config.Services[0].Tags, expectedTags) {
-		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, config.Services[0].Tags)
+	if !reflect.DeepEqual(app.Services[0].Tags, expectedTags) {
+		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, app.Services[0].Tags)
 	}
 
-	if config.Services[1].Tags != nil {
-		t.Errorf("Expected no tags for serviceB, but got: %s", config.Services[1].Tags)
+	if app.Services[1].Tags != nil {
+		t.Errorf("Expected no tags for serviceB, but got: %s", app.Services[1].Tags)
 	}
 
-	if config.Backends[0].Tag != "dev" {
-		t.Errorf("Expected tag %s for upstreamA, but got: %s", "dev", config.Backends[0].Tag)
+	if app.Backends[0].Tag != "dev" {
+		t.Errorf("Expected tag %s for upstreamA, but got: %s", "dev", app.Backends[0].Tag)
 	}
 
-	if config.Backends[1].Tag != "" {
-		t.Errorf("Expected no tag for upstreamB, but got: %s", config.Backends[1].Tag)
+	if app.Backends[1].Tag != "" {
+		t.Errorf("Expected no tag for upstreamB, but got: %s", app.Backends[1].Tag)
 	}
 
-	validateCommandParsed(t, "preStart", config.PreStartCmd, []string{"/bin/to/preStart.sh", "arg1", "arg2"})
-	validateCommandParsed(t, "preStop", config.PreStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
-	validateCommandParsed(t, "postStop", config.PostStopCmd, []string{"/bin/to/postStop.sh"})
+	validateCommandParsed(t, "preStart", app.PreStartCmd, []string{"/bin/to/preStart.sh", "arg1", "arg2"})
+	validateCommandParsed(t, "preStop", app.PreStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
+	validateCommandParsed(t, "postStop", app.PostStopCmd, []string{"/bin/to/postStop.sh"})
 }
 
 func TestServiceConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJson = []byte(`{"consul": "consul:8500", "services": [
+	var testJSON = []byte(`{"consul": "consul:8500", "services": [
                            {"name": "", "port": 8080, "poll": 30, "ttl": 19 }]}`)
-	validateParseError(t, testJson, []string{"`name`"})
+	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJson = []byte(`{"consul": "consul:8500", "services": [
+	testJSON = []byte(`{"consul": "consul:8500", "services": [
                        {"name": "name", "port": 8080, "ttl": 19}]}`)
-	validateParseError(t, testJson, []string{"`poll`"})
+	validateParseError(t, testJSON, []string{"`poll`"})
 
 	// Missing `ttl`
-	testJson = []byte(`{"consul": "consul:8500", "services": [
+	testJSON = []byte(`{"consul": "consul:8500", "services": [
                        {"name": "name", "port": 8080, "poll": 19}]}`)
-	validateParseError(t, testJson, []string{"`ttl`"})
+	validateParseError(t, testJSON, []string{"`ttl`"})
 
-	testJson = []byte(`{"consul": "consul:8500", "services": [
+	testJSON = []byte(`{"consul": "consul:8500", "services": [
                        {"name": "name", "poll": 19, "ttl": 19}]}`)
-	validateParseError(t, testJson, []string{"`port`"})
+	validateParseError(t, testJSON, []string{"`port`"})
 }
 
 func TestBackendConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJson = []byte(`{"consul": "consul:8500", "backends": [
+	var testJSON = []byte(`{"consul": "consul:8500", "backends": [
                            {"name": "", "poll": 30, "ttl": 19, "onChange": "true"}]}`)
-	validateParseError(t, testJson, []string{"`name`"})
+	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJson = []byte(`{"consul": "consul:8500", "backends": [
+	testJSON = []byte(`{"consul": "consul:8500", "backends": [
                        {"name": "name", "ttl": 19, "onChange": "true"}]}`)
-	validateParseError(t, testJson, []string{"`poll`"})
+	validateParseError(t, testJSON, []string{"`poll`"})
 
 	// Missing `onChange`
-	testJson = []byte(`{"consul": "consul:8500", "backends": [
+	testJSON = []byte(`{"consul": "consul:8500", "backends": [
                        {"name": "name", "poll": 19, "ttl": 19 }]}`)
-	validateParseError(t, testJson, []string{"`onChange`"})
+	validateParseError(t, testJSON, []string{"`onChange`"})
 }
 
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	os.Args = []string{"this", "/testdata/test.sh", "invalid1", "--debug"}
-	if _, err := LoadConfig(); err != nil && err.Error() != "-config flag is required" {
+	if _, err := LoadApp(); err != nil && err.Error() != "-config flag is required" {
 		t.Errorf("Expected error but got %s", err)
 	}
 }
@@ -190,25 +189,29 @@ func TestParseTrailingComma(t *testing.T) {
 
 func TestMetricServiceCreation(t *testing.T) {
 
-	jsonFragment := []byte(`{
+	jsonFragment := `{
     "consul": "consul:8500",
     "telemetry": {
       "port": 9090
     }
-}`)
-	if config, err := unmarshalConfig(jsonFragment); err != nil {
-		t.Errorf("Got unexpected error deserializing JSON config: %v", err)
+  }`
+	config, err := config.ParseConfig(jsonFragment)
+	if err != nil {
+		t.Fatalf("Error parsing config: %v", err)
+	}
+	app, err := InitializeApp(config)
+	if err != nil {
+		t.Fatalf("Got unexpected error deserializing JSON config: %v", err)
+	}
+	if _, err := InitializeApp(config); err != nil {
+		t.Fatalf("Got error while initializing config: %v", err)
 	} else {
-		if _, err := initializeConfig(config); err != nil {
-			t.Fatalf("Got error while initializing config: %v", err)
+		if len(app.Services) != 1 {
+			t.Errorf("Expected telemetry service but got %v", app.Services)
 		} else {
-			if len(config.Services) != 1 {
-				t.Errorf("Expected telemetry service but got %v", config.Services)
-			} else {
-				service := config.Services[0]
-				if service.Name != "containerpilot" {
-					t.Errorf("Got incorrect service back: %v", service)
-				}
+			service := app.Services[0]
+			if service.Name != "containerpilot" {
+				t.Errorf("Got incorrect service back: %v", service)
 			}
 		}
 	}
@@ -229,16 +232,16 @@ func argTestCleanup(oldArgs []string) {
 
 func testParseExpectError(t *testing.T, testJSON string, expected string) {
 	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "test", "--debug"}
-	if _, err := LoadConfig(); err != nil && !strings.Contains(err.Error(), expected) {
+	if _, err := LoadApp(); err != nil && !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected %s but got %s", expected, err)
 	}
 }
 
 func validateParseError(t *testing.T, input []byte, matchStrings []string) {
-	if cfg, err := unmarshalConfig([]byte(input)); err != nil {
+	if cfg, err := config.UnmarshalConfig([]byte(input)); err != nil {
 		t.Errorf("Unexpected error parsing config: %v", err)
 	} else {
-		if _, err := initializeConfig(cfg); err == nil {
+		if _, err := InitializeApp(cfg); err == nil {
 			t.Errorf("Expected error parsing config")
 		} else {
 			for _, match := range matchStrings {
