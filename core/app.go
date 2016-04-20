@@ -300,6 +300,9 @@ func (a *App) load(newApp *App) {
 	a.Services = newApp.Services
 	a.Backends = newApp.Backends
 	a.StopTimeout = newApp.StopTimeout
+	if a.Telemetry != nil {
+		a.Telemetry.Shutdown()
+	}
 	a.Telemetry = newApp.Telemetry
 	a.Tasks = newApp.Tasks
 	a.HandleSignals()
