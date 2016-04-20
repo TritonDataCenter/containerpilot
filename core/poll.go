@@ -33,7 +33,7 @@ func HandlePolling(cfg *config.Config) {
 // Every `pollTime` seconds, run the `PollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
 func poll(pollable Pollable) chan bool {
-	ticker := time.NewTicker(time.Duration(pollable.PollTime()) * time.Second)
+	ticker := time.NewTicker(pollable.PollTime())
 	quit := make(chan bool)
 	go func() {
 		for {
@@ -52,6 +52,6 @@ func poll(pollable Pollable) chan bool {
 
 // Pollable is base abstraction for backends and services that support polling
 type Pollable interface {
-	PollTime() int
+	PollTime() time.Duration
 	PollAction()
 }

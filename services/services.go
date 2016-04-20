@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
@@ -106,8 +107,8 @@ func parseService(s *Service, disc discovery.DiscoveryService) error {
 
 // PollTime implements Pollable for Service
 // It returns the service's poll interval.
-func (s Service) PollTime() int {
-	return s.Poll
+func (s Service) PollTime() time.Duration {
+	return time.Duration(s.Poll) * time.Second
 }
 
 // PollAction implements Pollable for Service.

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/utils"
@@ -29,8 +30,8 @@ type Sensor struct {
 
 // PollTime implements Pollable for Sensor
 // It returns the sensor's poll interval.
-func (s Sensor) PollTime() int {
-	return s.Poll
+func (s Sensor) PollTime() time.Duration {
+	return time.Duration(s.Poll) * time.Second
 }
 
 // PollAction implements Pollable for Sensor.

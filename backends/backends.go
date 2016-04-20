@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"time"
 
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
@@ -53,8 +54,8 @@ func NewBackends(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Backe
 
 // PollTime implements Pollable for Backend
 // It returns the backend's poll interval.
-func (b Backend) PollTime() int {
-	return b.Poll
+func (b Backend) PollTime() time.Duration {
+	return time.Duration(b.Poll) * time.Second
 }
 
 // PollAction implements Pollable for Backend.
