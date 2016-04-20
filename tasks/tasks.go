@@ -88,12 +88,11 @@ func (t *Task) PollAction() {
 	t.cmd = cmd
 	fields := make(map[string]interface{})
 	fields["task"] = t.Name
-	t.logWriters = []io.WriteCloser{
-		utils.NewLogWriter(fields, 5),
-		utils.NewLogWriter(fields, 4),
-	}
-	cmd.Stdout = t.logWriters[0]
-	cmd.Stderr = t.logWriters[1]
+	stdout := utils.NewLogWriter(fields, log.InfoLevel)
+	stderr := utils.NewLogWriter(fields, log.DebugLevel)
+	t.logWriters = []io.WriteCloser{stdout, stderr}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	defer t.closeLogs()
 	log.Debugf("task[%s].PollAction start", t.Name)
 	if err := cmd.Start(); err != nil {
