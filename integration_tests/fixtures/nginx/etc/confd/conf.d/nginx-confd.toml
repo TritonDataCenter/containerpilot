@@ -2,7 +2,7 @@
 src = "nginx-etcd.tmpl"
 dest = "/etc/nginx/nginx.conf"
 owner = "nginx"
-prefix = "/containerbuddy"
+prefix = "/containerpilot"
 mode = "0644"
 keys = [
   "/app"

@@ -1,6 +1,6 @@
 {
   "consul": "consul:8500",
-  "onStart": [
+  "preStart": [
     "consul-template", "-once", "-retry", "30s", "-consul", "consul:8500", "-template",
     "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf"
   ],

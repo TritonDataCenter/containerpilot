@@ -22,7 +22,7 @@ Fixtures Directory: `integration_tests/fixtures`
 
 - Folders in the fixtures directory will be built as docker images in alphabetical order
 - Each folder should contain a `Dockerfile` and any resources necessary to build the image
-- The resulting image will be named `cbfix_fixture_name`
+- The resulting image will be named `cpfix_fixture_name`
 
 *Note*: Since fixtures are created in alpha order, they can have FROM directives for previously created images
 
@@ -42,7 +42,7 @@ This script can make some assumptions:
   - `COMPOSE_FILE`
   - `COMPOSE_PROJECT_NAME` - The name of the test folder
   - `DOCKER_IP` - The IP of docker on the host machine
-  - `CONTAINERBUDDY_BIN` - Absolute path to containerbuddy binary on the host.
+  - `CONTAINERPILOT_BIN` - Absolute path to containerpilot binary on the host.
 - all fixtures in `integration_tests/fixtures` are created and are available as images
 
 ## How tests are executed
@@ -52,7 +52,7 @@ This script can make some assumptions:
 - For each fixture:
   - Copy `build` into `integration_test/fixtures/fixture_name/build` so it can easily be sourced by the `Dockerfile`
   - `cd integration_tests/fixtures/fixture_name`
-  - `docker build -t cbfix_fixture_name .`
+  - `docker build -t cpfix_fixture_name .`
 
 ### Run tests
 - Scan through all folders in `integration_tests/tests` in alpha order

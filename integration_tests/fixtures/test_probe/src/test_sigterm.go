@@ -2,7 +2,7 @@ package main
 
 import "log"
 
-// TestSigterm tests that containerbuddy will deregister the service on a SIGTERM
+// TestSigterm tests that containerpilot will deregister the service on a SIGTERM
 func TestSigterm(args []string) bool {
 	if len(args) != 1 {
 		log.Println("TestSigterm requires 1 argument")

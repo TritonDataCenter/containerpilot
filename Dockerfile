@@ -5,4 +5,4 @@ RUN  go get github.com/golang/lint/golint \
 
 ENV CGO_ENABLED 0
 ENV GO15VENDOREXPERIMENT 1
-ENTRYPOINT ["make"]
+ENV GOPATH /go:/cp

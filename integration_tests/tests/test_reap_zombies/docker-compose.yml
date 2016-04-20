@@ -1,12 +1,12 @@
 consul:
-    image: "cbfix_consul"
+    image: "cpfix_consul"
     mem_limit: 256m
     hostname: consul
 
 app:
-    image: "cbfix_zombie_maker"
+    image: "cpfix_zombie_maker"
     mem_limit: 512m
     links:
       - consul:consul
     volumes:
-      - '${CONTAINERBUDDY_BIN}:/bin/containerbuddy:ro'
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
