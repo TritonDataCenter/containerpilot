@@ -100,9 +100,6 @@ func stopPolling(cfg *config.Config) {
 	for _, quit := range cfg.QuitChannels {
 		quit <- true
 	}
-	for _, task := range cfg.Tasks {
-		task.Stop()
-	}
 }
 
 type serviceFunc func(service *services.Service)

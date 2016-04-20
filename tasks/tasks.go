@@ -12,8 +12,8 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-// TaskConfig configures tasks that run periodically
-type TaskConfig struct {
+// Task configures tasks that run periodically
+type Task struct {
 	Name      string   `json:"name"`
 	Args      []string `json:"command"`
 	Frequency string   `json:"frequency"`
@@ -22,35 +22,17 @@ type TaskConfig struct {
 	freqDuration    time.Duration
 	timeoutDuration time.Duration
 	cmd             *exec.Cmd
-	quitChannel     chan int
 	ticker          *time.Ticker
 	logWriters      []io.WriteCloser
 }
 
-// Task a task that runs periodically until killed
-type Task interface {
-	Start() error
-	Stop()
-}
-
-func (t *TaskConfig) closeLogs() {
-	if t.logWriters == nil {
-		return
-	}
-	for _, w := range t.logWriters {
-		if err := w.Close(); err != nil {
-			log.Errorf("Unable to close log writer : %v", err)
-		}
-	}
-}
-
 // NewTasks parses json config into an array of Tasks
-func NewTasks(raw json.RawMessage) ([]Task, error) {
-	var tasks []Task
+func NewTasks(raw json.RawMessage) ([]*Task, error) {
+	var tasks []*Task
 	if raw == nil {
 		return tasks, nil
 	}
-	var configs []*TaskConfig
+	var configs []*Task
 	if err := json.Unmarshal(raw, &configs); err != nil {
 		return nil, fmt.Errorf("Task configuration error: %v", err)
 	}
@@ -63,7 +45,7 @@ func NewTasks(raw json.RawMessage) ([]Task, error) {
 	return tasks, nil
 }
 
-func parseTask(task *TaskConfig) error {
+func parseTask(task *Task) error {
 	if task.Args == nil || len(task.Args) == 0 {
 		return fmt.Errorf("Task did not provide a command")
 	}
@@ -85,56 +67,23 @@ func parseTask(task *TaskConfig) error {
 	} else {
 		task.Timeout = task.Frequency
 	}
-	task.quitChannel = make(chan int)
 	return nil
 }
 
-// Start starts the task
-func (t *TaskConfig) Start() error {
-
-	t.ticker = time.NewTicker(t.freqDuration)
-	quit := make(chan int)
-
-	// Accept quit signal
-	go func() {
-		select {
-		case <-t.quitChannel:
-			log.Debugf("task[%s].Start#gofunc <-quitChannel", t.Name)
-			t.ticker.Stop()
-			quit <- 0
-			t.kill(t.cmd)
-			return
-		}
-	}()
-
-	// Run command
-	go func() {
-		defer t.ticker.Stop()
-		for {
-			select {
-			case <-t.ticker.C:
-				log.Debugf("task[%s].Start#gofunc <-t.ticker.C", t.Name)
-				t.execute()
-			case <-quit:
-				log.Debugf("task[%s].Start#gofunc <-quit", t.Name)
-				return
-			}
-		}
-	}()
-	return nil
+// PollTime returns the frequency of the task
+func (t *Task) PollTime() time.Duration {
+	return t.freqDuration
 }
 
-func (t *TaskConfig) kill(cmd *exec.Cmd) error {
-	log.Debugf("task[%s].kill", t.Name)
-	if cmd != nil && cmd.Process != nil {
-		log.Warnf("Killing task %s: %d", t.Name, cmd.Process.Pid)
-		return cmd.Process.Kill()
-	}
-	return nil
+// PollStop kills a running task
+func (t *Task) PollStop() {
+	log.Debugf("task[%s].PollStop", t.Name)
+	t.kill()
 }
 
-func (t *TaskConfig) execute() {
-	log.Debugf("task[%s].execute init", t.Name)
+// PollAction runs the task
+func (t *Task) PollAction() {
+	log.Debugf("task[%s].PollAction", t.Name)
 	cmd := utils.ArgsToCmd(t.Args)
 	t.cmd = cmd
 	fields := make(map[string]interface{})
@@ -146,16 +95,25 @@ func (t *TaskConfig) execute() {
 	cmd.Stdout = t.logWriters[0]
 	cmd.Stderr = t.logWriters[1]
 	defer t.closeLogs()
-	log.Debugf("task[%s].execute start", t.Name)
+	log.Debugf("task[%s].PollAction start", t.Name)
 	if err := cmd.Start(); err != nil {
 		log.Errorf("Unable to start task %s: %v", t.Name, err)
 		return
 	}
 	t.run(cmd)
-	log.Debugf("task[%s].execute complete", t.Name)
+	log.Debugf("task[%s].PollAction complete", t.Name)
 }
 
-func (t *TaskConfig) run(cmd *exec.Cmd) {
+func (t *Task) kill() error {
+	log.Debugf("task[%s].kill", t.Name)
+	if t.cmd != nil && t.cmd.Process != nil {
+		log.Warnf("Killing task %s: %d", t.Name, t.cmd.Process.Pid)
+		return t.cmd.Process.Kill()
+	}
+	return nil
+}
+
+func (t *Task) run(cmd *exec.Cmd) {
 	ticker := time.NewTicker(t.timeoutDuration)
 	quit := make(chan int)
 	go func() {
@@ -163,7 +121,7 @@ func (t *TaskConfig) run(cmd *exec.Cmd) {
 		select {
 		case <-ticker.C:
 			log.Warnf("Task %s timeout after %s: '%s'", t.Name, t.Timeout, t.Args)
-			if err := t.kill(cmd); err != nil {
+			if err := t.kill(); err != nil {
 				log.Errorf("Error killing task %s: %v", t.Name, err)
 			}
 			// Swallow quit signal
@@ -186,9 +144,13 @@ func (t *TaskConfig) run(cmd *exec.Cmd) {
 	log.Debugf("task[%s].run complete", t.Name)
 }
 
-// Stop stops a task from executing and kills the currently running execution
-func (t *TaskConfig) Stop() {
-	log.Debugf("task[%s].Stop", t.Name)
-	t.quitChannel <- 0
-	log.Debugf("task[%s].Stop quit", t.Name)
+func (t *Task) closeLogs() {
+	if t.logWriters == nil {
+		return
+	}
+	for _, w := range t.logWriters {
+		if err := w.Close(); err != nil {
+			log.Errorf("Unable to close log writer : %v", err)
+		}
+	}
 }

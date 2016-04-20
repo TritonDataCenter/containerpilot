@@ -24,7 +24,7 @@ func HandlePolling(cfg *config.Config) {
 	}
 	if cfg.Tasks != nil {
 		for _, task := range cfg.Tasks {
-			task.Start()
+			quit = append(quit, poll(task))
 		}
 	}
 	cfg.QuitChannels = quit

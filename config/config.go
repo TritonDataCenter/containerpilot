@@ -60,7 +60,7 @@ type Config struct {
 	TelemetryConfig json.RawMessage `json:"telemetry,omitempty"`
 	Services        []*services.Service
 	Backends        []*backends.Backend
-	Tasks           []tasks.Task
+	Tasks           []*tasks.Task
 	Telemetry       *telemetry.Telemetry
 	PreStartCmd     *exec.Cmd
 	PreStopCmd      *exec.Cmd
