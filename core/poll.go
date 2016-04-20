@@ -43,6 +43,7 @@ func poll(pollable Pollable) chan bool {
 					pollable.PollAction()
 				}
 			case <-quit:
+				pollable.PollStop()
 				return
 			}
 		}
@@ -54,4 +55,5 @@ func poll(pollable Pollable) chan bool {
 type Pollable interface {
 	PollTime() time.Duration
 	PollAction()
+	PollStop()
 }

@@ -43,6 +43,11 @@ func (s *Sensor) PollAction() {
 	}
 }
 
+// PollStop does nothing in a Sensor
+func (s *Sensor) PollStop() {
+	// Nothing to do
+}
+
 func (s *Sensor) observe() (string, error) {
 	defer func() {
 		// reset command object because it can't be reused

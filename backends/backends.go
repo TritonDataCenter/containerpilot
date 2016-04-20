@@ -67,6 +67,11 @@ func (b *Backend) PollAction() {
 	}
 }
 
+// PollStop does nothing in a Backend
+func (b *Backend) PollStop() {
+	// Nothing to do
+}
+
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
 // in a dependent backend. Returns true when there has been a change.
 func (b *Backend) CheckForUpstreamChanges() bool {

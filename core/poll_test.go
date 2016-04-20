@@ -12,6 +12,7 @@ func (p DummyPollable) PollAction() {
 	time.Sleep(5 * time.Second)
 	panic("We should never reach this code because the channel should close.")
 }
+func (p DummyPollable) PollStop() {}
 
 // Verify we have no obvious crashing paths in the poll code and that we handle
 // a closed channel immediately as expected and gracefully.

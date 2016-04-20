@@ -120,6 +120,11 @@ func (s *Service) PollAction() {
 	}
 }
 
+// PollStop does nothing in a Service
+func (s *Service) PollStop() {
+	// Nothing to do
+}
+
 // SendHeartbeat sends a heartbeat for this service
 func (s *Service) SendHeartbeat() {
 	s.discoveryService.SendHeartbeat(s.definition)
