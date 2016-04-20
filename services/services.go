@@ -19,6 +19,7 @@ type Service struct {
 	Port             int             `json:"port"`
 	TTL              int             `json:"ttl"`
 	Interfaces       json.RawMessage `json:"interfaces"`
+	Address          string          `json:"address,omitempty"`
 	Tags             []string        `json:"tags,omitempty"`
 	ipAddress        string
 	healthCheckCmd   *exec.Cmd
@@ -88,10 +89,14 @@ func parseService(s *Service, disc discovery.DiscoveryService) error {
 		return ifaceErr
 	}
 
-	if ipAddress, err := utils.GetIP(interfaces); err != nil {
-		return err
+	if s.Address != "" {
+		s.ipAddress = s.Address
 	} else {
-		s.ipAddress = ipAddress
+		if ipAddress, err := utils.GetIP(interfaces); err != nil {
+			return err
+		} else {
+			s.ipAddress = ipAddress
+		}
 	}
 	s.definition = &discovery.ServiceDefinition{
 		ID:        s.ID,
