@@ -26,6 +26,8 @@ type Task struct {
 	logWriters      []io.WriteCloser
 }
 
+var taskMinDuration = 1 * time.Millisecond
+
 // NewTasks parses json config into an array of Tasks
 func NewTasks(raw json.RawMessage) ([]*Task, error) {
 	var tasks []*Task
@@ -52,16 +54,22 @@ func parseTask(task *Task) error {
 	if task.Name == "" {
 		task.Name = strings.Join(task.Args, " ")
 	}
-	freq, err := time.ParseDuration(task.Frequency)
+	freq, err := utils.ParseDuration(task.Frequency)
 	if err != nil {
 		return fmt.Errorf("Unable to parse frequency %s: %v", task.Frequency, err)
+	}
+	if freq < time.Millisecond {
+		return fmt.Errorf("Frequency %v cannot be less that %v", freq, taskMinDuration)
 	}
 	task.freqDuration = freq
 	task.timeoutDuration = freq
 	if task.Timeout != "" {
-		timeout, err := time.ParseDuration(task.Timeout)
+		timeout, err := utils.ParseDuration(task.Timeout)
 		if err != nil {
 			return fmt.Errorf("Unable to parse timeout %s: %v", task.Timeout, err)
+		}
+		if timeout < taskMinDuration {
+			return fmt.Errorf("Timeout %v cannot be less that %v", timeout, taskMinDuration)
 		}
 		task.timeoutDuration = timeout
 	} else {
