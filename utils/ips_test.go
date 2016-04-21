@@ -125,11 +125,12 @@ func TestInterfaceIpsError(t *testing.T) {
 
 func TestInterfaceSpecParse(t *testing.T) {
 	// Test Error Cases
-	testSpecError(t, "")           // Nothing
-	testSpecError(t, "!")          // Nonsense
-	testSpecError(t, "127.0.0.1")  // No Network
-	testSpecError(t, "eth0:inet5") // Invalid IP Version
-	testSpecError(t, "eth0[-1]")   // Invalid Index
+	testSpecError(t, "")              // Nothing
+	testSpecError(t, "!")             // Nonsense
+	testSpecError(t, "127.0.0.1")     // No Network
+	testSpecError(t, "eth0:inet5")    // Invalid IP Version
+	testSpecError(t, "eth0[-1]")      // Invalid Index
+	testSpecError(t, "static:abcdef") // Invalid IP
 
 	// Test Interface Case
 	testSpecInterfaceName(t, "eth0", "eth0", false, -1)
