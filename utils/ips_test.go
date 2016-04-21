@@ -43,6 +43,9 @@ func TestGetIp(t *testing.T) {
 	if ip, err := GetIP([]string{"interface-does-not-exist"}); err == nil {
 		t.Errorf("Expected interface not found, but instead got an IP: %s", ip)
 	}
+	if ip, _ := GetIP([]string{"static:192.168.1.100", "lo"}); ip != "192.168.1.100" {
+		t.Errorf("Expected to find static ip 192.168.1.100, but found: %s", ip)
+	}
 }
 
 func TestInterfaceIpsLoopback(t *testing.T) {
@@ -139,6 +142,7 @@ func TestInterfaceSpecParse(t *testing.T) {
 	testSpecInterfaceName(t, "eth0[2]", "eth0", false, 2)
 	testSpecInterfaceName(t, "inet", "*", false, -1)
 	testSpecInterfaceName(t, "inet6", "*", true, -1)
+	testSpecInterfaceName(t, "static:192.168.1.100", "static", false, 1)
 
 	// Test CIDR Case
 	testSpecCIDR(t, "10.0.0.0/16")
@@ -155,6 +159,17 @@ func testSpecInterfaceName(t *testing.T, specStr string, name string, ipv6 bool,
 	spec, err := parseInterfaceSpec(specStr)
 	if err != nil {
 		t.Errorf("Expected parse to succeed, but got error: %s", err)
+	}
+	if name == "static" {
+		staticSpec, ok := spec.(staticInterfaceSpec)
+		if !ok {
+			t.Errorf("Expected %s to parse as staticInterfaceSpec", spec)
+			return
+		}
+		if staticSpec.Name != "static" {
+			t.Errorf("Expected to parse interface name static but got %s", staticSpec.Name)
+		}
+		return
 	}
 	if index < 0 {
 		inetSpec, ok := spec.(inetInterfaceSpec)
@@ -208,6 +223,9 @@ func TestFindIPWithSpecs(t *testing.T) {
 	// Loopback
 	testIPSpec(t, iips, "127.0.0.1", "lo")
 	testIPSpec(t, iips, "::1", "lo:inet6")
+
+	// Static
+	testIPSpec(t, iips, "192.168.1.100", "static:192.168.1.100")
 
 	// Interface Name
 	testIPSpec(t, iips, "10.2.0.1", "eth0")
@@ -301,6 +319,7 @@ func getTestIPs() []interfaceIP {
 		newInterfaceIP("eth2", "fdc6:238c:c4bc::1"),
 		newInterfaceIP("lo", "::1"),
 		newInterfaceIP("lo", "127.0.0.1"),
+		newInterfaceIP("static:192.168.1.100", "192.168.1.100"),
 	}
 }
 
