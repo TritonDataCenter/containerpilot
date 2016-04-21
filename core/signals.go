@@ -50,7 +50,7 @@ func terminate(cfg *config.Config) {
 	})
 
 	// Run and wait for preStop command to exit
-	utils.Run(cfg.PreStopCmd)
+	utils.RunWithFields(cfg.PreStopCmd, log.Fields{"process": "PreStop"})
 
 	cmd := cfg.Command
 	if cmd == nil || cmd.Process == nil {

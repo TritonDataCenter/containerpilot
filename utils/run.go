@@ -1,31 +1,44 @@
 package utils
 
 import (
-	"os"
 	"os/exec"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-// Executes the given command and blocks until completed
+// RunWithFields executes the given command and blocks until completed
 // Returns the exit code and error message (if any).
-// Logs errors
-func Run(cmd *exec.Cmd) (int, error) {
-	code, err := ExecuteAndWait(cmd)
-	if err != nil {
-		log.Errorln(err)
+// Logs output streams to the log driver instead of stdout/stderr
+// - stderr creates DEBUG level entries
+// - stdout creates INFO level entries
+// Adds the given fields to the log entries
+func RunWithFields(cmd *exec.Cmd, fields log.Fields) (int, error) {
+	if cmd != nil {
+		stderr := NewLogWriter(fields, log.DebugLevel)
+		stdout := NewLogWriter(fields, log.InfoLevel)
+		cmd.Stderr = stderr
+		cmd.Stdout = stdout
+		defer stderr.Close()
+		defer stdout.Close()
 	}
-	return code, err
+	return ExecuteAndWait(cmd)
 }
 
-// Executes the given command and blocks until completed
+// Run executes the given command and blocks until completed
+// Returns the exit code and error message (if any).
+// Logs output streams to the log driver instead of stdout/stderr
+// - stderr creates DEBUG level entries
+// - stdout creates INFO level entries
+func Run(cmd *exec.Cmd) (int, error) {
+	return RunWithFields(cmd, nil)
+}
+
+// ExecuteAndWait runs the given command and blocks until completed
 func ExecuteAndWait(cmd *exec.Cmd) (int, error) {
 	if cmd == nil {
 		return 0, nil
 	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {

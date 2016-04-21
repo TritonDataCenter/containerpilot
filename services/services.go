@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -155,6 +156,6 @@ func (s *Service) CheckHealth() (int, error) {
 	if s.healthCheckCmd == nil {
 		return 0, nil
 	}
-	exitCode, err := utils.Run(s.healthCheckCmd)
+	exitCode, err := utils.RunWithFields(s.healthCheckCmd, log.Fields{"process": "health", "serviceName": s.Name, "serviceID": s.ID})
 	return exitCode, err
 }

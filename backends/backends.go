@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -84,6 +85,7 @@ func (b *Backend) OnChange() (int, error) {
 		// reset command object because it can't be reused
 		b.onChangeCmd = utils.ArgsToCmd(b.onChangeCmd.Args)
 	}()
-	exitCode, err := utils.Run(b.onChangeCmd)
+
+	exitCode, err := utils.RunWithFields(b.onChangeCmd, log.Fields{"process": "OnChange", "backend": b.Name})
 	return exitCode, err
 }

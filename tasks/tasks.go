@@ -94,8 +94,7 @@ func (t *Task) PollAction() {
 	log.Debugf("task[%s].PollAction", t.Name)
 	cmd := utils.ArgsToCmd(t.Args)
 	t.cmd = cmd
-	fields := make(map[string]interface{})
-	fields["task"] = t.Name
+	fields := log.Fields{"process": "task", "task": t.Name}
 	stdout := utils.NewLogWriter(fields, log.InfoLevel)
 	stderr := utils.NewLogWriter(fields, log.DebugLevel)
 	t.logWriters = []io.WriteCloser{stdout, stderr}

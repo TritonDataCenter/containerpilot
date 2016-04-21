@@ -2,10 +2,10 @@ package main // import "github.com/joyent/containerpilot"
 
 import (
 	"flag"
-	"log"
 	"os"
 	"runtime"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/core"
 	"github.com/joyent/containerpilot/utils"
@@ -23,7 +23,7 @@ func main() {
 	}
 
 	// Run the preStart handler, if any, and exit if it returns an error
-	if preStartCode, err := utils.Run(cfg.PreStartCmd); err != nil {
+	if preStartCode, err := utils.RunWithFields(cfg.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
 		os.Exit(preStartCode)
 	}
 
@@ -39,12 +39,16 @@ func main() {
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
 		cfg.Command = utils.ArgsToCmd(flag.Args())
+
+		// Command output directly to stdout/stderr
+		cfg.Command.Stdout = os.Stdout
+		cfg.Command.Stderr = os.Stderr
 		code, err := utils.ExecuteAndWait(cfg.Command)
 		if err != nil {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
-		if postStopCode, err := utils.Run(config.GetConfig().PostStopCmd); err != nil {
+		if postStopCode, err := utils.RunWithFields(config.GetConfig().PostStopCmd, log.Fields{"process": "PostStop"}); err != nil {
 			os.Exit(postStopCode)
 		}
 		os.Exit(code)
