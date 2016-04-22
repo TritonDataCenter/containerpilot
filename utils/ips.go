@@ -88,6 +88,11 @@ func GetIP(specList []string) (string, error) {
 func findIPWithSpecs(specs []interfaceSpec, interfaceIPs []interfaceIP) (string, error) {
 	// Find the interface matching the name given
 	for _, spec := range specs {
+		// Static IP given
+		origSpec, ok := spec.(staticInterfaceSpec)
+		if ok {
+			return origSpec.IP.String(), nil
+		}
 		index := 0
 		iface := ""
 		for _, iip := range interfaceIPs {
@@ -120,6 +125,18 @@ type inetInterfaceSpec struct {
 	Spec string
 	Name string
 	IPv6 bool
+}
+
+// -- matches static
+type staticInterfaceSpec struct {
+	Spec string
+	Name string
+	IP net.IP
+}
+
+func (s staticInterfaceSpec) Match(index int, iip interfaceIP) bool {
+	// Never matches
+	return false
 }
 
 func (s inetInterfaceSpec) Match(index int, iip interfaceIP) bool {
@@ -186,6 +203,16 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 	}
 	if spec == "inet6" {
 		return inetInterfaceSpec{Spec: spec, Name: "*", IPv6: true}, nil
+	}
+	if strings.HasPrefix(spec, "static:") {
+		ip := strings.SplitAfter(spec, "static:")
+		if _, err := strconv.Atoi(ip[1]); err != nil {
+			nip := net.ParseIP(ip[1])
+			if nip == nil {
+				return nil, fmt.Errorf("Unable to parse static ip %s in %s", ip[0], spec)
+			}
+			return staticInterfaceSpec{Spec: spec, Name: "static", IP: nip}, nil
+		}
 	}
 
 	if match := ifaceSpec.FindStringSubmatch(spec); match != nil {
