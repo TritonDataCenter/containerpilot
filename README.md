@@ -166,6 +166,10 @@ The logging config adjust the output format and verbosity of ContainerPilot logs
 - `format` adjust the output format for log messages. Can be `default`, `text`, or `json` (Default is `default`)
 - `output` picks the output stream for log messages. Can be `stderr` or `stdout` (Default is `stdout`)
 
+Processes which are run by ContainerPilot, such as `health`, lifecycle hooks (`preStart`,`preStop`,`postStop`,`onChange`), `task` and `sensor` output are captured and streamed to the logging framework. `stdout` creates `INFO` logs, and `stderr` creates `DEBUG` logs.
+
+This configuration does not affect the output of the shimmed application, which outputs directly to `stdout` and `stderr`.
+
 Logging Format Examples:
 
 `default` - go log package with [LstdFlags](https://golang.org/pkg/log/)
@@ -215,14 +219,14 @@ Details of how to configure the telemetry endpoint and how the telemetry endpoin
 
 Tasks are commands that are run periodically. They are typically used to perform housekeeping such as incremental back-ups, or pushing metrics to systems that cannot collect metrics through service discovery like Prometheus.
 
-Tasks are defined the following properties:
+A task accepts the following properties:
 
 - `command` is the executable (and its arguments) that will run when the task executes.
 - `frequency` is the time between executions of the task. Supports milliseconds, seconds, minutes. The frequency must be a positive non-zero duration with a time unit suffix. (Example: `60s`) Valid time units are `ns`, `us` (or `µs`), `ms`, `s`, `m`, `h`. The minimum frequency is `1ms`
 - `timeout` is the amount of time to wait before forcibly killing the task.  Tasks killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. This value is optional and defaults to the `frequency`. The minimum timeout is `1ms`
 - `name` is a friendly name given to the task for logging purposes - this has no effect on the task execution. This value is optional, and defaults to the `command` if not given.
 
-*Note on task frequency:* **pick a frequency greater than 50ms**. Although the task configuration permits frequencies as fast a 1ms, the overhead of spawning a process and its lifecycle is likely to be anywhere from 2ms to 25ms. Your task may not be able to run at all, or it might always be killed before it gets any useful work done.
+*Note on task frequency:* **Pick a frequency greater than 50ms**. Although the task configuration permits frequencies as fast as 1ms, the overhead of spawning a process and its lifecycle is likely to be anywhere from 2ms to 25ms. Your task may not be able to run at all, or it might always be killed before it gets any useful work done.
 
 #### Other fields:
 
@@ -244,7 +248,7 @@ The `interfaces` parameter allows for one or more specifications to be used when
 - `fdc6:238c:c4bc::/48` : Match the first IP that is contained within the IPv6 Network
 - `inet` : Match the first IPv4 Address (excluding `127.0.0.0/8`)
 - `inet6` : Match the first IPv6 Address (excluding `::1/128`)
-- `static: 192.168.1.100` : Use this Address. Useful for all cases where the IP is not visible in the container
+- `static:192.168.1.100` : Use this Address. Useful for all cases where the IP is not visible in the container
 
 Interfaces and their IP addresses are ordered alphabetically by interface name, then by IP address (lexicographically by bytes).
 
