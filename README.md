@@ -222,7 +222,7 @@ Tasks are defined the following properties:
 - `timeout` is the amount of time to wait before forcibly killing the task.  Tasks killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. This value is optional and defaults to the `frequency`. The minimum timeout is `1ms`
 - `name` is a friendly name given to the task for logging purposes - this has no effect on the task execution. This value is optional, and defaults to the `command` if not given.
 
-*Note on task frequency:* **pick a frequency greater than 50ms**. Although the task configuration permits frequencies as fast a 1ms, the overhead of spawning a process and its lifecycle is likely to be anywhere from 2ms to 25ms. Your task may not be able to run at all, or it might always be killed before it gets any useful work done.
+*Note on task frequency:* **pick a frequency greater than 50ms**. Although the task configuration permits frequencies as fast as 1ms, the overhead of spawning a process and its lifecycle is likely to be anywhere from 2ms to 25ms. Your task may not be able to run at all, or it might always be killed before it gets any useful work done.
 
 #### Other fields:
 
