@@ -166,6 +166,10 @@ The logging config adjust the output format and verbosity of ContainerPilot logs
 - `format` adjust the output format for log messages. Can be `default`, `text`, or `json` (Default is `default`)
 - `output` picks the output stream for log messages. Can be `stderr` or `stdout` (Default is `stdout`)
 
+Processes which are run by ContainerPilot, such as `health`, lifecycle hooks (`preStart`,`preStop`,`postStop`,`onChange`), `task` and `sensor` output are captured and streamed to the logging framework. `stdout` creates `INFO` logs, and `stderr` creates `DEBUG` logs.
+
+This configuration does not affect the output of the shimmed application, which outputs directly to `stdout` and `stderr`
+
 Logging Format Examples:
 
 `default` - go log package with [LstdFlags](https://golang.org/pkg/log/)
