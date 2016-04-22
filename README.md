@@ -168,7 +168,7 @@ The logging config adjust the output format and verbosity of ContainerPilot logs
 
 Processes which are run by ContainerPilot, such as `health`, lifecycle hooks (`preStart`,`preStop`,`postStop`,`onChange`), `task` and `sensor` output are captured and streamed to the logging framework. `stdout` creates `INFO` logs, and `stderr` creates `DEBUG` logs.
 
-This configuration does not affect the output of the shimmed application, which outputs directly to `stdout` and `stderr`
+This configuration does not affect the output of the shimmed application, which outputs directly to `stdout` and `stderr`.
 
 Logging Format Examples:
 
@@ -248,7 +248,7 @@ The `interfaces` parameter allows for one or more specifications to be used when
 - `fdc6:238c:c4bc::/48` : Match the first IP that is contained within the IPv6 Network
 - `inet` : Match the first IPv4 Address (excluding `127.0.0.0/8`)
 - `inet6` : Match the first IPv6 Address (excluding `::1/128`)
-- `static: 192.168.1.100` : Use this Address. Useful for all cases where the IP is not visible in the container
+- `static:192.168.1.100` : Use this Address. Useful for all cases where the IP is not visible in the container
 
 Interfaces and their IP addresses are ordered alphabetically by interface name, then by IP address (lexicographically by bytes).
 
