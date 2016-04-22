@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -106,8 +108,8 @@ func parseService(s *Service, disc discovery.DiscoveryService) error {
 
 // PollTime implements Pollable for Service
 // It returns the service's poll interval.
-func (s Service) PollTime() int {
-	return s.Poll
+func (s Service) PollTime() time.Duration {
+	return time.Duration(s.Poll) * time.Second
 }
 
 // PollAction implements Pollable for Service.
@@ -117,6 +119,11 @@ func (s *Service) PollAction() {
 	if code, _ := s.CheckHealth(); code == 0 {
 		s.SendHeartbeat()
 	}
+}
+
+// PollStop does nothing in a Service
+func (s *Service) PollStop() {
+	// Nothing to do
 }
 
 // SendHeartbeat sends a heartbeat for this service
@@ -149,6 +156,6 @@ func (s *Service) CheckHealth() (int, error) {
 	if s.healthCheckCmd == nil {
 		return 0, nil
 	}
-	exitCode, err := utils.Run(s.healthCheckCmd)
+	exitCode, err := utils.RunWithFields(s.healthCheckCmd, log.Fields{"process": "health", "serviceName": s.Name, "serviceID": s.ID})
 	return exitCode, err
 }

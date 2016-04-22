@@ -15,6 +15,12 @@ func TestRunSuccess(t *testing.T) {
 	}
 }
 
+func BenchmarkRunSuccess(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Run(StrToCmd("./testdata/test.sh doNothing"))
+	}
+}
+
 func TestRunFailed(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

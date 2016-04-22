@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/joyent/containerpilot/config"
 	"time"
+
+	"github.com/joyent/containerpilot/config"
 )
 
 // Set up polling functions and write their quit channels
@@ -21,13 +22,18 @@ func HandlePolling(cfg *config.Config) {
 		}
 		cfg.Telemetry.Serve()
 	}
+	if cfg.Tasks != nil {
+		for _, task := range cfg.Tasks {
+			quit = append(quit, poll(task))
+		}
+	}
 	cfg.QuitChannels = quit
 }
 
 // Every `pollTime` seconds, run the `PollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
 func poll(pollable Pollable) chan bool {
-	ticker := time.NewTicker(time.Duration(pollable.PollTime()) * time.Second)
+	ticker := time.NewTicker(pollable.PollTime())
 	quit := make(chan bool)
 	go func() {
 		for {
@@ -37,6 +43,7 @@ func poll(pollable Pollable) chan bool {
 					pollable.PollAction()
 				}
 			case <-quit:
+				pollable.PollStop()
 				return
 			}
 		}
@@ -46,6 +53,7 @@ func poll(pollable Pollable) chan bool {
 
 // Pollable is base abstraction for backends and services that support polling
 type Pollable interface {
-	PollTime() int
+	PollTime() time.Duration
 	PollAction()
+	PollStop()
 }

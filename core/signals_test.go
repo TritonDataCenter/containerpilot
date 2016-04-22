@@ -65,19 +65,16 @@ func TestTerminateSignal(t *testing.T) {
 
 	config := getSignalTestConfig()
 	startTime := time.Now()
-	quit := make(chan int, 1)
 	go func() {
 		if exitCode, _ := utils.ExecuteAndWait(config.Command); exitCode != 2 {
 			t.Fatalf("Expected exit code 2 but got %d", exitCode)
 		}
-		quit <- 1
 	}()
 	// we need time for the forked process to start up and this is async
 	runtime.Gosched()
 	time.Sleep(10 * time.Millisecond)
 
 	terminate(config)
-	close(quit)
 	elapsed := time.Since(startTime)
 	if elapsed.Seconds() > float64(config.StopTimeout) {
 		t.Fatalf("Expected elapsed time <= %d seconds, but was %.2f",

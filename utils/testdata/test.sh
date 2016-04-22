@@ -20,6 +20,10 @@ failStuff() {
     exit -1
 }
 
+doNothing() {
+  exit 0
+}
+
 sleepStuff() {
     echo "Sleeping 10 seconds..."
     sleep 10

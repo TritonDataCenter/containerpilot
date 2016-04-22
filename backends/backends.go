@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -53,8 +55,8 @@ func NewBackends(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Backe
 
 // PollTime implements Pollable for Backend
 // It returns the backend's poll interval.
-func (b Backend) PollTime() int {
-	return b.Poll
+func (b Backend) PollTime() time.Duration {
+	return time.Duration(b.Poll) * time.Second
 }
 
 // PollAction implements Pollable for Backend.
@@ -64,6 +66,11 @@ func (b *Backend) PollAction() {
 	if b.CheckForUpstreamChanges() {
 		b.OnChange()
 	}
+}
+
+// PollStop does nothing in a Backend
+func (b *Backend) PollStop() {
+	// Nothing to do
 }
 
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
@@ -78,6 +85,7 @@ func (b *Backend) OnChange() (int, error) {
 		// reset command object because it can't be reused
 		b.onChangeCmd = utils.ArgsToCmd(b.onChangeCmd.Args)
 	}()
-	exitCode, err := utils.Run(b.onChangeCmd)
+
+	exitCode, err := utils.RunWithFields(b.onChangeCmd, log.Fields{"process": "OnChange", "backend": b.Name})
 	return exitCode, err
 }
