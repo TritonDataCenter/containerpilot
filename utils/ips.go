@@ -206,11 +206,13 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 	}
 	if strings.HasPrefix(spec, "static:") {
 		ip := strings.SplitAfter(spec, "static:")
-		nip := net.ParseIP(ip[1])
-		if nip == nil {
-			return nil, fmt.Errorf("Unable to parse static ip %s in %s", ip[0], spec)
+		if _, err := strconv.Atoi(ip[1]); err != nil {
+			nip := net.ParseIP(ip[1])
+			if nip == nil {
+				return nil, fmt.Errorf("Unable to parse static ip %s in %s", ip[0], spec)
+			}
+			return staticInterfaceSpec{Spec: spec, Name: "static", IP: nip}, nil
 		}
-		return staticInterfaceSpec{Spec: spec, Name: "static", IP: nip}, nil
 	}
 
 	if match := ifaceSpec.FindStringSubmatch(spec); match != nil {
