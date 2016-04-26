@@ -22,16 +22,17 @@ func main() {
 		log.Fatal(configErr)
 	}
 
-	// Run the preStart handler, if any, and exit if it returns an error
-	if preStartCode, err := utils.RunWithFields(cfg.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
-		os.Exit(preStartCode)
-	}
-
 	// Set up handlers for polling and to accept signal interrupts
 	if 1 == os.Getpid() {
 		core.ReapChildren()
 	}
 	core.HandleSignals(cfg)
+
+	// Run the preStart handler, if any, and exit if it returns an error
+	if preStartCode, err := utils.RunWithFields(cfg.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
+		os.Exit(preStartCode)
+	}
+
 	core.HandlePolling(cfg)
 
 	if len(flag.Args()) != 0 {
