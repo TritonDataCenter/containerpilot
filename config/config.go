@@ -23,7 +23,7 @@ import (
 // Config is the top-level ContainerPilot Configuration
 type Config struct {
 	Consul          interface{}     `json:"consul"`
-	Etcd            json.RawMessage `json:"etcd"`
+	Etcd            interface{}     `json:"etcd"`
 	LogConfig       *LogConfig      `json:"logging"`
 	OnStart         json.RawMessage `json:"onStart"`
 	PreStart        json.RawMessage `json:"preStart"`
@@ -60,7 +60,10 @@ func (cfg *Config) ParseDiscoveryService() (discovery.DiscoveryService, error) {
 			}
 		case "Etcd":
 			if cfg.Etcd != nil {
-				discoveryService = discovery.NewEtcdConfig(cfg.Etcd)
+				discoveryService, err = discovery.NewEtcdConfig(cfg.Etcd)
+				if err != nil {
+					return nil, err
+				}
 				discoveryCount++
 			}
 		}

@@ -8,6 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/net/context"
 )
 
@@ -28,13 +29,11 @@ type EtcdServiceNode struct {
 }
 
 type etcdRawConfig struct {
-	Endpoints json.RawMessage `json:"endpoints"`
-	Prefix    string          `json:"prefix"`
+	Endpoints interface{} `mapstructure:"endpoints"`
+	Prefix    string      `mapstructure:"prefix"`
 }
 
-func parseEndpoints(raw json.RawMessage) []string {
-	var endpoints interface{}
-	json.Unmarshal(raw, &endpoints)
+func parseEndpoints(endpoints interface{}) []string {
 	switch e := endpoints.(type) {
 	case string:
 		return []string{e}
@@ -54,15 +53,23 @@ func parseEndpoints(raw json.RawMessage) []string {
 }
 
 // NewEtcdConfig creates a new service discovery backend for etcd
-func NewEtcdConfig(config json.RawMessage) Etcd {
-	etcd := Etcd{
+func NewEtcdConfig(config interface{}) (*Etcd, error) {
+	etcd := &Etcd{
 		Prefix: "/containerpilot",
 	}
 	var rawConfig etcdRawConfig
 	etcdConfig := client.Config{}
-	err := json.Unmarshal(config, &rawConfig)
+	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		ErrorUnused: false,
+		Result:      &rawConfig,
+		ZeroFields:  false,
+	})
 	if err != nil {
-		log.Fatalf("Unable to parse etcd config: %v", err)
+		return nil, err
+	}
+	err = dec.Decode(config)
+	if err != nil {
+		return nil, err
 	}
 	etcdConfig.Endpoints = parseEndpoints(rawConfig.Endpoints)
 	if rawConfig.Prefix != "" {
@@ -71,25 +78,25 @@ func NewEtcdConfig(config json.RawMessage) Etcd {
 
 	etcdClient, err := client.New(etcdConfig)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	etcd.Client = etcdClient
 	etcd.API = client.NewKeysAPI(etcdClient)
-	return etcd
+	return etcd, nil
 }
 
 // Deregister removes this instance from the registry
-func (c Etcd) Deregister(service *ServiceDefinition) {
+func (c *Etcd) Deregister(service *ServiceDefinition) {
 	c.deregisterService(service)
 }
 
 // MarkForMaintenance removes this instance from the registry
-func (c Etcd) MarkForMaintenance(service *ServiceDefinition) {
+func (c *Etcd) MarkForMaintenance(service *ServiceDefinition) {
 	c.deregisterService(service)
 }
 
 // SendHeartbeat refreshes the TTL of this associated etcd node
-func (c Etcd) SendHeartbeat(service *ServiceDefinition) {
+func (c *Etcd) SendHeartbeat(service *ServiceDefinition) {
 	if err := c.updateServiceTTL(service); err != nil {
 		log.Infof("Service not registered, registering...")
 		if err := c.registerService(service); err != nil {
@@ -98,18 +105,18 @@ func (c Etcd) SendHeartbeat(service *ServiceDefinition) {
 	}
 }
 
-func (c Etcd) getNodeKey(service *ServiceDefinition) string {
+func (c *Etcd) getNodeKey(service *ServiceDefinition) string {
 	return fmt.Sprintf("%s/%s/%s", c.Prefix, service.Name, service.ID)
 }
 
-func (c Etcd) getAppKey(appName string) string {
+func (c *Etcd) getAppKey(appName string) string {
 	return fmt.Sprintf("%s/%s", c.Prefix, appName)
 }
 
 var etcdUpstreams = make(map[string][]EtcdServiceNode)
 
 // CheckForUpstreamChanges checks another etcd node for changes
-func (c Etcd) CheckForUpstreamChanges(backendName, backendTag string) bool {
+func (c *Etcd) CheckForUpstreamChanges(backendName, backendTag string) bool {
 	// TODO: is there a way to filter by tag in etcd?
 	services, err := c.getServices(backendName)
 	if err != nil {
@@ -127,7 +134,7 @@ func (c Etcd) CheckForUpstreamChanges(backendName, backendTag string) bool {
 	return didChange
 }
 
-func (c Etcd) getServices(appName string) ([]EtcdServiceNode, error) {
+func (c *Etcd) getServices(appName string) ([]EtcdServiceNode, error) {
 	var services []EtcdServiceNode
 
 	key := c.getAppKey(appName)
