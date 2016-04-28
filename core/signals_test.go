@@ -95,8 +95,8 @@ func TestReloadSignal(t *testing.T) {
 		t.Errorf("Valid configuration returned error: %v", err)
 	}
 	discSvc := app.DiscoveryService
-	if discSvc == nil {
-		t.Errorf("Configuration was not reloaded.")
+	if svc, ok := discSvc.(*discovery.Consul); !ok || svc == nil {
+		t.Errorf("Configuration was not reloaded: %v", discSvc)
 	}
 }
 
