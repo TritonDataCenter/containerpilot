@@ -20,12 +20,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-// Passing around config as a context to functions would be the ideomatic way.
-// But we need to support configuration reload from signals and have that reload
-// effect function calls in the main goroutine. Wherever possible we should be
-// accessing via `GetConfig` at the "top" of a goroutine and then use the config
-// as context for a function after that.
-
 // Config is the top-level ContainerPilot Configuration
 type Config struct {
 	Consul          string          `json:"consul,omitempty"`
