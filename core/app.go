@@ -278,10 +278,12 @@ func (a *App) Reload() error {
 
 	newCfg, err := config.ParseConfig(a.ConfigFlag)
 	if err != nil {
+		log.Errorf("Error parsing config: %v", err)
 		return err
 	}
 	newApp, err := InitializeApp(newCfg)
 	if err != nil {
+		log.Errorf("Error initializing config: %v", err)
 		return err
 	}
 
