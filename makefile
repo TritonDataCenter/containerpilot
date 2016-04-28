@@ -71,7 +71,7 @@ add-dep: build/containerpilot_build
 		-v ${ROOT}:/cp/src/${IMPORT_PATH} \
 		-w /cp/src/${IMPORT_PATH} \
 		containerpilot_build \
-		bash ./scripts/add_dep.sh DEP=$(DEP)
+		bash -c "DEP=$(DEP) ./scripts/add_dep.sh"
 
 # ----------------------------------------------
 # develop and test
