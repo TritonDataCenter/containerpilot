@@ -169,16 +169,15 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 // Run starts the application and blocks until finished
 func (a *App) Run() {
-	// Run the preStart handler, if any, and exit if it returns an error
-	if preStartCode, err := utils.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
-		os.Exit(preStartCode)
-	}
-
 	// Set up handlers for polling and to accept signal interrupts
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
 	a.handleSignals()
+	// Run the preStart handler, if any, and exit if it returns an error
+	if preStartCode, err := utils.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
+		os.Exit(preStartCode)
+	}
 	a.handlePolling()
 
 	if len(flag.Args()) != 0 {
