@@ -27,7 +27,7 @@ func (c *NoopDiscoveryService) Deregister(service *discovery.ServiceDefinition) 
 func getSignalTestConfig() *App {
 	service, _ := services.NewService(
 		"test-service", 1, 1, 1, nil, nil, &NoopDiscoveryService{})
-	app := NewApp()
+	app := EmptyApp()
 	app.Command = utils.ArgsToCmd([]string{
 		"./testdata/test.sh",
 		"interruptSleep"})
@@ -103,8 +103,8 @@ func TestReloadSignal(t *testing.T) {
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
-	app := NewApp()
-	app.HandleSignals()
+	app := EmptyApp()
+	app.handleSignals()
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
 	sendAndWaitForSignal(t, syscall.SIGCHLD)

@@ -28,7 +28,8 @@ var (
 	GitHash string
 )
 
-// App ...
+// App encapsulates the state of ContainerPilot after the initial setup.
+// after it is run, it can be reloaded and paused with signals.
 type App struct {
 	DiscoveryService discovery.DiscoveryService
 	Services         []*services.Service
@@ -47,15 +48,15 @@ type App struct {
 	ConfigFlag       string
 }
 
-// NewApp ...
-func NewApp() *App {
+// EmptyApp creates an empty application
+func EmptyApp() *App {
 	app := &App{}
 	app.maintModeLock = &sync.RWMutex{}
 	app.signalLock = &sync.RWMutex{}
 	return app
 }
 
-// LoadApp ...
+// LoadApp parses the commandline arguments and loads the config
 func LoadApp() (*App, error) {
 
 	var configFlag string
@@ -79,16 +80,16 @@ func LoadApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	app, err := InitializeApp(cfg)
+	app, err := NewApp(cfg)
 	if err != nil {
 		return nil, err
 	}
 	return app, nil
 }
 
-// InitializeApp creates a new App from the config
-func InitializeApp(cfg *config.Config) (*App, error) {
-	a := NewApp()
+// NewApp creates a new App from the config
+func NewApp(cfg *config.Config) (*App, error) {
+	a := EmptyApp()
 
 	// onStart has been deprecated for preStart. Remove in 2.0
 	if cfg.PreStart != nil && cfg.OnStart != nil {
@@ -166,7 +167,7 @@ func InitializeApp(cfg *config.Config) (*App, error) {
 	return a, nil
 }
 
-// Run ...
+// Run starts the application and blocks until finished
 func (a *App) Run() {
 	// Run the preStart handler, if any, and exit if it returns an error
 	if preStartCode, err := utils.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
@@ -175,10 +176,10 @@ func (a *App) Run() {
 
 	// Set up handlers for polling and to accept signal interrupts
 	if 1 == os.Getpid() {
-		ReapChildren()
+		reapChildren()
 	}
-	a.HandleSignals()
-	a.HandlePolling()
+	a.handleSignals()
+	a.handlePolling()
 
 	if len(flag.Args()) != 0 {
 		// Run our main application and capture its stdout/stderr.
@@ -270,7 +271,9 @@ func deregisterService(service *services.Service) {
 	service.Deregister()
 }
 
-// Reload ...
+// Reload will try to update the running application by
+// loading the config and applying changes to the services
+// A reload cannot change the shimmed application, or the preStart script
 func (a *App) Reload() error {
 	a.signalLock.Lock()
 	defer a.signalLock.Unlock()
@@ -281,7 +284,7 @@ func (a *App) Reload() error {
 		log.Errorf("Error parsing config: %v", err)
 		return err
 	}
-	newApp, err := InitializeApp(newCfg)
+	newApp, err := NewApp(newCfg)
 	if err != nil {
 		log.Errorf("Error initializing config: %v", err)
 		return err
@@ -307,8 +310,8 @@ func (a *App) load(newApp *App) {
 	}
 	a.Telemetry = newApp.Telemetry
 	a.Tasks = newApp.Tasks
-	a.HandleSignals()
-	a.HandlePolling()
+	a.handleSignals()
+	a.handlePolling()
 }
 
 type serviceFunc func(service *services.Service)
@@ -321,7 +324,7 @@ func (a *App) forAllServices(fn serviceFunc) {
 
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
-func (a *App) HandlePolling() {
+func (a *App) handlePolling() {
 	var quit []chan bool
 	for _, backend := range a.Backends {
 		quit = append(quit, a.poll(backend))

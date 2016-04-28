@@ -7,7 +7,7 @@ import (
 )
 
 // HandleSignals listens for and captures signals used for orchestration
-func (a *App) HandleSignals() {
+func (a *App) handleSignals() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
@@ -26,7 +26,7 @@ func (a *App) HandleSignals() {
 
 // ReapChildren cleans up zombies
 // - on SIGCHLD send wait4() (ref http://linux.die.net/man/2/waitpid)
-func ReapChildren() {
+func reapChildren() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGCHLD)
 	go func() {

@@ -17,7 +17,7 @@ func (p DummyPollable) PollStop() {}
 // Verify we have no obvious crashing paths in the poll code and that we handle
 // a closed channel immediately as expected and gracefully.
 func TestPoll(t *testing.T) {
-	app := NewApp()
+	app := EmptyApp()
 	service := &DummyPollable{}
 	quit := app.poll(service)
 	close(quit)

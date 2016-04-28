@@ -199,11 +199,11 @@ func TestMetricServiceCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error parsing config: %v", err)
 	}
-	app, err := InitializeApp(config)
+	app, err := NewApp(config)
 	if err != nil {
 		t.Fatalf("Got unexpected error deserializing JSON config: %v", err)
 	}
-	if _, err := InitializeApp(config); err != nil {
+	if _, err := NewApp(config); err != nil {
 		t.Fatalf("Got error while initializing config: %v", err)
 	} else {
 		if len(app.Services) != 1 {
@@ -241,7 +241,7 @@ func validateParseError(t *testing.T, input []byte, matchStrings []string) {
 	if cfg, err := config.UnmarshalConfig([]byte(input)); err != nil {
 		t.Errorf("Unexpected error parsing config: %v", err)
 	} else {
-		if _, err := InitializeApp(cfg); err == nil {
+		if _, err := NewApp(cfg); err == nil {
 			t.Errorf("Expected error parsing config")
 		} else {
 			for _, match := range matchStrings {
