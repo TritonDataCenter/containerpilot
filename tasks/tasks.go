@@ -17,7 +17,7 @@ type Task struct {
 	Name      string   `json:"name"`
 	Args      []string `json:"command"`
 	Frequency string   `json:"frequency"`
-	Timeout   string   `json:"timeout,omitempty"`
+	Timeout   string   `json:"timeout"`
 
 	freqDuration    time.Duration
 	timeoutDuration time.Duration

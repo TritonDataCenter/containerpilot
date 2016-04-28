@@ -24,12 +24,12 @@ type EtcdServiceNode struct {
 	Name    string   `json:"name"`
 	Address string   `json:"address"`
 	Port    int      `json:"port"`
-	Tags    []string `json:"tags,omitempty"`
+	Tags    []string `json:"tags"`
 }
 
 type etcdRawConfig struct {
 	Endpoints json.RawMessage `json:"endpoints"`
-	Prefix    string          `json:"prefix,omitempty"`
+	Prefix    string          `json:"prefix"`
 }
 
 func parseEndpoints(raw json.RawMessage) []string {

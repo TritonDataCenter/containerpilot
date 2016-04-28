@@ -16,9 +16,9 @@ import (
 // endpoint, and the collection of Sensors.
 type Telemetry struct {
 	Port          int             `json:"port"`
-	Interfaces    json.RawMessage `json:"interfaces,omitempty"` // optional override
-	Tags          []string        `json:"tags,omitempty"`
-	SensorConfigs json.RawMessage `json:"sensors,omitempty"`
+	Interfaces    json.RawMessage `json:"interfaces"` // optional override
+	Tags          []string        `json:"tags"`
+	SensorConfigs json.RawMessage `json:"sensors"`
 	Sensors       []*Sensor
 	ServiceName   string
 	URL           string

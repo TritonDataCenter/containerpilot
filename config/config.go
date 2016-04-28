@@ -22,18 +22,18 @@ import (
 
 // Config is the top-level ContainerPilot Configuration
 type Config struct {
-	Consul          string          `json:"consul,omitempty"`
-	Etcd            json.RawMessage `json:"etcd,omitempty"`
-	LogConfig       *LogConfig      `json:"logging,omitempty"`
-	OnStart         json.RawMessage `json:"onStart,omitempty"`
-	PreStart        json.RawMessage `json:"preStart,omitempty"`
-	PreStop         json.RawMessage `json:"preStop,omitempty"`
-	PostStop        json.RawMessage `json:"postStop,omitempty"`
+	Consul          string          `json:"consul"`
+	Etcd            json.RawMessage `json:"etcd"`
+	LogConfig       *LogConfig      `json:"logging"`
+	OnStart         json.RawMessage `json:"onStart"`
+	PreStart        json.RawMessage `json:"preStart"`
+	PreStop         json.RawMessage `json:"preStop"`
+	PostStop        json.RawMessage `json:"postStop"`
 	StopTimeout     int             `json:"stopTimeout"`
-	ServicesConfig  json.RawMessage `json:"services,omitempty"`
-	BackendsConfig  json.RawMessage `json:"backends,omitempty"`
-	TasksConfig     json.RawMessage `json:"tasks,omitempty"`
-	TelemetryConfig json.RawMessage `json:"telemetry,omitempty"`
+	ServicesConfig  json.RawMessage `json:"services"`
+	BackendsConfig  json.RawMessage `json:"backends"`
+	TasksConfig     json.RawMessage `json:"tasks"`
+	TelemetryConfig json.RawMessage `json:"telemetry"`
 
 	ConfigFlag string
 }

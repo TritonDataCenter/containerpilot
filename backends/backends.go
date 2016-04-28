@@ -16,7 +16,7 @@ type Backend struct {
 	Name             string          `json:"name"`
 	Poll             int             `json:"poll"` // time in seconds
 	OnChangeExec     json.RawMessage `json:"onChange"`
-	Tag              string          `json:"tag,omitempty"`
+	Tag              string          `json:"tag"`
 	discoveryService discovery.DiscoveryService
 	lastState        interface{}
 	onChangeCmd      *exec.Cmd

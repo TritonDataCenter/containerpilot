@@ -14,8 +14,8 @@ import (
 // LogConfig configures the log levels
 type LogConfig struct {
 	Level  string `json:"level"`
-	Format string `json:"format,omitempty"`
-	Output string `json:"output,omitempty"`
+	Format string `json:"format"`
+	Output string `json:"output"`
 }
 
 var defaultLog = &LogConfig{
