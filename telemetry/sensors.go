@@ -1,8 +1,6 @@
 package telemetry
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,13 +15,13 @@ import (
 
 // A Sensor is a single measurement of the application.
 type Sensor struct {
-	Namespace string      `json:"namespace"`
-	Subsystem string      `json:"subsystem"`
-	Name      string      `json:"name"`
-	Help      string      `json:"help"` // help string returned by API
-	Type      string      `json:"type"`
-	Poll      int         `json:"poll"` // time in seconds
-	CheckExec interface{} `json:"check"`
+	Namespace string      `mapstructure:"namespace"`
+	Subsystem string      `mapstructure:"subsystem"`
+	Name      string      `mapstructure:"name"`
+	Help      string      `mapstructure:"help"` // help string returned by API
+	Type      string      `mapstructure:"type"`
+	Poll      int         `mapstructure:"poll"` // time in seconds
+	CheckExec interface{} `mapstructure:"check"`
 	checkCmd  *exec.Cmd
 	collector prometheus.Collector
 }
@@ -89,10 +87,10 @@ func (s Sensor) record(metricValue string) {
 	}
 }
 
-func NewSensors(raw json.RawMessage) ([]*Sensor, error) {
+func NewSensors(raw []interface{}) ([]*Sensor, error) {
 	sensors := make([]*Sensor, 0)
-	if err := json.Unmarshal(raw, &sensors); err != nil {
-		return nil, errors.New("Sensor configuration error: %v, err")
+	if err := utils.DecodeRaw(raw, &sensors); err != nil {
+		return nil, fmt.Errorf("Sensor configuration error: %v", err)
 	}
 	for _, s := range sensors {
 		if check, err := utils.ParseCommandArgs(s.CheckExec); err != nil {

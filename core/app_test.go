@@ -117,17 +117,17 @@ func TestServiceConfigRequiredFields(t *testing.T) {
 func TestBackendConfigRequiredFields(t *testing.T) {
 	// Missing `name`
 	var testJSON = []byte(`{"consul": "consul:8500", "backends": [
-                           {"name": "", "poll": 30, "ttl": 19, "onChange": "true"}]}`)
+                           {"name": "", "poll": 30, "onChange": "true"}]}`)
 	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
 	testJSON = []byte(`{"consul": "consul:8500", "backends": [
-                       {"name": "name", "ttl": 19, "onChange": "true"}]}`)
+                       {"name": "name", "onChange": "true"}]}`)
 	validateParseError(t, testJSON, []string{"`poll`"})
 
 	// Missing `onChange`
 	testJSON = []byte(`{"consul": "consul:8500", "backends": [
-                       {"name": "name", "poll": 19, "ttl": 19 }]}`)
+                       {"name": "name", "poll": 19 }]}`)
 	validateParseError(t, testJSON, []string{"`onChange`"})
 }
 

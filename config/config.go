@@ -18,18 +18,18 @@ import (
 
 // Config is the top-level ContainerPilot Configuration
 type Config struct {
-	Consul          interface{}     `json:"consul"`
-	Etcd            interface{}     `json:"etcd"`
-	LogConfig       *LogConfig      `json:"logging"`
-	OnStart         interface{}     `json:"onStart"`
-	PreStart        interface{}     `json:"preStart"`
-	PreStop         interface{}     `json:"preStop"`
-	PostStop        interface{}     `json:"postStop"`
-	StopTimeout     int             `json:"stopTimeout"`
-	ServicesConfig  json.RawMessage `json:"services"`
-	BackendsConfig  json.RawMessage `json:"backends"`
-	TasksConfig     json.RawMessage `json:"tasks"`
-	TelemetryConfig json.RawMessage `json:"telemetry"`
+	Consul          interface{}   `json:"consul"`
+	Etcd            interface{}   `json:"etcd"`
+	LogConfig       *LogConfig    `json:"logging"`
+	OnStart         interface{}   `json:"onStart"`
+	PreStart        interface{}   `json:"preStart"`
+	PreStop         interface{}   `json:"preStop"`
+	PostStop        interface{}   `json:"postStop"`
+	StopTimeout     int           `json:"stopTimeout"`
+	ServicesConfig  []interface{} `json:"services"`
+	BackendsConfig  []interface{} `json:"backends"`
+	TasksConfig     []interface{} `json:"tasks"`
+	TelemetryConfig interface{}   `json:"telemetry"`
 
 	ConfigFlag string
 }

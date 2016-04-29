@@ -57,7 +57,7 @@ func expectDuration(t *testing.T, actual time.Duration, expectedString string) {
 
 func TestTaskParseDuration(t *testing.T) {
 	task := &Task{
-		Args:      []string{"/usr/bin/true"},
+		Command:   []string{"/usr/bin/true"},
 		Frequency: "1ms",
 	}
 	expectNoParseError(t, task)
@@ -65,7 +65,7 @@ func TestTaskParseDuration(t *testing.T) {
 	expectDuration(t, task.timeoutDuration, "1ms")
 
 	task = &Task{
-		Args:      []string{"/usr/bin/true"},
+		Command:   []string{"/usr/bin/true"},
 		Frequency: "10s",
 		Timeout:   "10",
 	}
@@ -74,7 +74,7 @@ func TestTaskParseDuration(t *testing.T) {
 	expectDuration(t, task.timeoutDuration, "10s")
 
 	task = &Task{
-		Args:      []string{"/usr/bin/true"},
+		Command:   []string{"/usr/bin/true"},
 		Frequency: "10",
 		Timeout:   "1s",
 	}
@@ -106,7 +106,7 @@ func TestTask(t *testing.T) {
 		t.Fatalf("Unexpeced error: %v", err)
 	}
 	task := &Task{
-		Args:      []string{"testdata/test.sh", "echoOut", ".", tmpf.Name()},
+		Command:   []string{"testdata/test.sh", "echoOut", ".", tmpf.Name()},
 		Frequency: "100ms",
 	}
 	err = parseTask(task)
@@ -143,7 +143,7 @@ func TestScheduledTaskTimeoutConfig(t *testing.T) {
 		t.Fatalf("Unexpeced error: %v", err)
 	}
 	task := &Task{
-		Args:      []string{"testdata/test.sh", "printDots", tmpf.Name()},
+		Command:   []string{"testdata/test.sh", "printDots", tmpf.Name()},
 		Frequency: "400ms",
 		Timeout:   "200ms",
 	}

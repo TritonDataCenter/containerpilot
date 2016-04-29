@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
@@ -14,11 +13,12 @@ import (
 
 // Task configures tasks that run periodically
 type Task struct {
-	Name      string   `json:"name"`
-	Args      []string `json:"command"`
-	Frequency string   `json:"frequency"`
-	Timeout   string   `json:"timeout"`
+	Name      string      `mapstructure:"name"`
+	Command   interface{} `mapstructure:"command"`
+	Frequency string      `mapstructure:"frequency"`
+	Timeout   string      `mapstructure:"timeout"`
 
+	Args            []string
 	freqDuration    time.Duration
 	timeoutDuration time.Duration
 	cmd             *exec.Cmd
@@ -29,13 +29,13 @@ type Task struct {
 var taskMinDuration = 1 * time.Millisecond
 
 // NewTasks parses json config into an array of Tasks
-func NewTasks(raw json.RawMessage) ([]*Task, error) {
+func NewTasks(raw []interface{}) ([]*Task, error) {
 	var tasks []*Task
 	if raw == nil {
 		return tasks, nil
 	}
 	var configs []*Task
-	if err := json.Unmarshal(raw, &configs); err != nil {
+	if err := utils.DecodeRaw(raw, &configs); err != nil {
 		return nil, fmt.Errorf("Task configuration error: %v", err)
 	}
 	for _, t := range configs {
@@ -48,6 +48,11 @@ func NewTasks(raw json.RawMessage) ([]*Task, error) {
 }
 
 func parseTask(task *Task) error {
+	args, err := utils.ToStringArray(task.Command)
+	if err != nil {
+		return err
+	}
+	task.Args = args
 	if task.Args == nil || len(task.Args) == 0 {
 		return fmt.Errorf("Task did not provide a command")
 	}

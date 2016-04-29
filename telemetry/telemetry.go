@@ -1,8 +1,7 @@
 package telemetry
 
 import (
-	"encoding/json"
-	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -15,10 +14,10 @@ import (
 // Telemetry represents the service to advertise for finding the metrics
 // endpoint, and the collection of Sensors.
 type Telemetry struct {
-	Port          int             `json:"port"`
-	Interfaces    json.RawMessage `json:"interfaces"` // optional override
-	Tags          []string        `json:"tags"`
-	SensorConfigs json.RawMessage `json:"sensors"`
+	Port          int           `mapstructure:"port"`
+	Interfaces    []interface{} `mapstructure:"interfaces"` // optional override
+	Tags          []string      `mapstructure:"tags"`
+	SensorConfigs []interface{} `mapstructure:"sensors"`
 	Sensors       []*Sensor
 	ServiceName   string
 	URL           string
@@ -32,7 +31,7 @@ type Telemetry struct {
 }
 
 // NewTelemetry configures a new prometheus Telemetry server
-func NewTelemetry(raw json.RawMessage) (*Telemetry, error) {
+func NewTelemetry(raw interface{}) (*Telemetry, error) {
 	t := &Telemetry{
 		Port:        9090,
 		ServiceName: "containerpilot",
@@ -41,10 +40,11 @@ func NewTelemetry(raw json.RawMessage) (*Telemetry, error) {
 		Poll:        5,
 		lock:        sync.RWMutex{},
 	}
-	if err := json.Unmarshal(raw, t); err != nil {
-		return nil, errors.New("Telemetry configuration error: %v, err")
+
+	if err := utils.DecodeRaw(raw, t); err != nil {
+		return nil, fmt.Errorf("Telemetry configuration error: %v", err)
 	}
-	ipAddress, err := utils.IpFromInterfaces(t.Interfaces)
+	ipAddress, err := utils.IPFromInterfaces(t.Interfaces)
 	if err != nil {
 		return nil, err
 	}
