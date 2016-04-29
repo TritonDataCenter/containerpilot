@@ -11,5 +11,5 @@ if [ $result -ne 0 ]; then
   echo "==== APP LOGS ===="
   docker logs $APP_ID
 fi
-#docker rm -f $TEST_ID > /dev/null 2>&1
+docker rm -f $TEST_ID > /dev/null 2>&1
 exit $result

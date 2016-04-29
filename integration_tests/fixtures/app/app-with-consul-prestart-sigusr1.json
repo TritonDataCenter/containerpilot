@@ -1,6 +1,6 @@
 {
   "consul": "consul:8500",
-  "preStart": "/reload-app-sigusr1.sh",
+  "preStart": ["/reload-app.sh", "USR1"],
   "logging": {
     "level": "DEBUG",
     "format": "text"

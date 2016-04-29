@@ -1,8 +1,6 @@
 package main
 
 import "log"
-import "time"
-import "math/rand"
 
 func TestSigUsr1Prestart(args []string) bool {
 	if len(args) != 1 {
@@ -17,13 +15,11 @@ func TestSigUsr1Prestart(args []string) bool {
 	}
 
 	// Prestart will SIGUSR1 us into maintenance
-	// Send SIGHUP to reload and resume
-	if err = docker.SendSignal(args[0], SigHup); err != nil {
+	// Send SIGUSR1 to get us back out of maintenance
+	if err = docker.SendSignal(args[0], SigUsr1); err != nil {
 		log.Println(err)
 		return false
 	}
-	// Add some delay so that the config can reload
-	time.Sleep(time.Duration(rand.Int63n(30)) * time.Millisecond)
 
 	// Wait for app to be healthy
 	consul, err := NewConsulProbe()
@@ -31,7 +27,7 @@ func TestSigUsr1Prestart(args []string) bool {
 		log.Println(err)
 	}
 	if err = consul.WaitForServices("app", "", 1); err != nil {
-		log.Printf("Expected app to be healthy after SIGHUP: %s\n", err)
+		log.Printf("Expected app to be healthy after SIGUSR1: %s\n", err)
 		return false
 	}
 	return true

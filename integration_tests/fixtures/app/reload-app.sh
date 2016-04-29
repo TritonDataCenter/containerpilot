@@ -1,5 +1,14 @@
 #!/bin/bash
 
+SIGNAL=${1:-false}
+
+if [[ $SIGNAL != false ]]; then
+  echo "signal: ${SIGNAL}"
+  kill -${SIGNAL} 1
+else
+  echo "no signal"
+fi
+
 # get all the healthy application servers and write the json to file
 curl -s consul:8500/v1/health/service/app?passing | json > /tmp/lastQuery.json
 
