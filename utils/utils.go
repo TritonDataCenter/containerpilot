@@ -4,10 +4,29 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/mitchellh/mapstructure"
 )
+
+// DecodeRaw decodes a raw interface into the target structure
+func DecodeRaw(raw interface{}, result interface{}) error {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		ErrorUnused:      true,
+		WeaklyTypedInput: true,
+		Result:           result,
+	})
+	if err != nil {
+		return err
+	}
+	return decoder.Decode(raw)
+}
 
 // ParseCommandArgs tries to parse a command from the supported types
 func ParseCommandArgs(raw interface{}) (*exec.Cmd, error) {
+	switch t := raw.(type) {
+	case string:
+		return StrToCmd(t), nil
+	}
 	strArray, err := ToStringArray(raw)
 	if err != nil {
 		return nil, err
