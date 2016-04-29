@@ -13,10 +13,10 @@ import (
 
 // Backend represents a command to execute when another application changes
 type Backend struct {
-	Name             string          `json:"name"`
-	Poll             int             `json:"poll"` // time in seconds
-	OnChangeExec     json.RawMessage `json:"onChange"`
-	Tag              string          `json:"tag"`
+	Name             string      `json:"name"`
+	Poll             int         `json:"poll"` // time in seconds
+	OnChangeExec     interface{} `json:"onChange"`
+	Tag              string      `json:"tag"`
 	discoveryService discovery.DiscoveryService
 	lastState        interface{}
 	onChangeCmd      *exec.Cmd

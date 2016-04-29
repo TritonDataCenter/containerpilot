@@ -17,7 +17,7 @@ type Service struct {
 	ID               string
 	Name             string          `json:"name"`
 	Poll             int             `json:"poll"` // time in seconds
-	HealthCheckExec  json.RawMessage `json:"health"`
+	HealthCheckExec  interface{}     `json:"health"`
 	Port             int             `json:"port"`
 	TTL              int             `json:"ttl"`
 	Interfaces       json.RawMessage `json:"interfaces"`

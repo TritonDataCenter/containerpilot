@@ -58,7 +58,10 @@ func TestValidConfigParse(t *testing.T) {
 
 	os.Setenv("TEST", "HELLO")
 	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "valid1", "--debug"}
-	app, _ := LoadApp()
+	app, err := LoadApp()
+	if err != nil {
+		t.Fatalf("Unexpected error in LoadApp: %v", err)
+	}
 
 	if len(app.Backends) != 2 || len(app.Services) != 2 {
 		t.Errorf("Expected 2 backends and 2 services but got: %v", app)

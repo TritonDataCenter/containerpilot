@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os/exec"
 	"strings"
 
 	"github.com/joyent/containerpilot/backends"
@@ -15,9 +14,6 @@ import (
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/utils"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // Config is the top-level ContainerPilot Configuration
@@ -25,10 +21,10 @@ type Config struct {
 	Consul          interface{}     `json:"consul"`
 	Etcd            interface{}     `json:"etcd"`
 	LogConfig       *LogConfig      `json:"logging"`
-	OnStart         json.RawMessage `json:"onStart"`
-	PreStart        json.RawMessage `json:"preStart"`
-	PreStop         json.RawMessage `json:"preStop"`
-	PostStop        json.RawMessage `json:"postStop"`
+	OnStart         interface{}     `json:"onStart"`
+	PreStart        interface{}     `json:"preStart"`
+	PreStop         interface{}     `json:"preStop"`
+	PostStop        interface{}     `json:"postStop"`
 	StopTimeout     int             `json:"stopTimeout"`
 	ServicesConfig  json.RawMessage `json:"services"`
 	BackendsConfig  json.RawMessage `json:"backends"`
@@ -76,45 +72,12 @@ func (cfg *Config) ParseDiscoveryService() (discovery.DiscoveryService, error) {
 	return discoveryService, nil
 }
 
-func parseCommand(name string, args json.RawMessage) (*exec.Cmd, error) {
-	cmd, err := utils.ParseCommandArgs(args)
-	if err != nil {
-		return nil, fmt.Errorf("Could not parse `%s`: %s", name, err)
-	}
-	return cmd, nil
-}
-
 // InitLogging ...
 func (cfg *Config) InitLogging() error {
 	if cfg.LogConfig != nil {
 		return cfg.LogConfig.init()
 	}
 	return nil
-}
-
-// ParsePreStart ...
-func (cfg *Config) ParsePreStart() (*exec.Cmd, error) {
-	// onStart has been deprecated for preStart. Remove in 2.0
-	if cfg.PreStart != nil && cfg.OnStart != nil {
-		log.Warnf("The onStart option has been deprecated in favor of preStart. ContainerPilot will use only the preStart option provided")
-	}
-
-	// alias the onStart behavior to preStart
-	if cfg.PreStart == nil && cfg.OnStart != nil {
-		log.Warnf("The onStart option has been deprecated in favor of preStart. ContainerPilot will use the onStart option as a preStart")
-		cfg.PreStart = cfg.OnStart
-	}
-	return parseCommand("preStart", cfg.PreStart)
-}
-
-// ParsePreStop ...
-func (cfg *Config) ParsePreStop() (*exec.Cmd, error) {
-	return parseCommand("preStop", cfg.PreStop)
-}
-
-// ParsePostStop ...
-func (cfg *Config) ParsePostStop() (*exec.Cmd, error) {
-	return parseCommand("postStop", cfg.PostStop)
 }
 
 // ParseBackends ...

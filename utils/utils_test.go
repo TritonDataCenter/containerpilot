@@ -15,23 +15,26 @@ func TestParseCommandArgs(t *testing.T) {
 	}
 
 	expected := []string{"/testdata/test.sh", "arg1"}
-	json1 := json.RawMessage(`"/testdata/test.sh arg1"`)
-	if cmd, err := ParseCommandArgs(json1); err == nil {
-		validateCommandParsed(t, "json1", cmd, expected)
+	if cmd, err := ParseCommandArgs("/testdata/test.sh arg1"); err == nil {
+		validateCommandParsed(t, "string", cmd, expected)
 	} else {
-		t.Errorf("Unexpected parse error json1: %s", err.Error())
+		t.Errorf("Unexpected parse error string: %s", err.Error())
 	}
 
-	json2 := json.RawMessage(`["/testdata/test.sh","arg1"]`)
-	if cmd, err := ParseCommandArgs(json2); err == nil {
-		validateCommandParsed(t, "json2", cmd, expected)
+	if cmd, err := ParseCommandArgs([]string{"/testdata/test.sh", "arg1"}); err == nil {
+		validateCommandParsed(t, "[]string", cmd, expected)
 	} else {
-		t.Errorf("Unexpected parse error json2: %s", err.Error())
+		t.Errorf("Unexpected parse error []string: %s", err.Error())
 	}
 
-	json3 := json.RawMessage(`{ "a": true }`)
-	if _, err := ParseCommandArgs(json3); err == nil {
-		t.Errorf("Expected parse error for json3")
+	if cmd, err := ParseCommandArgs([]interface{}{"/testdata/test.sh", "arg1"}); err == nil {
+		validateCommandParsed(t, "[]interface{}", cmd, expected)
+	} else {
+		t.Errorf("Unexpected parse error []interface{}: %s", err.Error())
+	}
+
+	if _, err := ParseCommandArgs(map[string]bool{"a": true}); err == nil {
+		t.Errorf("Expected parse error for invalid")
 	}
 
 }

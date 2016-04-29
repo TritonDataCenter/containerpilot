@@ -173,6 +173,10 @@ func (a *App) Run() {
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
+	command, err := utils.ParseCommandArgs(flag.Args())
+	if err != nil {
+		log.Errorf("Unable to parse command arguments: %v", err)
+	}
 	a.handleSignals()
 	// Run the preStart handler, if any, and exit if it returns an error
 	if preStartCode, err := utils.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
@@ -184,10 +188,10 @@ func (a *App) Run() {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		a.Command = utils.ArgsToCmd(flag.Args())
-		a.Command.Stderr = os.Stderr
-		a.Command.Stdout = os.Stdout
-		code, err := utils.ExecuteAndWait(a.Command)
+		a.Command = command
+		command.Stderr = os.Stderr
+		command.Stdout = os.Stdout
+		code, err := utils.ExecuteAndWait(command)
 		if err != nil {
 			log.Println(err)
 		}

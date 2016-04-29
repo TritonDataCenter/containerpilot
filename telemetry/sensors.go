@@ -17,13 +17,13 @@ import (
 
 // A Sensor is a single measurement of the application.
 type Sensor struct {
-	Namespace string          `json:"namespace"`
-	Subsystem string          `json:"subsystem"`
-	Name      string          `json:"name"`
-	Help      string          `json:"help"` // help string returned by API
-	Type      string          `json:"type"`
-	Poll      int             `json:"poll"` // time in seconds
-	CheckExec json.RawMessage `json:"check"`
+	Namespace string      `json:"namespace"`
+	Subsystem string      `json:"subsystem"`
+	Name      string      `json:"name"`
+	Help      string      `json:"help"` // help string returned by API
+	Type      string      `json:"type"`
+	Poll      int         `json:"poll"` // time in seconds
+	CheckExec interface{} `json:"check"`
 	checkCmd  *exec.Cmd
 	collector prometheus.Collector
 }
