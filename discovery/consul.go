@@ -8,7 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
-	"github.com/mitchellh/mapstructure"
+	"github.com/joyent/containerpilot/utils"
 )
 
 // Consul is a service discovery backend for Hashicorp Consul
@@ -40,27 +40,19 @@ func NewConsulConfig(config interface{}) (*Consul, error) {
 	return &Consul{*client}, nil
 }
 
-func configFromMap(m map[string]interface{}) (*consul.Config, error) {
-	result := &struct {
+func configFromMap(raw map[string]interface{}) (*consul.Config, error) {
+	config := &struct {
 		Address string `mapstructure:"address"`
 		Scheme  string `mapstructure:"scheme"`
 		Token   string `mapstructure:"token"`
 	}{}
-	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		ErrorUnused: false,
-		Result:      result,
-	})
-	if err != nil {
-		return nil, err
-	}
-	err = dec.Decode(m)
-	if err != nil {
+	if err := utils.DecodeRaw(raw, config); err != nil {
 		return nil, err
 	}
 	return &consul.Config{
-		Address: result.Address,
-		Scheme:  result.Scheme,
-		Token:   result.Token,
+		Address: config.Address,
+		Scheme:  config.Scheme,
+		Token:   config.Token,
 	}, nil
 }
 

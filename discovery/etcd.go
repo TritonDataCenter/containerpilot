@@ -8,7 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
-	"github.com/mitchellh/mapstructure"
+	"github.com/joyent/containerpilot/utils"
 	"golang.org/x/net/context"
 )
 
@@ -53,27 +53,18 @@ func parseEndpoints(endpoints interface{}) []string {
 }
 
 // NewEtcdConfig creates a new service discovery backend for etcd
-func NewEtcdConfig(config interface{}) (*Etcd, error) {
+func NewEtcdConfig(raw interface{}) (*Etcd, error) {
 	etcd := &Etcd{
 		Prefix: "/containerpilot",
 	}
-	var rawConfig etcdRawConfig
+	var config etcdRawConfig
 	etcdConfig := client.Config{}
-	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		ErrorUnused: false,
-		Result:      &rawConfig,
-		ZeroFields:  false,
-	})
-	if err != nil {
+	if err := utils.DecodeRaw(raw, &config); err != nil {
 		return nil, err
 	}
-	err = dec.Decode(config)
-	if err != nil {
-		return nil, err
-	}
-	etcdConfig.Endpoints = parseEndpoints(rawConfig.Endpoints)
-	if rawConfig.Prefix != "" {
-		etcd.Prefix = rawConfig.Prefix
+	etcdConfig.Endpoints = parseEndpoints(config.Endpoints)
+	if config.Prefix != "" {
+		etcd.Prefix = config.Prefix
 	}
 
 	etcdClient, err := client.New(etcdConfig)
