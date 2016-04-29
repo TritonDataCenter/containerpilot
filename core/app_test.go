@@ -25,7 +25,7 @@ var testJSON = `{
 					"interfaces": "eth0",
 					"health": "/bin/to/healthcheck/for/service/A.sh",
 					"poll": 30,
-					"ttl": 19,
+					"ttl": "19",
 					"tags": ["tag1","tag2"]
 			},
 			{
@@ -78,6 +78,14 @@ func TestValidConfigParse(t *testing.T) {
 
 	if app.Services[1].Tags != nil {
 		t.Errorf("Expected no tags for serviceB, but got: %s", app.Services[1].Tags)
+	}
+
+	if app.Services[0].TTL != 19 {
+		t.Errorf("Expected ttl=19 for serviceA, but got: %d", app.Services[1].TTL)
+	}
+
+	if app.Services[1].TTL != 103 {
+		t.Errorf("Expected ttl=103 for serviceB, but got: %d", app.Services[1].TTL)
 	}
 
 	if app.Backends[0].Tag != "dev" {
