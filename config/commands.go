@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/utils"
-	"github.com/prometheus/common/log"
 )
 
 // ParsePreStart ...
