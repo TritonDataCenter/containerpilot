@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/joyent/containerpilot/config"
 )
 
 // ------------------------------------------
@@ -103,39 +101,39 @@ func TestValidConfigParse(t *testing.T) {
 
 func TestServiceConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = []byte(`{"consul": "consul:8500", "services": [
-                           {"name": "", "port": 8080, "poll": 30, "ttl": 19 }]}`)
+	var testJSON = `{"consul": "consul:8500", "services": [
+                           {"name": "", "port": 8080, "poll": 30, "ttl": 19 }]}`
 	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJSON = []byte(`{"consul": "consul:8500", "services": [
-                       {"name": "name", "port": 8080, "ttl": 19}]}`)
+	testJSON = `{"consul": "consul:8500", "services": [
+                       {"name": "name", "port": 8080, "ttl": 19}]}`
 	validateParseError(t, testJSON, []string{"`poll`"})
 
 	// Missing `ttl`
-	testJSON = []byte(`{"consul": "consul:8500", "services": [
-                       {"name": "name", "port": 8080, "poll": 19}]}`)
+	testJSON = `{"consul": "consul:8500", "services": [
+                       {"name": "name", "port": 8080, "poll": 19}]}`
 	validateParseError(t, testJSON, []string{"`ttl`"})
 
-	testJSON = []byte(`{"consul": "consul:8500", "services": [
-                       {"name": "name", "poll": 19, "ttl": 19}]}`)
+	testJSON = `{"consul": "consul:8500", "services": [
+                       {"name": "name", "poll": 19, "ttl": 19}]}`
 	validateParseError(t, testJSON, []string{"`port`"})
 }
 
 func TestBackendConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = []byte(`{"consul": "consul:8500", "backends": [
-                           {"name": "", "poll": 30, "onChange": "true"}]}`)
+	var testJSON = `{"consul": "consul:8500", "backends": [
+                           {"name": "", "poll": 30, "onChange": "true"}]}`
 	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJSON = []byte(`{"consul": "consul:8500", "backends": [
-                       {"name": "name", "onChange": "true"}]}`)
+	testJSON = `{"consul": "consul:8500", "backends": [
+                       {"name": "name", "onChange": "true"}]}`
 	validateParseError(t, testJSON, []string{"`poll`"})
 
 	// Missing `onChange`
-	testJSON = []byte(`{"consul": "consul:8500", "backends": [
-                       {"name": "name", "poll": 19 }]}`)
+	testJSON = `{"consul": "consul:8500", "backends": [
+                       {"name": "name", "poll": 19 }]}`
 	validateParseError(t, testJSON, []string{"`onChange`"})
 }
 
@@ -206,15 +204,7 @@ func TestMetricServiceCreation(t *testing.T) {
       "port": 9090
     }
   }`
-	config, err := config.ParseConfig(jsonFragment)
-	if err != nil {
-		t.Fatalf("Error parsing config: %v", err)
-	}
-	app, err := NewApp(config)
-	if err != nil {
-		t.Fatalf("Got unexpected error deserializing JSON config: %v", err)
-	}
-	if _, err := NewApp(config); err != nil {
+	if app, err := NewApp(jsonFragment); err != nil {
 		t.Fatalf("Got error while initializing config: %v", err)
 	} else {
 		if len(app.Services) != 1 {
@@ -248,17 +238,13 @@ func testParseExpectError(t *testing.T, testJSON string, expected string) {
 	}
 }
 
-func validateParseError(t *testing.T, input []byte, matchStrings []string) {
-	if cfg, err := config.UnmarshalConfig([]byte(input)); err != nil {
-		t.Errorf("Unexpected error parsing config: %v", err)
+func validateParseError(t *testing.T, testJSON string, matchStrings []string) {
+	if _, err := NewApp(testJSON); err == nil {
+		t.Errorf("Expected error parsing config")
 	} else {
-		if _, err := NewApp(cfg); err == nil {
-			t.Errorf("Expected error parsing config")
-		} else {
-			for _, match := range matchStrings {
-				if !strings.Contains(err.Error(), match) {
-					t.Errorf("Expected message does not contain %s: %s", match, err)
-				}
+		for _, match := range matchStrings {
+			if !strings.Contains(err.Error(), match) {
+				t.Errorf("Expected message does not contain %s: %s", match, err)
 			}
 		}
 	}

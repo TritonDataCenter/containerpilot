@@ -76,11 +76,7 @@ func LoadApp() (*App, error) {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
 
-	cfg, err := config.ParseConfig(configFlag)
-	if err != nil {
-		return nil, err
-	}
-	app, err := NewApp(cfg)
+	app, err := NewApp(configFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +84,12 @@ func LoadApp() (*App, error) {
 }
 
 // NewApp creates a new App from the config
-func NewApp(cfg *config.Config) (*App, error) {
+func NewApp(configFlag string) (*App, error) {
 	a := EmptyApp()
+	cfg, err := config.ParseConfig(configFlag)
+	if err != nil {
+		return nil, err
+	}
 
 	// onStart has been deprecated for preStart. Remove in 2.0
 	if cfg.PreStart != nil && cfg.OnStart != nil {
@@ -282,12 +282,7 @@ func (a *App) Reload() error {
 	defer a.signalLock.Unlock()
 	log.Infof("Reloading configuration.")
 
-	newCfg, err := config.ParseConfig(a.ConfigFlag)
-	if err != nil {
-		log.Errorf("Error parsing config: %v", err)
-		return err
-	}
-	newApp, err := NewApp(newCfg)
+	newApp, err := NewApp(a.ConfigFlag)
 	if err != nil {
 		log.Errorf("Error initializing config: %v", err)
 		return err
