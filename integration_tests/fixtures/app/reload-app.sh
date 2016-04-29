@@ -3,10 +3,7 @@
 SIGNAL=${1:-false}
 
 if [[ $SIGNAL != false ]]; then
-  echo "signal: ${SIGNAL}"
   kill -${SIGNAL} 1
-else
-  echo "no signal"
 fi
 
 # get all the healthy application servers and write the json to file
