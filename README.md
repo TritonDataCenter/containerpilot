@@ -49,7 +49,7 @@ The format of the JSON file configuration is as follows:
 ```json
 {
   "consul": "consul:8500",
-  "onStart": "/opt/containerpilot/onStart-script.sh {{.ENV_VAR_NAME}}",
+  "preStart": "/opt/containerpilot/preStart-script.sh {{.ENV_VAR_NAME}}",
   "logging": {
     "level": "INFO",
     "format": "default",
@@ -230,7 +230,7 @@ A task accepts the following properties:
 
 #### Other fields:
 
-- `onStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `onStart` handler returns a non-zero exit code, ContainerPilot will exit.
+- `preStart` is the executable (and its arguments) that will be called immediately prior to starting the shimmed application. This field is optional. If the `preStart` handler returns a non-zero exit code, ContainerPilot will exit.
 - `preStop` is the executable (and its arguments) that will be called immediately **before** the shimmed application exits. This field is optional. ContainerPilot will wait until this program exits before terminating the shimmed application.
 - `postStop` is the executable (and its arguments) that will be called immediately **after** the shimmed application exits. This field is optional. If the `postStop` handler returns a non-zero exit code, ContainerPilot will exit with this code rather than the application's exit code.
 - `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`). Providing `-1` will kill the application immediately.
@@ -261,7 +261,7 @@ Interfaces and their IP addresses are ordered alphabetically by interface name, 
 
 #### Commands & arguments
 
-All executable fields, such as `onStart` and `onChange`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments.
+All executable fields, such as `preStart` and `onChange`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments.
 
 **String Command**
 
@@ -289,7 +289,7 @@ ContainerPilot configuration has template support. If you have an environment va
 ```json
 {
   "consul": "consul:8500",
-  "onStart": "/opt/containerpilot/onStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
+  "preStart": "/opt/containerpilot/preStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
 }
 ```
 

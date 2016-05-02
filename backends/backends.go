@@ -1,7 +1,6 @@
 package backends
 
 import (
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"time"
@@ -13,21 +12,21 @@ import (
 
 // Backend represents a command to execute when another application changes
 type Backend struct {
-	Name             string          `json:"name"`
-	Poll             int             `json:"poll"` // time in seconds
-	OnChangeExec     json.RawMessage `json:"onChange"`
-	Tag              string          `json:"tag,omitempty"`
+	Name             string      `mapstructure:"name"`
+	Poll             int         `mapstructure:"poll"` // time in seconds
+	OnChangeExec     interface{} `mapstructure:"onChange"`
+	Tag              string      `mapstructure:"tag"`
 	discoveryService discovery.DiscoveryService
 	lastState        interface{}
 	onChangeCmd      *exec.Cmd
 }
 
-func NewBackends(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Backend, error) {
+func NewBackends(raw []interface{}, disc discovery.DiscoveryService) ([]*Backend, error) {
 	if raw == nil {
 		return []*Backend{}, nil
 	}
 	backends := make([]*Backend, 0)
-	if err := json.Unmarshal(raw, &backends); err != nil {
+	if err := utils.DecodeRaw(raw, &backends); err != nil {
 		return nil, fmt.Errorf("Backend configuration error: %v", err)
 	}
 	for _, b := range backends {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"os/exec"
 	"reflect"
 	"testing"
@@ -46,7 +47,7 @@ func TestServiceParse(t *testing.T) {
   "ttl": 103
 }
 ]`)
-	if services, err := NewServices(jsonFragment, nil); err != nil {
+	if services, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err != nil {
 		t.Fatalf("Could not parse service JSON: %s", err)
 	} else {
 		validateCommandParsed(t, "health", services[0].healthCheckCmd,
@@ -58,6 +59,14 @@ func TestServiceParse(t *testing.T) {
 
 // ------------------------------------------
 // test helpers
+
+func decodeJSONRawService(t *testing.T, testJSON json.RawMessage) []interface{} {
+	var raw []interface{}
+	if err := json.Unmarshal(testJSON, &raw); err != nil {
+		t.Fatalf("Unexpected error decoding JSON:\n%s\n%v", testJSON, err)
+	}
+	return raw
+}
 
 func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
 	if expected == nil {

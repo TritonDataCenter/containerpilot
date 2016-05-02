@@ -2,8 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -14,35 +12,18 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func IpFromInterfaces(raw json.RawMessage) (string, error) {
-	interfaces, ifaceErr := ParseInterfaces(raw)
+// IPFromInterfaces ...
+func IPFromInterfaces(raw interface{}) (string, error) {
+	interfaces, ifaceErr := ToStringArray(raw)
 	if ifaceErr != nil {
 		return "", ifaceErr
 	}
 
-	if ipAddress, err := GetIP(interfaces); err != nil {
+	ipAddress, err := GetIP(interfaces)
+	if err != nil {
 		return "", err
-	} else {
-		return ipAddress, nil
 	}
-}
-
-func ParseInterfaces(raw json.RawMessage) ([]string, error) {
-	if raw == nil {
-		return []string{}, nil
-	}
-	// Parse as a string
-	var jsonString string
-	if err := json.Unmarshal(raw, &jsonString); err == nil {
-		return []string{jsonString}, nil
-	}
-
-	var jsonArray []string
-	if err := json.Unmarshal(raw, &jsonArray); err == nil {
-		return jsonArray, nil
-	}
-
-	return []string{}, errors.New("interfaces must be a string or an array")
+	return ipAddress, nil
 }
 
 // GetIP determines the IP address of the container
@@ -131,7 +112,7 @@ type inetInterfaceSpec struct {
 type staticInterfaceSpec struct {
 	Spec string
 	Name string
-	IP net.IP
+	IP   net.IP
 }
 
 func (s staticInterfaceSpec) Match(index int, iip interfaceIP) bool {

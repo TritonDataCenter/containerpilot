@@ -1,7 +1,6 @@
 package discovery
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -10,8 +9,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-func setupEtcd(serviceName string) (Etcd, *ServiceDefinition) {
-	etcd := NewEtcdConfig(json.RawMessage(`{"endpoints":["http://etcd:4001"]}`))
+func setupEtcd(serviceName string) (*Etcd, *ServiceDefinition) {
+	etcd, _ := NewEtcdConfig(map[string]interface{}{"endpoints": []string{"http://etcd:4001"}})
 	service := &ServiceDefinition{
 		ID:        serviceName,
 		Name:      serviceName,
@@ -23,7 +22,7 @@ func setupEtcd(serviceName string) (Etcd, *ServiceDefinition) {
 }
 
 func TestEtcdParseArrayEndpoints(t *testing.T) {
-	cfg := NewEtcdConfig(json.RawMessage(`{"endpoints":["http://etcd:4001"]}`))
+	cfg, _ := NewEtcdConfig(map[string]interface{}{"endpoints": []string{"http://etcd:4001"}})
 	expected := []string{"http://etcd:4001"}
 	actual := cfg.Client.Endpoints()
 	if !reflect.DeepEqual(expected, actual) {
@@ -32,7 +31,7 @@ func TestEtcdParseArrayEndpoints(t *testing.T) {
 }
 
 func TestEtcdParseStringEndpoints(t *testing.T) {
-	cfg := NewEtcdConfig(json.RawMessage(`{"endpoints":"http://etcd:4001"}`))
+	cfg, _ := NewEtcdConfig(map[string]interface{}{"endpoints": "http://etcd:4001"})
 	expected := []string{"http://etcd:4001"}
 	actual := cfg.Client.Endpoints()
 	if !reflect.DeepEqual(expected, actual) {
@@ -105,7 +104,7 @@ func TestEtcdCheckForChanges(t *testing.T) {
 	}
 }
 
-func checkServiceExists(etcd Etcd, service *ServiceDefinition) bool {
+func checkServiceExists(etcd *Etcd, service *ServiceDefinition) bool {
 	key := etcd.getNodeKey(service)
 	if _, err := etcd.API.Get(context.Background(), key, nil); err != nil {
 		if etcdErr, ok := err.(client.Error); ok {

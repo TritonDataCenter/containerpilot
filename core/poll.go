@@ -1,45 +1,17 @@
 package core
 
-import (
-	"time"
-
-	"github.com/joyent/containerpilot/config"
-)
-
-// Set up polling functions and write their quit channels
-// back to our config
-func HandlePolling(cfg *config.Config) {
-	var quit []chan bool
-	for _, backend := range cfg.Backends {
-		quit = append(quit, poll(backend))
-	}
-	for _, service := range cfg.Services {
-		quit = append(quit, poll(service))
-	}
-	if cfg.Telemetry != nil {
-		for _, sensor := range cfg.Telemetry.Sensors {
-			quit = append(quit, poll(sensor))
-		}
-		cfg.Telemetry.Serve()
-	}
-	if cfg.Tasks != nil {
-		for _, task := range cfg.Tasks {
-			quit = append(quit, poll(task))
-		}
-	}
-	cfg.QuitChannels = quit
-}
+import "time"
 
 // Every `pollTime` seconds, run the `PollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
-func poll(pollable Pollable) chan bool {
+func (a *App) poll(pollable Pollable) chan bool {
 	ticker := time.NewTicker(pollable.PollTime())
 	quit := make(chan bool)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				if !inMaintenanceMode() {
+				if !a.InMaintenanceMode() {
 					pollable.PollAction()
 				}
 			case <-quit:
