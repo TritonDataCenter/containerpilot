@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/utils"
@@ -25,35 +24,35 @@ func (c *NoopDiscoveryService) CheckForUpstreamChanges(backend, tag string) bool
 func (c *NoopDiscoveryService) MarkForMaintenance(service *discovery.ServiceDefinition) {}
 func (c *NoopDiscoveryService) Deregister(service *discovery.ServiceDefinition)         {}
 
-func getSignalTestConfig() *config.Config {
+func getSignalTestConfig() *App {
 	service, _ := services.NewService(
 		"test-service", 1, 1, 1, nil, nil, &NoopDiscoveryService{})
-	cfg := &config.Config{
-		Command: utils.ArgsToCmd([]string{
-			"./testdata/test.sh",
-			"interruptSleep"}),
-		StopTimeout: 5,
-		Services:    []*services.Service{service},
-	}
-	return cfg
+	app := EmptyApp()
+	app.Command = utils.ArgsToCmd([]string{
+		"./testdata/test.sh",
+		"interruptSleep"})
+	app.StopTimeout = 5
+	app.Services = []*services.Service{service}
+	return app
 }
 
 // ------------------------------------------
 
 // Test handler for SIGUSR1
 func TestMaintenanceSignal(t *testing.T) {
-	config := getSignalTestConfig()
-	if inMaintenanceMode() {
+	app := getSignalTestConfig()
+
+	if app.InMaintenanceMode() {
 		t.Fatal("Should not be in maintenance mode by default")
 	}
 
-	toggleMaintenanceMode(config)
-	if !inMaintenanceMode() {
+	app.ToggleMaintenanceMode()
+	if !app.InMaintenanceMode() {
 		t.Fatal("Should be in maintenance mode after receiving SIGUSR1")
 	}
 
-	toggleMaintenanceMode(config)
-	if inMaintenanceMode() {
+	app.ToggleMaintenanceMode()
+	if app.InMaintenanceMode() {
 		t.Fatal("Should not be in maintenance mode after receiving second SIGUSR1")
 	}
 }
@@ -63,10 +62,10 @@ func TestMaintenanceSignal(t *testing.T) {
 // because they'll interfere with each other's state.
 func TestTerminateSignal(t *testing.T) {
 
-	config := getSignalTestConfig()
+	app := getSignalTestConfig()
 	startTime := time.Now()
 	go func() {
-		if exitCode, _ := utils.ExecuteAndWait(config.Command); exitCode != 2 {
+		if exitCode, _ := utils.ExecuteAndWait(app.Command); exitCode != 2 {
 			t.Fatalf("Expected exit code 2 but got %d", exitCode)
 		}
 	}()
@@ -74,31 +73,38 @@ func TestTerminateSignal(t *testing.T) {
 	runtime.Gosched()
 	time.Sleep(10 * time.Millisecond)
 
-	terminate(config)
+	app.Terminate()
 	elapsed := time.Since(startTime)
-	if elapsed.Seconds() > float64(config.StopTimeout) {
+	if elapsed.Seconds() > float64(app.StopTimeout) {
 		t.Fatalf("Expected elapsed time <= %d seconds, but was %.2f",
-			config.StopTimeout, elapsed.Seconds())
+			app.StopTimeout, elapsed.Seconds())
 	}
 }
 
 // Test handler for SIGHUP
 func TestReloadSignal(t *testing.T) {
-	oldConfig := getSignalTestConfig()
-	oldConfig.ConfigFlag = "invalid"
-	if badConfig := reloadConfig(oldConfig); badConfig != nil {
-		t.Errorf("Invalid configuration did not return nil")
+	app := getSignalTestConfig()
+	app.ConfigFlag = "invalid"
+	err := app.Reload()
+	if err == nil {
+		t.Errorf("Invalid configuration did not return error")
 	}
-	oldConfig.ConfigFlag = `{ "consul": "newconsul:8500" }`
-	if newConfig := reloadConfig(oldConfig); newConfig == nil || newConfig.Consul != "newconsul:8500" {
-		t.Errorf("Configuration was not reloaded.")
+	app.ConfigFlag = `{ "consul": "newconsul:8500" }`
+	err = app.Reload()
+	if err != nil {
+		t.Errorf("Valid configuration returned error: %v", err)
+	}
+	discSvc := app.DiscoveryService
+	if svc, ok := discSvc.(*discovery.Consul); !ok || svc == nil {
+		t.Errorf("Configuration was not reloaded: %v", discSvc)
 	}
 }
 
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
-	HandleSignals(&config.Config{})
+	app := EmptyApp()
+	app.handleSignals()
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
 	sendAndWaitForSignal(t, syscall.SIGCHLD)

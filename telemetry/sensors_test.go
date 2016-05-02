@@ -186,20 +186,19 @@ func checkBuckets(resp, patt string, expected [][]string) bool {
 	if len(matches) != len(expected) {
 		fmt.Printf("%v matches vs %v expected\n", len(matches), len(expected))
 		return false
-	} else {
-		for _, m := range matches {
-			buckets = append(buckets, []string{m[1], m[2]})
-		}
-		var ok bool
-		if ok = reflect.DeepEqual(buckets, expected); !ok {
-			fmt.Println("Match content:")
-			for _, m := range matches {
-				fmt.Println(m)
-			}
-			fmt.Printf("Expected:\n%v\n-----Actual:\n%v\n", expected, buckets)
-		}
-		return ok
 	}
+	for _, m := range matches {
+		buckets = append(buckets, []string{m[1], m[2]})
+	}
+	var ok bool
+	if ok = reflect.DeepEqual(buckets, expected); !ok {
+		fmt.Println("Match content:")
+		for _, m := range matches {
+			fmt.Println(m)
+		}
+		fmt.Printf("Expected:\n%v\n-----Actual:\n%v\n", expected, buckets)
+	}
+	return ok
 }
 
 func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
@@ -291,7 +290,7 @@ func TestSensorBadType(t *testing.T) {
 	"name": "TestSensorBadType",
 	"type": "nonsense"}]`)
 
-	if sensors, err := NewSensors(jsonFragment); err == nil {
+	if sensors, err := NewSensors(decodeJSONRawSensor(t, jsonFragment)); err == nil {
 		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
 	}
 }
@@ -304,7 +303,7 @@ func TestSensorBadName(t *testing.T) {
 	"name": "Test.Sensor.Bad.Name",
 	"type": "counter"}]`)
 
-	if sensors, err := NewSensors(jsonFragment); err == nil {
+	if sensors, err := NewSensors(decodeJSONRawSensor(t, jsonFragment)); err == nil {
 		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
 	}
 }
@@ -331,8 +330,16 @@ func TestSensorPartialName(t *testing.T) {
 	}
 }
 
-func parseSensors(t *testing.T, testJson json.RawMessage) []*Sensor {
-	if sensors, err := NewSensors(testJson); err != nil {
+func decodeJSONRawSensor(t *testing.T, testJSON json.RawMessage) []interface{} {
+	var raw []interface{}
+	if err := json.Unmarshal(testJSON, &raw); err != nil {
+		t.Fatalf("Unexpected error decoding JSON:\n%s\n%v", testJSON, err)
+	}
+	return raw
+}
+
+func parseSensors(t *testing.T, testJSON json.RawMessage) []*Sensor {
+	if sensors, err := NewSensors(decodeJSONRawSensor(t, testJSON)); err != nil {
 		t.Fatalf("Could not parse sensor JSON: %s", err)
 	} else {
 		if len(sensors) == 0 {

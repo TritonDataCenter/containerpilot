@@ -1,6 +1,7 @@
 package backends
 
 import (
+	"encoding/json"
 	"os/exec"
 	"reflect"
 	"testing"
@@ -41,7 +42,12 @@ func TestBackendsParse(t *testing.T) {
 }
 ]`)
 
-	if backends, err := NewBackends(jsonFragment, nil); err != nil {
+	var raw []interface{}
+	if err := json.Unmarshal(jsonFragment, &raw); err != nil {
+		t.Fatalf("Unexpected error decoding JSON: %v", err)
+	}
+
+	if backends, err := NewBackends(raw, nil); err != nil {
 		t.Fatalf("Could not parse backends JSON: %s", err)
 	} else {
 		validateCommandParsed(t, "onChange", backends[0].onChangeCmd,

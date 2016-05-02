@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-func setupConsul(serviceName string) (Consul, *ServiceDefinition) {
-	consul := NewConsulConfig("consul:8500")
+func setupConsul(serviceName string) (*Consul, *ServiceDefinition) {
+	consul, _ := NewConsulConfig("consul:8500")
 	service := &ServiceDefinition{
 		ID:        serviceName,
 		Name:      serviceName,
@@ -15,6 +15,18 @@ func setupConsul(serviceName string) (Consul, *ServiceDefinition) {
 		Port:      9000,
 	}
 	return consul, service
+}
+
+func TestConsulObjectParse(t *testing.T) {
+	rawCfg := map[string]interface{}{
+		"address": "consul:8501",
+		"scheme":  "https",
+		"token":   "ec492475-7753-4ff0-bd65-2f056d68f78b",
+	}
+	_, err := NewConsulConfig(rawCfg)
+	if err != nil {
+		t.Fatalf("Unable to parse config: %v", err)
+	}
 }
 
 func TestConsulAddressParse(t *testing.T) {

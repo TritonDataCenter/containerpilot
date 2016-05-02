@@ -1,9 +1,8 @@
 package telemetry
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 
@@ -15,67 +14,83 @@ import (
 // Telemetry represents the service to advertise for finding the metrics
 // endpoint, and the collection of Sensors.
 type Telemetry struct {
-	Port          int             `json:"port"`
-	Interfaces    json.RawMessage `json:"interfaces,omitempty"` // optional override
-	Tags          []string        `json:"tags,omitempty"`
-	SensorConfigs json.RawMessage `json:"sensors,omitempty"`
+	Port          int           `mapstructure:"port"`
+	Interfaces    []interface{} `mapstructure:"interfaces"` // optional override
+	Tags          []string      `mapstructure:"tags"`
+	SensorConfigs []interface{} `mapstructure:"sensors"`
 	Sensors       []*Sensor
-	IpAddress     string
 	ServiceName   string
-	Url           string
+	URL           string
 	TTL           int
 	Poll          int
+	mux           *http.ServeMux
+	lock          sync.RWMutex
+	listen        net.Listener
+	addr          net.TCPAddr
+	listening     bool
 }
 
-func NewTelemetry(raw json.RawMessage) (*Telemetry, error) {
+// NewTelemetry configures a new prometheus Telemetry server
+func NewTelemetry(raw interface{}) (*Telemetry, error) {
 	t := &Telemetry{
 		Port:        9090,
 		ServiceName: "containerpilot",
-		Url:         "/metrics",
+		URL:         "/metrics",
 		TTL:         15,
 		Poll:        5,
+		lock:        sync.RWMutex{},
 	}
-	if err := json.Unmarshal(raw, t); err != nil {
-		return nil, errors.New("Telemetry configuration error: %v, err")
+
+	if err := utils.DecodeRaw(raw, t); err != nil {
+		return nil, fmt.Errorf("Telemetry configuration error: %v", err)
 	}
-	if ipAddress, err := utils.IpFromInterfaces(t.Interfaces); err != nil {
+	ipAddress, err := utils.IPFromInterfaces(t.Interfaces)
+	if err != nil {
 		return nil, err
-	} else {
-		t.IpAddress = ipAddress
 	}
+	ip := net.ParseIP(ipAddress)
+	t.addr = net.TCPAddr{IP: ip, Port: t.Port}
+	t.mux = http.NewServeMux()
+	t.mux.Handle(t.URL, prometheus.Handler())
 	// note that we don't return an error if there are no sensors
 	// because the prometheus handler will still pick up metrics
 	// internal to ContainerPilot (i.e. the golang runtime)
 	if t.SensorConfigs != nil {
-		if sensors, err := NewSensors(t.SensorConfigs); err != nil {
+		sensors, err := NewSensors(t.SensorConfigs)
+		if err != nil {
 			return nil, err
-		} else {
-			t.Sensors = sensors
 		}
+		t.Sensors = sensors
 	}
 	return t, nil
 }
 
-var server *http.Server
-var serverLock = sync.RWMutex{}
-
+// Serve starts serving the telemetry service
 func (t *Telemetry) Serve() {
-	serverLock.Lock()
-	serverLock.Unlock()
-	if server != nil {
-		// no-op if we've created the server previously
-		// otherwise we'll panic when we try to reregister
-		// the HTTP handlers
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	if t.listening {
 		return
 	}
+	ln, err := net.Listen(t.addr.Network(), t.addr.String())
+	if err != nil {
+		log.Errorf("Error serving telemetry on %s: %v", t.addr.String(), err)
+	}
+	t.listen = ln
+	t.listening = true
 	go func() {
-		http.Handle(t.Url, prometheus.Handler())
-		address := fmt.Sprintf("%s:%v", t.IpAddress, t.Port)
-		log.Debugf("Telemetry listening on %v\n", address)
-
-		server = &http.Server{
-			Addr: address,
-		}
-		log.Fatal(server.ListenAndServe())
+		log.Debugf("telemetry: Listening on %s\n", t.addr.String())
+		log.Fatal(http.Serve(t.listen, t.mux))
+		log.Debugf("telemetry: Stopped listening on %s\n", t.addr.String())
 	}()
+}
+
+// Shutdown shuts down the telemetry service
+func (t *Telemetry) Shutdown() {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	if t.listening {
+		t.listen.Close()
+		t.listening = false
+	}
 }

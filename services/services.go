@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,25 +14,25 @@ import (
 // Service configures the service, discovery data, and health checks
 type Service struct {
 	ID               string
-	Name             string          `json:"name"`
-	Poll             int             `json:"poll"` // time in seconds
-	HealthCheckExec  json.RawMessage `json:"health"`
-	Port             int             `json:"port"`
-	TTL              int             `json:"ttl"`
-	Interfaces       json.RawMessage `json:"interfaces"`
-	Tags             []string        `json:"tags,omitempty"`
+	Name             string      `mapstructure:"name"`
+	Poll             int         `mapstructure:"poll"` // time in seconds
+	HealthCheckExec  interface{} `mapstructure:"health"`
+	Port             int         `mapstructure:"port"`
+	TTL              int         `mapstructure:"ttl"`
+	Interfaces       interface{} `mapstructure:"interfaces"`
+	Tags             []string    `mapstructure:"tags"`
 	ipAddress        string
 	healthCheckCmd   *exec.Cmd
 	discoveryService discovery.DiscoveryService
 	definition       *discovery.ServiceDefinition
 }
 
-func NewServices(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Service, error) {
+func NewServices(raw []interface{}, disc discovery.DiscoveryService) ([]*Service, error) {
 	if raw == nil {
 		return []*Service{}, nil
 	}
-	services := make([]*Service, 0)
-	if err := json.Unmarshal(raw, &services); err != nil {
+	var services []*Service
+	if err := utils.DecodeRaw(raw, &services); err != nil {
 		return nil, fmt.Errorf("Service configuration error: %v", err)
 	}
 	for _, s := range services {
@@ -44,7 +43,7 @@ func NewServices(raw json.RawMessage, disc discovery.DiscoveryService) ([]*Servi
 	return services, nil
 }
 
-func NewService(name string, poll, port, ttl int, interfaces json.RawMessage,
+func NewService(name string, poll, port, ttl int, interfaces interface{},
 	tags []string, disc discovery.DiscoveryService) (*Service, error) {
 	service := &Service{
 		Name:       name,
@@ -85,7 +84,7 @@ func parseService(s *Service, disc discovery.DiscoveryService) error {
 		s.healthCheckCmd = cmd
 	}
 
-	interfaces, ifaceErr := utils.ParseInterfaces(s.Interfaces)
+	interfaces, ifaceErr := utils.ToStringArray(s.Interfaces)
 	if ifaceErr != nil {
 		return ifaceErr
 	}

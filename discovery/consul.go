@@ -8,27 +8,60 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
+	"github.com/joyent/containerpilot/utils"
 )
 
 // Consul is a service discovery backend for Hashicorp Consul
 type Consul struct{ consul.Client }
 
 // NewConsulConfig creates a new service discovery backend for Consul
-func NewConsulConfig(uri string) Consul {
-
-	address, scheme := parseRawUri(uri)
-	defaultconfig := consul.Config{
-		Address: address,
-		Scheme:  scheme,
+func NewConsulConfig(config interface{}) (*Consul, error) {
+	var consulConfig *consul.Config
+	var err error
+	switch t := config.(type) {
+	case string:
+		consulConfig, err = configFromURI(t)
+	case map[string]interface{}:
+		consulConfig, err = configFromMap(t)
+	default:
+		return nil, fmt.Errorf("Unexpected Consul config structure. Expected a string or map")
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	if token := os.Getenv("CONSUL_HTTP_TOKEN"); token != "" {
-		defaultconfig.Token = token
+		consulConfig.Token = token
 	}
+	client, err := consul.NewClient(consulConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &Consul{*client}, nil
+}
 
-	client, _ := consul.NewClient(&defaultconfig)
-	config := &Consul{*client}
-	return *config
+func configFromMap(raw map[string]interface{}) (*consul.Config, error) {
+	config := &struct {
+		Address string `mapstructure:"address"`
+		Scheme  string `mapstructure:"scheme"`
+		Token   string `mapstructure:"token"`
+	}{}
+	if err := utils.DecodeRaw(raw, config); err != nil {
+		return nil, err
+	}
+	return &consul.Config{
+		Address: config.Address,
+		Scheme:  config.Scheme,
+		Token:   config.Token,
+	}, nil
+}
+
+func configFromURI(uri string) (*consul.Config, error) {
+	address, scheme := parseRawUri(uri)
+	return &consul.Config{
+		Address: address,
+		Scheme:  scheme,
+	}, nil
 }
 
 // Returns the uri broken into an address and scheme portion
@@ -48,12 +81,12 @@ func parseRawUri(raw string) (string, string) {
 }
 
 // Deregister removes the node from Consul.
-func (c Consul) Deregister(service *ServiceDefinition) {
+func (c *Consul) Deregister(service *ServiceDefinition) {
 	c.MarkForMaintenance(service)
 }
 
 // MarkForMaintenance removes the node from Consul.
-func (c Consul) MarkForMaintenance(service *ServiceDefinition) {
+func (c *Consul) MarkForMaintenance(service *ServiceDefinition) {
 	if err := c.Agent().ServiceDeregister(service.ID); err != nil {
 		log.Infof("Deregistering failed: %s", err)
 	}
@@ -62,7 +95,7 @@ func (c Consul) MarkForMaintenance(service *ServiceDefinition) {
 // SendHeartbeat writes a TTL check status=ok to the consul store.
 // If consul has never seen this service, we register the service and
 // its TTL check.
-func (c Consul) SendHeartbeat(service *ServiceDefinition) {
+func (c *Consul) SendHeartbeat(service *ServiceDefinition) {
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
 		log.Infof("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {
