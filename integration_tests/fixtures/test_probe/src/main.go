@@ -17,6 +17,7 @@ func runTest(testName string, args []string) {
 		"test_sigterm":          TestSigterm,
 		"test_sighup_deadlock":  TestSighupDeadlock,
 		"test_sigusr1_prestart": TestSigUsr1Prestart,
+		"test_sighup_prestart":  TestSigHupPrestart,
 		"test_discovery":        TestDiscovery,
 	}
 

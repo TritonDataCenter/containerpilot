@@ -1,0 +1,21 @@
+consul:
+    image: "cpfix_consul"
+    mem_limit: 256m
+    hostname: consul
+
+app:
+    image: "cpfix_app"
+    environment:
+      - CONTAINERPILOT=file:///app-with-consul-prestart-sighup.json
+    mem_limit: 512m
+    links:
+      - consul:consul
+
+test:
+    image: "cpfix_test_probe"
+    mem_limit: 128m
+    links:
+      - consul:consul
+      - app:app
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'

@@ -4,7 +4,7 @@ import "log"
 
 func TestSigUsr1Prestart(args []string) bool {
 	if len(args) != 1 {
-		log.Println("TestSigterm requires 1 argument")
+		log.Println("TestSigUsr1Prestart requires 1 argument")
 		log.Println(" - containerID: docker container to kill")
 		return false
 	}
