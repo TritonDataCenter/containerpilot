@@ -6,6 +6,10 @@ import (
 	"github.com/joyent/containerpilot/core"
 
 	log "github.com/Sirupsen/logrus"
+
+	// Import backends so that they initialize
+	_ "github.com/joyent/containerpilot/discovery/consul"
+	_ "github.com/joyent/containerpilot/discovery/etcd"
 )
 
 // Main executes the containerpilot CLI

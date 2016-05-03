@@ -1,13 +1,15 @@
-package discovery
+package consul
 
 import (
 	"testing"
 	"time"
+
+	"github.com/joyent/containerpilot/discovery"
 )
 
-func setupConsul(serviceName string) (*Consul, *ServiceDefinition) {
+func setupConsul(serviceName string) (*Consul, *discovery.ServiceDefinition) {
 	consul, _ := NewConsulConfig("consul:8500")
-	service := &ServiceDefinition{
+	service := &discovery.ServiceDefinition{
 		ID:        serviceName,
 		Name:      serviceName,
 		IpAddress: "192.168.1.1",
@@ -46,7 +48,7 @@ func TestConsulAddressParse(t *testing.T) {
 
 func runParseTest(t *testing.T, uri, expectedAddress, expectedScheme string) {
 
-	address, scheme := parseRawUri(uri)
+	address, scheme := parseRawURI(uri)
 	if address != expectedAddress || scheme != expectedScheme {
 		t.Fatalf("Expected %s over %s but got %s over %s",
 			expectedAddress, expectedScheme, address, scheme)

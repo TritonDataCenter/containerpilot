@@ -14,6 +14,7 @@ import (
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
+	"github.com/prometheus/common/log"
 )
 
 // Config is the top-level ContainerPilot Configuration
@@ -31,6 +32,7 @@ type Config struct {
 	TasksConfig     []interface{} `json:"tasks"`
 	TelemetryConfig interface{}   `json:"telemetry"`
 
+	RawConfig  map[string]interface{}
 	ConfigFlag string
 }
 
@@ -44,22 +46,15 @@ func (cfg *Config) ParseDiscoveryService() (discovery.DiscoveryService, error) {
 	var discoveryService discovery.DiscoveryService
 	var err error
 	discoveryCount := 0
-	for _, discoveryBackend := range []string{"Consul", "Etcd"} {
-		switch discoveryBackend {
-		case "Consul":
-			if cfg.Consul != nil {
-				discoveryService, err = discovery.NewConsulConfig(cfg.Consul)
+	for _, key := range discovery.GetBackends() {
+		handler := discovery.GetConfigHook(key)
+		if handler != nil {
+			if rawCfg, ok := cfg.RawConfig[key]; ok {
+				discoveryService, err = handler(rawCfg)
 				if err != nil {
 					return nil, err
 				}
-				discoveryCount++
-			}
-		case "Etcd":
-			if cfg.Etcd != nil {
-				discoveryService, err = discovery.NewEtcdConfig(cfg.Etcd)
-				if err != nil {
-					return nil, err
-				}
+				log.Debugf("parsed service discovery backend: %s", key)
 				discoveryCount++
 			}
 		}
@@ -189,6 +184,11 @@ func UnmarshalConfig(data []byte) (*Config, error) {
 		}
 		return nil, newJSONParseError(data, syntax)
 	}
+	var rawCfg map[string]interface{}
+	if err := json.Unmarshal(data, &rawCfg); err != nil {
+		return nil, err
+	}
+	config.RawConfig = rawCfg
 	return config, nil
 }
 

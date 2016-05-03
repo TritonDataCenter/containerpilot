@@ -1,4 +1,4 @@
-package discovery
+package etcd
 
 import (
 	"encoding/json"
@@ -10,7 +10,13 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/joyent/containerpilot/utils"
 	"golang.org/x/net/context"
+
+	"github.com/joyent/containerpilot/discovery"
 )
+
+func init() {
+	discovery.RegisterBackend("etcd", ConfigHook)
+}
 
 // Etcd is a service discovery backend for CoreOS etcd
 type Etcd struct {
@@ -52,6 +58,11 @@ func parseEndpoints(endpoints interface{}) []string {
 	return nil
 }
 
+// ConfigHook is the hook to register with the Etcd backend
+func ConfigHook(raw interface{}) (discovery.DiscoveryService, error) {
+	return NewEtcdConfig(raw)
+}
+
 // NewEtcdConfig creates a new service discovery backend for etcd
 func NewEtcdConfig(raw interface{}) (*Etcd, error) {
 	etcd := &Etcd{
@@ -77,17 +88,17 @@ func NewEtcdConfig(raw interface{}) (*Etcd, error) {
 }
 
 // Deregister removes this instance from the registry
-func (c *Etcd) Deregister(service *ServiceDefinition) {
+func (c *Etcd) Deregister(service *discovery.ServiceDefinition) {
 	c.deregisterService(service)
 }
 
 // MarkForMaintenance removes this instance from the registry
-func (c *Etcd) MarkForMaintenance(service *ServiceDefinition) {
+func (c *Etcd) MarkForMaintenance(service *discovery.ServiceDefinition) {
 	c.deregisterService(service)
 }
 
 // SendHeartbeat refreshes the TTL of this associated etcd node
-func (c *Etcd) SendHeartbeat(service *ServiceDefinition) {
+func (c *Etcd) SendHeartbeat(service *discovery.ServiceDefinition) {
 	if err := c.updateServiceTTL(service); err != nil {
 		log.Infof("Service not registered, registering...")
 		if err := c.registerService(service); err != nil {
@@ -96,7 +107,7 @@ func (c *Etcd) SendHeartbeat(service *ServiceDefinition) {
 	}
 }
 
-func (c *Etcd) getNodeKey(service *ServiceDefinition) string {
+func (c *Etcd) getNodeKey(service *discovery.ServiceDefinition) string {
 	return fmt.Sprintf("%s/%s/%s", c.Prefix, service.Name, service.ID)
 }
 
@@ -176,7 +187,7 @@ func etcdCompareForChange(existing, new []EtcdServiceNode) (changed bool) {
 	return false
 }
 
-func (c Etcd) registerService(service *ServiceDefinition) error {
+func (c Etcd) registerService(service *discovery.ServiceDefinition) error {
 	key := c.getNodeKey(service)
 	serviceKey := fmt.Sprintf("%s/%s", key, "/service")
 	value := encodeEtcdNodeValue(service)
@@ -193,7 +204,7 @@ func (c Etcd) registerService(service *ServiceDefinition) error {
 	return err
 }
 
-func (c Etcd) updateServiceTTL(service *ServiceDefinition) error {
+func (c Etcd) updateServiceTTL(service *discovery.ServiceDefinition) error {
 	key := c.getNodeKey(service)
 	ttl, _ := time.ParseDuration(fmt.Sprintf("%ds", service.TTL))
 	_, err := c.API.Set(context.Background(), key, "",
@@ -201,13 +212,13 @@ func (c Etcd) updateServiceTTL(service *ServiceDefinition) error {
 	return err
 }
 
-func (c Etcd) deregisterService(service *ServiceDefinition) error {
+func (c Etcd) deregisterService(service *discovery.ServiceDefinition) error {
 	_, err := c.API.Delete(context.Background(), c.getNodeKey(service),
 		&client.DeleteOptions{Dir: true, Recursive: true})
 	return err
 }
 
-func encodeEtcdNodeValue(service *ServiceDefinition) string {
+func encodeEtcdNodeValue(service *discovery.ServiceDefinition) string {
 	node := &EtcdServiceNode{
 		ID:      service.ID,
 		Name:    service.Name,
