@@ -41,23 +41,5 @@
         "check": ["/sensor.sh", "count"]
        }
     ]
-  },
-  "tasks": [
-    {
-      "name": "task1",
-      "command": ["/task.sh","0.2","/task1.txt"],
-      "frequency": "500ms"
-    },
-    {
-      "name": "task2",
-      "command": ["/task.sh","2","/task2.txt"],
-      "frequency": "1500ms"
-    },
-    {
-      "name": "task3",
-      "command": ["/task.sh","2","/task3.txt"],
-      "frequency": "1500ms",
-      "timeout": "100ms"
-    }
-  ]
+  }
 }
