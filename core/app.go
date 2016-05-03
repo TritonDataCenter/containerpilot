@@ -90,6 +90,7 @@ func NewApp(configFlag string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	a.ConfigFlag = configFlag
 
 	// onStart has been deprecated for preStart. Remove in 2.0
 	if cfg.PreStart != nil && cfg.OnStart != nil {

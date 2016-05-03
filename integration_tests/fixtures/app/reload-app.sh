@@ -1,5 +1,16 @@
 #!/bin/bash
 
+SIGNAL=${1:-false}
+
+if [[ $SIGNAL != false ]]; then
+  if [[ $SIGNAL == "HUP" ]]; then
+    # Change our config to actually pass the healthcheck
+    sed -i s/8888/8000/ /app-with-consul-prestart-sighup.json
+  fi
+
+  kill -${SIGNAL} 1
+fi
+
 # get all the healthy application servers and write the json to file
 curl -s consul:8500/v1/health/service/app?passing | json > /tmp/lastQuery.json
 
