@@ -119,5 +119,6 @@ release: build
 	git push joyent --tags
 	cd build && tar -czf ../release/containerpilot-$(VERSION).tar.gz containerpilot
 	@echo
-	@echo Upload this file to Github release:
-	@sha1sum release/containerpilot-$(VERSION).tar.gz
+	@cd release && sha1sum containerpilot-$(VERSION).tar.gz
+	@cd release && sha1sum containerpilot-$(VERSION).tar.gz > containerpilot-$(VERSION).sha1.txt
+	@echo Upload files in release/ directory to GitHub release.
