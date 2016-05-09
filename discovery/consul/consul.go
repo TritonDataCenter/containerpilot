@@ -1,4 +1,4 @@
-package discovery
+package consul
 
 import (
 	"fmt"
@@ -8,11 +8,21 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
+	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
 
+func init() {
+	discovery.RegisterBackend("consul", ConfigHook)
+}
+
 // Consul is a service discovery backend for Hashicorp Consul
 type Consul struct{ consul.Client }
+
+// ConfigHook is the hook to register with the Consul backend
+func ConfigHook(raw interface{}) (discovery.DiscoveryService, error) {
+	return NewConsulConfig(raw)
+}
 
 // NewConsulConfig creates a new service discovery backend for Consul
 func NewConsulConfig(config interface{}) (*Consul, error) {
@@ -57,7 +67,7 @@ func configFromMap(raw map[string]interface{}) (*consul.Config, error) {
 }
 
 func configFromURI(uri string) (*consul.Config, error) {
-	address, scheme := parseRawUri(uri)
+	address, scheme := parseRawURI(uri)
 	return &consul.Config{
 		Address: address,
 		Scheme:  scheme,
@@ -65,7 +75,7 @@ func configFromURI(uri string) (*consul.Config, error) {
 }
 
 // Returns the uri broken into an address and scheme portion
-func parseRawUri(raw string) (string, string) {
+func parseRawURI(raw string) (string, string) {
 
 	var scheme = "http" // default
 	var address = raw   // we accept bare address w/o a scheme
@@ -81,12 +91,12 @@ func parseRawUri(raw string) (string, string) {
 }
 
 // Deregister removes the node from Consul.
-func (c *Consul) Deregister(service *ServiceDefinition) {
+func (c *Consul) Deregister(service *discovery.ServiceDefinition) {
 	c.MarkForMaintenance(service)
 }
 
 // MarkForMaintenance removes the node from Consul.
-func (c *Consul) MarkForMaintenance(service *ServiceDefinition) {
+func (c *Consul) MarkForMaintenance(service *discovery.ServiceDefinition) {
 	if err := c.Agent().ServiceDeregister(service.ID); err != nil {
 		log.Infof("Deregistering failed: %s", err)
 	}
@@ -95,7 +105,7 @@ func (c *Consul) MarkForMaintenance(service *ServiceDefinition) {
 // SendHeartbeat writes a TTL check status=ok to the consul store.
 // If consul has never seen this service, we register the service and
 // its TTL check.
-func (c *Consul) SendHeartbeat(service *ServiceDefinition) {
+func (c *Consul) SendHeartbeat(service *discovery.ServiceDefinition) {
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
 		log.Infof("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {
@@ -107,7 +117,7 @@ func (c *Consul) SendHeartbeat(service *ServiceDefinition) {
 	}
 }
 
-func (c *Consul) registerService(service ServiceDefinition) error {
+func (c *Consul) registerService(service discovery.ServiceDefinition) error {
 	return c.Agent().ServiceRegister(
 		&consul.AgentServiceRegistration{
 			ID:      service.ID,
@@ -119,7 +129,7 @@ func (c *Consul) registerService(service ServiceDefinition) error {
 	)
 }
 
-func (c *Consul) registerCheck(service ServiceDefinition) error {
+func (c *Consul) registerCheck(service discovery.ServiceDefinition) error {
 	return c.Agent().CheckRegister(
 		&consul.AgentCheckRegistration{
 			ID:        service.ID,

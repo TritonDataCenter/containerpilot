@@ -1,4 +1,4 @@
-package discovery
+package etcd
 
 import (
 	"reflect"
@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
+	"github.com/joyent/containerpilot/discovery"
 	"golang.org/x/net/context"
 )
 
-func setupEtcd(serviceName string) (*Etcd, *ServiceDefinition) {
+func setupEtcd(serviceName string) (*Etcd, *discovery.ServiceDefinition) {
 	etcd, _ := NewEtcdConfig(map[string]interface{}{"endpoints": []string{"http://etcd:4001"}})
-	service := &ServiceDefinition{
+	service := &discovery.ServiceDefinition{
 		ID:        serviceName,
 		Name:      serviceName,
 		IpAddress: "192.168.1.1",
@@ -104,7 +105,7 @@ func TestEtcdCheckForChanges(t *testing.T) {
 	}
 }
 
-func checkServiceExists(etcd *Etcd, service *ServiceDefinition) bool {
+func checkServiceExists(etcd *Etcd, service *discovery.ServiceDefinition) bool {
 	key := etcd.getNodeKey(service)
 	if _, err := etcd.API.Get(context.Background(), key, nil); err != nil {
 		if etcdErr, ok := err.(client.Error); ok {

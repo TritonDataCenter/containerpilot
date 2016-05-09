@@ -8,29 +8,26 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-// ParsePreStart ...
-func (cfg *Config) ParsePreStart() (*exec.Cmd, error) {
+func (cfg *rawConfig) parsePreStart() (*exec.Cmd, error) {
 	// onStart has been deprecated for preStart. Remove in 2.0
-	if cfg.PreStart != nil && cfg.OnStart != nil {
+	if cfg.preStart != nil && cfg.onStart != nil {
 		log.Warnf("The onStart option has been deprecated in favor of preStart. ContainerPilot will use only the preStart option provided")
 	}
 
 	// alias the onStart behavior to preStart
-	if cfg.PreStart == nil && cfg.OnStart != nil {
+	if cfg.preStart == nil && cfg.onStart != nil {
 		log.Warnf("The onStart option has been deprecated in favor of preStart. ContainerPilot will use the onStart option as a preStart")
-		cfg.PreStart = cfg.OnStart
+		cfg.preStart = cfg.onStart
 	}
-	return parseCommand("preStart", cfg.PreStart)
+	return parseCommand("preStart", cfg.preStart)
 }
 
-// ParsePreStop ...
-func (cfg *Config) ParsePreStop() (*exec.Cmd, error) {
-	return parseCommand("preStop", cfg.PreStop)
+func (cfg *rawConfig) parsePreStop() (*exec.Cmd, error) {
+	return parseCommand("preStop", cfg.preStop)
 }
 
-// ParsePostStop ...
-func (cfg *Config) ParsePostStop() (*exec.Cmd, error) {
-	return parseCommand("postStop", cfg.PostStop)
+func (cfg *rawConfig) parsePostStop() (*exec.Cmd, error) {
+	return parseCommand("postStop", cfg.postStop)
 }
 
 func parseCommand(name string, args interface{}) (*exec.Cmd, error) {

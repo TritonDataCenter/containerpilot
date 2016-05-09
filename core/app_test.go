@@ -62,7 +62,7 @@ func TestValidConfigParse(t *testing.T) {
 	}
 
 	if len(app.Backends) != 2 || len(app.Services) != 2 {
-		t.Errorf("Expected 2 backends and 2 services but got: %v", app)
+		t.Fatalf("Expected 2 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Backends), len(app.Services))
 	}
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/testdata/test.sh" {

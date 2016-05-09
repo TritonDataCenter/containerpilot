@@ -90,80 +90,18 @@ func NewApp(configFlag string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// onStart has been deprecated for preStart. Remove in 2.0
-	if cfg.PreStart != nil && cfg.OnStart != nil {
-		log.Warnf("The onStart option has been deprecated in favor of preStart. ContainerPilot will use only the preStart option provided")
-	}
-
-	// alias the onStart behavior to preStart
-	if cfg.PreStart == nil && cfg.OnStart != nil {
-		log.Warnf("The onStart option has been deprecated in favor of preStart. ContainerPilot will use the onStart option as a preStart")
-		cfg.PreStart = cfg.OnStart
-	}
-
-	preStartCmd, err := cfg.ParsePreStart()
-	if err != nil {
+	if err = cfg.InitLogging(); err != nil {
 		return nil, err
 	}
-	a.PreStartCmd = preStartCmd
-
-	preStopCmd, err := cfg.ParsePreStop()
-	if err != nil {
-		return nil, err
-	}
-	a.PreStopCmd = preStopCmd
-
-	postStopCmd, err := cfg.ParsePostStop()
-	if err != nil {
-		return nil, err
-	}
-	a.PostStopCmd = postStopCmd
-
-	stopTimeout, err := cfg.ParseStopTimeout()
-	if err != nil {
-		return nil, err
-	}
-	a.StopTimeout = stopTimeout
-
-	discoveryService, err := cfg.ParseDiscoveryService()
-	if err != nil {
-		return nil, err
-	}
-	a.DiscoveryService = discoveryService
-
-	backends, err := cfg.ParseBackends(discoveryService)
-	if err != nil {
-		return nil, err
-	}
-	a.Backends = backends
-
-	services, err := cfg.ParseServices(discoveryService)
-	if err != nil {
-		return nil, err
-	}
-	a.Services = services
-
-	telemetry, err := cfg.ParseTelemetry()
-	if err != nil {
-		return nil, err
-	}
-
-	if telemetry != nil {
-		telemetryService, err2 := config.CreateTelemetryService(telemetry, discoveryService)
-		if err2 != nil {
-			return nil, err2
-		}
-		a.Telemetry = telemetry
-		a.Services = append(a.Services, telemetryService)
-	}
-
-	tasks, err := cfg.ParseTasks()
-	if err != nil {
-		return nil, err
-	}
-	a.Tasks = tasks
-
+	a.PreStartCmd = cfg.PreStart
+	a.PreStopCmd = cfg.PreStop
+	a.PostStopCmd = cfg.PostStop
+	a.StopTimeout = cfg.StopTimeout
+	a.DiscoveryService = cfg.DiscoveryService
+	a.Services = cfg.Services
+	a.Backends = cfg.Backends
+	a.Tasks = cfg.Tasks
+	a.Telemetry = cfg.Telemetry
 	return a, nil
 }
 
