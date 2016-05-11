@@ -27,6 +27,7 @@ type Service struct {
 	definition       *discovery.ServiceDefinition
 }
 
+// NewServices new services from a raw config
 func NewServices(raw []interface{}, disc discovery.DiscoveryService) ([]*Service, error) {
 	if raw == nil {
 		return []*Service{}, nil
@@ -43,6 +44,7 @@ func NewServices(raw []interface{}, disc discovery.DiscoveryService) ([]*Service
 	return services, nil
 }
 
+// NewService creates a new service
 func NewService(name string, poll, port, ttl int, interfaces interface{},
 	tags []string, disc discovery.DiscoveryService) (*Service, error) {
 	service := &Service{
@@ -78,22 +80,23 @@ func parseService(s *Service, disc discovery.DiscoveryService) error {
 
 	// if the HealthCheckExec is nil then we'll have no health check
 	// command; this is useful for the telemetry service
-	if cmd, err := utils.ParseCommandArgs(s.HealthCheckExec); err != nil {
+	cmd, err := utils.ParseCommandArgs(s.HealthCheckExec)
+	if err != nil {
 		return fmt.Errorf("Could not parse `health` in service %s: %s", s.Name, err)
-	} else {
-		s.healthCheckCmd = cmd
 	}
+	s.healthCheckCmd = cmd
 
 	interfaces, ifaceErr := utils.ToStringArray(s.Interfaces)
 	if ifaceErr != nil {
 		return ifaceErr
 	}
 
-	if ipAddress, err := utils.GetIP(interfaces); err != nil {
+	ipAddress, err := utils.GetIP(interfaces)
+	if err != nil {
 		return err
-	} else {
-		s.ipAddress = ipAddress
 	}
+	s.ipAddress = ipAddress
+
 	s.definition = &discovery.ServiceDefinition{
 		ID:        s.ID,
 		Name:      s.Name,
