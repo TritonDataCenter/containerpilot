@@ -349,6 +349,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	delete(configMap, "preStart")
 	delete(configMap, "preStop")
 	delete(configMap, "postStop")
+	delete(configMap, "stopTimeout")
 	delete(configMap, "services")
 	delete(configMap, "backends")
 	delete(configMap, "tasks")
