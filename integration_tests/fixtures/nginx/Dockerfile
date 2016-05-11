@@ -9,8 +9,8 @@ RUN apk update && apk add \
     && rm -rf /var/cache/apk/*
 
 # we use consul-template to re-write our Nginx virtualhost config
-RUN curl -Lo /tmp/consul_template_0.11.0_linux_amd64.zip https://github.com/hashicorp/consul-template/releases/download/v0.11.0/consul_template_0.11.0_linux_amd64.zip && \
-    unzip /tmp/consul_template_0.11.0_linux_amd64.zip && \
+RUN curl -Lo /tmp/consul_template_0.14.0_linux_amd64.zip https://releases.hashicorp.com/consul-template/0.14.0/consul-template_0.14.0_linux_amd64.zip && \
+    unzip /tmp/consul_template_0.14.0_linux_amd64.zip && \
     mv consul-template /bin
 
 # Add confd to re-write our Nginx config from etcd
