@@ -16,13 +16,13 @@ type Backend struct {
 	Poll             int         `mapstructure:"poll"` // time in seconds
 	OnChangeExec     interface{} `mapstructure:"onChange"`
 	Tag              string      `mapstructure:"tag"`
-	discoveryService discovery.DiscoveryService
+	discoveryService discovery.ServiceBackend
 	lastState        interface{}
 	onChangeCmd      *exec.Cmd
 }
 
 // NewBackends creates a new backend from a raw config structure
-func NewBackends(raw []interface{}, disc discovery.DiscoveryService) ([]*Backend, error) {
+func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, error) {
 	if raw == nil {
 		return []*Backend{}, nil
 	}

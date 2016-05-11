@@ -15,9 +15,9 @@ Create a new package under this folder named after your service discovery backen
   |-- zookeeper_test.go
 ```
 
-## Implement `discovery.Service` interface
+## Implement `discovery.ServiceBackend` interface
 
-Create a struct that represents your backend and make sure that it defines all the required functions to be considered a `discovery.Service`.
+Create a struct that represents your backend and make sure that it defines all the required functions to be considered a `discovery.ServiceBackend`.
 
 Create a function which accepts a raw `interface{}` and returns either your service discovery struct, or an error if there was a parsing problem. Check the other backends `consul` and `etcd` for an example. Also look at `utils.DecodeRaw` for a utility that can transform this raw value into a concrete type or struct.
 

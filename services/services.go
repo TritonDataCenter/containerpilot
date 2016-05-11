@@ -23,12 +23,12 @@ type Service struct {
 	Tags             []string    `mapstructure:"tags"`
 	ipAddress        string
 	healthCheckCmd   *exec.Cmd
-	discoveryService discovery.DiscoveryService
+	discoveryService discovery.ServiceBackend
 	definition       *discovery.ServiceDefinition
 }
 
 // NewServices new services from a raw config
-func NewServices(raw []interface{}, disc discovery.DiscoveryService) ([]*Service, error) {
+func NewServices(raw []interface{}, disc discovery.ServiceBackend) ([]*Service, error) {
 	if raw == nil {
 		return []*Service{}, nil
 	}
@@ -46,7 +46,7 @@ func NewServices(raw []interface{}, disc discovery.DiscoveryService) ([]*Service
 
 // NewService creates a new service
 func NewService(name string, poll, port, ttl int, interfaces interface{},
-	tags []string, disc discovery.DiscoveryService) (*Service, error) {
+	tags []string, disc discovery.ServiceBackend) (*Service, error) {
 	service := &Service{
 		Name:       name,
 		Poll:       poll,
@@ -61,7 +61,7 @@ func NewService(name string, poll, port, ttl int, interfaces interface{},
 	return service, nil
 }
 
-func parseService(s *Service, disc discovery.DiscoveryService) error {
+func parseService(s *Service, disc discovery.ServiceBackend) error {
 	if s.Name == "" {
 		return fmt.Errorf("service must have a `name`")
 	}

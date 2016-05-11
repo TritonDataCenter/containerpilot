@@ -59,7 +59,7 @@ func parseEndpoints(endpoints interface{}) []string {
 }
 
 // ConfigHook is the hook to register with the Etcd backend
-func ConfigHook(raw interface{}) (discovery.DiscoveryService, error) {
+func ConfigHook(raw interface{}) (discovery.ServiceBackend, error) {
 	return NewEtcdConfig(raw)
 }
 
