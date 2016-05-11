@@ -222,7 +222,7 @@ func encodeEtcdNodeValue(service *discovery.ServiceDefinition) string {
 	node := &EtcdServiceNode{
 		ID:      service.ID,
 		Name:    service.Name,
-		Address: service.IpAddress,
+		Address: service.IPAddress,
 		Port:    service.Port,
 	}
 	json, err := json.Marshal(&node)

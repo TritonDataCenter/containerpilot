@@ -19,7 +19,7 @@ type ServiceDefinition struct {
 	Port      int
 	TTL       int
 	Tags      []string
-	IpAddress string
+	IPAddress string
 }
 
 // ServiceDiscoveryConfigHook parses a raw service discovery config

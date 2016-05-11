@@ -103,7 +103,7 @@ func parseService(s *Service, disc discovery.DiscoveryService) error {
 		Port:      s.Port,
 		TTL:       s.TTL,
 		Tags:      s.Tags,
-		IpAddress: s.ipAddress,
+		IPAddress: s.ipAddress,
 	}
 	return nil
 }
