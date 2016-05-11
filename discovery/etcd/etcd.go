@@ -25,8 +25,8 @@ type Etcd struct {
 	Prefix string
 }
 
-// EtcdServiceNode is an instance of a service
-type EtcdServiceNode struct {
+// ServiceNode is the serializable form of an Etcd service record
+type ServiceNode struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	Address string   `json:"address"`
@@ -115,7 +115,7 @@ func (c *Etcd) getAppKey(appName string) string {
 	return fmt.Sprintf("%s/%s", c.Prefix, appName)
 }
 
-var etcdUpstreams = make(map[string][]EtcdServiceNode)
+var etcdUpstreams = make(map[string][]ServiceNode)
 
 // CheckForUpstreamChanges checks another etcd node for changes
 func (c *Etcd) CheckForUpstreamChanges(backendName, backendTag string) bool {
@@ -136,8 +136,8 @@ func (c *Etcd) CheckForUpstreamChanges(backendName, backendTag string) bool {
 	return didChange
 }
 
-func (c *Etcd) getServices(appName string) ([]EtcdServiceNode, error) {
-	var services []EtcdServiceNode
+func (c *Etcd) getServices(appName string) ([]ServiceNode, error) {
+	var services []ServiceNode
 
 	key := c.getAppKey(appName)
 	resp, err := c.API.Get(context.Background(), key, &client.GetOptions{Recursive: true})
@@ -171,7 +171,7 @@ func (c *Etcd) getServices(appName string) ([]EtcdServiceNode, error) {
 
 // Compare the two arrays to see if the address or port has changed
 // or if we've added or removed entries.
-func etcdCompareForChange(existing, new []EtcdServiceNode) (changed bool) {
+func etcdCompareForChange(existing, new []ServiceNode) (changed bool) {
 	if len(existing) != len(new) {
 		return true
 	}
@@ -219,7 +219,7 @@ func (c Etcd) deregisterService(service *discovery.ServiceDefinition) error {
 }
 
 func encodeEtcdNodeValue(service *discovery.ServiceDefinition) string {
-	node := &EtcdServiceNode{
+	node := &ServiceNode{
 		ID:      service.ID,
 		Name:    service.Name,
 		Address: service.IPAddress,
@@ -233,8 +233,8 @@ func encodeEtcdNodeValue(service *discovery.ServiceDefinition) string {
 	return string(json)
 }
 
-func decodeEtcdNodeValue(node *client.Node) (EtcdServiceNode, error) {
-	service := EtcdServiceNode{}
+func decodeEtcdNodeValue(node *client.Node) (ServiceNode, error) {
+	service := ServiceNode{}
 	err := json.Unmarshal([]byte(node.Value), &service)
 	if err != nil {
 		return service, err
@@ -243,7 +243,7 @@ func decodeEtcdNodeValue(node *client.Node) (EtcdServiceNode, error) {
 }
 
 // ByEtcdServiceID implements the Sort interface because Go can't sort without it.
-type ByEtcdServiceID []EtcdServiceNode
+type ByEtcdServiceID []ServiceNode
 
 func (se ByEtcdServiceID) Len() int           { return len(se) }
 func (se ByEtcdServiceID) Swap(i, j int)      { se[i], se[j] = se[j], se[i] }
