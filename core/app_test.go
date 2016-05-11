@@ -16,6 +16,7 @@ var testJSON = `{
 	"preStart": "/bin/to/preStart.sh arg1 arg2",
 	"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
 	"postStop": ["/bin/to/postStop.sh"],
+	"stopTimeout": 5,
 	"services": [
 			{
 					"name": "serviceA",
