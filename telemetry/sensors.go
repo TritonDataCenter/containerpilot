@@ -56,11 +56,11 @@ func (s *Sensor) observe() (string, error) {
 	// be "clean" and not have anything other than what we intend
 	// to write to our collector.
 	s.checkCmd.Stderr = os.Stderr
-	if out, err := s.checkCmd.Output(); err != nil {
+	out, err := s.checkCmd.Output()
+	if err != nil {
 		return "", err
-	} else {
-		return string(out[:]), nil
 	}
+	return string(out[:]), nil
 }
 
 func (s Sensor) record(metricValue string) {
@@ -87,17 +87,19 @@ func (s Sensor) record(metricValue string) {
 	}
 }
 
+// NewSensors creates new sensors from a raw config
 func NewSensors(raw []interface{}) ([]*Sensor, error) {
-	sensors := make([]*Sensor, 0)
+	var sensors []*Sensor
 	if err := utils.DecodeRaw(raw, &sensors); err != nil {
 		return nil, fmt.Errorf("Sensor configuration error: %v", err)
 	}
 	for _, s := range sensors {
-		if check, err := utils.ParseCommandArgs(s.CheckExec); err != nil {
+		check, err := utils.ParseCommandArgs(s.CheckExec)
+		if err != nil {
 			return nil, err
-		} else {
-			s.checkCmd = check
 		}
+		s.checkCmd = check
+
 		// the prometheus client lib's API here is baffling... they don't expose
 		// an interface or embed their Opts type in each of the Opts "subtypes",
 		// so we can't share the initialization.
