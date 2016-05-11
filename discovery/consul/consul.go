@@ -20,7 +20,7 @@ func init() {
 type Consul struct{ consul.Client }
 
 // ConfigHook is the hook to register with the Consul backend
-func ConfigHook(raw interface{}) (discovery.DiscoveryService, error) {
+func ConfigHook(raw interface{}) (discovery.ServiceBackend, error) {
 	return NewConsulConfig(raw)
 }
 
@@ -124,7 +124,7 @@ func (c *Consul) registerService(service discovery.ServiceDefinition) error {
 			Name:    service.Name,
 			Tags:    service.Tags,
 			Port:    service.Port,
-			Address: service.IpAddress,
+			Address: service.IPAddress,
 		},
 	)
 }

@@ -18,16 +18,16 @@ import (
 // Test setup with mock services
 
 // Mock Discovery
-type NoopDiscoveryService struct{}
+type NoopServiceBackend struct{}
 
-func (c *NoopDiscoveryService) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
-func (c *NoopDiscoveryService) CheckForUpstreamChanges(backend, tag string) bool        { return false }
-func (c *NoopDiscoveryService) MarkForMaintenance(service *discovery.ServiceDefinition) {}
-func (c *NoopDiscoveryService) Deregister(service *discovery.ServiceDefinition)         {}
+func (c *NoopServiceBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
+func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool        { return false }
+func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
+func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
 
 func getSignalTestConfig() *App {
 	service, _ := services.NewService(
-		"test-service", 1, 1, 1, nil, nil, &NoopDiscoveryService{})
+		"test-service", 1, 1, 1, nil, nil, &NoopServiceBackend{})
 	app := EmptyApp()
 	app.Command = utils.ArgsToCmd([]string{
 		"./testdata/test.sh",
@@ -95,7 +95,7 @@ func TestReloadSignal(t *testing.T) {
 	if err != nil {
 		t.Errorf("Valid configuration returned error: %v", err)
 	}
-	discSvc := app.DiscoveryService
+	discSvc := app.ServiceBackend
 	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
 		t.Errorf("Configuration was not reloaded: %v", discSvc)
 	}

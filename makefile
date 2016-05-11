@@ -77,7 +77,7 @@ add-dep: build/containerpilot_build
 # develop and test
 
 lint: vendor
-	-${DOCKERBUILD} bash ./scripts/lint.sh
+	${DOCKERBUILD} bash ./scripts/lint.sh
 
 # run unit tests and write out test coverage
 test: docker vendor

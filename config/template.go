@@ -23,9 +23,9 @@ func parseEnvironment(environ []string) Environment {
 	return env
 }
 
-// ConfigTemplate encapsulates a golang template
+// Template encapsulates a golang template
 // and its associated environment variables.
-type ConfigTemplate struct {
+type Template struct {
 	Template *template.Template
 	Env      Environment
 }
@@ -43,9 +43,9 @@ func defaultValue(defaultValue, templateValue interface{}) string {
 	return defaultStr
 }
 
-// NewConfigTemplate creates a ConfigTemplate parsed from the configuration
+// NewTemplate creates a Template parsed from the configuration
 // and the current environment variables
-func NewConfigTemplate(config []byte) (*ConfigTemplate, error) {
+func NewTemplate(config []byte) (*Template, error) {
 	env := parseEnvironment(os.Environ())
 	tmpl, err := template.New("").Funcs(template.FuncMap{
 		"default": defaultValue,
@@ -53,14 +53,14 @@ func NewConfigTemplate(config []byte) (*ConfigTemplate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ConfigTemplate{
+	return &Template{
 		Env:      env,
 		Template: tmpl,
 	}, nil
 }
 
 // Execute renders the template
-func (c *ConfigTemplate) Execute() ([]byte, error) {
+func (c *Template) Execute() ([]byte, error) {
 	var buffer bytes.Buffer
 	if err := c.Template.Execute(&buffer, c.Env); err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (c *ConfigTemplate) Execute() ([]byte, error) {
 
 // ApplyTemplate creates and renders a template from the given config template
 func ApplyTemplate(config []byte) ([]byte, error) {
-	template, err := NewConfigTemplate(config)
+	template, err := NewTemplate(config)
 	if err != nil {
 		return nil, err
 	}

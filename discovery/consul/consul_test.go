@@ -12,7 +12,7 @@ func setupConsul(serviceName string) (*Consul, *discovery.ServiceDefinition) {
 	service := &discovery.ServiceDefinition{
 		ID:        serviceName,
 		Name:      serviceName,
-		IpAddress: "192.168.1.1",
+		IPAddress: "192.168.1.1",
 		TTL:       1,
 		Port:      9000,
 	}

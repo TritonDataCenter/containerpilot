@@ -31,7 +31,7 @@ var (
 // App encapsulates the state of ContainerPilot after the initial setup.
 // after it is run, it can be reloaded and paused with signals.
 type App struct {
-	DiscoveryService discovery.DiscoveryService
+	ServiceBackend discovery.ServiceBackend
 	Services         []*services.Service
 	Backends         []*backends.Backend
 	Tasks            []*tasks.Task
@@ -97,7 +97,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.PreStopCmd = cfg.PreStop
 	a.PostStopCmd = cfg.PostStop
 	a.StopTimeout = cfg.StopTimeout
-	a.DiscoveryService = cfg.DiscoveryService
+	a.ServiceBackend = cfg.ServiceBackend
 	a.Services = cfg.Services
 	a.Backends = cfg.Backends
 	a.Tasks = cfg.Tasks
@@ -235,7 +235,7 @@ func (a *App) Reload() error {
 }
 
 func (a *App) load(newApp *App) {
-	a.DiscoveryService = newApp.DiscoveryService
+	a.ServiceBackend = newApp.ServiceBackend
 	a.PostStopCmd = newApp.PostStopCmd
 	a.PreStopCmd = newApp.PreStopCmd
 	a.Services = newApp.Services

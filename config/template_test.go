@@ -34,7 +34,7 @@ func validateParseEnvironment(t *testing.T, message string, environ []string, ex
 }
 
 func validateTemplate(t *testing.T, name string, template string, env Environment, expected string) {
-	tmpl, err := NewConfigTemplate([]byte(template))
+	tmpl, err := NewTemplate([]byte(template))
 	if err != nil {
 		t.Fatalf("%s - Error parsing template: %s", name, err)
 	}

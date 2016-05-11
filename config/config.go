@@ -35,7 +35,7 @@ type rawConfig struct {
 
 // Config contains the parsed config elements
 type Config struct {
-	DiscoveryService discovery.DiscoveryService
+	ServiceBackend discovery.ServiceBackend
 	LogConfig        *LogConfig
 	PreStart         *exec.Cmd
 	PreStop          *exec.Cmd
@@ -52,8 +52,8 @@ const (
 	defaultStopTimeout int = 5
 )
 
-func parseDiscoveryService(rawCfg map[string]interface{}) (discovery.DiscoveryService, error) {
-	var discoveryService discovery.DiscoveryService
+func parseServiceBackend(rawCfg map[string]interface{}) (discovery.ServiceBackend, error) {
+	var discoveryService discovery.ServiceBackend
 	var err error
 	discoveryCount := 0
 	for _, key := range discovery.GetBackends() {
@@ -86,7 +86,7 @@ func (cfg *Config) InitLogging() error {
 	return nil
 }
 
-func (cfg *rawConfig) parseBackends(discoveryService discovery.DiscoveryService) ([]*backends.Backend, error) {
+func (cfg *rawConfig) parseBackends(discoveryService discovery.ServiceBackend) ([]*backends.Backend, error) {
 	backends, err := backends.NewBackends(cfg.backendsConfig, discoveryService)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (cfg *rawConfig) parseBackends(discoveryService discovery.DiscoveryService)
 	return backends, nil
 }
 
-func (cfg *rawConfig) parseServices(discoveryService discovery.DiscoveryService) ([]*services.Service, error) {
+func (cfg *rawConfig) parseServices(discoveryService discovery.ServiceBackend) ([]*services.Service, error) {
 	services, err := services.NewServices(cfg.servicesConfig, discoveryService)
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (cfg *rawConfig) parseTelemetry() (*telemetry.Telemetry, error) {
 }
 
 // createTelemetryService ...
-func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.DiscoveryService) (*services.Service, error) {
+func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.ServiceBackend) (*services.Service, error) {
 	// create a new service for Telemetry
 	svc, err := services.NewService(
 		t.ServiceName,
@@ -177,7 +177,7 @@ func ParseConfig(configFlag string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	discoveryService, err := parseDiscoveryService(configMap)
+	discoveryService, err := parseServiceBackend(configMap)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func ParseConfig(configFlag string) (*Config, error) {
 		return nil, err
 	}
 	cfg := &Config{}
-	cfg.DiscoveryService = discoveryService
+	cfg.ServiceBackend = discoveryService
 	cfg.LogConfig = raw.logConfig
 
 	preStartCmd, err := raw.parsePreStart()
