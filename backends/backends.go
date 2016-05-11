@@ -21,11 +21,12 @@ type Backend struct {
 	onChangeCmd      *exec.Cmd
 }
 
+// NewBackends creates a new backend from a raw config structure
 func NewBackends(raw []interface{}, disc discovery.DiscoveryService) ([]*Backend, error) {
 	if raw == nil {
 		return []*Backend{}, nil
 	}
-	backends := make([]*Backend, 0)
+	var backends []*Backend
 	if err := utils.DecodeRaw(raw, &backends); err != nil {
 		return nil, fmt.Errorf("Backend configuration error: %v", err)
 	}
