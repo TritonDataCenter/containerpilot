@@ -138,7 +138,7 @@ The format of the JSON file configuration is as follows:
 
 Must supply only one of the following
 
-- `consul` configures discovery via [Hashicorp Consul](https://www.consul.io/). Expects `hostname:port` string. If you are communicating with Consul over TLS you may include the scheme (ex. `https://consul:8500`):
+- `consul` configures discovery via [Hashicorp Consul](https://www.consul.io/). For use with Consul's [ACL system](https://www.consul.io/docs/internals/acl.html), use the `CONSUL_HTTP_TOKEN` environment variable. Expects `hostname:port` string. If you are communicating with Consul over TLS you may include the scheme (ex. `https://consul:8500`):
 
     ```
     "consul": "consul:8500"
