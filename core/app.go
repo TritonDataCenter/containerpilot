@@ -102,6 +102,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.Backends = cfg.Backends
 	a.Tasks = cfg.Tasks
 	a.Telemetry = cfg.Telemetry
+	a.ConfigFlag = configFlag
 	return a, nil
 }
 
