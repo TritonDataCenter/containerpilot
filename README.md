@@ -29,14 +29,17 @@ ContainerPilot is explicitly *not* a supervisor process. Although it can act as 
 
 See the [ContainerPilot documentation](https://www.joyent.com/containerpilot/docs) to get started, or jump to specific sections:
 
-- [Hello world](https://www.joyent.com/containerpilot/docs)
-- [Installation in a container](https://www.joyent.com/containerpilot/docs)
-- [Configuration](https://www.joyent.com/containerpilot/docs)
-- [Container lifecycle](https://www.joyent.com/containerpilot/docs)
-- [Health checks](https://www.joyent.com/containerpilot/docs)
-- [`preStart`, `preStop`, `postStop`](https://www.joyent.com/containerpilot/docs)
+- [Installation in a container](https://www.joyent.com/containerpilot/docs/installation)
+- [Configuration](https://www.joyent.com/containerpilot/docs/configuration)
+- [Service discovery](https://www.joyent.com/containerpilot/docs/service-discovery)
+- [Container lifecycle](https://www.joyent.com/containerpilot/docs/lifecycle)
+- [Health checks](https://www.joyent.com/containerpilot/docs/health)
+- [`preStart`, `preStop`, `postStop`](https://www.joyent.com/containerpilot/docs/start-stop)
+- [Signals and operations](https://www.joyent.com/containerpilot/docs/signals)
 - [Periodic tasks](https://www.joyent.com/containerpilot/docs/tasks)
 - [Telemetry](https://www.joyent.com/containerpilot/docs/telemetry)
+- [Frequently asked questions](https://www.joyent.com/containerpilot/docs/faq)
+- [Support](https://www.joyent.com/containerpilot/docs/support)
 
 You might also read [our guide building self-operating applications with ContainerPilot](https://www.joyent.com/blog/applications-on-autopilot) and look at the examples below.
 
@@ -58,3 +61,5 @@ We've published a number of example applications demonstrating how ContainerPilo
 ## Contributing
 
 Please report any issues you encounter with ContainerPilot or its documentation by [opening a Github issue](https://github.com/joyent/containerpilot/issues). Roadmap items will be maintained as [enhancements](https://github.com/joyent/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). PRs are welcome on any issue.
+
+Details about contributing to documentation are in [documentation/CONTRIBUTING.md](https://github.com/joyent/containerpilot/blob/master/documentation/CONTRIBUTING.md)
