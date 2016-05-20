@@ -8,9 +8,13 @@ One of the most important features of ContainerPilot is how it can watch a servi
 
 Let's say you have application X that depends on application Y. When you scale up Y, you have to reconfigure X so that it's aware of the additional instances of Y. When you specify `backends` to watch, ContainerPilot will trigger the `onChange` event whenever those backends change.
 
+[Read more about how ContainerPilot and the Autopilot Pattern work with a scheduler to support scaling](https://www.joyent.com/blog/app-centric-micro-orchestration).
+
 ### High availability
 
 Sometimes containers fail. You'll want to find out why in time, but you don't want your whole application to fail because of a problem in a single container. By combining [health checks](/containerpilot/docs/health) with service discovery, ContainerPilot can watch for changes in container health and trigger the `onChange` event so your app can reconfigure itself and route requests to different containers.
+
+[Read more about how active discovery, such as that supported by ContainerPilot, improves application reliability](http://containersummit.io/articles/active-vs-passive-discovery).
 
 ### Examples
 

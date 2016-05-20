@@ -30,4 +30,3 @@ ContainerPilot is an application-centric micro-orchestrator. It automates many o
 - [Couchbase](https://github.com/autopilotpattern/couchbase)
 - [Mesos on Joyent Triton](https://www.joyent.com/blog/mesos-by-the-pound)
 - [Nginx with dynamic upstreams](https://www.joyent.com/blog/dynamic-nginx-upstreams-with-containerpilot)
-

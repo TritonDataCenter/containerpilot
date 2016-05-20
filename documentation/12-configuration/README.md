@@ -2,7 +2,7 @@ Title: Configuration
 ----
 Text:
 
-ContainerPilot expects a configuration file with details about what services it should register, how to check their health, and what to do at startup and shutdown.
+ContainerPilot expects a configuration file with details about what services it should register, how to check their health, and what to do at startup and shutdown, among others.
 
 ### Specifying the configuration file
 
@@ -192,6 +192,8 @@ exit status 1
 {"level":"fatal","msg":"The ice breaks!","number":100,"omg":true,"time":"2014-03-10 19:57:38.562543128 -0400 EDT"}
 ```
 
+Logging details here do not affect how the Docker daemon (or other container runtime) handles logging. [See this blog post for a narrative and examples of how to manage log output from the container](https://www.joyent.com/blog/docker-log-drivers).
+
 ### `telemetry`
 
 If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
@@ -226,14 +228,14 @@ Interfaces and their IP addresses are ordered alphabetically by interface name, 
 
 **Sample ordering**
 
-- eth0 10.2.0.1 192.168.1.100
-- eth1 10.0.0.100 10.0.0.200
-- eth2 10.1.0.200 fdc6:238c:c4bc::1
-- lo ::1 127.0.0.1
+- `eth0 10.2.0.1 192.168.1.100`
+- `eth1 10.0.0.100 10.0.0.200`
+- `eth2 10.1.0.200 fdc6:238c:c4bc::1`
+- `lo ::1 127.0.0.1`
 
 ### Commands & arguments
 
-All executable fields, such as `preStart` and `onChange`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments.
+All executable fields, such as `health`, `preStart`, and `onChange`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments.
 
 **String command**
 

@@ -24,4 +24,4 @@ preStart() {
 
 That command string uses consul-template to generate a configuration file from a template using details about the back-ends from Consul.
 
-[A proposed improvement to the Autopilot Pattern Couchbase implementation](https://github.com/autopilotpattern/couchbase/issues/14) would automatically remove a node from the cluster after receiving the `SIGHUP`, but before stopping the Couchbase service in the container using `preStop`.
+[A proposed improvement to the Autopilot Pattern Couchbase implementation](https://github.com/autopilotpattern/couchbase/issues/14) would automatically remove a node from the cluster after [receiving the `SIGTERM`](/containerpilot/docs/signals), but before stopping the Couchbase service in the container using `preStop`.
