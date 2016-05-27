@@ -25,7 +25,6 @@ type Telemetry struct {
 	Poll          int
 	mux           *http.ServeMux
 	lock          sync.RWMutex
-	listen        net.Listener
 	addr          net.TCPAddr
 	listening     bool
 }
@@ -65,32 +64,35 @@ func NewTelemetry(raw interface{}) (*Telemetry, error) {
 	return t, nil
 }
 
+var listener net.Listener
+
 // Serve starts serving the telemetry service
 func (t *Telemetry) Serve() {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	if t.listening {
+
+	// No-op if we've created the server previously.
+	// TODO: golang's native implementation of http.Server.Server() cannot
+	// support graceful reload. We need to select an alternate implementation
+	// but in the meantime we need to back-out the change to reloading
+	// ref https://github.com/joyent/containerpilot/pull/165
+	if listener != nil {
 		return
 	}
 	ln, err := net.Listen(t.addr.Network(), t.addr.String())
 	if err != nil {
-		log.Errorf("Error serving telemetry on %s: %v", t.addr.String(), err)
+		log.Fatalf("Error serving telemetry on %s: %v", t.addr.String(), err)
 	}
-	t.listen = ln
+	listener = ln
 	t.listening = true
 	go func() {
-		log.Debugf("telemetry: Listening on %s\n", t.addr.String())
-		log.Fatal(http.Serve(t.listen, t.mux))
-		log.Debugf("telemetry: Stopped listening on %s\n", t.addr.String())
+		log.Infof("telemetry: Listening on %s", t.addr.String())
+		log.Fatal(http.Serve(listener, t.mux))
+		log.Infof("telemetry: Stopped listening on %s", t.addr.String())
 	}()
 }
 
 // Shutdown shuts down the telemetry service
 func (t *Telemetry) Shutdown() {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-	if t.listening {
-		t.listen.Close()
-		t.listening = false
-	}
+	log.Debug("telemetry: shutdown received but currently a no-op")
 }
