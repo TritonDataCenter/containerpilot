@@ -1,22 +1,4 @@
-FROM php:5.6-apache
-
-# Allow rewrites in Apache httpd
-RUN a2enmod rewrite
-
-# Get some packages, especially Git, but also some convenience items
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl \
-        git \
-        less \
-        vim \
-    && rm -rf /var/lib/apt/lists/*
-
-# Add Kirby base
-RUN mkdir -p /var/www/html/ \
-    && git clone --recursive --single-branch \
-        -b working \
-        https://github.com/misterbisson/docs.git \
-        /var/www/html
+FROM joyent/kirby-preview-base:latest
 
 # Add our content
 # This is a bit sloppy, but it makes the repo directory structure flatter
