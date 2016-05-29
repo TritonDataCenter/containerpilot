@@ -16,10 +16,10 @@ There are a few ways to specify the ContainerPilot configuration location.
 
 ```bash
 # configure via passing a file argument
-$ containerpilot -config file:///opt/containerpilot/app.json myapp --args --for --my --app
+$ containerpilot -config file:///etc/containerpilot.json myapp --args --for --my --app
 
 # configure via environment variable
-$ export CONTAINERPILOT=file:///opt/containerpilot/app.json
+$ export CONTAINERPILOT=file:///etc/containerpilot.json
 $ containerpilot myapp --args --for --my --app
 ```
 
@@ -32,15 +32,15 @@ The format of the JSON file configuration is as follows:
 ```json
 {
   "consul": "consul:8500",
-  "preStart": "/opt/containerpilot/preStart-script.sh {{.ENV_VAR_NAME}}",
+  "preStart": "/usr/local/bin/preStart-script.sh {{.ENV_VAR_NAME}}",
   "logging": {
     "level": "INFO",
     "format": "default",
     "output": "stdout"
   },
   "stopTimeout": 5,
-  "preStop": "/opt/containerpilot/preStop-script.sh",
-  "postStop": "/opt/containerpilot/postStop-script.sh",
+  "preStop": "/usr/local/bin/preStop-script.sh",
+  "postStop": "/usr/local/bin/postStop-script.sh",
   "services": [
     {
       "name": "app",
@@ -70,12 +70,12 @@ The format of the JSON file configuration is as follows:
     {
       "name": "nginx",
       "poll": 30,
-      "onChange": "/opt/containerpilot/reload-app.sh"
+      "onChange": "/usr/local/bin/reload-app.sh"
     },
     {
       "name": "app",
       "poll": 10,
-      "onChange": "/opt/containerpilot/reload-app.sh"
+      "onChange": "/usr/local/bin/reload-app.sh"
     }
   ],
   "telemetry": {
@@ -86,14 +86,14 @@ The format of the JSON file configuration is as follows:
         "help": "help text",
         "type": "counter",
         "poll": 5,
-        "check": ["/bin/sensor.sh"]
+        "check": ["/usr/local/bin/sensor.sh"]
       }
     ]
   },
   "tasks": [
     {
       "name": "task",
-      "command": ["/bin/task.sh","arg1"],
+      "command": ["/usr/local/bin/task.sh","arg1"],
       "frequency": "1500ms",
       "timeout": "100ms"
     }
@@ -182,13 +182,9 @@ exit status 1
 
 ```
 {"animal":"walrus","level":"info","msg":"A group of walrus emerges from the ocean","size":10,"time":"2014-03-10 19:57:38.562264131 -0400 EDT"}
-
 {"level":"warning","msg":"The group's number increased tremendously!","number":122,"omg":true,"time":"2014-03-10 19:57:38.562471297 -0400 EDT"}
-
 {"animal":"walrus","level":"info","msg":"A giant walrus appears!","size":10,"time":"2014-03-10 19:57:38.562500591 -0400 EDT"}
-
 {"animal":"walrus","level":"info","msg":"Tremendously sized cow enters the ocean.","size":9,"time":"2014-03-10 19:57:38.562527896 -0400 EDT"}
-
 {"level":"fatal","msg":"The ice breaks!","number":100,"omg":true,"time":"2014-03-10 19:57:38.562543128 -0400 EDT"}
 ```
 
@@ -208,7 +204,7 @@ Tasks are commands that are run periodically. They are typically used to perform
 
 ### Lifecycle fields
 
-- `preStart`, `preStop`, `postStop` and other fields specific to events in the application's lifecycle [have their own section in the docs](/containerpilot/docs/lifecycle).
+- `preStart`, `preStop`, `postStop` represent specific [events in the application's lifecycle](/containerpilot/docs/lifecycle), and [have their own section in the docs](/containerpilot/docs/start-stop).
 - `stopTimeout` Optional amount of time in seconds to wait before killing the application. (defaults to `5`). Providing `-1` will kill the application immediately.
 
 ### `interfaces`
@@ -235,7 +231,7 @@ Interfaces and their IP addresses are ordered alphabetically by interface name, 
 
 ### Commands & arguments
 
-All executable fields, such as `health`, `preStart`, and `onChange`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments.
+All executable fields, including `services/health`, `preStart`, `preStop`, `postStop`, `backends/onChange`, `task/command`, and `telemetry/sensors/check`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments.
 
 **String command**
 
@@ -263,7 +259,7 @@ ContainerPilot configuration has template support. If you have an environment va
 ```json
 {
   "consul": "consul:8500",
-  "preStart": "/opt/containerpilot/preStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
+  "preStart": "/usr/local/bin/preStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
 }
 ```
 

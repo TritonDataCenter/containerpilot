@@ -38,7 +38,7 @@ Optional application performance information can be gather via `telemetry` `sens
 
 ### `preStop` 
 
-The executable (and its arguments) that will be called immediately **before** ContainerPilot stops the shimmed application. This happens when [ContainerPilot receives a `SIGTERM` signal](/containerpilot/docs/signals), such as from Docker during a `docker stop...`. This field is optional. ContainerPilot will wait until this program exits before terminating the shimmed application. [Read more](/containerpilot/docs/start-stop).
+The executable (and its arguments) that will be called immediately **before** ContainerPilot stops the shimmed application. This happens when [ContainerPilot receives a `SIGTERM` signal](/containerpilot/docs/signals), such as from Docker during a `docker stop...`. This field is optional. ContainerPilot will wait until the `preStop` handler exits before terminating the shimmed application. Note that the Docker Engine or Triton will send a `SIGKILL` after the timeout on `docker stop` expires, so you'll want to configure that timeout to allow enough time for your `preStop` to expire. [Read more](/containerpilot/docs/start-stop).
 
 ### `postStop`
 
