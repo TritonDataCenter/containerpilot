@@ -14,9 +14,11 @@ var AllTests map[string]TestCommand
 func runTest(testName string, args []string) {
 	// Register Tests
 	AllTests = map[string]TestCommand{
-		"test_sigterm":         TestSigterm,
-		"test_sighup_deadlock": TestSighupDeadlock,
-		"test_discovery":       TestDiscovery,
+		"test_sigterm":          TestSigterm,
+		"test_sighup_deadlock":  TestSighupDeadlock,
+		"test_sigusr1_prestart": TestSigUsr1Prestart,
+		"test_sighup_prestart":  TestSigHupPrestart,
+		"test_discovery":        TestDiscovery,
 	}
 
 	if test := AllTests[testName]; test != nil {

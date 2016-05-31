@@ -5,6 +5,8 @@ consul:
 
 app:
     image: "cpfix_app"
+    environment:
+      - CONTAINERPILOT=file:///app-with-consul-prestart-sighup.json
     mem_limit: 512m
     links:
       - consul:consul

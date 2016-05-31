@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
 	"sync"
 	"syscall"
 	"time"
@@ -32,20 +31,20 @@ var (
 // after it is run, it can be reloaded and paused with signals.
 type App struct {
 	ServiceBackend discovery.ServiceBackend
-	Services         []*services.Service
-	Backends         []*backends.Backend
-	Tasks            []*tasks.Task
-	Telemetry        *telemetry.Telemetry
-	PreStartCmd      *exec.Cmd
-	PreStopCmd       *exec.Cmd
-	PostStopCmd      *exec.Cmd
-	Command          *exec.Cmd
-	StopTimeout      int
-	QuitChannels     []chan bool
-	maintModeLock    *sync.RWMutex
-	signalLock       *sync.RWMutex
-	paused           bool
-	ConfigFlag       string
+	Services       []*services.Service
+	Backends       []*backends.Backend
+	Tasks          []*tasks.Task
+	Telemetry      *telemetry.Telemetry
+	PreStartCmd    *exec.Cmd
+	PreStopCmd     *exec.Cmd
+	PostStopCmd    *exec.Cmd
+	Command        *exec.Cmd
+	StopTimeout    int
+	QuitChannels   []chan bool
+	maintModeLock  *sync.RWMutex
+	signalLock     *sync.RWMutex
+	paused         bool
+	ConfigFlag     string
 }
 
 // EmptyApp creates an empty application
@@ -102,6 +101,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.Backends = cfg.Backends
 	a.Tasks = cfg.Tasks
 	a.Telemetry = cfg.Telemetry
+	a.ConfigFlag = configFlag
 	return a, nil
 }
 
@@ -228,7 +228,6 @@ func (a *App) Reload() error {
 
 	a.stopPolling()
 	a.forAllServices(deregisterService)
-	signal.Reset()
 
 	a.load(newApp)
 	return nil
@@ -246,7 +245,6 @@ func (a *App) load(newApp *App) {
 	}
 	a.Telemetry = newApp.Telemetry
 	a.Tasks = newApp.Tasks
-	a.handleSignals()
 	a.handlePolling()
 }
 

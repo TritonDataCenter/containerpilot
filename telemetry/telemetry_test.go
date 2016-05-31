@@ -2,15 +2,15 @@ package telemetry
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func TestTelemetryParse(t *testing.T) {
-
-	jsonFragment := []byte(`{
+var jsonFragment = []byte(`{
 	"port": 8000,
 	"interfaces": ["eth0"],
 	"sensors": [
@@ -26,6 +26,7 @@ func TestTelemetryParse(t *testing.T) {
 	]
  }`)
 
+func TestTelemetryParse(t *testing.T) {
 	if telem, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err != nil {
 		t.Fatalf("Could not parse telemetry JSON: %s", err)
 	} else {
@@ -65,4 +66,42 @@ func decodeJSONRawTelemetry(t *testing.T, testJSON json.RawMessage) interface{} 
 		t.Fatalf("Unexpected error decoding JSON:\n%s\n%v", testJSON, err)
 	}
 	return raw
+}
+
+func TestTelemetryServerRestart(t *testing.T) {
+	if telem, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err != nil {
+		t.Fatalf("Could not parse telemetry JSON: %s", err)
+	} else {
+		// initial server
+		telem.Serve()
+		checkServerIsListening(t, telem)
+		telem.Shutdown()
+
+		// reloaded server
+		telem, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment))
+		if err != nil {
+			t.Fatalf("Could not parse telemetry JSON: %s", err)
+		}
+		telem.Serve()
+		checkServerIsListening(t, telem)
+	}
+}
+
+func checkServerIsListening(t *testing.T, telem *Telemetry) {
+	telem.lock.RLock()
+	defer telem.lock.RUnlock()
+	verifyMetricsEndpointOk(t, telem)
+}
+
+func verifyMetricsEndpointOk(t *testing.T, telem *Telemetry) {
+	url := fmt.Sprintf("http://%v:%v/metrics", telem.addr.IP, telem.addr.Port)
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("Got %v status from telemetry server", resp.StatusCode)
+	}
+
 }

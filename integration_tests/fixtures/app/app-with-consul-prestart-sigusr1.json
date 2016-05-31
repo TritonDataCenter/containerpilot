@@ -1,0 +1,45 @@
+{
+  "consul": "consul:8500",
+  "preStart": ["/reload-app-prestart.sh", "USR1"],
+  "logging": {
+    "level": "DEBUG",
+    "format": "text"
+  },
+  "services": [
+    {
+      "name": "app",
+      "port": 8000,
+      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      "poll": 1,
+      "ttl": 5,
+      "tags": ["application"]
+    }
+  ],
+  "backends": [
+    {
+      "name": "nginx",
+      "poll": 7,
+      "onChange": "/reload-app.sh"
+    },
+    {
+      "name": "app",
+      "poll": 5,
+      "onChange": "/reload-app.sh",
+      "tag": "application"
+    }
+  ],
+  "telemetry": {
+    "port": 9090,
+    "sensors": [
+       {
+        "namespace": "containerpilot",
+        "subsystem": "app",
+        "name": "some_counter",
+        "help": "help text",
+        "type": "counter",
+        "poll": 1,
+        "check": ["/sensor.sh", "count"]
+       }
+    ]
+  }
+}
