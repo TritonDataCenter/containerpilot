@@ -1,8 +1,12 @@
-# ContainerPilot Telemetry
+Title: Telemetry
+----
+Text:
 
 If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
 
-### Configuring Telemetry
+Configuration details follow, but [this blog post offers a usage example and narrative](https://www.joyent.com/blog/containerpilot-telemetry) for it.
+
+### Configuring telemetry
 
 The top-level telemetry configuration defines the telemetry HTTP endpoint. This endpoint will be advertised to Consul (or other discovery service) just as a typical ContainerPilot `service` block is. The service will be called `containerpilot` and will be served on the path `/metrics`. The telemetry service will send periodic heartbeats to the discovery service to identify that it is still operating. Unlike a typical ContainerPilot service, there is no user-defined health check for the telemetry service endpoint, and you don't need to configure the poll/TTL; it will send a 15 second heartbeat every 5 seconds.
 
@@ -37,7 +41,7 @@ The fields are as follows:
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
 - `sensors` is an optional array of sensor configurations (see below). If no sensors are provided, then the telemetry endpoint will still be exposed and will show only telemetry about ContainerPilot internals.
 
-### Configuring Sensors
+### Configuring sensors
 
 The `sensors` field is a list of user-defined sensors that the telemetry service will use to collect telemetry. Each time a sensor is polled, the user-defined `check` executable will be run. If the value that the `check` returns from stdout can be parsed as a 64-bit float, then the telemetry collector will receive that value.
 
