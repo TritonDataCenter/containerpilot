@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
 	"sync"
 	"syscall"
 	"time"
@@ -229,7 +228,6 @@ func (a *App) Reload() error {
 
 	a.stopPolling()
 	a.forAllServices(deregisterService)
-	signal.Reset()
 
 	a.load(newApp)
 	return nil
@@ -247,7 +245,6 @@ func (a *App) load(newApp *App) {
 	}
 	a.Telemetry = newApp.Telemetry
 	a.Tasks = newApp.Tasks
-	a.handleSignals()
 	a.handlePolling()
 }
 

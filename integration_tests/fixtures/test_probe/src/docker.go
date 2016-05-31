@@ -13,6 +13,7 @@ const (
 	SigChld = DockerSignal("CHLD")
 	SigUsr1 = DockerSignal("USR1")
 	SigHup  = DockerSignal("HUP")
+	SigAbrt = DockerSignal("ABRT") // for debugging via stack trace dump
 )
 
 // DockerProbe is a test probe for docker

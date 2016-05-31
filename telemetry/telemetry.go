@@ -88,7 +88,7 @@ func (t *Telemetry) Serve() {
 	go func() {
 		log.Infof("telemetry: Listening on %s", t.addr.String())
 		log.Fatal(http.Serve(listener, t.mux))
-		log.Infof("telemetry: Stopped listening on %s", t.addr.String())
+		log.Debugf("telemetry: Stopped listening on %s", t.addr.String())
 	}()
 }
 
