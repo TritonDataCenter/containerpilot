@@ -111,7 +111,8 @@ func (a *App) Run() {
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
-	command, err := utils.ParseCommandArgs(flag.Args())
+	args := getArgs(flag.Args())
+	command, err := utils.ParseCommandArgs(args)
 	if err != nil {
 		log.Errorf("Unable to parse command arguments: %v", err)
 	}
@@ -122,7 +123,7 @@ func (a *App) Run() {
 	}
 	a.handlePolling()
 
-	if len(flag.Args()) != 0 {
+	if len(args) != 0 {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
@@ -143,6 +144,22 @@ func (a *App) Run() {
 	// block forever, as we're polling in the two polling functions and
 	// did not os.Exit by waiting on an external application.
 	select {}
+}
+
+// Render the command line args thru golang templating so we can
+// interpolate environment variables
+func getArgs(args []string) []string {
+	var renderedArgs []string
+	for _, arg := range args {
+		newArg, err := config.ApplyTemplate([]byte(arg))
+		if err != nil {
+			log.Errorf("Unable to render command arguments template: %v", err)
+			renderedArgs = args // skip rendering on error
+			break
+		}
+		renderedArgs = append(renderedArgs, string(newArg))
+	}
+	return renderedArgs
 }
 
 // ToggleMaintenanceMode marks all services for maintenance

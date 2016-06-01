@@ -21,6 +21,10 @@ COPY task.sh /task.sh
 # by default use app-consul.json, allows for override in docker-compose
 ENV CONTAINERPILOT=file:///app-with-consul.json
 
+# default port, allows us to override in docker-compose and also test
+# env var interpolation in the command args
+ENV APP_PORT=8000
+
 ENTRYPOINT [ "/bin/containerpilot", \
              "/usr/local/bin/node", \
-             "/usr/local/bin/http-server", "/srv", "-p", "8000"]
+             "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"]
