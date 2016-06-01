@@ -197,6 +197,21 @@ func TestParseTrailingComma(t *testing.T) {
 	}`, "Do you have an extra comma somewhere?")
 }
 
+func TestRenderArgs(t *testing.T) {
+	flags := []string{"-name", "{{ .HOSTNAME }}"}
+	expected, _ := os.Hostname()
+	if got := getArgs(flags)[1]; got != expected {
+		t.Errorf("Expected %v but got %v for rendered hostname", expected, got)
+	}
+
+	// invalid template should just be returned unchanged
+	flags = []string{"-name", "{{ .HOSTNAME }"}
+	expected = "{{ .HOSTNAME }"
+	if got := getArgs(flags)[1]; got != expected {
+		t.Errorf("Expected %v but got %v for unrendered hostname", expected, got)
+	}
+}
+
 func TestMetricServiceCreation(t *testing.T) {
 
 	jsonFragment := `{

@@ -252,9 +252,9 @@ All executable fields, including `services/health`, `preStart`, `preStop`, `post
 
 ### Template configuration
 
-ContainerPilot configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file and it will be substituted with `BAR`.
+ContainerPilot configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file or in your command arguments and it will be substituted with `BAR`.
 
-**Example usage**
+**Example usage in a config file**
 
 ```json
 {
@@ -262,5 +262,17 @@ ContainerPilot configuration has template support. If you have an environment va
   "preStart": "/usr/local/bin/preStart-script.sh {{.URL_TO_SERVICE}} {{.API_KEY}}",
 }
 ```
+
+**Example usage in a Dockerfile**
+
+```
+ENV APP_PORT=8000
+CMD [ "/usr/local/bin/containerpilot", \
+      "node",\
+      "/usr/local/bin/http-server",\
+      "-p",\
+      "{{ .APP_PORT }}"]
+```
+
 
 **Note**:  If you need more than just variable interpolation, check out the [Go text/template Docs](https://golang.org/pkg/text/template/).
