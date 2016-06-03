@@ -21,7 +21,7 @@ type Service struct {
 	TTL              int         `mapstructure:"ttl"`
 	Interfaces       interface{} `mapstructure:"interfaces"`
 	Tags             []string    `mapstructure:"tags"`
-	ipAddress        string
+	IPAddress        string
 	healthCheckCmd   *exec.Cmd
 	discoveryService discovery.ServiceBackend
 	definition       *discovery.ServiceDefinition
@@ -62,8 +62,8 @@ func NewService(name string, poll, port, ttl int, interfaces interface{},
 }
 
 func parseService(s *Service, disc discovery.ServiceBackend) error {
-	if s.Name == "" {
-		return fmt.Errorf("service must have a `name`")
+	if err := utils.ValidateServiceName(s.Name); err != nil {
+		return err
 	}
 	hostname, _ := os.Hostname()
 	s.ID = fmt.Sprintf("%s-%s", s.Name, hostname)
@@ -95,7 +95,7 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 	if err != nil {
 		return err
 	}
-	s.ipAddress = ipAddress
+	s.IPAddress = ipAddress
 
 	s.definition = &discovery.ServiceDefinition{
 		ID:        s.ID,
@@ -103,7 +103,7 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 		Port:      s.Port,
 		TTL:       s.TTL,
 		Tags:      s.Tags,
-		IPAddress: s.ipAddress,
+		IPAddress: s.IPAddress,
 	}
 	return nil
 }

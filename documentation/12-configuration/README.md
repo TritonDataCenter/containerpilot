@@ -106,10 +106,11 @@ The format of the JSON file configuration is as follows:
 - `name` is the name of the service as it will appear in Consul. Each instance of the service will have a unique ID made up from `name`+hostname of the container.
 - `port` is the port the service will advertise to Consul.
 - `health` is the executable (and its arguments) used to check the health of the service.
-- `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`)
+- `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`). The value that ContainerPilot uses for the IP address of the interface will be set as an environment variable with the name `CONTAINERPILOT_{SERVICE_NAME}_IP`. See template configurations below.
 - `poll` is the time in seconds between polling for health checks.
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
+
 
 ### `backends`
 
@@ -252,7 +253,7 @@ All executable fields, including `services/health`, `preStart`, `preStop`, `post
 
 ### Template configuration
 
-ContainerPilot configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file or in your command arguments and it will be substituted with `BAR`.
+ContainerPilot configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file or in your command arguments and it will be substituted with `BAR`. The `CONTAINERPILOT_{SERVICE_NAME}_IP` environment variable that is set by the services configuration is available to the command arguments but not to the configuration file.
 
 **Example usage in a config file**
 
@@ -274,5 +275,17 @@ CMD [ "/usr/local/bin/containerpilot", \
       "{{ .APP_PORT }}"]
 ```
 
+If you are using Docker Compose you will need to quote the variable so that it's passed along correctly by Compose without adding newlines.
+
+```yaml
+command: >-
+  /usr/local/bin/containerpilot
+  node
+  /usr/local/bin/http-server
+  -p
+  '{{ .APP_PORT }}'
+  -a
+  '{{ .CONTAINERPILOT_APP_IP }}'
+```
 
 **Note**:  If you need more than just variable interpolation, check out the [Go text/template Docs](https://golang.org/pkg/text/template/).

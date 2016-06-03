@@ -1,0 +1,23 @@
+etcd:
+    image: "cpfix_etcd"
+    mem_limit: 128m
+    hostname: etcd
+    ports:
+      - 4001:4001
+      - 2379:2379
+    environment:
+      - CONTAINERPILOT=file:///etc/containerpilot.json
+    volumes:
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
+      - './containerpilot.json:/etc/containerpilot.json'
+    entrypoint: >-
+      /bin/containerpilot
+      /etcd
+      -name etcd0
+      -advertise-client-urls http://etcd:2379,http://etcd:4001
+      -listen-client-urls 'http://{{ .CONTAINERPILOT_ETCD_IP }}:2379,http://{{ .CONTAINERPILOT_ETCD_IP }}:4001'
+      -initial-advertise-peer-urls http://etcd:2380
+      -listen-peer-urls 'http://{{ .CONTAINERPILOT_ETCD_IP }}:2380'
+      -initial-cluster-token etcd-cluster-1
+      -initial-cluster etcd0=http://etcd:2380
+      -initial-cluster-state new

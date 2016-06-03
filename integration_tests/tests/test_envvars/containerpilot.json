@@ -1,0 +1,15 @@
+{
+  "etcd": {
+    "endpoints": ["http://127.0.0.1:4001"],
+    "prefix": "/containerpilot"
+  },
+  "services": [
+    {
+      "name": "etcd",
+      "port": 4001,
+      "health": "curl --fail -o /dev/null http://127.0.0.1:2379/health",
+      "poll": 10,
+      "ttl": 25
+    }
+  ]
+}

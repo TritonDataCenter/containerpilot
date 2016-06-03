@@ -230,6 +230,12 @@ func TestMetricServiceCreation(t *testing.T) {
 			if service.Name != "containerpilot" {
 				t.Errorf("Got incorrect service back: %v", service)
 			}
+			for _, envVar := range os.Environ() {
+				if strings.HasPrefix(envVar, "CONTAINERPILOT_CONTAINERPILOT_IP") {
+					return
+				}
+			}
+			t.Errorf("Did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
 		}
 	}
 }

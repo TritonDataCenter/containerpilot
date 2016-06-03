@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -102,7 +103,23 @@ func NewApp(configFlag string) (*App, error) {
 	a.Tasks = cfg.Tasks
 	a.Telemetry = cfg.Telemetry
 	a.ConfigFlag = configFlag
+
+	// set an environment variable for each service IP address so that
+	// forked processes have access to this information
+	for _, service := range a.Services {
+		envKey := getEnvVarNameFromService(service.Name)
+		os.Setenv(envKey, service.IPAddress)
+	}
+
 	return a, nil
+}
+
+// Normalize the validated service name as an environment variable
+func getEnvVarNameFromService(service string) string {
+	envKey := strings.ToUpper(service)
+	envKey = strings.Replace(envKey, "-", "_", -1)
+	envKey = fmt.Sprintf("CONTAINERPILOT_%v_IP", envKey)
+	return envKey
 }
 
 // Run starts the application and blocks until finished
