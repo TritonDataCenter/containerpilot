@@ -40,6 +40,16 @@ However, it's hardly the only "right" way to build a container. ContainerPilot i
 
 Please follow [containerpilot#52](https://github.com/joyent/containerpilot/issues/52) for details.
 
+### How do I use ContainerPilot with Consul on Triton or on a PaaS?
+
+Consul nodes can be either agents or servers. The architecture of Consul assumes that you have an agent local to each instance of a service, such as on the same VM or machine as other containers. On Triton or in a PaaS or "serverless" environment, this assumption doesn't quite work and so you may need to make some adjustments. Here are some options:
+
+- Deploy a multi-process container with both your application and a Consul agent, with a supervisor like runit. Each container acts as its own Consul agent and will send status changes to the Consul server cluster. An example of this can be found [here](https://github.com/tgross/nginx-autopilotpattern/tree/multiprocess). This keeps orchestration simple but adds a small amount of complexity to your container.
+- Divide instances of your services among your Consul nodes, so that if (for example) you are using 3 Consul nodes then you'll send a third of each service's traffic to each node. This lets you keep your container simple at the cost of some orchestration complexity.
+- Use etcd. Although Consul has a richer API and better scalability, etcd does not assume that you're running local agents and so it might be a better solution for smaller deployments.
+
+Please follow [containerpilot#162](https://github.com/joyent/containerpilot/issues/162) for more details.
+
 ### Is ContainerPilot open source?
 
 Yes. ContainerPilot is licensed under the Mozilla Public License 2.0.
