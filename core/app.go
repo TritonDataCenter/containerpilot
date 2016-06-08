@@ -12,6 +12,7 @@ import (
 
 	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/config"
+	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
@@ -35,6 +36,7 @@ type App struct {
 	Services       []*services.Service
 	Backends       []*backends.Backend
 	Tasks          []*tasks.Task
+	Coprocesses    []*coprocesses.Coprocess
 	Telemetry      *telemetry.Telemetry
 	PreStartCmd    *exec.Cmd
 	PreStopCmd     *exec.Cmd
@@ -101,6 +103,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.Services = cfg.Services
 	a.Backends = cfg.Backends
 	a.Tasks = cfg.Tasks
+	a.Coprocesses = cfg.Coprocesses
 	a.Telemetry = cfg.Telemetry
 	a.ConfigFlag = configFlag
 
@@ -138,6 +141,7 @@ func (a *App) Run() {
 	if preStartCode, err := utils.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
 		os.Exit(preStartCode)
 	}
+	a.handleCoprocesses()
 	a.handlePolling()
 
 	if len(args) != 0 {
@@ -262,6 +266,7 @@ func (a *App) Reload() error {
 
 	a.stopPolling()
 	a.forAllServices(deregisterService)
+	a.stopCoprocesses()
 
 	a.load(newApp)
 	return nil
@@ -279,7 +284,9 @@ func (a *App) load(newApp *App) {
 	}
 	a.Telemetry = newApp.Telemetry
 	a.Tasks = newApp.Tasks
+	a.Coprocesses = newApp.Coprocesses
 	a.handlePolling()
+	a.handleCoprocesses()
 }
 
 type serviceFunc func(service *services.Service)
@@ -312,4 +319,16 @@ func (a *App) handlePolling() {
 		}
 	}
 	a.QuitChannels = quit
+}
+
+func (a *App) handleCoprocesses() {
+	for _, coprocess := range a.Coprocesses {
+		go coprocess.Start()
+	}
+}
+
+func (a *App) stopCoprocesses() {
+	for _, coprocess := range a.Coprocesses {
+		go coprocess.Stop()
+	}
 }

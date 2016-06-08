@@ -13,6 +13,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/backends"
+	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
@@ -21,30 +22,32 @@ import (
 )
 
 type rawConfig struct {
-	logConfig       *LogConfig
-	onStart         interface{}
-	preStart        interface{}
-	preStop         interface{}
-	postStop        interface{}
-	stopTimeout     int
-	servicesConfig  []interface{}
-	backendsConfig  []interface{}
-	tasksConfig     []interface{}
-	telemetryConfig interface{}
+	logConfig         *LogConfig
+	onStart           interface{}
+	preStart          interface{}
+	preStop           interface{}
+	postStop          interface{}
+	stopTimeout       int
+	coprocessesConfig []interface{}
+	servicesConfig    []interface{}
+	backendsConfig    []interface{}
+	tasksConfig       []interface{}
+	telemetryConfig   interface{}
 }
 
 // Config contains the parsed config elements
 type Config struct {
 	ServiceBackend discovery.ServiceBackend
-	LogConfig        *LogConfig
-	PreStart         *exec.Cmd
-	PreStop          *exec.Cmd
-	PostStop         *exec.Cmd
-	StopTimeout      int
-	Services         []*services.Service
-	Backends         []*backends.Backend
-	Tasks            []*tasks.Task
-	Telemetry        *telemetry.Telemetry
+	LogConfig      *LogConfig
+	PreStart       *exec.Cmd
+	PreStop        *exec.Cmd
+	PostStop       *exec.Cmd
+	StopTimeout    int
+	Coprocesses    []*coprocesses.Coprocess
+	Services       []*services.Service
+	Backends       []*backends.Backend
+	Tasks          []*tasks.Task
+	Telemetry      *telemetry.Telemetry
 }
 
 const (
@@ -100,6 +103,14 @@ func (cfg *rawConfig) parseServices(discoveryService discovery.ServiceBackend) (
 		return nil, err
 	}
 	return services, nil
+}
+
+func (cfg *rawConfig) parseCoprocesses() ([]*coprocesses.Coprocess, error) {
+	coprocesses, err := coprocesses.NewCoprocesses(cfg.coprocessesConfig)
+	if err != nil {
+		return nil, err
+	}
+	return coprocesses, nil
 }
 
 // parseStopTimeout ...
@@ -249,6 +260,12 @@ func ParseConfig(configFlag string) (*Config, error) {
 	}
 	cfg.Tasks = tasks
 
+	coprocesses, err := raw.parseCoprocesses()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Coprocesses = coprocesses
+
 	return cfg, nil
 }
 
@@ -342,6 +359,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.servicesConfig = decodeArray(configMap["services"])
 	result.backendsConfig = decodeArray(configMap["backends"])
 	result.tasksConfig = decodeArray(configMap["tasks"])
+	result.coprocessesConfig = decodeArray(configMap["coprocesses"])
 	result.telemetryConfig = configMap["telemetry"]
 
 	delete(configMap, "logging")
@@ -353,6 +371,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	delete(configMap, "services")
 	delete(configMap, "backends")
 	delete(configMap, "tasks")
+	delete(configMap, "coprocesses")
 	delete(configMap, "telemetry")
 	var unused []string
 	for key := range configMap {
