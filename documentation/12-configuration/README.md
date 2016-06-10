@@ -97,6 +97,15 @@ The format of the JSON file configuration is as follows:
       "frequency": "1500ms",
       "timeout": "100ms"
     }
+  ],
+  "coprocesses": [
+    {
+      "name": "consul-template",
+      "command": ["consul-template",
+                  "-consul", "consul",
+                  "-template", "/tmp/template.ctmpl:/tmp/result"],
+      "restarts": "unlimited"
+    }
   ]
 }
 ```
@@ -202,6 +211,13 @@ If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](h
 Tasks are commands that are run periodically. They are typically used to perform housekeeping such as incremental back-ups, or pushing metrics to systems that cannot collect metrics through service discovery like Prometheus.
 
 [Read more](/containerpilot/docs/tasks).
+
+
+### `coprocesses`
+
+Coprocesses are processes that run alongside the main application. Unlike tasks or other lifecycle hooks, coprocesses remain running. The stdout/stdin for coprocesses are piped into the ContainerPilot logs. Coprocesses will be restarted if the `restarts` flag is set, but do not cause ContainerPilot to exit the way the main application does.
+
+[Read more](/containerpilot/docs/coprocesses).
 
 ### Lifecycle fields
 

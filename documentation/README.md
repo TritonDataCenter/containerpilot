@@ -15,6 +15,7 @@ ContainerPilot is an application-centric micro-orchestrator. It automates many o
 - [Signals and operations](/containerpilot/docs/signals)
 - [Periodic tasks](/containerpilot/docs/tasks)
 - [Telemetry](/containerpilot/docs/telemetry)
+- [Coprocesses](/containerpilot/docs/coprocesses)
 - [Frequently asked questions](/containerpilot/docs/faq)
 - [Support](/containerpilot/docs/support)
 
