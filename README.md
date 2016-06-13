@@ -38,6 +38,7 @@ See the [ContainerPilot documentation](https://www.joyent.com/containerpilot/doc
 - [Signals and operations](https://www.joyent.com/containerpilot/docs/signals)
 - [Periodic tasks](https://www.joyent.com/containerpilot/docs/tasks)
 - [Telemetry](https://www.joyent.com/containerpilot/docs/telemetry)
+- [Coprocesses](https://www.joyent.com/containerpilot/docs/coprocesses)
 - [Frequently asked questions](https://www.joyent.com/containerpilot/docs/faq)
 - [Support](https://www.joyent.com/containerpilot/docs/support)
 

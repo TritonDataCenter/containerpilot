@@ -16,7 +16,7 @@ The service catalog that ContainerPilot looks up and registers services in is pl
 
 ### Can ContainerPilot start X before starting my main app?
 
-ContainerPilot can run tasks before starting the main app/process in the container, but those startup tasks must successfully complete and `exit 0` before ContainerPilot will continue and start the main app. If you need to run multiple processes simultaneously, you should use a supervisor such as runit.
+ContainerPilot can run tasks before starting the main app/process in the container, but those startup tasks must successfully complete and `exit 0` before ContainerPilot will continue and start the main app. If you need to run multiple processes simultaneously, you should use a supervisor such as runit or a coprocess.
 
 Further discussion of this topic can be found in [containerpilot#157](https://github.com/joyent/containerpilot/issues/157).
 
@@ -34,7 +34,7 @@ Further discussion of this topic can be found in [containerpilot#126](https://gi
 
 There are a number of conveniences in a container that does _just one thing_ (offers a single service from a single app). It means that starting the container is the same as starting the app in it, and sending a signal to that container to shut down is the same as stopping the application. These containers offer a number of advantages for "modern" applications and operations, including automation of the application lifecycle.
 
-However, it's hardly the only "right" way to build a container. ContainerPilot is optimized for containers that offer a single service, but [it can be used in containers and VMs running any number of services](#where-does-containerpilot-run). ContainerPilot makes absolutely no judgements about how you architect your application.
+However, it's hardly the only "right" way to build a container. ContainerPilot is optimized for containers that offer a single service, but [it can be used in containers and VMs running any number of services](#where-does-containerpilot-run). ContainerPilot makes absolutely no judgments about how you architect your application.
 
 ### Does ContainerPilot support IPv6?
 
@@ -44,8 +44,10 @@ Please follow [containerpilot#52](https://github.com/joyent/containerpilot/issue
 
 Consul nodes can be either agents or servers. The architecture of Consul assumes that you have an agent local to each instance of a service, such as on the same VM or machine as other containers. On Triton or in a PaaS or "serverless" environment, this assumption doesn't quite work and so you may need to make some adjustments. Here are some options:
 
-- Deploy a multi-process container with both your application and a Consul agent, with a supervisor like runit. Each container acts as its own Consul agent and will send status changes to the Consul server cluster. An example of this can be found [here](https://github.com/tgross/nginx-autopilotpattern/tree/multiprocess). This keeps orchestration simple but adds a small amount of complexity to your container.
-- Divide instances of your services among your Consul nodes, so that if (for example) you are using 3 Consul nodes then you'll send a third of each service's traffic to each node. This lets you keep your container simple at the cost of some orchestration complexity.
+- Run a Consul agent as a [coprocess](/containerpilot/docs/coprocesses). Each container acts as its own Consul agent and will send status changes to the Consul server cluster. An example of this can be found [here](https://github.com/tgross/nginx-autopilotpattern/tree/coprocess). This keeps orchestration simple but adds a small amount of complexity to your container.
+- Deploy a multi-process container with both your application and a Consul agent, with a supervisor like [runit](http://smarden.org/runit/) or [s6](http://skarnet.org/software/s6/). Each container acts as its own Consul agent and will send status changes to the Consul server cluster. An example of this can be found [here](https://github.com/tgross/nginx-autopilotpattern/tree/multiprocess). This keeps orchestration simple but adds a small amount of complexity to your container.
+- Use a single Consul node as a "master" for writing. The failure of this node will prevent your services from getting updates for new members or failed members, but the services will otherwise operate normally. This lets you keep your container simple and gives you service availability at the cost of control plane availability.
+- Divide instances of your services among your Consul nodes, so that if (for example) you are using 3 Consul nodes then you'll send a third of each service's traffic to each node. This lets you keep your container simple at the cost of scheduling and placement complexity.
 - Use etcd. Although Consul has a richer API and better scalability, etcd does not assume that you're running local agents and so it might be a better solution for smaller deployments.
 
 Please follow [containerpilot#162](https://github.com/joyent/containerpilot/issues/162) for more details.

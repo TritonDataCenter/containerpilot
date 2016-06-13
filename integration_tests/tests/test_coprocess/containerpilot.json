@@ -1,0 +1,23 @@
+{
+  "consul": "consul:8500",
+  "logging": {
+    "level": "DEBUG",
+    "format": "text"
+  },
+  "services": [
+    {
+      "name": "app",
+      "port": 8000,
+      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      "poll": 1,
+      "ttl": 5
+    }
+  ],
+  "coprocesses": [
+    {
+      "name": "coprocess",
+      "command": ["/bin/coprocess.sh", "arg1"],
+      "restarts": 1
+    }
+  ]
+}
