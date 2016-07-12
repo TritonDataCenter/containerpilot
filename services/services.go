@@ -7,6 +7,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -80,7 +81,7 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 
 	// if the HealthCheckExec is nil then we'll have no health check
 	// command; this is useful for the telemetry service
-	cmd, err := utils.ParseCommandArgs(s.HealthCheckExec)
+	cmd, err := commands.ParseCommandArgs(s.HealthCheckExec)
 	if err != nil {
 		return fmt.Errorf("Could not parse `health` in service %s: %s", s.Name, err)
 	}
@@ -149,7 +150,7 @@ func (s *Service) CheckHealth() (int, error) {
 	defer func() {
 		// reset command object because it can't be reused
 		if s.healthCheckCmd != nil {
-			s.healthCheckCmd = utils.ArgsToCmd(s.healthCheckCmd.Args)
+			s.healthCheckCmd = commands.ArgsToCmd(s.healthCheckCmd.Args)
 		}
 	}()
 
@@ -158,6 +159,6 @@ func (s *Service) CheckHealth() (int, error) {
 	if s.healthCheckCmd == nil {
 		return 0, nil
 	}
-	exitCode, err := utils.RunWithFields(s.healthCheckCmd, log.Fields{"process": "health", "serviceName": s.Name, "serviceID": s.ID})
+	exitCode, err := commands.RunWithFields(s.healthCheckCmd, log.Fields{"process": "health", "serviceName": s.Name, "serviceID": s.ID})
 	return exitCode, err
 }

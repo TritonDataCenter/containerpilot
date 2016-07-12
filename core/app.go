@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/joyent/containerpilot/backends"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -132,13 +132,13 @@ func (a *App) Run() {
 		reapChildren()
 	}
 	args := getArgs(flag.Args())
-	command, err := utils.ParseCommandArgs(args)
+	command, err := commands.ParseCommandArgs(args)
 	if err != nil {
 		log.Errorf("Unable to parse command arguments: %v", err)
 	}
 	a.handleSignals()
 	// Run the preStart handler, if any, and exit if it returns an error
-	if preStartCode, err := utils.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
+	if preStartCode, err := commands.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
 		os.Exit(preStartCode)
 	}
 	a.handleCoprocesses()
@@ -151,12 +151,12 @@ func (a *App) Run() {
 		a.Command = command
 		command.Stderr = os.Stderr
 		command.Stdout = os.Stdout
-		code, err := utils.ExecuteAndWait(command)
+		code, err := commands.ExecuteAndWait(command)
 		if err != nil {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
-		if postStopCode, err := utils.RunWithFields(a.PostStopCmd, log.Fields{"process": "PostStop"}); err != nil {
+		if postStopCode, err := commands.RunWithFields(a.PostStopCmd, log.Fields{"process": "PostStop"}); err != nil {
 			os.Exit(postStopCode)
 		}
 		os.Exit(code)
@@ -212,7 +212,7 @@ func (a *App) Terminate() {
 	a.forAllServices(deregisterService)
 
 	// Run and wait for preStop command to exit
-	utils.RunWithFields(a.PreStopCmd, log.Fields{"process": "PreStop"})
+	commands.RunWithFields(a.PreStopCmd, log.Fields{"process": "PreStop"})
 
 	cmd := a.Command
 	if cmd == nil || cmd.Process == nil {

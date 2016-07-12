@@ -6,6 +6,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -34,7 +35,7 @@ func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, 
 		if err := utils.ValidateServiceName(b.Name); err != nil {
 			return nil, err
 		}
-		cmd, err := utils.ParseCommandArgs(b.OnChangeExec)
+		cmd, err := commands.ParseCommandArgs(b.OnChangeExec)
 		if err != nil {
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
 				b.Name, err)
@@ -83,9 +84,9 @@ func (b *Backend) CheckForUpstreamChanges() bool {
 func (b *Backend) OnChange() (int, error) {
 	defer func() {
 		// reset command object because it can't be reused
-		b.onChangeCmd = utils.ArgsToCmd(b.onChangeCmd.Args)
+		b.onChangeCmd = commands.ArgsToCmd(b.onChangeCmd.Args)
 	}()
 
-	exitCode, err := utils.RunWithFields(b.onChangeCmd, log.Fields{"process": "OnChange", "backend": b.Name})
+	exitCode, err := commands.RunWithFields(b.onChangeCmd, log.Fields{"process": "OnChange", "backend": b.Name})
 	return exitCode, err
 }

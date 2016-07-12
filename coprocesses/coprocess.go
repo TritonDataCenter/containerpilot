@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/utils"
 )
 
@@ -59,7 +60,7 @@ func parseCoprocess(coprocess *Coprocess) error {
 	if coprocess.Args == nil || len(coprocess.Args) == 0 {
 		return fmt.Errorf("Coprocess did not provide a command")
 	}
-	cmd := utils.ArgsToCmd(coprocess.Args)
+	cmd := commands.ArgsToCmd(coprocess.Args)
 	coprocess.cmd = cmd
 
 	if coprocess.Name == "" {
@@ -131,11 +132,11 @@ func (coprocess *Coprocess) Start() {
 			coprocess.restartsRemain <= haltRestarts {
 			break
 		}
-		cmd := utils.ArgsToCmd(coprocess.Args)
+		cmd := commands.ArgsToCmd(coprocess.Args)
 		coprocess.cmd = cmd
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
-		if _, err := utils.ExecuteAndWait(cmd); err != nil {
+		if _, err := commands.ExecuteAndWait(cmd); err != nil {
 			log.Errorf("coprocess[%s] exited: %s", coprocess.Name, err)
 		}
 		log.Debugf("coprocess[%s] exited", coprocess.Name)

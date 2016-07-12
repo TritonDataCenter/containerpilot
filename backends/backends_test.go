@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/commands"
 )
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
+	cmd1 := commands.StrToCmd("./testdata/test.sh doStuff --debug")
 	backend := &Backend{
 		onChangeCmd: cmd1,
 	}

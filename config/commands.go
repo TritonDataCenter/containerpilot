@@ -5,7 +5,7 @@ import (
 	"os/exec"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/commands"
 )
 
 func (cfg *rawConfig) parsePreStart() (*exec.Cmd, error) {
@@ -31,7 +31,7 @@ func (cfg *rawConfig) parsePostStop() (*exec.Cmd, error) {
 }
 
 func parseCommand(name string, args interface{}) (*exec.Cmd, error) {
-	cmd, err := utils.ParseCommandArgs(args)
+	cmd, err := commands.ParseCommandArgs(args)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `%s`: %s", name, err)
 	}

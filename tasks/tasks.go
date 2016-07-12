@@ -8,6 +8,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/utils"
 )
 
@@ -97,7 +98,7 @@ func (t *Task) PollStop() {
 // PollAction runs the task
 func (t *Task) PollAction() {
 	log.Debugf("task[%s].PollAction", t.Name)
-	cmd := utils.ArgsToCmd(t.Args)
+	cmd := commands.ArgsToCmd(t.Args)
 	t.cmd = cmd
 	fields := log.Fields{"process": "task", "task": t.Name}
 	stdout := utils.NewLogWriter(fields, log.InfoLevel)

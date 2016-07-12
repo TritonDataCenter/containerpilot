@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/discovery/consul"
 	"github.com/joyent/containerpilot/services"
-	"github.com/joyent/containerpilot/utils"
 )
 
 // ------------------------------------------
@@ -29,7 +29,7 @@ func getSignalTestConfig() *App {
 	service, _ := services.NewService(
 		"test-service", 1, 1, 1, nil, nil, &NoopServiceBackend{})
 	app := EmptyApp()
-	app.Command = utils.ArgsToCmd([]string{
+	app.Command = commands.ArgsToCmd([]string{
 		"./testdata/test.sh",
 		"interruptSleep"})
 	app.StopTimeout = 5
@@ -66,7 +66,7 @@ func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig()
 	startTime := time.Now()
 	go func() {
-		if exitCode, _ := utils.ExecuteAndWait(app.Command); exitCode != 2 {
+		if exitCode, _ := commands.ExecuteAndWait(app.Command); exitCode != 2 {
 			t.Fatalf("Expected exit code 2 but got %d", exitCode)
 		}
 	}()

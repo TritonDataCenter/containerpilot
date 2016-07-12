@@ -1,10 +1,11 @@
-package utils
+package commands
 
 import (
 	"os/exec"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/utils"
 )
 
 // RunWithFields executes the given command and blocks until completed
@@ -15,8 +16,8 @@ import (
 // Adds the given fields to the log entries
 func RunWithFields(cmd *exec.Cmd, fields log.Fields) (int, error) {
 	if cmd != nil {
-		stderr := NewLogWriter(fields, log.DebugLevel)
-		stdout := NewLogWriter(fields, log.InfoLevel)
+		stderr := utils.NewLogWriter(fields, log.DebugLevel)
+		stdout := utils.NewLogWriter(fields, log.InfoLevel)
 		cmd.Stderr = stderr
 		cmd.Stdout = stdout
 		defer stderr.Close()

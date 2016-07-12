@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -28,7 +28,7 @@ func TestSensorPollAction(t *testing.T) {
 
 	sensor := &Sensor{
 		Type:     "counter",
-		checkCmd: utils.StrToCmd("./testdata/test.sh measureStuff"),
+		checkCmd: commands.StrToCmd("./testdata/test.sh measureStuff"),
 		collector: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "telemetry",
 			Subsystem: "sensors",
@@ -45,14 +45,14 @@ func TestSensorPollAction(t *testing.T) {
 
 func TestSensorBadPollAction(t *testing.T) {
 	sensor := &Sensor{
-		checkCmd: utils.StrToCmd("./testdata/doesNotExist.sh"),
+		checkCmd: commands.StrToCmd("./testdata/doesNotExist.sh"),
 	}
 	sensor.PollAction() // logs but no crash
 }
 
 func TestSensorBadRecord(t *testing.T) {
 	sensor := &Sensor{
-		checkCmd: utils.StrToCmd("./testdata/test.sh doStuff --debug"),
+		checkCmd: commands.StrToCmd("./testdata/test.sh doStuff --debug"),
 	}
 	sensor.PollAction() // logs but no crash
 }
@@ -218,7 +218,7 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 
 func TestSensorObserve(t *testing.T) {
 
-	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
+	cmd1 := commands.StrToCmd("./testdata/test.sh doStuff --debug")
 	sensor := &Sensor{checkCmd: cmd1}
 	if val, err := sensor.observe(); err != nil {
 		t.Fatalf("Unexpected error from sensor check: %s", err)
@@ -232,7 +232,7 @@ func TestSensorObserve(t *testing.T) {
 	}
 
 	// Ensure bad commands return error
-	cmd2 := utils.StrToCmd("./testdata/doesNotExist.sh")
+	cmd2 := commands.StrToCmd("./testdata/doesNotExist.sh")
 	sensor = &Sensor{checkCmd: cmd2}
 	if val, err := sensor.observe(); err == nil {
 		t.Fatalf("Expected error from sensor check but got %s", val)

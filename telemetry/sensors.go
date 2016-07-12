@@ -9,6 +9,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -49,7 +50,7 @@ func (s *Sensor) PollStop() {
 func (s *Sensor) observe() (string, error) {
 	defer func() {
 		// reset command object because it can't be reused
-		s.checkCmd = utils.ArgsToCmd(s.checkCmd.Args)
+		s.checkCmd = commands.ArgsToCmd(s.checkCmd.Args)
 	}()
 
 	// we'll pass stderr to the container's stderr, but stdout must
@@ -94,7 +95,7 @@ func NewSensors(raw []interface{}) ([]*Sensor, error) {
 		return nil, fmt.Errorf("Sensor configuration error: %v", err)
 	}
 	for _, s := range sensors {
-		check, err := utils.ParseCommandArgs(s.CheckExec)
+		check, err := commands.ParseCommandArgs(s.CheckExec)
 		if err != nil {
 			return nil, err
 		}
