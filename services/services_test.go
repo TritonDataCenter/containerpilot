@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"os/exec"
 	"reflect"
 	"testing"
 
@@ -10,15 +9,15 @@ import (
 )
 
 func TestHealthCheck(t *testing.T) {
-	cmd1 := commands.StrToCmd("./testdata/test.sh doStuff --debug")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "")
 	service := &Service{
 		healthCheckCmd: cmd1,
 	}
-	if _, err := service.CheckHealth(); err != nil {
+	if err := service.CheckHealth(); err != nil {
 		t.Errorf("Unexpected error CheckHealth: %s", err)
 	}
 	// Ensure we can run it more than once
-	if _, err := service.CheckHealth(); err != nil {
+	if err := service.CheckHealth(); err != nil {
 		t.Errorf("Unexpected error CheckHealth (x2): %s", err)
 	}
 }
@@ -33,7 +32,7 @@ func TestServiceParse(t *testing.T) {
   "name": "serviceA",
   "port": 8080,
   "interfaces": "eth0",
-  "health": "/bin/to/healthcheck/for/service/A.sh",
+  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
   "poll": 30,
   "ttl": 19,
   "tags": ["tag1","tag2"]
@@ -42,7 +41,7 @@ func TestServiceParse(t *testing.T) {
   "name": "serviceB",
   "port": 5000,
   "interfaces": ["ethwe","eth0"],
-  "health": "/bin/to/healthcheck/for/service/B.sh",
+  "health": "/bin/to/healthcheck/for/service/B.sh B1 B2",
   "poll": 30,
   "ttl": 103
 }
@@ -50,10 +49,14 @@ func TestServiceParse(t *testing.T) {
 	if services, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err != nil {
 		t.Fatalf("Could not parse service JSON: %s", err)
 	} else {
-		validateCommandParsed(t, "health", services[0].healthCheckCmd,
-			[]string{"/bin/to/healthcheck/for/service/A.sh"})
-		validateCommandParsed(t, "health", services[1].healthCheckCmd,
-			[]string{"/bin/to/healthcheck/for/service/B.sh"})
+		validateCommandParsed(t, "health",
+			services[0].healthCheckCmd,
+			"/bin/to/healthcheck/for/service/A.sh",
+			[]string{"A1", "A2"})
+		validateCommandParsed(t, "health",
+			services[1].healthCheckCmd,
+			"/bin/to/healthcheck/for/service/B.sh",
+			[]string{"B1", "B2"})
 	}
 }
 
@@ -68,20 +71,15 @@ func decodeJSONRawService(t *testing.T, testJSON json.RawMessage) []interface{} 
 	return raw
 }
 
-func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
-	if expected == nil {
-		if parsed != nil {
-			t.Errorf("%s has Cmd, but expected nil", name)
-		}
-		return
-	}
+func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
+	expectedExec string, expectedArgs []string) {
 	if parsed == nil {
 		t.Errorf("%s not configured", name)
 	}
-	if parsed.Path != expected[0] {
-		t.Errorf("%s path not configured: %s != %s", name, parsed.Path, expected[0])
+	if !reflect.DeepEqual(parsed.Exec, expectedExec) {
+		t.Errorf("%s executable not configured: %s != %s", name, parsed.Exec, expectedExec)
 	}
-	if !reflect.DeepEqual(parsed.Args, expected) {
-		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expected)
+	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
+		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
 	}
 }
