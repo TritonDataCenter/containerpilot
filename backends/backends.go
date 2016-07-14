@@ -2,7 +2,6 @@ package backends
 
 import (
 	"fmt"
-	"os/exec"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -19,7 +18,7 @@ type Backend struct {
 	Tag              string      `mapstructure:"tag"`
 	discoveryService discovery.ServiceBackend
 	lastState        interface{}
-	onChangeCmd      *exec.Cmd
+	onChangeCmd      *commands.Command
 }
 
 // NewBackends creates a new backend from a raw config structure
@@ -35,15 +34,20 @@ func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, 
 		if err := utils.ValidateServiceName(b.Name); err != nil {
 			return nil, err
 		}
-		cmd, err := commands.ParseCommandArgs(b.OnChangeExec)
+		if b.OnChangeExec == nil {
+			return nil, fmt.Errorf("`onChange` is required in backend %s",
+				b.Name)
+		}
+
+		// TODO: add field to Backend to pass to timeout here
+		cmd, err := commands.NewCommand(b.OnChangeExec, "0")
 		if err != nil {
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
 				b.Name, err)
 		}
-		if cmd == nil {
-			return nil, fmt.Errorf("`onChange` is required in backend %s",
-				b.Name)
-		}
+		cmd.Name = fmt.Sprintf("%s.health", b.Name)
+		b.onChangeCmd = cmd
+
 		if b.Poll < 1 {
 			return nil, fmt.Errorf("`poll` must be > 0 in backend %s",
 				b.Name)
@@ -81,12 +85,7 @@ func (b *Backend) CheckForUpstreamChanges() bool {
 }
 
 // OnChange runs the backend's onChange command, returning the results
-func (b *Backend) OnChange() (int, error) {
-	defer func() {
-		// reset command object because it can't be reused
-		b.onChangeCmd = commands.ArgsToCmd(b.onChangeCmd.Args)
-	}()
-
-	exitCode, err := commands.RunWithFields(b.onChangeCmd, log.Fields{"process": "OnChange", "backend": b.Name})
-	return exitCode, err
+func (b *Backend) OnChange() error {
+	return b.onChangeCmd.RunWithTimeout(log.Fields{
+		"process": "onChange", "backend": b.Name})
 }
