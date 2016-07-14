@@ -25,10 +25,10 @@ the prometheus handler and then check the results of a GET.
 func TestSensorPollAction(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-
+	cmd, _ := commands.NewCommand("./testdata/test.sh measureStuff", "0")
 	sensor := &Sensor{
 		Type:     "counter",
-		checkCmd: commands.StrToCmd("./testdata/test.sh measureStuff"),
+		checkCmd: cmd,
 		collector: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "telemetry",
 			Subsystem: "sensors",
@@ -44,16 +44,14 @@ func TestSensorPollAction(t *testing.T) {
 }
 
 func TestSensorBadPollAction(t *testing.T) {
-	sensor := &Sensor{
-		checkCmd: commands.StrToCmd("./testdata/doesNotExist.sh"),
-	}
+	cmd, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0")
+	sensor := &Sensor{checkCmd: cmd}
 	sensor.PollAction() // logs but no crash
 }
 
 func TestSensorBadRecord(t *testing.T) {
-	sensor := &Sensor{
-		checkCmd: commands.StrToCmd("./testdata/test.sh doStuff --debug"),
-	}
+	cmd, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "0")
+	sensor := &Sensor{checkCmd: cmd}
 	sensor.PollAction() // logs but no crash
 }
 
@@ -218,7 +216,7 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 
 func TestSensorObserve(t *testing.T) {
 
-	cmd1 := commands.StrToCmd("./testdata/test.sh doStuff --debug")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "0")
 	sensor := &Sensor{checkCmd: cmd1}
 	if val, err := sensor.observe(); err != nil {
 		t.Fatalf("Unexpected error from sensor check: %s", err)
@@ -232,7 +230,7 @@ func TestSensorObserve(t *testing.T) {
 	}
 
 	// Ensure bad commands return error
-	cmd2 := commands.StrToCmd("./testdata/doesNotExist.sh")
+	cmd2, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0")
 	sensor = &Sensor{checkCmd: cmd2}
 	if val, err := sensor.observe(); err == nil {
 		t.Fatalf("Expected error from sensor check but got %s", val)
@@ -288,7 +286,8 @@ func TestSensorBadType(t *testing.T) {
 	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "TestSensorBadType",
-	"type": "nonsense"}]`)
+	"type": "nonsense",
+	"check": "true"}]`)
 
 	if sensors, err := NewSensors(decodeJSONRawSensor(t, jsonFragment)); err == nil {
 		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
@@ -301,7 +300,8 @@ func TestSensorBadName(t *testing.T) {
 	"namespace": "telemetry",
 	"subsystem": "sensors",
 	"name": "Test.Sensor.Bad.Name",
-	"type": "counter"}]`)
+	"type": "counter",
+	"check": "true"}]`)
 
 	if sensors, err := NewSensors(decodeJSONRawSensor(t, jsonFragment)); err == nil {
 		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
@@ -317,7 +317,8 @@ func TestSensorPartialName(t *testing.T) {
 	jsonFragment := []byte(`[{
 	"name": "telemetry_sensors_partial_name",
 	"help": "help text",
-	"type": "counter"}]`)
+	"type": "counter",
+	"check": "true"}]`)
 	sensor := parseSensors(t, jsonFragment)[0]
 	if _, ok := sensor.collector.(prometheus.Counter); !ok {
 		t.Fatalf("Incorrect collector; expected Counter but got %v", sensor.collector)

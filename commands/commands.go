@@ -2,6 +2,7 @@ package commands
 
 import (
 	"io"
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -57,19 +58,8 @@ func getTimeout(timeoutFmt string) (time.Duration, error) {
 
 // RunAndWait runs the given command and blocks until completed
 func (c *Command) RunAndWait(fields log.Fields) (int, error) {
-	cmd := ArgsToCommand(c.Exec, c.Args)
-	if cmd == nil {
-		return 0, nil
-	}
-	if fields != nil {
-		stdout := utils.NewLogWriter(fields, log.InfoLevel)
-		stderr := utils.NewLogWriter(fields, log.DebugLevel)
-		c.logWriters = []io.WriteCloser{stdout, stderr}
-		cmd.Stdout = stdout
-		cmd.Stderr = stderr
-	}
-	c.Cmd = cmd
-	if err := cmd.Run(); err != nil {
+	c.setUpCmd(fields)
+	if err := c.Cmd.Run(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				return status.ExitStatus(), err
@@ -85,23 +75,30 @@ func (c *Command) RunAndWait(fields log.Fields) (int, error) {
 	return 0, nil
 }
 
+// RunAndWaitForOutput runs the given command and blocks until
+// completed, then returns the stdout
+func (c *Command) RunAndWaitForOutput() (string, error) {
+	c.setUpCmd(nil)
+
+	// we'll pass stderr to the container's stderr, but stdout must
+	// be "clean" and not have anything other than what we intend
+	// to write to our collector.
+	c.Cmd.Stderr = os.Stderr
+	out, err := c.Cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out[:]), nil
+}
+
 // RunWithTimeout runs the given command and blocks until completed
 // or until the timeout expires
 func (c *Command) RunWithTimeout(fields log.Fields) error {
 	log.Debugf("%s.RunWithTimeout start", c.Name)
-	cmd := ArgsToCommand(c.Exec, c.Args)
-	c.Cmd = cmd
-	if fields == nil {
-		fields = log.Fields{}
-	}
-	stdout := utils.NewLogWriter(fields, log.InfoLevel)
-	stderr := utils.NewLogWriter(fields, log.DebugLevel)
-	c.logWriters = []io.WriteCloser{stdout, stderr}
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	c.setUpCmd(fields)
 	defer c.closeLogs()
 	log.Debugf("%s.Cmd.Start", c.Name)
-	if err := cmd.Start(); err != nil {
+	if err := c.Cmd.Start(); err != nil {
 		log.Errorf("Unable to start %s: %v", c.Name, err)
 		return err
 	}
@@ -109,6 +106,18 @@ func (c *Command) RunWithTimeout(fields log.Fields) error {
 	err := c.waitForTimeout()
 	log.Debugf("%s.RunWithTimeout start", c.Name)
 	return err
+}
+
+func (c *Command) setUpCmd(fields log.Fields) {
+	cmd := ArgsToCommand(c.Exec, c.Args)
+	if fields != nil {
+		stdout := utils.NewLogWriter(fields, log.InfoLevel)
+		stderr := utils.NewLogWriter(fields, log.DebugLevel)
+		c.logWriters = []io.WriteCloser{stdout, stderr}
+		cmd.Stdout = stdout
+		cmd.Stderr = stderr
+	}
+	c.Cmd = cmd
 }
 
 // Kill sends a kill signal to the underlying process.
