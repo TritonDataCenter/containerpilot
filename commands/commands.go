@@ -56,10 +56,17 @@ func getTimeout(timeoutFmt string) (time.Duration, error) {
 }
 
 // RunAndWait runs the given command and blocks until completed
-func (c *Command) RunAndWait() (int, error) {
+func (c *Command) RunAndWait(fields log.Fields) (int, error) {
 	cmd := ArgsToCommand(c.Exec, c.Args)
 	if cmd == nil {
 		return 0, nil
+	}
+	if fields != nil {
+		stdout := utils.NewLogWriter(fields, log.InfoLevel)
+		stderr := utils.NewLogWriter(fields, log.DebugLevel)
+		c.logWriters = []io.WriteCloser{stdout, stderr}
+		cmd.Stdout = stdout
+		cmd.Stderr = stderr
 	}
 	c.Cmd = cmd
 	if err := cmd.Run(); err != nil {
@@ -104,7 +111,8 @@ func (c *Command) RunWithTimeout(fields log.Fields) error {
 	return err
 }
 
-func (c *Command) kill() error {
+// Kill sends a kill signal to the underlying process.
+func (c *Command) Kill() error {
 	log.Debugf("%s.kill", c.Name)
 	if c.Cmd != nil && c.Cmd.Process != nil {
 		log.Warnf("killing command at pid: %d", c.Cmd.Process.Pid)
@@ -130,7 +138,7 @@ func (c *Command) waitForTimeout() error {
 			select {
 			case <-ticker.C:
 				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
-				if err := c.kill(); err != nil {
+				if err := c.Kill(); err != nil {
 					log.Errorf("error killing command: %v", err)
 					return
 				}

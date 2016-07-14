@@ -2,8 +2,6 @@ package coprocesses
 
 import (
 	"fmt"
-	"io"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -24,12 +22,10 @@ type Coprocess struct {
 	Command  interface{} `mapstructure:"command"`
 	Restarts interface{} `mapstructure:"restarts"`
 
-	Args           []string
 	restart        bool
 	restartLimit   int
 	restartsRemain int
-	cmd            *exec.Cmd
-	logWriters     []io.WriteCloser
+	cmd            *commands.Command
 }
 
 // NewCoprocesses parses json config into an array of Coprocesses
@@ -52,21 +48,20 @@ func NewCoprocesses(raw []interface{}) ([]*Coprocess, error) {
 }
 
 func parseCoprocess(coprocess *Coprocess) error {
-	args, err := utils.ToStringArray(coprocess.Command)
-	if err != nil {
-		return err
-	}
-	coprocess.Args = args
-	if coprocess.Args == nil || len(coprocess.Args) == 0 {
+	if coprocess.Command == nil {
 		return fmt.Errorf("Coprocess did not provide a command")
 	}
-	cmd := commands.ArgsToCmd(coprocess.Args)
-	coprocess.cmd = cmd
-
-	if coprocess.Name == "" {
-		coprocess.Name = strings.Join(coprocess.Args, " ")
+	cmd, err := commands.NewCommand(coprocess.Command, "0")
+	if err != nil {
+		return fmt.Errorf("Could not parse `coprocess` command %s: %s",
+			coprocess.Name, err)
 	}
-
+	if coprocess.Name == "" {
+		args := append([]string{cmd.Exec}, cmd.Args...)
+		coprocess.Name = strings.Join(args, " ")
+	}
+	cmd.Name = fmt.Sprintf("coprocess[%s]", coprocess.Name)
+	coprocess.cmd = cmd
 	return parseCoprocessRestarts(coprocess)
 }
 
@@ -111,59 +106,38 @@ func parseCoprocessRestarts(coprocess *Coprocess) error {
 		return fmt.Errorf(msg, coprocess.Restarts)
 	}
 
-	coprocess.restart = coprocess.restartLimit > 0 || coprocess.restartLimit == unlimitedRestarts
+	coprocess.restart = (coprocess.restartLimit > 0 ||
+		coprocess.restartLimit == unlimitedRestarts)
 	coprocess.restartsRemain = coprocess.restartLimit
 	return nil
 }
 
 // Start runs the coprocess
-func (coprocess *Coprocess) Start() {
-	log.Debugf("coprocess[%s].Start", coprocess.Name)
-	fields := log.Fields{"process": "coprocess", "coprocess": coprocess.Name}
-	stdout := utils.NewLogWriter(fields, log.InfoLevel)
-	stderr := utils.NewLogWriter(fields, log.DebugLevel)
-	coprocess.logWriters = []io.WriteCloser{stdout, stderr}
-	defer coprocess.closeLogs()
+func (c *Coprocess) Start() {
+	log.Debugf("coprocess[%s].Start", c.Name)
+	fields := log.Fields{"process": "coprocess", "coprocess": c.Name}
 
 	// always reset restartsRemain when we load the config
-	coprocess.restartsRemain = coprocess.restartLimit
+	c.restartsRemain = c.restartLimit
 	for {
-		if coprocess.restartLimit != unlimitedRestarts &&
-			coprocess.restartsRemain <= haltRestarts {
+		if c.restartLimit != unlimitedRestarts &&
+			c.restartsRemain <= haltRestarts {
 			break
 		}
-		cmd := commands.ArgsToCmd(coprocess.Args)
-		coprocess.cmd = cmd
-		cmd.Stdout = stdout
-		cmd.Stderr = stderr
-		if _, err := commands.ExecuteAndWait(cmd); err != nil {
-			log.Errorf("coprocess[%s] exited: %s", coprocess.Name, err)
+		if code, err := c.cmd.RunAndWait(fields); err != nil {
+			log.Errorf("coprocess[%s] exited (%s): %s", c.Name, code, err)
 		}
-		log.Debugf("coprocess[%s] exited", coprocess.Name)
-		if !coprocess.restart {
+		log.Debugf("coprocess[%s] exited", c.Name)
+		if !c.restart {
 			break
 		}
-		coprocess.restartsRemain--
+		c.restartsRemain--
 	}
 }
 
 // Stop kills a running coprocess
-func (coprocess *Coprocess) Stop() {
-	log.Debugf("coprocess[%s].Stop", coprocess.Name)
-	coprocess.restartsRemain = haltRestarts
-	if coprocess.cmd != nil && coprocess.cmd.Process != nil {
-		log.Warnf("Killing coprocess %s: %d", coprocess.Name, coprocess.cmd.Process.Pid)
-		coprocess.cmd.Process.Kill()
-	}
-}
-
-func (coprocess *Coprocess) closeLogs() {
-	if coprocess.logWriters == nil {
-		return
-	}
-	for _, w := range coprocess.logWriters {
-		if err := w.Close(); err != nil {
-			log.Errorf("Unable to close log writer : %v", err)
-		}
-	}
+func (c *Coprocess) Stop() {
+	log.Debugf("coprocess[%s].Stop", c.Name)
+	c.restartsRemain = haltRestarts
+	c.cmd.Kill()
 }
