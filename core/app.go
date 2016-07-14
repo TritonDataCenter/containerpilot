@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"syscall"
@@ -38,10 +37,10 @@ type App struct {
 	Tasks          []*tasks.Task
 	Coprocesses    []*coprocesses.Coprocess
 	Telemetry      *telemetry.Telemetry
-	PreStartCmd    *exec.Cmd
-	PreStopCmd     *exec.Cmd
-	PostStopCmd    *exec.Cmd
-	Command        *exec.Cmd
+	PreStartCmd    *commands.Command
+	PreStopCmd     *commands.Command
+	PostStopCmd    *commands.Command
+	Command        *commands.Command
 	StopTimeout    int
 	QuitChannels   []chan bool
 	maintModeLock  *sync.RWMutex
@@ -132,32 +131,38 @@ func (a *App) Run() {
 		reapChildren()
 	}
 	args := getArgs(flag.Args())
-	command, err := commands.ParseCommandArgs(args)
+	cmd, err := commands.NewCommand(args, "0")
 	if err != nil {
 		log.Errorf("Unable to parse command arguments: %v", err)
 	}
+	a.Command = cmd
+
 	a.handleSignals()
-	// Run the preStart handler, if any, and exit if it returns an error
-	if preStartCode, err := commands.RunWithFields(a.PreStartCmd, log.Fields{"process": "PreStart"}); err != nil {
-		os.Exit(preStartCode)
+
+	if a.PreStartCmd != nil {
+		// Run the preStart handler, if any, and exit if it returns an error
+		fields := log.Fields{"process": "PreStart"}
+		if code, err := a.PreStartCmd.RunAndWait(fields); err != nil {
+			os.Exit(code)
+		}
 	}
 	a.handleCoprocesses()
 	a.handlePolling()
 
-	if len(args) != 0 {
+	if a.Command != nil {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		a.Command = command
-		command.Stderr = os.Stderr
-		command.Stdout = os.Stdout
-		code, err := commands.ExecuteAndWait(command)
+		code, err := a.Command.RunAndWait(nil)
 		if err != nil {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
-		if postStopCode, err := commands.RunWithFields(a.PostStopCmd, log.Fields{"process": "PostStop"}); err != nil {
-			os.Exit(postStopCode)
+		if a.PostStopCmd != nil {
+			fields := log.Fields{"process": "PostStop"}
+			if postStopCode, err := a.PostStopCmd.RunAndWait(fields); err != nil {
+				os.Exit(postStopCode)
+			}
 		}
 		os.Exit(code)
 	}
@@ -212,13 +217,15 @@ func (a *App) Terminate() {
 	a.forAllServices(deregisterService)
 
 	// Run and wait for preStop command to exit
-	commands.RunWithFields(a.PreStopCmd, log.Fields{"process": "PreStop"})
-
-	cmd := a.Command
-	if cmd == nil || cmd.Process == nil {
+	if a.PreStopCmd != nil {
+		a.PreStopCmd.RunAndWait(log.Fields{"process": "PreStop"})
+	}
+	if a.Command == nil || a.Command.Cmd == nil ||
+		a.Command.Cmd.Process == nil {
 		// Not managing the process, so don't do anything
 		return
 	}
+	cmd := a.Command.Cmd // get the underlying process
 	if a.StopTimeout > 0 {
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			log.Warnf("Error sending SIGTERM to application: %s", err)
@@ -230,7 +237,7 @@ func (a *App) Terminate() {
 			return
 		}
 	}
-	log.Infof("Killing Process %#v", a.Command.Process)
+	log.Infof("Killing Process %#v", a.Command.Cmd.Process)
 	cmd.Process.Kill()
 }
 

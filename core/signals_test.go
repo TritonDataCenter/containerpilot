@@ -29,9 +29,10 @@ func getSignalTestConfig() *App {
 	service, _ := services.NewService(
 		"test-service", 1, 1, 1, nil, nil, &NoopServiceBackend{})
 	app := EmptyApp()
-	app.Command = commands.ArgsToCmd([]string{
+	cmd, _ := commands.NewCommand([]string{
 		"./testdata/test.sh",
-		"interruptSleep"})
+		"interruptSleep"}, "0")
+	app.Command = cmd
 	app.StopTimeout = 5
 	app.Services = []*services.Service{service}
 	return app
@@ -66,7 +67,7 @@ func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig()
 	startTime := time.Now()
 	go func() {
-		if exitCode, _ := commands.ExecuteAndWait(app.Command); exitCode != 2 {
+		if exitCode, _ := app.Command.RunAndWait(nil); exitCode != 2 {
 			t.Fatalf("Expected exit code 2 but got %d", exitCode)
 		}
 	}()

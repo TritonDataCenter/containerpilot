@@ -58,7 +58,9 @@ func getTimeout(timeoutFmt string) (time.Duration, error) {
 
 // RunAndWait runs the given command and blocks until completed
 func (c *Command) RunAndWait(fields log.Fields) (int, error) {
+	log.Debugf("%s.RunAndWait start", c.Name)
 	c.setUpCmd(fields)
+	log.Debugf("%s.Cmd.Run", c.Name)
 	if err := c.Cmd.Run(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
@@ -72,22 +74,26 @@ func (c *Command) RunAndWait(fields log.Fields) (int, error) {
 		log.Errorln(err)
 		return 1, err
 	}
+	log.Debugf("%s.RunAndWait end", c.Name)
 	return 0, nil
 }
 
 // RunAndWaitForOutput runs the given command and blocks until
 // completed, then returns the stdout
 func (c *Command) RunAndWaitForOutput() (string, error) {
+	log.Debugf("%s.RunAndWaitForOutput start", c.Name)
 	c.setUpCmd(nil)
 
 	// we'll pass stderr to the container's stderr, but stdout must
 	// be "clean" and not have anything other than what we intend
 	// to write to our collector.
 	c.Cmd.Stderr = os.Stderr
+	log.Debugf("%s.Cmd.Output", c.Name)
 	out, err := c.Cmd.Output()
 	if err != nil {
 		return "", err
 	}
+	log.Debugf("%s.RunAndWaitForOutput end", c.Name)
 	return string(out[:]), nil
 }
 
@@ -104,7 +110,7 @@ func (c *Command) RunWithTimeout(fields log.Fields) error {
 	}
 
 	err := c.waitForTimeout()
-	log.Debugf("%s.RunWithTimeout start", c.Name)
+	log.Debugf("%s.RunWithTimeout end", c.Name)
 	return err
 }
 

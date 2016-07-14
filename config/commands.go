@@ -2,13 +2,12 @@ package config
 
 import (
 	"fmt"
-	"os/exec"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 )
 
-func (cfg *rawConfig) parsePreStart() (*exec.Cmd, error) {
+func (cfg *rawConfig) parsePreStart() (*commands.Command, error) {
 	// onStart has been deprecated for preStart. Remove in 2.0
 	if cfg.preStart != nil && cfg.onStart != nil {
 		log.Warnf("The onStart option has been deprecated in favor of preStart. ContainerPilot will use only the preStart option provided")
@@ -22,18 +21,22 @@ func (cfg *rawConfig) parsePreStart() (*exec.Cmd, error) {
 	return parseCommand("preStart", cfg.preStart)
 }
 
-func (cfg *rawConfig) parsePreStop() (*exec.Cmd, error) {
+func (cfg *rawConfig) parsePreStop() (*commands.Command, error) {
 	return parseCommand("preStop", cfg.preStop)
 }
 
-func (cfg *rawConfig) parsePostStop() (*exec.Cmd, error) {
+func (cfg *rawConfig) parsePostStop() (*commands.Command, error) {
 	return parseCommand("postStop", cfg.postStop)
 }
 
-func parseCommand(name string, args interface{}) (*exec.Cmd, error) {
-	cmd, err := commands.ParseCommandArgs(args)
+func parseCommand(name string, args interface{}) (*commands.Command, error) {
+	if args == nil {
+		return nil, nil
+	}
+	cmd, err := commands.NewCommand(args, "0")
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `%s`: %s", name, err)
 	}
+	cmd.Name = name
 	return cmd, nil
 }
