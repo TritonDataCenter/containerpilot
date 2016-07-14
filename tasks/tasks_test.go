@@ -62,7 +62,7 @@ func TestTaskParseDuration(t *testing.T) {
 	}
 	expectNoParseError(t, task)
 	expectDuration(t, task.freqDuration, "1ms")
-	expectDuration(t, task.timeoutDuration, "1ms")
+	expectDuration(t, task.cmd.TimeoutDuration, "1ms")
 
 	task = &Task{
 		Command:   []string{"/usr/bin/true"},
@@ -71,7 +71,7 @@ func TestTaskParseDuration(t *testing.T) {
 	}
 	expectNoParseError(t, task)
 	expectDuration(t, task.freqDuration, "10s")
-	expectDuration(t, task.timeoutDuration, "10s")
+	expectDuration(t, task.cmd.TimeoutDuration, "10s")
 
 	task = &Task{
 		Command:   []string{"/usr/bin/true"},
@@ -80,7 +80,7 @@ func TestTaskParseDuration(t *testing.T) {
 	}
 	expectNoParseError(t, task)
 	expectDuration(t, task.freqDuration, "10s")
-	expectDuration(t, task.timeoutDuration, "1s")
+	expectDuration(t, task.cmd.TimeoutDuration, "1s")
 
 	task.Frequency = "-1ms"
 	expectParseError(t, task, "Frequency -1ms cannot be less that 1ms")

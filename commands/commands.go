@@ -18,7 +18,7 @@ type Command struct {
 	Exec            string
 	Args            []string
 	Timeout         string
-	timeoutDuration time.Duration
+	TimeoutDuration time.Duration
 	ticker          *time.Ticker
 	logWriters      []io.WriteCloser
 }
@@ -38,7 +38,7 @@ func NewCommand(rawArgs interface{}, timeoutFmt string) (*Command, error) {
 		Exec:            exec,
 		Args:            args,
 		Timeout:         timeoutFmt,
-		timeoutDuration: timeout,
+		TimeoutDuration: timeout,
 	} // cmd, ticker, logWriters all created at RunAndWait or RunWithTimeout
 	return cmd, nil
 }
@@ -137,11 +137,11 @@ func (c *Command) waitForTimeout() error {
 
 	// for commands that don't have a timeout we just block forever;
 	// this is required for backwards compat.
-	doTimeout := c.timeoutDuration != time.Duration(0)
+	doTimeout := c.TimeoutDuration != time.Duration(0)
 	if doTimeout {
 		// wrap a timer in a goroutine and kill the child process
 		// if the timer expires
-		ticker := time.NewTicker(c.timeoutDuration)
+		ticker := time.NewTicker(c.TimeoutDuration)
 		go func() {
 			defer ticker.Stop()
 			select {
