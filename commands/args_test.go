@@ -1,57 +1,48 @@
 package commands
 
 import (
-	"os/exec"
+	"errors"
 	"reflect"
 	"testing"
 )
 
-func TestParseCommandArgs(t *testing.T) {
-	if cmd, err := ParseCommandArgs(nil); err == nil {
-		validateCommandParsed(t, "command", cmd, nil)
-	} else {
-		t.Errorf("Unexpected parse error: %s", err.Error())
-	}
+func TestParseArgs(t *testing.T) {
 
-	expected := []string{"/testdata/test.sh", "arg1"}
-	if cmd, err := ParseCommandArgs("/testdata/test.sh arg1"); err == nil {
-		validateCommandParsed(t, "string", cmd, expected)
-	} else {
-		t.Errorf("Unexpected parse error string: %s", err.Error())
-	}
+	// nil args should return error
+	exec, args, err := ParseArgs(nil)
+	validateParsing(t, exec, "", args, nil,
+		err, errors.New("received zero-length argument"))
 
-	if cmd, err := ParseCommandArgs([]string{"/testdata/test.sh", "arg1"}); err == nil {
-		validateCommandParsed(t, "[]string", cmd, expected)
-	} else {
-		t.Errorf("Unexpected parse error []string: %s", err.Error())
-	}
+	// string args ok
+	exec, args, err = ParseArgs("/testdata/test.sh arg1")
+	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg1"}, err, nil)
 
-	if cmd, err := ParseCommandArgs([]interface{}{"/testdata/test.sh", "arg1"}); err == nil {
-		validateCommandParsed(t, "[]interface{}", cmd, expected)
-	} else {
-		t.Errorf("Unexpected parse error []interface{}: %s", err.Error())
-	}
+	// array args ok
+	exec, args, err = ParseArgs([]string{"/testdata/test.sh", "arg1"})
+	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg1"}, err, nil)
 
-	if _, err := ParseCommandArgs(map[string]bool{"a": true}); err == nil {
-		t.Errorf("Expected parse error for invalid")
-	}
+	// interface args ok
+	exec, args, err = ParseArgs([]interface{}{"/testdata/test.sh", "arg1"})
+	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg1"}, err, nil)
 
+	// map of bools args return error
+	exec, args, err = ParseArgs([]bool{true})
+	validateParsing(t, exec, "", args, nil,
+		err, errors.New("received zero-length argument"))
 }
 
-func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
-	if expected == nil {
-		if parsed != nil {
-			t.Errorf("%s has Cmd, but expected nil", name)
-		}
+func validateParsing(t *testing.T, exec, expectedExec string,
+	args, expectedArgs []string, err, expectedErr error) {
+	if !reflect.DeepEqual(err, expectedErr) { //}err != expectedErr {
+		t.Errorf("expected %s but got %s", expectedErr, err)
 		return
 	}
-	if parsed == nil {
-		t.Errorf("%s not configured", name)
+	if exec != expectedExec {
+		t.Errorf("executable not parsed: %s != %s", exec, expectedExec)
+		return
 	}
-	if parsed.Path != expected[0] {
-		t.Errorf("%s path not configured: %s != %s", name, parsed.Path, expected[0])
-	}
-	if !reflect.DeepEqual(parsed.Args, expected) {
-		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expected)
+	if !reflect.DeepEqual(args, expectedArgs) {
+		t.Errorf("args not parsed: %s != %s", args, expectedArgs)
+		return
 	}
 }

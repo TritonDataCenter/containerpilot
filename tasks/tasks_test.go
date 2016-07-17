@@ -165,7 +165,7 @@ func TestScheduledTaskTimeoutConfig(t *testing.T) {
 	}
 	content, err := ioutil.ReadAll(tmpf)
 	if err != nil {
-		t.Fatalf("Unexpeced error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	if !reflect.DeepEqual(expected, content) {
 		t.Errorf("Expected %s but got %s", expected, content)

@@ -115,7 +115,7 @@ func (c *Command) RunWithTimeout(fields log.Fields) error {
 }
 
 func (c *Command) setUpCmd(fields log.Fields) {
-	cmd := ArgsToCommand(c.Exec, c.Args)
+	cmd := ArgsToCmd(c.Exec, c.Args)
 	if fields != nil {
 		stdout := utils.NewLogWriter(fields, log.InfoLevel)
 		stderr := utils.NewLogWriter(fields, log.DebugLevel)
