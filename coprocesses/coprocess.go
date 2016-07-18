@@ -146,9 +146,9 @@ func (coprocess *Coprocess) Start() {
 	}
 }
 
-// Stops the coprocess from being restarted if it dies
-func (coprocess *Coprocess) SuspendRestart() {
-	coprocess.restart = false
+// Sets whether a process from being restarted if it dies ignoring restart count
+func (coprocess *Coprocess) ShouldRestart(shouldRestart bool) {
+	coprocess.restart = shouldRestart
 } 
 
 // Stop kills a running coprocess

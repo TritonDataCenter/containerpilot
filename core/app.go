@@ -211,7 +211,7 @@ func (a *App) Terminate() {
 	a.stopPolling()
 	a.forAllServices(deregisterService)
 	for _, coprocess := range a.Coprocesses {
-		coprocess.SuspendRestart()
+		coprocess.ShouldRestart(false)
 	}
 
 	// Run and wait for preStop command to exit
