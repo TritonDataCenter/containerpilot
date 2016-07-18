@@ -67,7 +67,7 @@ func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig()
 	startTime := time.Now()
 	go func() {
-		if exitCode, _ := app.Command.RunAndWait(nil); exitCode != 2 {
+		if exitCode, _ := commands.RunAndWait(app.Command, nil); exitCode != 2 {
 			t.Fatalf("Expected exit code 2 but got %d", exitCode)
 		}
 	}()

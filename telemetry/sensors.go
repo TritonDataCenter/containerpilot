@@ -47,7 +47,7 @@ func (s *Sensor) PollStop() {
 
 // wrapping this func call makes it easier to test
 func (s *Sensor) observe() (string, error) {
-	return s.checkCmd.RunAndWaitForOutput()
+	return commands.RunAndWaitForOutput(s.checkCmd)
 }
 
 func (s Sensor) record(metricValue string) {

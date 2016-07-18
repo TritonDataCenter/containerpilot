@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -57,7 +58,12 @@ func getTimeout(timeoutFmt string) (time.Duration, error) {
 }
 
 // RunAndWait runs the given command and blocks until completed
-func (c *Command) RunAndWait(fields log.Fields) (int, error) {
+func RunAndWait(c *Command, fields log.Fields) (int, error) {
+	if c == nil {
+		// sometimes this will be ok but we should return an error
+		// anyway in case the caller cares
+		return 1, errors.New("Command for RunAndWait was nil")
+	}
 	log.Debugf("%s.RunAndWait start", c.Name)
 	c.setUpCmd(fields)
 	log.Debugf("%s.Cmd.Run", c.Name)
@@ -80,7 +86,12 @@ func (c *Command) RunAndWait(fields log.Fields) (int, error) {
 
 // RunAndWaitForOutput runs the given command and blocks until
 // completed, then returns the stdout
-func (c *Command) RunAndWaitForOutput() (string, error) {
+func RunAndWaitForOutput(c *Command) (string, error) {
+	if c == nil {
+		// sometimes this will be ok but we should return an error
+		// anyway in case the caller cares
+		return "", errors.New("Command for RunAndWaitForOutput was nil")
+	}
 	log.Debugf("%s.RunAndWaitForOutput start", c.Name)
 	c.setUpCmd(nil)
 
@@ -99,7 +110,12 @@ func (c *Command) RunAndWaitForOutput() (string, error) {
 
 // RunWithTimeout runs the given command and blocks until completed
 // or until the timeout expires
-func (c *Command) RunWithTimeout(fields log.Fields) error {
+func RunWithTimeout(c *Command, fields log.Fields) error {
+	if c == nil {
+		// sometimes this will be ok but we should return an error
+		// anyway in case the caller cares
+		return errors.New("Command for RunWithTimeout was nil")
+	}
 	log.Debugf("%s.RunWithTimeout start", c.Name)
 	c.setUpCmd(fields)
 	defer c.closeLogs()

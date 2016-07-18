@@ -86,6 +86,6 @@ func (b *Backend) CheckForUpstreamChanges() bool {
 
 // OnChange runs the backend's onChange command, returning the results
 func (b *Backend) OnChange() error {
-	return b.onChangeCmd.RunWithTimeout(log.Fields{
+	return commands.RunWithTimeout(b.onChangeCmd, log.Fields{
 		"process": "onChange", "backend": b.Name})
 }

@@ -155,6 +155,6 @@ func (s *Service) CheckHealth() error {
 	if s.healthCheckCmd == nil {
 		return nil
 	}
-	return s.healthCheckCmd.RunWithTimeout(log.Fields{
+	return commands.RunWithTimeout(s.healthCheckCmd, log.Fields{
 		"process": "health", "serviceName": s.Name, "serviceID": s.ID})
 }

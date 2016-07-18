@@ -142,7 +142,7 @@ func (a *App) Run() {
 	if a.PreStartCmd != nil {
 		// Run the preStart handler, if any, and exit if it returns an error
 		fields := log.Fields{"process": "PreStart"}
-		if code, err := a.PreStartCmd.RunAndWait(fields); err != nil {
+		if code, err := commands.RunAndWait(a.PreStartCmd, fields); err != nil {
 			os.Exit(code)
 		}
 	}
@@ -153,14 +153,14 @@ func (a *App) Run() {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		code, err := a.Command.RunAndWait(nil)
+		code, err := commands.RunAndWait(a.Command, nil)
 		if err != nil {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
 		if a.PostStopCmd != nil {
 			fields := log.Fields{"process": "PostStop"}
-			if postStopCode, err := a.PostStopCmd.RunAndWait(fields); err != nil {
+			if postStopCode, err := commands.RunAndWait(a.PostStopCmd, fields); err != nil {
 				os.Exit(postStopCode)
 			}
 		}
@@ -216,10 +216,9 @@ func (a *App) Terminate() {
 	a.stopPolling()
 	a.forAllServices(deregisterService)
 
-	// Run and wait for preStop command to exit
-	if a.PreStopCmd != nil {
-		a.PreStopCmd.RunAndWait(log.Fields{"process": "PreStop"})
-	}
+	// Run and wait for preStop command to exit (continues
+	// unconditionally so we don't worry about returned errors here)
+	commands.RunAndWait(a.PreStopCmd, log.Fields{"process": "PreStop"})
 	if a.Command == nil || a.Command.Cmd == nil ||
 		a.Command.Cmd.Process == nil {
 		// Not managing the process, so don't do anything

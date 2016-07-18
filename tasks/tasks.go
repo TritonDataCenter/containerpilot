@@ -82,5 +82,5 @@ func (t *Task) PollStop() {
 // PollAction runs the task
 func (t *Task) PollAction() {
 	fields := log.Fields{"process": "task", "task": t.Name}
-	t.cmd.RunWithTimeout(fields)
+	commands.RunWithTimeout(t.cmd, fields)
 }
