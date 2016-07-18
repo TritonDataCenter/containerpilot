@@ -146,6 +146,10 @@ func (coprocess *Coprocess) Start() {
 	}
 }
 
+func (coprocess *Coprocess) SuspendRestart() {
+	coprocess.restart = false
+} 
+
 // Stop kills a running coprocess
 func (coprocess *Coprocess) Stop() {
 	log.Debugf("coprocess[%s].Stop", coprocess.Name)

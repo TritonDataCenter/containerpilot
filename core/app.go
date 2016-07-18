@@ -210,6 +210,9 @@ func (a *App) Terminate() {
 	defer a.signalLock.Unlock()
 	a.stopPolling()
 	a.forAllServices(deregisterService)
+	for _, coprocess := range a.Coprocesses {
+		coprocess.SuspendRestart()
+	}
 
 	// Run and wait for preStop command to exit
 	utils.RunWithFields(a.PreStopCmd, log.Fields{"process": "PreStop"})
