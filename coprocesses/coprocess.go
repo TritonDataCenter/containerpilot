@@ -146,7 +146,7 @@ func (coprocess *Coprocess) Start() {
 	}
 }
 
-// Sets whether a process from being restarted if it dies ignoring restart count
+// ShouldRestart sets whether a process from being restarted if it dies ignoring restart count
 func (coprocess *Coprocess) ShouldRestart(shouldRestart bool) {
 	coprocess.restart = shouldRestart
 } 
