@@ -146,6 +146,7 @@ func (coprocess *Coprocess) Start() {
 	}
 }
 
+// Stops the coprocess from being restarted if it dies
 func (coprocess *Coprocess) SuspendRestart() {
 	coprocess.restart = false
 } 
