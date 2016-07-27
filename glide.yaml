@@ -1,4 +1,6 @@
 package: github.com/joyent/containerpilot
+homepage: https://www.joyent.com/containerpilot
+license: MPL-2.0
 import:
 - package: github.com/Sirupsen/logrus
   version: ~0.9.0
