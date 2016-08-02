@@ -2,23 +2,22 @@ package backends
 
 import (
 	"encoding/json"
-	"os/exec"
 	"reflect"
 	"testing"
 
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/commands"
 )
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1 := utils.StrToCmd("./testdata/test.sh doStuff --debug")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "")
 	backend := &Backend{
 		onChangeCmd: cmd1,
 	}
-	if _, err := backend.OnChange(); err != nil {
+	if err := backend.OnChange(); err != nil {
 		t.Errorf("Unexpected error OnChange: %s", err)
 	}
 	// Ensure we can run it more than once
-	if _, err := backend.OnChange(); err != nil {
+	if err := backend.OnChange(); err != nil {
 		t.Errorf("Unexpected error OnChange (x2): %s", err)
 	}
 }
@@ -32,13 +31,13 @@ func TestBackendsParse(t *testing.T) {
 {
   "name": "upstreamA",
   "poll": 11,
-  "onChange": "/bin/to/onChangeEvent/for/upstream/A.sh",
+  "onChange": ["/bin/to/onChangeEvent/for/upstream/A.sh", "A1", "A2"],
   "tag": "dev"
 },
 {
   "name": "upstreamB",
   "poll": 79,
-  "onChange": "/bin/to/onChangeEvent/for/upstream/B.sh"
+  "onChange": "/bin/to/onChangeEvent/for/upstream/B.sh B1 B2"
 }
 ]`)
 
@@ -51,29 +50,26 @@ func TestBackendsParse(t *testing.T) {
 		t.Fatalf("Could not parse backends JSON: %s", err)
 	} else {
 		validateCommandParsed(t, "onChange", backends[0].onChangeCmd,
-			[]string{"/bin/to/onChangeEvent/for/upstream/A.sh"})
+			"/bin/to/onChangeEvent/for/upstream/A.sh",
+			[]string{"A1", "A2"})
 		validateCommandParsed(t, "onChange", backends[1].onChangeCmd,
-			[]string{"/bin/to/onChangeEvent/for/upstream/B.sh"})
+			"/bin/to/onChangeEvent/for/upstream/B.sh",
+			[]string{"B1", "B2"})
 	}
 }
 
 // ------------------------------------------
 // test helpers
 
-func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
-	if expected == nil {
-		if parsed != nil {
-			t.Errorf("%s has Cmd, but expected nil", name)
-		}
-		return
-	}
+func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
+	expectedExec string, expectedArgs []string) {
 	if parsed == nil {
 		t.Errorf("%s not configured", name)
 	}
-	if parsed.Path != expected[0] {
-		t.Errorf("%s path not configured: %s != %s", name, parsed.Path, expected[0])
+	if !reflect.DeepEqual(parsed.Exec, expectedExec) {
+		t.Errorf("%s executable not configured: %s != %s", name, parsed.Exec, expectedExec)
 	}
-	if !reflect.DeepEqual(parsed.Args, expected) {
-		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expected)
+	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
+		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
 	}
 }

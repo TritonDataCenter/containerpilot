@@ -3,10 +3,10 @@ package services
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -22,7 +22,7 @@ type Service struct {
 	Interfaces       interface{} `mapstructure:"interfaces"`
 	Tags             []string    `mapstructure:"tags"`
 	IPAddress        string
-	healthCheckCmd   *exec.Cmd
+	healthCheckCmd   *commands.Command
 	discoveryService discovery.ServiceBackend
 	definition       *discovery.ServiceDefinition
 }
@@ -80,11 +80,15 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 
 	// if the HealthCheckExec is nil then we'll have no health check
 	// command; this is useful for the telemetry service
-	cmd, err := utils.ParseCommandArgs(s.HealthCheckExec)
-	if err != nil {
-		return fmt.Errorf("Could not parse `health` in service %s: %s", s.Name, err)
+	if s.HealthCheckExec != nil {
+		// TODO: add field to Services to pass to timeout here
+		cmd, err := commands.NewCommand(s.HealthCheckExec, "0")
+		if err != nil {
+			return fmt.Errorf("Could not parse `health` in service %s: %s", s.Name, err)
+		}
+		cmd.Name = fmt.Sprintf("%s.health", s.Name)
+		s.healthCheckCmd = cmd
 	}
-	s.healthCheckCmd = cmd
 
 	interfaces, ifaceErr := utils.ToStringArray(s.Interfaces)
 	if ifaceErr != nil {
@@ -115,10 +119,10 @@ func (s Service) PollTime() time.Duration {
 }
 
 // PollAction implements Pollable for Service.
-// If the error code returned by CheckHealth is 0, we write a TTL health check
-// to the discovery service.
+// So long as we don't get an error back from CheckHealth, we write a TTL
+// health check to the discovery service.
 func (s *Service) PollAction() {
-	if code, _ := s.CheckHealth(); code == 0 {
+	if err := s.CheckHealth(); err == nil {
 		s.SendHeartbeat()
 	}
 }
@@ -144,20 +148,13 @@ func (s *Service) Deregister() {
 }
 
 // CheckHealth runs the service's health command, returning the results
-func (s *Service) CheckHealth() (int, error) {
-
-	defer func() {
-		// reset command object because it can't be reused
-		if s.healthCheckCmd != nil {
-			s.healthCheckCmd = utils.ArgsToCmd(s.healthCheckCmd.Args)
-		}
-	}()
+func (s *Service) CheckHealth() error {
 
 	// if we have a valid Service but there's no health check
 	// set, assume it always passes (ex. telemetry service).
 	if s.healthCheckCmd == nil {
-		return 0, nil
+		return nil
 	}
-	exitCode, err := utils.RunWithFields(s.healthCheckCmd, log.Fields{"process": "health", "serviceName": s.Name, "serviceID": s.ID})
-	return exitCode, err
+	return commands.RunWithTimeout(s.healthCheckCmd, log.Fields{
+		"process": "health", "serviceName": s.Name, "serviceID": s.ID})
 }

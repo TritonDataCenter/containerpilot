@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os/exec"
 	"reflect"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/backends"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
@@ -39,9 +39,9 @@ type rawConfig struct {
 type Config struct {
 	ServiceBackend discovery.ServiceBackend
 	LogConfig      *LogConfig
-	PreStart       *exec.Cmd
-	PreStop        *exec.Cmd
-	PostStop       *exec.Cmd
+	PreStart       *commands.Command
+	PreStop        *commands.Command
+	PostStop       *commands.Command
 	StopTimeout    int
 	Coprocesses    []*coprocesses.Coprocess
 	Services       []*services.Service

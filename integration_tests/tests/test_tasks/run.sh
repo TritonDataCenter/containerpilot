@@ -16,7 +16,7 @@ docker exec ${APP_ID} cat /task3.txt > ${APP_ID}.task3
 PASS=0
 
 ## TASK 1
-TASK1_TOS=$(cat ${APP_ID}.log | grep "task1 timeout" | wc -l | tr -d '[[:space:]]')
+TASK1_TOS=$(cat ${APP_ID}.log | grep "\[task1\] timeout" | wc -l | tr -d '[[:space:]]')
 TASK1_RUNS=$(cat ${APP_ID}.task1 | wc -l | tr -d '[[:space:]]')
 rm ${APP_ID}.task1
 
@@ -30,7 +30,7 @@ if [ $TASK1_TOS -gt 0 ]; then
 fi
 
 ## TASK 2
-TASK2_TOS=$(cat ${APP_ID}.log | grep "task2 timeout after 1500ms" | wc -l | tr -d '[[:space:]]')
+TASK2_TOS=$(cat ${APP_ID}.log | grep "\[task2\] timeout after 1500ms" | wc -l | tr -d '[[:space:]]')
 TASK2_RUNS=$(cat ${APP_ID}.task2 | wc -l | tr -d '[[:space:]]')
 rm ${APP_ID}.task2
 
@@ -44,7 +44,7 @@ if [[ $TASK2_TOS -lt 1 || $TASK2_TOS -gt 2 ]]; then
 fi
 
 ## TASK 3
-TASK3_TOS=$(cat ${APP_ID}.log | grep "task3 timeout after 100ms" | wc -l | tr -d '[[:space:]]')
+TASK3_TOS=$(cat ${APP_ID}.log | grep "\[task3\] timeout after 100ms" | wc -l | tr -d '[[:space:]]')
 TASK3_RUNS=$(cat ${APP_ID}.task3 | wc -l | tr -d '[[:space:]]')
 
 if [[ $TASK3_RUNS -lt 2 || $TASK3_RUNS -gt 3 ]]; then

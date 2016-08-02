@@ -2,9 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"os/exec"
-	"strings"
-
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -19,19 +16,6 @@ func DecodeRaw(raw interface{}, result interface{}) error {
 		return err
 	}
 	return decoder.Decode(raw)
-}
-
-// ParseCommandArgs tries to parse a command from the supported types
-func ParseCommandArgs(raw interface{}) (*exec.Cmd, error) {
-	switch t := raw.(type) {
-	case string:
-		return StrToCmd(t), nil
-	}
-	strArray, err := ToStringArray(raw)
-	if err != nil {
-		return nil, err
-	}
-	return ArgsToCmd(strArray), nil
 }
 
 // ToStringArray converts the given interface to a []string if possible
@@ -69,23 +53,4 @@ func interfaceToStringArray(rawArray []interface{}) []string {
 		stringArray = append(stringArray, interfaceToString(raw))
 	}
 	return stringArray
-}
-
-// ArgsToCmd creates a command from a list of arguments
-func ArgsToCmd(args []string) *exec.Cmd {
-	if len(args) == 0 {
-		return nil
-	}
-	if len(args) > 1 {
-		return exec.Command(args[0], args[1:]...)
-	}
-	return exec.Command(args[0])
-}
-
-// StrToCmd creates a command from a string, triming whitespace
-func StrToCmd(command string) *exec.Cmd {
-	if command != "" {
-		return ArgsToCmd(strings.Split(strings.TrimSpace(command), " "))
-	}
-	return nil
 }

@@ -3,10 +3,11 @@ package core
 import (
 	"flag"
 	"os"
-	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/joyent/containerpilot/commands"
 )
 
 // ------------------------------------------
@@ -95,9 +96,12 @@ func TestValidConfigParse(t *testing.T) {
 		t.Errorf("Expected no tag for upstreamB, but got: %s", app.Backends[1].Tag)
 	}
 
-	validateCommandParsed(t, "preStart", app.PreStartCmd, []string{"/bin/to/preStart.sh", "arg1", "arg2"})
-	validateCommandParsed(t, "preStop", app.PreStopCmd, []string{"/bin/to/preStop.sh", "arg1", "arg2"})
-	validateCommandParsed(t, "postStop", app.PostStopCmd, []string{"/bin/to/postStop.sh"})
+	validateCommandParsed(t, "preStart", app.PreStartCmd,
+		"/bin/to/preStart.sh", []string{"arg1", "arg2"})
+	validateCommandParsed(t, "preStop", app.PreStopCmd,
+		"/bin/to/preStop.sh", []string{"arg1", "arg2"})
+	validateCommandParsed(t, "postStop", app.PostStopCmd,
+		"/bin/to/postStop.sh", nil) //[]string{})
 }
 
 func TestServiceConfigRequiredFields(t *testing.T) {
@@ -272,20 +276,15 @@ func validateParseError(t *testing.T, testJSON string, matchStrings []string) {
 	}
 }
 
-func validateCommandParsed(t *testing.T, name string, parsed *exec.Cmd, expected []string) {
-	if expected == nil {
-		if parsed != nil {
-			t.Errorf("%s has Cmd, but expected nil", name)
-		}
-		return
-	}
+func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
+	expectedExec string, expectedArgs []string) {
 	if parsed == nil {
 		t.Errorf("%s not configured", name)
 	}
-	if parsed.Path != expected[0] {
-		t.Errorf("%s path not configured: %s != %s", name, parsed.Path, expected[0])
+	if !reflect.DeepEqual(parsed.Exec, expectedExec) {
+		t.Errorf("%s executable not configured: %s != %s", name, parsed.Exec, expectedExec)
 	}
-	if !reflect.DeepEqual(parsed.Args, expected) {
-		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expected)
+	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
+		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
 	}
 }

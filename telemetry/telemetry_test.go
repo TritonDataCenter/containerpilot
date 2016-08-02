@@ -41,7 +41,7 @@ func TestTelemetryParse(t *testing.T) {
 }
 
 func TestTelemetryParseBadSensor(t *testing.T) {
-	jsonFragment := []byte(`{"sensors": [{}]}`)
+	jsonFragment := []byte(`{"sensors": [{"check": "true"}]}`)
 	if _, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err == nil {
 		t.Fatalf("Expected error from bad sensor but got nil.")
 	} else if ok := strings.HasPrefix(err.Error(), "Invalid sensor type"); !ok {

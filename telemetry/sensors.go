@@ -2,13 +2,12 @@ package telemetry
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -22,7 +21,7 @@ type Sensor struct {
 	Type      string      `mapstructure:"type"`
 	Poll      int         `mapstructure:"poll"` // time in seconds
 	CheckExec interface{} `mapstructure:"check"`
-	checkCmd  *exec.Cmd
+	checkCmd  *commands.Command
 	collector prometheus.Collector
 }
 
@@ -46,21 +45,9 @@ func (s *Sensor) PollStop() {
 	// Nothing to do
 }
 
+// wrapping this func call makes it easier to test
 func (s *Sensor) observe() (string, error) {
-	defer func() {
-		// reset command object because it can't be reused
-		s.checkCmd = utils.ArgsToCmd(s.checkCmd.Args)
-	}()
-
-	// we'll pass stderr to the container's stderr, but stdout must
-	// be "clean" and not have anything other than what we intend
-	// to write to our collector.
-	s.checkCmd.Stderr = os.Stderr
-	out, err := s.checkCmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return string(out[:]), nil
+	return commands.RunAndWaitForOutput(s.checkCmd)
 }
 
 func (s Sensor) record(metricValue string) {
@@ -94,10 +81,12 @@ func NewSensors(raw []interface{}) ([]*Sensor, error) {
 		return nil, fmt.Errorf("Sensor configuration error: %v", err)
 	}
 	for _, s := range sensors {
-		check, err := utils.ParseCommandArgs(s.CheckExec)
+		// TODO: add field to Sensors to pass to timeout here
+		check, err := commands.NewCommand(s.CheckExec, "0")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not parse check in sensor %s: %s", s.Name, err)
 		}
+		check.Name = fmt.Sprintf("%s.sensor", s.Name)
 		s.checkCmd = check
 
 		// the prometheus client lib's API here is baffling... they don't expose
