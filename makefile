@@ -57,13 +57,13 @@ build/containerpilot_build:
 # working test environment
 docker: build/containerpilot_build consul etcd
 
-# top-level target for vendoring our packages: godep restore requires
+# top-level target for vendoring our packages: glide install requires
 # being in the package directory so we have to run this for each package
 vendor: build/containerpilot_build
-	${DOCKERBUILD} godep restore
+	${DOCKERBUILD} glide install
 
 # fetch a dependency via go get, vendor it, and then save into the parent
-# package's Godeps
+# package's glide.yml
 # usage DEP=github.com/owner/package make add-dep
 add-dep: build/containerpilot_build
 	docker run --rm \

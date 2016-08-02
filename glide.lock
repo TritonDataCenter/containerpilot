@@ -1,0 +1,60 @@
+hash: 21a6a3480ab824375461d97a619484adae555789815f71308e65b42416258f17
+updated: 2016-07-22T16:00:15.451451414Z
+imports:
+- name: github.com/beorn7/perks
+  version: b965b613227fddccbfffe13eae360ed3fa822f8d
+  subpackages:
+  - quantile
+- name: github.com/coreos/etcd
+  version: 6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b
+  subpackages:
+  - Godeps/_workspace/src/github.com/ugorji/go/codec
+  - Godeps/_workspace/src/golang.org/x/net/context
+  - client
+  - pkg/pathutil
+  - pkg/types
+- name: github.com/docker/go-units
+  version: f2d77a61e3c169b43402a0a1e84f06daf29b8190
+- name: github.com/golang/protobuf
+  version: 6aaa8d47701fa6cf07e914ec01fde3d4a1fe79c3
+  subpackages:
+  - proto
+- name: github.com/hashicorp/consul
+  version: 158eabdd6f2408067c1d7656fa10e49434f96480
+  subpackages:
+  - api
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+  subpackages:
+  - pbutil
+- name: github.com/mitchellh/mapstructure
+  version: d2dd0262208475919e1a362f675cfc0e7c10e905
+- name: github.com/prometheus/client_golang
+  version: 90c15b5efa0dc32a7d259234e02ac9a99e6d3b82
+  subpackages:
+  - prometheus
+- name: github.com/prometheus/client_model
+  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: 40456948a47496dc22168e6af39297a2f8fbf38c
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: 406e5b7bfd8201a36e2bb5f7bdae0b03380c2ce8
+- name: github.com/samalba/dockerclient
+  version: a3036261847103270e9f732509f43b5f98710ace
+- name: github.com/Sirupsen/logrus
+  version: be52937128b38f1d99787bb476c789e2af1147f1
+- name: golang.org/x/net
+  version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
+  subpackages:
+  - context
+- name: golang.org/x/sys
+  version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
+  subpackages:
+  - unix
+testImports: []
