@@ -61,6 +61,36 @@ func TestServiceParse(t *testing.T) {
 	}
 }
 
+func TestServicesConfigError(t *testing.T) {
+	var raw []interface{}
+	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
+	_, err := NewServices(raw, nil)
+	validateServiceConfigError(t, err, "`name` must not be blank")
+	raw = nil
+
+	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
+	_, err = NewServices(raw, nil)
+	validateServiceConfigError(t, err, "`poll` must be > 0 in service myName")
+
+	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1}]`), &raw)
+	_, err = NewServices(raw, nil)
+	validateServiceConfigError(t, err, "`ttl` must be > 0 in service myName")
+
+	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1}]`), &raw)
+	_, err = NewServices(raw, nil)
+	validateServiceConfigError(t, err, "`port` must be > 0 in service myName")
+
+	// no health check shouldn't return an error
+	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80}]`), &raw)
+	_, err = NewServices(raw, nil)
+	validateServiceConfigError(t, err, "")
+
+	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80, "health": "/bin/true", "timeout": "xx"}]`), &raw)
+	_, err = NewServices(raw, nil)
+	validateServiceConfigError(t, err,
+		"Could not parse `health` in service myName: time: invalid duration xx")
+}
+
 // ------------------------------------------
 // test helpers
 
@@ -82,5 +112,20 @@ func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
 	}
 	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
 		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
+	}
+}
+
+func validateServiceConfigError(t *testing.T, err error, expected string) {
+	if expected == "" {
+		if err != nil {
+			t.Fatalf("Expected no error but got %s", err)
+		}
+	} else {
+		if err == nil {
+			t.Fatalf("Expected %s but got nil error", expected)
+		}
+		if err.Error() != expected {
+			t.Fatalf("Expected %s but got %s", expected, err.Error())
+		}
 	}
 }
