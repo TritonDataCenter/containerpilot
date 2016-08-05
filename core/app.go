@@ -47,6 +47,8 @@ type App struct {
 	signalLock     *sync.RWMutex
 	paused         bool
 	ConfigFlag     string
+	coworkLock     *sync.RWMutex
+	coworkStarted  bool
 }
 
 // EmptyApp creates an empty application
@@ -54,6 +56,7 @@ func EmptyApp() *App {
 	app := &App{}
 	app.maintModeLock = &sync.RWMutex{}
 	app.signalLock = &sync.RWMutex{}
+	app.coworkLock = &sync.RWMutex{}
 	return app
 }
 
@@ -146,8 +149,7 @@ func (a *App) Run() {
 			os.Exit(code)
 		}
 	}
-	a.handleCoprocesses()
-	a.handlePolling()
+	a.startCowork()
 
 	if a.Command != nil {
 		// Run our main application and capture its stdout/stderr.
@@ -270,12 +272,20 @@ func (a *App) Reload() error {
 		return err
 	}
 
-	a.stopPolling()
-	a.forAllServices(deregisterService)
-	a.stopCoprocesses()
+	a.stopCoworkAndDeregister()
 
 	a.load(newApp)
 	return nil
+}
+
+func (a *App) stopCoworkAndDeregister() {
+	a.coworkLock.Lock()
+	defer a.coworkLock.Unlock()
+
+	a.stopPolling()
+	a.forAllServices(deregisterService)
+	a.stopCoprocesses()
+	a.coworkStarted = false
 }
 
 func (a *App) load(newApp *App) {
@@ -291,8 +301,7 @@ func (a *App) load(newApp *App) {
 	a.Telemetry = newApp.Telemetry
 	a.Tasks = newApp.Tasks
 	a.Coprocesses = newApp.Coprocesses
-	a.handlePolling()
-	a.handleCoprocesses()
+	a.startCowork()
 }
 
 type serviceFunc func(service *services.Service)
@@ -300,6 +309,16 @@ type serviceFunc func(service *services.Service)
 func (a *App) forAllServices(fn serviceFunc) {
 	for _, service := range a.Services {
 		fn(service)
+	}
+}
+
+func (a *App) startCowork() {
+	a.coworkLock.Lock()
+	defer a.coworkLock.Unlock()
+	if !a.coworkStarted {
+		a.handleCoprocesses()
+		a.handlePolling()
+		a.coworkStarted = true
 	}
 }
 
