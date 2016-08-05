@@ -9,7 +9,7 @@ import (
 )
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
 	backend := &Backend{
 		onChangeCmd: cmd1,
 	}

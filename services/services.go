@@ -21,6 +21,7 @@ type Service struct {
 	TTL              int         `mapstructure:"ttl"`
 	Interfaces       interface{} `mapstructure:"interfaces"`
 	Tags             []string    `mapstructure:"tags"`
+	Timeout          string      `mapstructure:"timeout"`
 	IPAddress        string
 	healthCheckCmd   *commands.Command
 	discoveryService discovery.ServiceBackend
@@ -81,8 +82,7 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 	// if the HealthCheckExec is nil then we'll have no health check
 	// command; this is useful for the telemetry service
 	if s.HealthCheckExec != nil {
-		// TODO: add field to Services to pass to timeout here
-		cmd, err := commands.NewCommand(s.HealthCheckExec, "0")
+		cmd, err := commands.NewCommand(s.HealthCheckExec, s.Timeout)
 		if err != nil {
 			return fmt.Errorf("Could not parse `health` in service %s: %s", s.Name, err)
 		}

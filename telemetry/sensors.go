@@ -21,6 +21,7 @@ type Sensor struct {
 	Type      string      `mapstructure:"type"`
 	Poll      int         `mapstructure:"poll"` // time in seconds
 	CheckExec interface{} `mapstructure:"check"`
+	Timeout   string      `mapstructure:"timeout"`
 	checkCmd  *commands.Command
 	collector prometheus.Collector
 }
@@ -81,8 +82,7 @@ func NewSensors(raw []interface{}) ([]*Sensor, error) {
 		return nil, fmt.Errorf("Sensor configuration error: %v", err)
 	}
 	for _, s := range sensors {
-		// TODO: add field to Sensors to pass to timeout here
-		check, err := commands.NewCommand(s.CheckExec, "0")
+		check, err := commands.NewCommand(s.CheckExec, s.Timeout)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse check in sensor %s: %s", s.Name, err)
 		}
