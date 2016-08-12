@@ -216,7 +216,7 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 
 func TestSensorObserve(t *testing.T) {
 
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "0")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
 	sensor := &Sensor{checkCmd: cmd1}
 	if val, err := sensor.observe(); err != nil {
 		t.Fatalf("Unexpected error from sensor check: %s", err)

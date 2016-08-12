@@ -9,7 +9,7 @@ import (
 )
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
 	backend := &Backend{
 		onChangeCmd: cmd1,
 	}
@@ -58,6 +58,27 @@ func TestBackendsParse(t *testing.T) {
 	}
 }
 
+func TestBackendsConfigError(t *testing.T) {
+	var raw []interface{}
+	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
+	_, err := NewBackends(raw, nil)
+	validateBackendConfigError(t, err, "`name` must not be blank")
+	raw = nil
+
+	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
+	_, err = NewBackends(raw, nil)
+	validateBackendConfigError(t, err, "`onChange` is required in backend myName")
+
+	json.Unmarshal([]byte(`[{"name": "myName", "onChange": "/bin/true", "timeout": "xx"}]`), &raw)
+	_, err = NewBackends(raw, nil)
+	validateBackendConfigError(t, err,
+		"Could not parse `onChange` in backend myName: time: invalid duration xx")
+
+	json.Unmarshal([]byte(`[{"name": "myName", "onChange": "/bin/true", "timeout": ""}]`), &raw)
+	_, err = NewBackends(raw, nil)
+	validateBackendConfigError(t, err, "`poll` must be > 0 in backend myName")
+}
+
 // ------------------------------------------
 // test helpers
 
@@ -71,5 +92,20 @@ func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
 	}
 	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
 		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
+	}
+}
+
+func validateBackendConfigError(t *testing.T, err error, expected string) {
+	if expected == "" {
+		if err != nil {
+			t.Fatalf("Expected no error but got %s", err)
+		}
+	} else {
+		if err == nil {
+			t.Fatalf("Expected %s but got nil error", expected)
+		}
+		if err.Error() != expected {
+			t.Fatalf("Expected %s but got %s", expected, err.Error())
+		}
 	}
 }

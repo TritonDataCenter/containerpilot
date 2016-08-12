@@ -16,6 +16,7 @@ type Backend struct {
 	Poll             int         `mapstructure:"poll"` // time in seconds
 	OnChangeExec     interface{} `mapstructure:"onChange"`
 	Tag              string      `mapstructure:"tag"`
+	Timeout          string      `mapstructure:"timeout"`
 	discoveryService discovery.ServiceBackend
 	lastState        interface{}
 	onChangeCmd      *commands.Command
@@ -38,9 +39,7 @@ func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, 
 			return nil, fmt.Errorf("`onChange` is required in backend %s",
 				b.Name)
 		}
-
-		// TODO: add field to Backend to pass to timeout here
-		cmd, err := commands.NewCommand(b.OnChangeExec, "0")
+		cmd, err := commands.NewCommand(b.OnChangeExec, b.Timeout)
 		if err != nil {
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
 				b.Name, err)
