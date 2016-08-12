@@ -335,6 +335,6 @@ func (a *App) handleCoprocesses() {
 
 func (a *App) stopCoprocesses() {
 	for _, coprocess := range a.Coprocesses {
-		go coprocess.Stop()
+		coprocess.Stop()
 	}
 }

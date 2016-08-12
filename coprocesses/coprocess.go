@@ -139,5 +139,7 @@ func (c *Coprocess) Start() {
 func (c *Coprocess) Stop() {
 	log.Debugf("coprocess[%s].Stop", c.Name)
 	c.restartsRemain = haltRestarts
+	c.restartLimit = haltRestarts
+	c.restart = false
 	c.cmd.Kill()
 }
