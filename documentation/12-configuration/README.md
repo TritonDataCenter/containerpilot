@@ -122,7 +122,7 @@ The format of the JSON file configuration is as follows:
 - `poll` is the time in seconds between polling for health checks.
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
-- `timeout` an optional value to wait before forcibly killing the health check. Health checks killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. This means that a heartbeat will not be sent. The minimum timeout is `1ms`. Omitting this field means that ContainerPilot will wait indefinitely for the health check.
+- `timeout` an optional value to wait before forcibly killing the health check. Health checks killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. This means that a heartbeat will not be sent. The minimum timeout is `1ms`. Omitting this field means that ContainerPilot will wait indefinitely for the health check. *Deprecation warning:* in ContainerPilot 3.0 this will default to the `poll` time.
 
 
 ### `backends`
@@ -130,7 +130,7 @@ The format of the JSON file configuration is as follows:
 - `name` is the name of a backend service that this container depends on, as it will appear in Consul.
 - `poll` is the time in seconds between polling for changes.
 - `onChange` is the executable (and its arguments) that is called when there is a change in the list of IPs and ports for this backend.
-- `timeout` an optional value to wait before forcibly killing the `onChange` handler. Handlers killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. The minimum timeout is `1ms`. Omitting this field means that ContainerPilot will wait indefinitely for the `onChange` handler.
+- `timeout` an optional value to wait before forcibly killing the `onChange` handler. Handlers killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. The minimum timeout is `1ms`. Omitting this field means that ContainerPilot will wait indefinitely for the `onChange` handler. *Deprecation warning:* in ContainerPilot 3.0 this will default to the `poll` time.
 
 ### Service catalog
 
