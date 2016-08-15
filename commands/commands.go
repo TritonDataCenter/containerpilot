@@ -66,6 +66,10 @@ func RunAndWait(c *Command, fields log.Fields) (int, error) {
 	}
 	log.Debugf("%s.RunAndWait start", c.Name)
 	c.setUpCmd(fields)
+	if fields == nil {
+		c.Cmd.Stdout = os.Stdout
+		c.Cmd.Stderr = os.Stderr
+	}
 	log.Debugf("%s.Cmd.Run", c.Name)
 	if err := c.Cmd.Run(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
