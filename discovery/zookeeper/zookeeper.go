@@ -197,19 +197,19 @@ func (conn ZooKeeper) registerService(service *discovery.ServiceDefinition) erro
 	return nil
 }
 
-func encodeZooKeeperNodeValue(service *discovery.ServiceDefinition) string {
+func encodeZooKeeperNodeValue(service *discovery.ServiceDefinition) []byte {
 	node := &ServiceNode{
 		ID:      service.ID,
 		Name:    service.Name,
 		Address: service.IPAddress,
 		Port:    service.Port,
 	}
-	json, err := json.Marshal(&node)
+	result, err := json.Marshal(&node)
 	if err != nil {
 		log.Warnf("Unable to encode service: %s", err)
-		return ""
+		return nil
 	}
-	return string(json)
+	return result
 }
 
 func decodeZooKeeperNodeValue(rawValue []byte) (ServiceNode, error) {

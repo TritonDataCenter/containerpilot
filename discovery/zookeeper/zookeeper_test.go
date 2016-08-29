@@ -1,6 +1,7 @@
 package zookeeper
 
 import (
+	"bytes"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/samuel/go-zookeeper/zk"
 	"testing"
@@ -203,9 +204,9 @@ func TestEncodeZKNodeValue(t *testing.T) {
 		TTL:       ttl,
 		Port:      p,
 	}
-	expectedResult := `{"id":"my-service","name":"my-service","address":"192.168.1.1","port":9000,"tags":null}`
+	expectedResult := []byte(`{"id":"my-service","name":"my-service","address":"192.168.1.1","port":9000,"tags":null}`)
 	encodedServiceDef := encodeZooKeeperNodeValue(service)
-	if encodedServiceDef != expectedResult {
+	if !bytes.Equal(encodedServiceDef, expectedResult) {
 		t.Fatalf("Unexpected service encoding %s", encodedServiceDef)
 	}
 }
