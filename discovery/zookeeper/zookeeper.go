@@ -17,6 +17,8 @@ func init() {
 	discovery.RegisterBackend("zookeeper", ConfigHook)
 }
 
+// ZooKeeper is a wrapper ZooKeeper connection. It also stores the
+// prefix under which ContainerPilot nodes will be registered.
 type ZooKeeper struct {
 	Connection *zk.Conn
 	Prefix     string
@@ -31,7 +33,7 @@ type ServiceNode struct {
 	Tags    []string `json:"tags"`
 }
 
-type ZookeeperRawConfig struct {
+type zookeeperRawConfig struct {
 	Endpoints interface{} `mapstructure:"endpoints"`
 	Prefix    string      `mapstructure:"prefix"`
 }
@@ -171,18 +173,17 @@ func (c ZooKeeper) registerService(service *discovery.ServiceDefinition) error {
 	if exists, _, _ := c.Connection.Exists(k); !exists {
 		if _, err := c.Connection.Create(k, []byte(value), 0, zk.WorldACL(zk.PermAll)); err != nil {
 			return err
-		} else {
-			_, _, ch, _ := c.Connection.GetW(k)
-			go func() {
-				select {
-				case ev := <-ch:
-					_, _, ch, _ = c.Connection.GetW(ev.Path)
-				case <-time.After(time.Duration(service.TTL) * time.Second):
-					log.Warningf("TTL expired, deregistering %s", k)
-					c.Deregister(service)
-				}
-			}()
 		}
+		_, _, ch, _ := c.Connection.GetW(k)
+		go func() {
+			select {
+			case ev := <-ch:
+				_, _, ch, _ = c.Connection.GetW(ev.Path)
+			case <-time.After(time.Duration(service.TTL) * time.Second):
+				log.Warningf("TTL expired, deregistering %s", k)
+				c.Deregister(service)
+			}
+		}()
 	}
 	return nil
 }
