@@ -57,3 +57,5 @@ import:
 - package: github.com/samalba/dockerclient
 - package: github.com/samuel/go-zookeeper
   version: 8c6a1d79a44d2742da3660540d1fd43f4ddcfc8c
+  subpackages:
+    - zk
