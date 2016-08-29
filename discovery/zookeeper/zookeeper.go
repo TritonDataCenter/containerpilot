@@ -70,7 +70,8 @@ func (c *ZooKeeper) MarkForMaintenance(service *discovery.ServiceDefinition) {
 	c.Deregister(service)
 }
 
-// SendHeartbeat refreshes the TTL of this associated zookeeper node
+// SendHeartbeat refreshes the associated zookeeper node by
+// re-registering it.
 func (c *ZooKeeper) SendHeartbeat(service *discovery.ServiceDefinition) {
 	if err := c.registerService(service); err != nil {
 		log.Warnf("Error registering service %s: %s", service.Name, err)
