@@ -3,13 +3,13 @@ package zookeeper
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/utils"
 	"github.com/samuel/go-zookeeper/zk"
 	"sort"
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/discovery"
 )
 
