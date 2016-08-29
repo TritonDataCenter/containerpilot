@@ -171,15 +171,23 @@ func (conn ZooKeeper) registerService(service *discovery.ServiceDefinition) erro
 		return err
 	}
 	value := encodeZooKeeperNodeValue(service)
-	if exists, _, _ := conn.Client.Exists(key); !exists {
+	if exists, _, err := conn.Client.Exists(key); err != nil {
+		return err
+	} else if !exists {
 		if _, err := conn.Client.Create(key, []byte(value), 0, zk.WorldACL(zk.PermAll)); err != nil {
 			return err
 		}
-		_, _, ch, _ := conn.Client.GetW(key)
+		_, _, ch, err := conn.Client.GetW(key)
+		if err != nil {
+			return err
+		}
 		go func() {
 			select {
 			case ev := <-ch:
-				_, _, ch, _ = conn.Client.GetW(ev.Path)
+				_, _, ch, err = conn.Client.GetW(ev.Path)
+				if err != nil {
+					log.Warning(err)
+				}
 			case <-time.After(time.Duration(service.TTL) * time.Second):
 				log.Warningf("TTL expired, deregistering %s", key)
 				conn.Deregister(service)
