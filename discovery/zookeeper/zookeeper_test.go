@@ -318,6 +318,21 @@ func TestDeregisterService(t *testing.T) {
 	}
 }
 
+func TestDeregisteServiceIdempotency(t *testing.T) {
+	zookeeper := zookeeper()
+	defer zookeeper.Client.Close()
+	service := serviceDef("srv-id")
+	zookeeper.registerService(service)
+	zookeeper.Deregister(service)
+	zookeeper.Deregister(service)
+	if err := zookeeper.Client.Delete("/containerpilot/my-service", -1); err != nil {
+		t.Fatalf("Unable to cancel parent node: %s", err)
+	}
+	if err := zookeeper.Client.Delete("/containerpilot", -1); err != nil {
+		t.Fatalf("Unable to cancel grand parent node: %s", err)
+	}
+}
+
 func TestMarkForMaintenanceService(t *testing.T) {
 	zookeeper := zookeeper()
 	defer zookeeper.Client.Close()
