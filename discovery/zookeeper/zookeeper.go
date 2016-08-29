@@ -17,11 +17,11 @@ func init() {
 	discovery.RegisterBackend("zookeeper", ConfigHook)
 }
 
-// ZooKeeper is a wrapper ZooKeeper connection. It also stores the
+// ZooKeeper wraps a ZooKeeper connection handler. It also stores the
 // prefix under which ContainerPilot nodes will be registered.
 type ZooKeeper struct {
-	Connection *zk.Conn
-	Prefix     string
+	Client *zk.Conn
+	Prefix string
 }
 
 // ServiceNode is the serializable form of a ZooKeeper service record
@@ -52,50 +52,50 @@ func NewZooKeeperConfig(raw interface{}) (*ZooKeeper, error) {
 	if err := utils.DecodeRaw(raw, &config); err != nil {
 		return nil, err
 	}
-	c, _, err := zk.Connect([]string{config.Address}, time.Second)
+	conn, _, err := zk.Connect([]string{config.Address}, time.Second)
 	if err != nil {
 		return nil, err
 	}
-	zookeeper.Connection = c
+	zookeeper.Client = conn
 	return zookeeper, nil
 }
 
 // Deregister removes this instance from the registry
-func (c *ZooKeeper) Deregister(service *discovery.ServiceDefinition) {
-	c.Connection.Delete(c.getNodeKey(service), -1)
+func (conn *ZooKeeper) Deregister(service *discovery.ServiceDefinition) {
+	conn.Client.Delete(conn.getNodeKey(service), -1)
 }
 
 // MarkForMaintenance removes this instance from the registry
-func (c *ZooKeeper) MarkForMaintenance(service *discovery.ServiceDefinition) {
-	c.Deregister(service)
+func (conn *ZooKeeper) MarkForMaintenance(service *discovery.ServiceDefinition) {
+	conn.Deregister(service)
 }
 
 // SendHeartbeat refreshes the associated zookeeper node by
 // re-registering it.
-func (c *ZooKeeper) SendHeartbeat(service *discovery.ServiceDefinition) {
-	if err := c.registerService(service); err != nil {
+func (conn *ZooKeeper) SendHeartbeat(service *discovery.ServiceDefinition) {
+	if err := conn.registerService(service); err != nil {
 		log.Warnf("Error registering service %s: %s", service.Name, err)
 	}
 }
 
-func (c *ZooKeeper) parentPath(service *discovery.ServiceDefinition) string {
-	return fmt.Sprintf("%s/%s", c.Prefix, service.Name)
+func (conn *ZooKeeper) parentPath(service *discovery.ServiceDefinition) string {
+	return fmt.Sprintf("%s/%s", conn.Prefix, service.Name)
 }
 
-func (c *ZooKeeper) getNodeKey(service *discovery.ServiceDefinition) string {
-	return fmt.Sprintf("%s/%s", c.parentPath(service), service.ID)
+func (conn *ZooKeeper) getNodeKey(service *discovery.ServiceDefinition) string {
+	return fmt.Sprintf("%s/%s", conn.parentPath(service), service.ID)
 }
 
-func (c *ZooKeeper) getAppKey(appName string) string {
-	return fmt.Sprintf("%s/%s", c.Prefix, appName)
+func (conn *ZooKeeper) getAppKey(appName string) string {
+	return fmt.Sprintf("%s/%s", conn.Prefix, appName)
 }
 
 var zookeeperUpstreams = make(map[string][]ServiceNode)
 
 // CheckForUpstreamChanges checks another zookeeper node for changes
-func (c *ZooKeeper) CheckForUpstreamChanges(backendName, backendTag string) bool {
+func (conn *ZooKeeper) CheckForUpstreamChanges(backendName, backendTag string) bool {
 	// TODO: is there a way to filter by tag in zookeeper?
-	services, err := c.getServices(backendName)
+	services, err := conn.getServices(backendName)
 	if err != nil {
 		log.Errorf("Failed to query %v: %s", backendName, err)
 		return false
@@ -109,17 +109,17 @@ func (c *ZooKeeper) CheckForUpstreamChanges(backendName, backendTag string) bool
 	return didChange
 }
 
-func (c *ZooKeeper) getServices(appName string) ([]ServiceNode, error) {
+func (conn *ZooKeeper) getServices(appName string) ([]ServiceNode, error) {
 	var services []ServiceNode
 
-	key := c.getAppKey(appName)
-	children, _, error := c.Connection.Children(key)
+	key := conn.getAppKey(appName)
+	children, _, error := conn.Client.Children(key)
 	if error != nil {
 		return services, error
 	}
 	for i := range children {
 		path := fmt.Sprintf("%s/%s", key, children[i])
-		data, _, error := c.Connection.Get(path)
+		data, _, error := conn.Client.Get(path)
 		if error != nil {
 			return services, error
 		}
@@ -150,14 +150,14 @@ func zookeeperCompareForChange(existing, new []ServiceNode) (changed bool) {
 	return false
 }
 
-func (c ZooKeeper) createParentPath(path string) error {
+func (conn ZooKeeper) createParentPath(path string) error {
 	pathElements := strings.Split(path, "/")[1:]
 	sep := "/"
 	newPath := ""
 	for i := range pathElements {
 		newPath = strings.Join([]string{newPath, sep, pathElements[i]}, "")
-		if exists, _, _ := c.Connection.Exists(newPath); !exists {
-			if _, err := c.Connection.Create(newPath, nil, 0, zk.WorldACL(zk.PermAll)); err != nil {
+		if exists, _, _ := conn.Client.Exists(newPath); !exists {
+			if _, err := conn.Client.Create(newPath, nil, 0, zk.WorldACL(zk.PermAll)); err != nil {
 				return err
 			}
 		}
@@ -165,24 +165,24 @@ func (c ZooKeeper) createParentPath(path string) error {
 	return nil
 }
 
-func (c ZooKeeper) registerService(service *discovery.ServiceDefinition) error {
-	k := c.getNodeKey(service)
-	if err := c.createParentPath(c.parentPath(service)); err != nil {
+func (conn ZooKeeper) registerService(service *discovery.ServiceDefinition) error {
+	key := conn.getNodeKey(service)
+	if err := conn.createParentPath(conn.parentPath(service)); err != nil {
 		return err
 	}
 	value := encodeZooKeeperNodeValue(service)
-	if exists, _, _ := c.Connection.Exists(k); !exists {
-		if _, err := c.Connection.Create(k, []byte(value), 0, zk.WorldACL(zk.PermAll)); err != nil {
+	if exists, _, _ := conn.Client.Exists(key); !exists {
+		if _, err := conn.Client.Create(key, []byte(value), 0, zk.WorldACL(zk.PermAll)); err != nil {
 			return err
 		}
-		_, _, ch, _ := c.Connection.GetW(k)
+		_, _, ch, _ := conn.Client.GetW(key)
 		go func() {
 			select {
 			case ev := <-ch:
-				_, _, ch, _ = c.Connection.GetW(ev.Path)
+				_, _, ch, _ = conn.Client.GetW(ev.Path)
 			case <-time.After(time.Duration(service.TTL) * time.Second):
-				log.Warningf("TTL expired, deregistering %s", k)
-				c.Deregister(service)
+				log.Warningf("TTL expired, deregistering %s", key)
+				conn.Deregister(service)
 			}
 		}()
 	}

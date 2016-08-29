@@ -23,10 +23,10 @@ func serviceDef(id string) *discovery.ServiceDefinition {
 	}
 }
 
-func sut() *ZooKeeper {
+func zookeeper() *ZooKeeper {
 	return &ZooKeeper{
-		Connection: zkConnection(),
-		Prefix:     "/containerpilot",
+		Client: zkConnection(),
+		Prefix: "/containerpilot",
 	}
 }
 
@@ -90,8 +90,8 @@ func TestCreateFullPath(t *testing.T) {
 func TestCreateParentPath(t *testing.T) {
 	c := zkConnection()
 	defer c.Close()
-	sut := &ZooKeeper{Connection: c, Prefix: "<doesn’t matter>"}
-	err := sut.createParentPath("/a/b/c")
+	zookeeper := &ZooKeeper{Client: c, Prefix: "<doesn’t matter>"}
+	err := zookeeper.createParentPath("/a/b/c")
 	if err != nil {
 		t.Fatalf("Unable to create parent path: %s", err)
 	}
@@ -233,9 +233,9 @@ func TestDecodeZKNodeValue(t *testing.T) {
 func TestNodeKey(t *testing.T) {
 	c := zkConnection()
 	defer c.Close()
-	sut := &ZooKeeper{
-		Connection: c,
-		Prefix:     "/containerpilot",
+	zookeeper := &ZooKeeper{
+		Client: c,
+		Prefix: "/containerpilot",
 	}
 	s := "my-service"
 	id := "srv-id"
@@ -249,37 +249,37 @@ func TestNodeKey(t *testing.T) {
 		TTL:       ttl,
 		Port:      p,
 	}
-	if sut.getNodeKey(service) != "/containerpilot/my-service/srv-id" {
-		t.Fatalf("Unexpected node key %s", sut.getNodeKey(service))
+	if zookeeper.getNodeKey(service) != "/containerpilot/my-service/srv-id" {
+		t.Fatalf("Unexpected node key %s", zookeeper.getNodeKey(service))
 	}
 }
 
 func TestAppKey(t *testing.T) {
 	c := zkConnection()
 	defer c.Close()
-	sut := &ZooKeeper{
-		Connection: c,
-		Prefix:     "/containerpilot",
+	zookeeper := &ZooKeeper{
+		Client: c,
+		Prefix: "/containerpilot",
 	}
-	if a := sut.getAppKey("my-app"); a != "/containerpilot/my-app" {
+	if a := zookeeper.getAppKey("my-app"); a != "/containerpilot/my-app" {
 		t.Fatalf("Unexpected app key %s", a)
 	}
 }
 
 func TestRegisterService(t *testing.T) {
 	expectedValue := `{"id":"srv-id","name":"my-service","address":"192.168.1.1","port":9000,"tags":null}`
-	sut := sut()
-	defer sut.Connection.Close()
-	defer sut.Connection.Delete("/containerpilot/my-service/srv-id", -1)
-	defer sut.Connection.Delete("/containerpilot/my-service", -1)
-	defer sut.Connection.Delete("/containerpilot", -1)
+	zookeeper := zookeeper()
+	defer zookeeper.Client.Close()
+	defer zookeeper.Client.Delete("/containerpilot/my-service/srv-id", -1)
+	defer zookeeper.Client.Delete("/containerpilot/my-service", -1)
+	defer zookeeper.Client.Delete("/containerpilot", -1)
 
 	service := serviceDef("srv-id")
-	err := sut.registerService(service)
+	err := zookeeper.registerService(service)
 	if err != nil {
 		t.Fatalf("Unable to register service: %s", err)
 	}
-	data, _, err := sut.Connection.Get("/containerpilot/my-service/srv-id")
+	data, _, err := zookeeper.Client.Get("/containerpilot/my-service/srv-id")
 	if err != nil {
 		t.Fatalf("Unable to read node")
 	}
@@ -289,68 +289,68 @@ func TestRegisterService(t *testing.T) {
 }
 
 func TestRegisterServiceIdempotency(t *testing.T) {
-	sut := sut()
-	defer sut.Connection.Close()
-	defer sut.Connection.Delete("/containerpilot/my-service/srv-id", -1)
-	defer sut.Connection.Delete("/containerpilot/my-service", -1)
-	defer sut.Connection.Delete("/containerpilot", -1)
+	zookeeper := zookeeper()
+	defer zookeeper.Client.Close()
+	defer zookeeper.Client.Delete("/containerpilot/my-service/srv-id", -1)
+	defer zookeeper.Client.Delete("/containerpilot/my-service", -1)
+	defer zookeeper.Client.Delete("/containerpilot", -1)
 
 	service := serviceDef("srv-id")
-	err := sut.registerService(service)
-	err = sut.registerService(service)
+	err := zookeeper.registerService(service)
+	err = zookeeper.registerService(service)
 	if err != nil {
 		t.Fatalf("RegisterService should be idempotent, %s", err)
 	}
 }
 
 func TestDeregisterService(t *testing.T) {
-	sut := sut()
-	defer sut.Connection.Close()
+	zookeeper := zookeeper()
+	defer zookeeper.Client.Close()
 	service := serviceDef("srv-id")
-	sut.registerService(service)
-	sut.Deregister(service)
-	if err := sut.Connection.Delete("/containerpilot/my-service", -1); err != nil {
+	zookeeper.registerService(service)
+	zookeeper.Deregister(service)
+	if err := zookeeper.Client.Delete("/containerpilot/my-service", -1); err != nil {
 		t.Fatalf("Unable to cancel parent node: %s", err)
 	}
-	if err := sut.Connection.Delete("/containerpilot", -1); err != nil {
+	if err := zookeeper.Client.Delete("/containerpilot", -1); err != nil {
 		t.Fatalf("Unable to cancel grand parent node: %s", err)
 	}
 }
 
 func TestMarkForMaintenanceService(t *testing.T) {
-	sut := sut()
-	defer sut.Connection.Close()
+	zookeeper := zookeeper()
+	defer zookeeper.Client.Close()
 	service := serviceDef("srv-id")
-	sut.registerService(service)
-	sut.MarkForMaintenance(service)
-	if err := sut.Connection.Delete("/containerpilot/my-service", -1); err != nil {
+	zookeeper.registerService(service)
+	zookeeper.MarkForMaintenance(service)
+	if err := zookeeper.Client.Delete("/containerpilot/my-service", -1); err != nil {
 		t.Fatalf("Unable to cancel parent node: %s", err)
 	}
-	if err := sut.Connection.Delete("/containerpilot", -1); err != nil {
+	if err := zookeeper.Client.Delete("/containerpilot", -1); err != nil {
 		t.Fatalf("Unable to cancel grand parent node: %s", err)
 	}
 }
 
 func TestGetServices(t *testing.T) {
-	sut := sut()
-	defer sut.Connection.Close()
-	defer sut.Connection.Delete("/containerpilot/my-service", -1)
-	defer sut.Connection.Delete("/containerpilot", -1)
+	zookeeper := zookeeper()
+	defer zookeeper.Client.Close()
+	defer zookeeper.Client.Delete("/containerpilot/my-service", -1)
+	defer zookeeper.Client.Delete("/containerpilot", -1)
 	service1 := serviceDef("srv-id-1")
 	service2 := serviceDef("srv-id-2")
 	service3 := serviceDef("srv-id-3")
-	defer sut.Deregister(service1)
-	defer sut.Deregister(service2)
-	defer sut.Deregister(service3)
+	defer zookeeper.Deregister(service1)
+	defer zookeeper.Deregister(service2)
+	defer zookeeper.Deregister(service3)
 
-	services, _ := sut.getServices("my-service")
+	services, _ := zookeeper.getServices("my-service")
 	if len(services) > 0 {
 		t.Fatalf("services should be an empty array at this point %s", services)
 	}
-	sut.registerService(service1)
-	sut.registerService(service2)
-	sut.registerService(service3)
-	services, _ = sut.getServices("my-service")
+	zookeeper.registerService(service1)
+	zookeeper.registerService(service2)
+	zookeeper.registerService(service3)
+	services, _ = zookeeper.getServices("my-service")
 	if len(services) != 3 {
 		t.Fatalf("now services should contain the three services: %s", services)
 	}
@@ -406,48 +406,48 @@ func TestZookeeperCompareForChange(t *testing.T) {
 }
 
 func TestCheckForUpstreamChanges(t *testing.T) {
-	sut := sut()
-	defer sut.Connection.Delete("/containerpilot/my-service", -1)
-	defer sut.Connection.Delete("/containerpilot", -1)
+	zookeeper := zookeeper()
+	defer zookeeper.Client.Delete("/containerpilot/my-service", -1)
+	defer zookeeper.Client.Delete("/containerpilot", -1)
 	service1 := serviceDef("srv-id-1")
-	didChange := sut.CheckForUpstreamChanges("my-service", "")
+	didChange := zookeeper.CheckForUpstreamChanges("my-service", "")
 	if didChange {
 		t.Fatalf("Should return false when no service is registered")
 	}
-	sut.registerService(service1)
-	defer sut.Deregister(service1)
+	zookeeper.registerService(service1)
+	defer zookeeper.Deregister(service1)
 
-	didChange = sut.CheckForUpstreamChanges("my-service", "")
+	didChange = zookeeper.CheckForUpstreamChanges("my-service", "")
 	if !didChange {
 		t.Fatalf("Should return true when a new service is registered")
 	}
-	didChange = sut.CheckForUpstreamChanges("my-service", "")
+	didChange = zookeeper.CheckForUpstreamChanges("my-service", "")
 	if didChange {
 		t.Fatalf("Check should be idempotent")
 	}
 }
 
 func TestZookeeperTTLPass(t *testing.T) {
-	sut := sut()
+	zookeeper := zookeeper()
 	service := serviceDef("srv-id")
-	defer sut.Deregister(service)
-	defer sut.Connection.Delete("/containerpilot/my-service", -1)
-	defer sut.Connection.Delete("/containerpilot", -1)
+	defer zookeeper.Deregister(service)
+	defer zookeeper.Client.Delete("/containerpilot/my-service", -1)
+	defer zookeeper.Client.Delete("/containerpilot", -1)
 
-	sut.SendHeartbeat(service) // force registration
-	_, _, err := sut.Connection.Get("/containerpilot/my-service/srv-id")
+	zookeeper.SendHeartbeat(service) // force registration
+	_, _, err := zookeeper.Client.Get("/containerpilot/my-service/srv-id")
 	if err != nil {
 		t.Fatalf("Service is not registered, %s", err)
 	}
 
-	sut.SendHeartbeat(service) // write TTL and verify
-	_, _, err = sut.Connection.Get("/containerpilot/my-service/srv-id")
+	zookeeper.SendHeartbeat(service) // write TTL and verify
+	_, _, err = zookeeper.Client.Get("/containerpilot/my-service/srv-id")
 	if err != nil {
 		t.Fatalf("Expected service to be registered, but was not, %s", err)
 	}
 	time.Sleep(2 * time.Second)
 
-	_, _, err = sut.Connection.Get("/containerpilot/my-service/srv-id")
+	_, _, err = zookeeper.Client.Get("/containerpilot/my-service/srv-id")
 	if err == nil {
 		t.Fatalf("Expected service to be deregistered, %s", err)
 	}
