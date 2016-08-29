@@ -45,7 +45,7 @@ func TestZKCreateNode(t *testing.T) {
 	}
 }
 
-func TestCrateIntermediateEphemeralNode(t *testing.T) {
+func TestCreateIntermediateEphemeralNode(t *testing.T) {
 	c := zkConnection()
 	defer c.Close()
 	_, err := c.Create("/a/b/c", nil, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
