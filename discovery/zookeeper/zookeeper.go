@@ -156,10 +156,8 @@ func (conn ZooKeeper) createParentPath(path string) error {
 	newPath := ""
 	for i := range pathElements {
 		newPath = strings.Join([]string{newPath, sep, pathElements[i]}, "")
-		if exists, _, _ := conn.Client.Exists(newPath); !exists {
-			if _, err := conn.Client.Create(newPath, nil, 0, zk.WorldACL(zk.PermAll)); err != nil {
-				return err
-			}
+		if _, err := conn.Client.Create(newPath, nil, 0, zk.WorldACL(zk.PermAll)); err != nil && err != zk.ErrNodeExists {
+			return err
 		}
 	}
 	return nil
@@ -171,34 +169,30 @@ func (conn ZooKeeper) registerService(service *discovery.ServiceDefinition) erro
 		return err
 	}
 	value := encodeZooKeeperNodeValue(service)
-	if exists, _, err := conn.Client.Exists(key); err != nil {
+	if _, err := conn.Client.Create(
+		key,
+		[]byte(value),
+		zk.FlagEphemeral,
+		zk.WorldACL(zk.PermAll)); err != nil && err != zk.ErrNodeExists {
 		return err
-	} else if !exists {
-		if _, err := conn.Client.Create(
-			key,
-			[]byte(value),
-			zk.FlagEphemeral,
-			zk.WorldACL(zk.PermAll)); err != nil {
-			return err
-		}
-		_, _, ch, err := conn.Client.GetW(key)
-		if err != nil {
-			return err
-		}
-		go func() {
-			select {
-			case ev := <-ch:
-				_, _, ch, err = conn.Client.GetW(ev.Path)
-				if err != nil {
-					log.Warning(err)
-					conn.Deregister(service)
-				}
-			case <-time.After(time.Duration(service.TTL) * time.Second):
-				log.Warningf("TTL expired, deregistering %s", key)
+	}
+	_, _, ch, err := conn.Client.GetW(key)
+	if err != nil {
+		return err
+	}
+	go func() {
+		select {
+		case ev := <-ch:
+			_, _, ch, err = conn.Client.GetW(ev.Path)
+			if err != nil {
+				log.Warning(err)
 				conn.Deregister(service)
 			}
-		}()
-	}
+		case <-time.After(time.Duration(service.TTL) * time.Second):
+			log.Warningf("TTL expired, deregistering %s", key)
+			conn.Deregister(service)
+		}
+	}()
 	return nil
 }
 

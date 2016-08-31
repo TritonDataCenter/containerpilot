@@ -92,9 +92,31 @@ func TestCreateParentPath(t *testing.T) {
 	c := zkConnection()
 	defer c.Close()
 	zookeeper := &ZooKeeper{Client: c, Prefix: "<doesn’t matter>"}
+	path := "/a/b/c"
+	err := zookeeper.createParentPath(path)
+	if err != nil {
+		t.Fatalf("Unable to create parent path: %s", err)
+	}
+	if exists, _, _ := c.Exists(path); !exists {
+		t.Fatalf("Path %s not created, %s", path, err)
+	}
+	c.Delete("/a/b/c", -1)
+	c.Delete("/a/b", -1)
+	c.Delete("/a", -1)
+}
+
+func TestCreateParentPathShouldIgnoreExistingIntermediateNodes(t *testing.T) {
+	c := zkConnection()
+	defer c.Close()
+	c.Create("/a", nil, 0, zk.WorldACL(zk.PermAll))
+	zookeeper := &ZooKeeper{Client: c, Prefix: "<doesn’t matter>"}
+	path := "/a/b/c"
 	err := zookeeper.createParentPath("/a/b/c")
 	if err != nil {
 		t.Fatalf("Unable to create parent path: %s", err)
+	}
+	if exists, _, _ := c.Exists(path); !exists {
+		t.Fatalf("Path %s not created, %s", path, err)
 	}
 	c.Delete("/a/b/c", -1)
 	c.Delete("/a/b", -1)
