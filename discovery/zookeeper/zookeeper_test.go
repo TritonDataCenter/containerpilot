@@ -341,7 +341,7 @@ func TestDeregisterService(t *testing.T) {
 	}
 }
 
-func TestDeregisteServiceIdempotency(t *testing.T) {
+func TestDeregisterServiceIdempotency(t *testing.T) {
 	zookeeper := zookeeper()
 	defer zookeeper.Client.Close()
 	service := serviceDef("srv-id")
