@@ -43,6 +43,11 @@ func ConfigHook(raw interface{}) (discovery.ServiceBackend, error) {
 	return NewZooKeeperConfig(raw)
 }
 
+func connection(addresses []string, cb zk.EventCallback) (*zk.Conn, error) {
+	c, _, err := zk.Connect(addresses, time.Second, zk.WithEventCallback(cb))
+	return c, err
+}
+
 // NewZooKeeperConfig creates a new service discovery backend for zookeeper
 func NewZooKeeperConfig(raw interface{}) (*ZooKeeper, error) {
 	zookeeper := &ZooKeeper{Prefix: "/containerpilot"}
@@ -52,7 +57,7 @@ func NewZooKeeperConfig(raw interface{}) (*ZooKeeper, error) {
 	if err := utils.DecodeRaw(raw, &config); err != nil {
 		return nil, err
 	}
-	conn, _, err := zk.Connect([]string{config.Address}, time.Second)
+	conn, err := connection([]string{config.Address}, zookeeper.eventChanCallBack)
 	if err != nil {
 		return nil, err
 	}
