@@ -15,6 +15,11 @@ func zkConnection() *zk.Conn {
 	return c
 }
 
+func zkConnectionWithCallback(cb zk.EventCallback) *zk.Conn {
+	c, _, _ := zk.Connect([]string{"127.0.0.1"}, time.Second, zk.WithEventCallback(cb))
+	return c
+}
+
 func serviceDef(id string) *discovery.ServiceDefinition {
 	return &discovery.ServiceDefinition{
 		ID:        id,
@@ -26,10 +31,10 @@ func serviceDef(id string) *discovery.ServiceDefinition {
 }
 
 func zookeeper() *ZooKeeper {
-	return &ZooKeeper{
-		Client: zkConnection(),
-		Prefix: "/containerpilot",
-	}
+	result, _ := NewZooKeeperConfig(map[string]interface{}{
+		"address": "127.0.0.1",
+	})
+	return result
 }
 
 // Characterization tests.
@@ -172,23 +177,31 @@ func TestZKNodeCreationShouldNotEmitEventsWithSessionChan(t *testing.T) {
 }
 
 func TestZKWatchEventNodeDataChanged(t *testing.T) {
-	c := zkConnection()
-	defer c.Close()
-	c.Create("/node", nil, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
-	_, _, ch, _ := c.GetW("/node")
 	var events []zk.Event
-	go func() {
-		for event := range ch {
-			events = append(events, event)
-		}
-	}()
-	c.Set("/node", []byte("value"), -1)
-	c.Set("/node", []byte("another value"), -1)
-	if len(events) != 1 {
+	c := zkConnectionWithCallback(func(event zk.Event) {
+		events = append(events, event)
+	})
+	defer c.Close()
+	c.Create("/node", []byte("value"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+	_, _, _, err := c.GetW("/node")
+	if err != nil {
+		t.Fatalf("Error registering watcher, %s", err)
+	}
+	c.Set("/node", []byte("value"), -1) // event fired
+	c.Set("/node", []byte("value"), -1) // no event
+	c.GetW("/node")
+	c.Set("/node", []byte("value"), -1) // event fired
+	if len(events) != 5 {
+		// The four events are:
+		// `StateConnecting`
+		// `StateConnected`
+		// `StateHasSession`
+		// `EventNodeDataChanged`
+		// `EventNodeDataChanged`
 		t.Fatalf("Watchers receive only the first event after they are set, %d", len(events))
 	}
-	if events[0].Type != zk.EventNodeDataChanged {
-		t.Error("All the events should of type EventNodeDataChanged")
+	if events[len(events)-1].Type != zk.EventNodeDataChanged {
+		t.Fatalf("Event should be of type EventNodeDataChanged, %s", events[len(events)-1].Type)
 	}
 }
 
@@ -393,9 +406,9 @@ func TestGetServices(t *testing.T) {
 	if len(services) != 3 {
 		t.Fatalf("now services should contain the three services: %s", services)
 	}
-	if services[0].ID != "srv-id-1" ||
+	if services[0].ID != "srv-id-3" ||
 		services[1].ID != "srv-id-2" ||
-		services[2].ID != "srv-id-3" {
+		services[2].ID != "srv-id-1" {
 		t.Fatalf(
 			"Unexpected IDs: %s, %s %s",
 			services[0].ID,

@@ -20,8 +20,9 @@ func init() {
 // ZooKeeper wraps a ZooKeeper connection handler. It also stores the
 // prefix under which ContainerPilot nodes will be registered.
 type ZooKeeper struct {
-	Client *zk.Conn
-	Prefix string
+	Client    *zk.Conn
+	Prefix    string
+	eventChan chan zk.Event
 }
 
 // ServiceNode is the serializable form of a ZooKeeper service record
@@ -38,6 +39,31 @@ type zookeeperRawConfig struct {
 	Prefix    string      `mapstructure:"prefix"`
 }
 
+func (conn ZooKeeper) ttlHandler(service *discovery.ServiceDefinition, key string) {
+	for {
+		select {
+		case ev := <-conn.eventChan:
+			_, _, _, err := conn.Client.GetW(ev.Path)
+			if err != nil {
+				log.Warning(err)
+				conn.Deregister(service)
+				return
+			}
+		case <-time.After(time.Duration(service.TTL) * time.Second):
+			conn.Deregister(service)
+			return
+		}
+	}
+}
+
+func (conn ZooKeeper) eventChanCallBack(ev zk.Event) {
+	if ev.Type == zk.EventNodeDataChanged {
+		go func() {
+			conn.eventChan <- ev
+		}()
+	}
+}
+
 // ConfigHook is the hook to register with the ZooKeeper backend
 func ConfigHook(raw interface{}) (discovery.ServiceBackend, error) {
 	return NewZooKeeperConfig(raw)
@@ -50,7 +76,10 @@ func connection(addresses []string, cb zk.EventCallback) (*zk.Conn, error) {
 
 // NewZooKeeperConfig creates a new service discovery backend for zookeeper
 func NewZooKeeperConfig(raw interface{}) (*ZooKeeper, error) {
-	zookeeper := &ZooKeeper{Prefix: "/containerpilot"}
+	zookeeper := &ZooKeeper{
+		Prefix:    "/containerpilot",
+		eventChan: make(chan zk.Event),
+	}
 	config := &struct {
 		Address string `mapstructure:"address"`
 	}{}
@@ -193,23 +222,15 @@ func (conn ZooKeeper) registerService(service *discovery.ServiceDefinition) erro
 		zk.WorldACL(zk.PermAll)); err != nil && err != zk.ErrNodeExists {
 		return err
 	}
-	_, _, ch, err := conn.Client.GetW(key)
+	// Set the watcher and trigger the call via `Set`
+	_, _, _, err := conn.Client.GetW(key)
 	if err != nil {
 		return err
 	}
-	go func() {
-		select {
-		case ev := <-ch:
-			_, _, ch, err = conn.Client.GetW(ev.Path)
-			if err != nil {
-				log.Warning(err)
-				conn.Deregister(service)
-			}
-		case <-time.After(time.Duration(service.TTL) * time.Second):
-			log.Warningf("TTL expired, deregistering %s", key)
-			conn.Deregister(service)
-		}
-	}()
+	if _, err = conn.Client.Set(key, []byte(value), -1); err != nil {
+		return err
+	}
+	go conn.ttlHandler(service, key)
 	return nil
 }
 
