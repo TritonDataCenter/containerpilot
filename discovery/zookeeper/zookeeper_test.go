@@ -2,10 +2,11 @@ package zookeeper
 
 import (
 	"bytes"
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/samuel/go-zookeeper/zk"
 	"testing"
 	"time"
+
+	"github.com/joyent/containerpilot/discovery"
+	"github.com/samuel/go-zookeeper/zk"
 )
 
 // Factories, utilities
