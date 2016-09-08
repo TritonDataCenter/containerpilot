@@ -164,7 +164,11 @@ func (conn ZooKeeper) createParentPath(path string) error {
 	newPath := ""
 	for i := range pathElements {
 		newPath = strings.Join([]string{newPath, sep, pathElements[i]}, "")
-		if _, err := conn.Client.Create(newPath, nil, 0, zk.WorldACL(zk.PermAll)); err != nil && err != zk.ErrNodeExists {
+		if _, err := conn.Client.Create(
+			newPath,
+			nil,
+			0,
+			zk.WorldACL(zk.PermAll)); err != nil && err != zk.ErrNodeExists {
 			return err
 		}
 	}
