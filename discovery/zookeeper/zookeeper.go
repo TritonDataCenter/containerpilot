@@ -151,19 +151,19 @@ func (conn *ZooKeeper) getServices(appName string) ([]ServiceNode, error) {
 	var services []ServiceNode
 
 	key := conn.getAppKey(appName)
-	children, _, error := conn.Client.Children(key)
-	if error != nil {
-		return services, error
+	children, _, err := conn.Client.Children(key)
+	if err != nil {
+		return services, err
 	}
 	for i := range children {
 		path := fmt.Sprintf("%s/%s", key, children[i])
-		data, _, error := conn.Client.Get(path)
-		if error != nil {
-			return services, error
+		data, _, err := conn.Client.Get(path)
+		if err != nil {
+			return services, err
 		}
-		srv, error := decodeZooKeeperNodeValue(data)
-		if error != nil {
-			return services, error
+		srv, err := decodeZooKeeperNodeValue(data)
+		if err != nil {
+			return services, err
 		}
 		services = append(services, srv)
 	}
