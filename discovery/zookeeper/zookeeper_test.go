@@ -388,33 +388,29 @@ func TestGetServices(t *testing.T) {
 	defer zookeeper.Client.Close()
 	defer zookeeper.Client.Delete("/containerpilot/my-service", -1)
 	defer zookeeper.Client.Delete("/containerpilot", -1)
-	service1 := serviceDef("srv-id-1")
-	service2 := serviceDef("srv-id-2")
-	service3 := serviceDef("srv-id-3")
+	service1 := serviceDef("svc1")
+	service2 := serviceDef("svc2")
+	service3 := serviceDef("svc3")
 	defer zookeeper.Deregister(service1)
 	defer zookeeper.Deregister(service2)
 	defer zookeeper.Deregister(service3)
 
-	services, _ := zookeeper.getServices("my-service")
-	if len(services) > 0 {
-		t.Fatalf("services should be an empty array at this point %s", services)
+	svcs, _ := zookeeper.getServices("my-service")
+	if len(svcs) > 0 {
+		t.Fatalf("services should be an empty array at this point %s", svcs)
 	}
 	zookeeper.registerService(service1)
 	zookeeper.registerService(service2)
 	zookeeper.registerService(service3)
-	services, _ = zookeeper.getServices("my-service")
-	if len(services) != 3 {
-		t.Fatalf("now services should contain the three services: %s", services)
+	svcs, _ = zookeeper.getServices("my-service")
+	if len(svcs) != 3 {
+		t.Fatalf("now services should contain the three services: %s", svcs)
 	}
-	if services[0].ID != "srv-id-3" ||
-		services[1].ID != "srv-id-2" ||
-		services[2].ID != "srv-id-1" {
-		t.Fatalf(
-			"Unexpected IDs: %s, %s %s",
-			services[0].ID,
-			services[1].ID,
-			services[2].ID,
-		)
+	// Order is not guaranteed
+	if svcs[0].ID != "svc1" && svcs[0].ID != "svc2" && svcs[0].ID != "svc3" &&
+		svcs[1].ID != "svc1" && svcs[1].ID != "svc2" && svcs[1].ID != "svc3" &&
+		svcs[2].ID != "svc1" && svcs[2].ID != "svc2" && svcs[2].ID != "svc3" {
+		t.Fatalf("Unexpected IDs: %s, %s %s", svcs[0].ID, svcs[1].ID, svcs[2].ID)
 	}
 }
 
