@@ -196,8 +196,8 @@ func (conn ZooKeeper) createParentPath(path string) error {
 		newPath = strings.Join([]string{newPath, sep, pathElements[i]}, "")
 		if _, err := conn.Client.Create(
 			newPath,
-			nil,
-			0,
+			nil, // ZK node `data` (can be nil)
+			0,   // ZK `flags` (can be 0)
 			zk.WorldACL(zk.PermAll)); err != nil && err != zk.ErrNodeExists {
 			return err
 		}
