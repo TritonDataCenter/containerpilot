@@ -210,8 +210,11 @@ func (conn *ZooKeeper) registerService(service *discovery.ServiceDefinition) err
 	if err := conn.createParentPath(conn.parentPath(service)); err != nil {
 		return err
 	}
-	value := encodeZooKeeperNodeValue(service)
-	if _, err := conn.Client.Create(
+	value, err := encodeZooKeeperNodeValue(service)
+	if err != nil {
+		return err
+	}
+	if _, err = conn.Client.Create(
 		key,
 		[]byte(value),
 		zk.FlagEphemeral,
@@ -219,7 +222,7 @@ func (conn *ZooKeeper) registerService(service *discovery.ServiceDefinition) err
 		return err
 	}
 	// Set the watcher and trigger the call via `Set`
-	_, _, _, err := conn.Client.GetW(key)
+	_, _, _, err = conn.Client.GetW(key)
 	if err != nil {
 		return err
 	}
@@ -230,7 +233,7 @@ func (conn *ZooKeeper) registerService(service *discovery.ServiceDefinition) err
 	return nil
 }
 
-func encodeZooKeeperNodeValue(service *discovery.ServiceDefinition) []byte {
+func encodeZooKeeperNodeValue(service *discovery.ServiceDefinition) ([]byte, error) {
 	node := &ServiceNode{
 		ID:      service.ID,
 		Name:    service.Name,
@@ -240,9 +243,9 @@ func encodeZooKeeperNodeValue(service *discovery.ServiceDefinition) []byte {
 	result, err := json.Marshal(&node)
 	if err != nil {
 		log.Warnf("Unable to encode service: %s", err)
-		return nil
+		return nil, err
 	}
-	return result
+	return result, nil
 }
 
 func decodeZooKeeperNodeValue(rawValue []byte) (ServiceNode, error) {

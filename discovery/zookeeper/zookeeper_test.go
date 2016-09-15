@@ -241,7 +241,10 @@ func TestEncodeZKNodeValue(t *testing.T) {
 		Port:      p,
 	}
 	expectedResult := []byte(`{"id":"my-service","name":"my-service","address":"192.168.1.1","port":9000,"tags":null}`)
-	encodedServiceDef := encodeZooKeeperNodeValue(service)
+	encodedServiceDef, err := encodeZooKeeperNodeValue(service)
+	if err != nil {
+		t.Fatalf("Unexpected error encoding the service, %s", err)
+	}
 	if !bytes.Equal(encodedServiceDef, expectedResult) {
 		t.Fatalf("Unexpected service encoding %s", encodedServiceDef)
 	}
