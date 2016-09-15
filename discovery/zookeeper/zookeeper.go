@@ -205,7 +205,7 @@ func (conn ZooKeeper) createParentPath(path string) error {
 	return nil
 }
 
-func (conn ZooKeeper) registerService(service *discovery.ServiceDefinition) error {
+func (conn *ZooKeeper) registerService(service *discovery.ServiceDefinition) error {
 	key := conn.getNodeKey(service)
 	if err := conn.createParentPath(conn.parentPath(service)); err != nil {
 		return err
