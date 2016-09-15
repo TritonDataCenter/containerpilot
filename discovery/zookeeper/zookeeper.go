@@ -214,13 +214,16 @@ func (conn *ZooKeeper) registerService(service *discovery.ServiceDefinition) err
 	if err != nil {
 		return err
 	}
-	if _, err = conn.Client.Create(
+	var path string
+	if path, err = conn.Client.Create(
 		key,
 		[]byte(value),
 		zk.FlagEphemeral,
 		zk.WorldACL(zk.PermAll)); err != nil && err != zk.ErrNodeExists {
 		return err
 	}
+	log.Debugf("Node created at path: %s", path)
+
 	// Set the watcher and trigger the call via `Set`
 	_, _, _, err = conn.Client.GetW(key)
 	if err != nil {
