@@ -263,7 +263,7 @@ func TestDecodeZKNodeValue(t *testing.T) {
 		serviceNode.Name != decodedService.Name ||
 		serviceNode.Address != decodedService.Address ||
 		serviceNode.Port != decodedService.Port {
-		t.Fatalf("Unexpected service decoding %s", decodedService)
+		t.Fatalf("Unexpected service decoding %v", decodedService)
 	}
 }
 
@@ -397,14 +397,14 @@ func TestGetServices(t *testing.T) {
 
 	svcs, _ := zookeeper.getServices("my-service")
 	if len(svcs) > 0 {
-		t.Fatalf("services should be an empty array at this point %s", svcs)
+		t.Fatalf("services should be an empty array at this point %v", svcs)
 	}
 	zookeeper.registerService(service1)
 	zookeeper.registerService(service2)
 	zookeeper.registerService(service3)
 	svcs, _ = zookeeper.getServices("my-service")
 	if len(svcs) != 3 {
-		t.Fatalf("now services should contain the three services: %s", svcs)
+		t.Fatalf("now services should contain the three services: %v", svcs)
 	}
 	// Order is not guaranteed
 	if svcs[0].ID != "svc1" && svcs[0].ID != "svc2" && svcs[0].ID != "svc3" &&
@@ -431,7 +431,7 @@ func TestZookeeperCompareForChange(t *testing.T) {
 		Port:    9000,
 	}
 	if zookeeperCompareForChange([]ServiceNode{s1}, []ServiceNode{s2}) {
-		t.Fatalf("ID and name should not matter for comparison %s %s", s1, s2)
+		t.Fatalf("ID and name should not matter for comparison %v %v", s1, s2)
 	}
 	s2 = ServiceNode{
 		ID:      "whatever",
@@ -440,7 +440,7 @@ func TestZookeeperCompareForChange(t *testing.T) {
 		Port:    9000,
 	}
 	if !zookeeperCompareForChange([]ServiceNode{s1}, []ServiceNode{s2}) {
-		t.Fatalf("Address should matter for comparison %s %s", s1, s2)
+		t.Fatalf("Address should matter for comparison %v %v", s1, s2)
 	}
 	s2 = ServiceNode{
 		ID:      "whatever",
@@ -449,7 +449,7 @@ func TestZookeeperCompareForChange(t *testing.T) {
 		Port:    9001,
 	}
 	if !zookeeperCompareForChange([]ServiceNode{s1}, []ServiceNode{s2}) {
-		t.Fatalf("Port should matter for comparison %s %s", s1, s2)
+		t.Fatalf("Port should matter for comparison %v %v", s1, s2)
 	}
 }
 
