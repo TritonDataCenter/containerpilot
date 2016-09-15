@@ -97,13 +97,9 @@ func NewZooKeeperConfig(raw interface{}) (*ZooKeeper, error) {
 // Deregister removes this instance from the registry
 func (conn *ZooKeeper) Deregister(service *discovery.ServiceDefinition) {
 	key := conn.getNodeKey(service)
-	exists, _, err := conn.Client.Exists(key)
-	if err != nil {
-		log.Warnf("Error on deregistering %s. Node should exists: %s", key, err)
-	}
-	if exists {
-		log.Warnf("Deregistering %s", key)
-		conn.Client.Delete(conn.getNodeKey(service), -1)
+	log.Warnf("Deregistering %s", key)
+	if err := conn.Client.Delete(key, -1); err != nil {
+		log.Errorf("Error on deregistering %s: %s", key, err)
 	}
 }
 
