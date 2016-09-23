@@ -12,6 +12,8 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
+const errNoChild = "wait: no child processes"
+
 // Command wraps an os/exec.Cmd with a timeout, logging, and arg parsing.
 type Command struct {
 	Name            string // this gets used only in logs, defaults to Exec
@@ -72,6 +74,10 @@ func RunAndWait(c *Command, fields log.Fields) (int, error) {
 	}
 	log.Debugf("%s.Cmd.Run", c.Name)
 	if err := c.Cmd.Run(); err != nil {
+		if err.Error() == errNoChild {
+			log.Debugf(err.Error())
+			return 0, nil // process exited cleanly before we hit wait4
+		}
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				return status.ExitStatus(), err
@@ -190,6 +196,10 @@ func (c *Command) waitForTimeout() error {
 	}
 	log.Debugf("%s.run waiting for PID %d: ", c.Name, cmd.Process.Pid)
 	if _, err := cmd.Process.Wait(); err != nil {
+		if err.Error() == errNoChild {
+			log.Debugf(err.Error())
+			return nil // process exited cleanly before we hit wait4
+		}
 		log.Errorf("%s exited with error: %v", c.Name, err)
 		return err
 	}
