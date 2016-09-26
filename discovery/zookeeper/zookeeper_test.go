@@ -240,7 +240,7 @@ func TestEncodeZKNodeValue(t *testing.T) {
 		TTL:       ttl,
 		Port:      p,
 	}
-	expectedResult := []byte(`{"id":"my-service","name":"my-service","address":"192.168.1.1","port":9000,"tags":null}`)
+	expectedResult := []byte(`{"id":"my-service","name":"my-service","address":"192.168.1.1","port":9000}`)
 	encodedServiceDef, err := encodeZooKeeperNodeValue(service)
 	if err != nil {
 		t.Fatalf("Unexpected error encoding the service, %s", err)
@@ -260,7 +260,7 @@ func TestDecodeZKNodeValue(t *testing.T) {
 		Address: ip,
 		Port:    p,
 	}
-	encodedService := `{"id":"my-service","name":"my-service","address":"192.168.1.1","port":9000,"tags":null}`
+	encodedService := `{"id":"my-service","name":"my-service","address":"192.168.1.1","port":9000}`
 	decodedService, _ := decodeZooKeeperNodeValue([]byte(encodedService))
 	if serviceNode.ID != decodedService.ID ||
 		serviceNode.Name != decodedService.Name ||
@@ -307,7 +307,7 @@ func TestAppKey(t *testing.T) {
 }
 
 func TestRegisterService(t *testing.T) {
-	expectedValue := `{"id":"srv-id","name":"my-service","address":"192.168.1.1","port":9000,"tags":null}`
+	expectedValue := `{"id":"srv-id","name":"my-service","address":"192.168.1.1","port":9000}`
 	zookeeper := zookeeper()
 	defer zookeeper.Client.Close()
 	defer zookeeper.Client.Delete("/containerpilot/my-service/srv-id", -1)

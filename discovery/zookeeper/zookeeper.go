@@ -27,11 +27,10 @@ type ZooKeeper struct {
 
 // ServiceNode is the serializable form of a ZooKeeper service record
 type ServiceNode struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Address string   `json:"address"`
-	Port    int      `json:"port"`
-	Tags    []string `json:"tags"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Port    int    `json:"port"`
 }
 
 type zookeeperRawConfig struct {
@@ -132,7 +131,6 @@ var zookeeperUpstreams = make(map[string][]ServiceNode)
 
 // CheckForUpstreamChanges checks another zookeeper node for changes
 func (conn *ZooKeeper) CheckForUpstreamChanges(backendName, backendTag string) bool {
-	// TODO: is there a way to filter by tag in zookeeper?
 	services, err := conn.getServices(backendName)
 	if err != nil {
 		log.Errorf("Failed to query %v: %s", backendName, err)
