@@ -9,14 +9,17 @@ import (
 	"github.com/samuel/go-zookeeper/zk"
 )
 
+// Vars
+var endpoint = "zookeeper"
+
 // Factories, utilities
 func zkConnection() *zk.Conn {
-	c, _, _ := zk.Connect([]string{"127.0.0.1"}, time.Second)
+	c, _, _ := zk.Connect([]string{endpoint}, time.Second)
 	return c
 }
 
 func zkConnectionWithCallback(cb zk.EventCallback) *zk.Conn {
-	c, _, _ := zk.Connect([]string{"127.0.0.1"}, time.Second, zk.WithEventCallback(cb))
+	c, _, _ := zk.Connect([]string{endpoint}, time.Second, zk.WithEventCallback(cb))
 	return c
 }
 
@@ -32,7 +35,7 @@ func serviceDef(id string) *discovery.ServiceDefinition {
 
 func zookeeper() *ZooKeeper {
 	result, _ := NewZooKeeperConfig(map[string]interface{}{
-		"address": "127.0.0.1",
+		"address": endpoint,
 	})
 	return result
 }
@@ -143,7 +146,7 @@ func TestZKCreateNodeIdempotency(t *testing.T) {
 }
 
 func TestZKConnectionEventsLazyness(t *testing.T) {
-	c, ch, _ := zk.Connect([]string{"127.0.0.1"}, time.Second)
+	c, ch, _ := zk.Connect([]string{endpoint}, time.Second)
 	var events []zk.Event
 	go func() {
 		for event := range ch {
@@ -157,7 +160,7 @@ func TestZKConnectionEventsLazyness(t *testing.T) {
 }
 
 func TestZKNodeCreationShouldNotEmitEventsWithSessionChan(t *testing.T) {
-	c, ch, _ := zk.Connect([]string{"127.0.0.1"}, time.Second)
+	c, ch, _ := zk.Connect([]string{endpoint}, time.Second)
 	var events []zk.Event
 	go func() {
 		for event := range ch {
@@ -221,7 +224,7 @@ func TestZKReadNode(t *testing.T) {
 // ContainerPilot tests
 func TestNewZooKeeperConfig(t *testing.T) {
 	rawCfg := map[string]interface{}{
-		"address": "127.0.0.1",
+		"address": endpoint,
 	}
 	if _, err := NewZooKeeperConfig(rawCfg); err != nil {
 		t.Fatalf("Unable to parse config: %s", err)
