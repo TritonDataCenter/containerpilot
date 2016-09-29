@@ -22,6 +22,16 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
+func TestHealthCheckBad(t *testing.T) {
+	cmd1, _ := commands.NewCommand("./testdata/test.sh failStuff", "")
+	service := &Service{
+		healthCheckCmd: cmd1,
+	}
+	if err := service.CheckHealth(); err == nil {
+		t.Errorf("Expected error from CheckHealth but got nil")
+	}
+}
+
 type TestFragmentServices struct {
 	Services []Service
 }

@@ -77,6 +77,14 @@ func TestRunWithTimeout(t *testing.T) {
 	}
 }
 
+func TestRunWithTimeoutFailed(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "0")
+	fields := log.Fields{"process": "test"}
+	if err := RunWithTimeout(cmd, fields); err == nil {
+		t.Errorf("Expected error but got nil")
+	}
+}
+
 func TestEmptyCommand(t *testing.T) {
 	if cmd, err := NewCommand("", "0"); cmd != nil || err == nil {
 		t.Errorf("Expected exit (nil, err) but got %s, %s", cmd, err)
