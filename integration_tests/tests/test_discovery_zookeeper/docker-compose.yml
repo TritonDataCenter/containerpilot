@@ -1,0 +1,36 @@
+zookeeper:
+    image: "cpfix_zookeeper"
+    mem_limit: 128m
+    hostname: zookeeper
+    ports:
+      - 2181:2181
+
+app:
+    image: "cpfix_app"
+    mem_limit: 128m
+    links:
+      - zookeeper:zookeeper
+    environment:
+      - CONTAINERPILOT=file:///app-with-zookeeper.json
+    volumes:
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
+
+nginx:
+    image: "cpfix_nginx"
+    mem_limit: 128m
+    links:
+      - zookeeper:zookeeper
+    environment:
+      - CONTAINERPILOT=file:///etc/nginx-with-zookeeper.json
+    volumes:
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
+
+test:
+    image: "cpfix_test_probe"
+    mem_limit: 128m
+    links:
+      - app:app
+      - nginx:nginx
+      - zookeeper:zookeeper
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
