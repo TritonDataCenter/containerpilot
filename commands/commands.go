@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -195,7 +196,8 @@ func (c *Command) waitForTimeout() error {
 		}()
 	}
 	log.Debugf("%s.run waiting for PID %d: ", c.Name, cmd.Process.Pid)
-	if _, err := cmd.Process.Wait(); err != nil {
+	state, err := cmd.Process.Wait()
+	if err != nil {
 		if err.Error() == errNoChild {
 			log.Debugf(err.Error())
 			return nil // process exited cleanly before we hit wait4
@@ -203,6 +205,10 @@ func (c *Command) waitForTimeout() error {
 		log.Errorf("%s exited with error: %v", c.Name, err)
 		return err
 	}
+	if state != nil && !state.Success() {
+		return fmt.Errorf("%s exited with error", c.Name)
+	}
+
 	if doTimeout {
 		// if we send on this when we haven't set up the receiver
 		// we'll deadlock
