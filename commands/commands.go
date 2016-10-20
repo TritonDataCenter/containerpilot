@@ -194,6 +194,9 @@ func (c *Command) waitForTimeout() error {
 				return
 			}
 		}()
+		// if we send on this when we haven't set up the receiver
+		// we'll deadlock
+		defer func() { quit <- 0 }()
 	}
 	log.Debugf("%s.run waiting for PID %d: ", c.Name, cmd.Process.Pid)
 	state, err := cmd.Process.Wait()
@@ -209,12 +212,6 @@ func (c *Command) waitForTimeout() error {
 		return fmt.Errorf("%s exited with error", c.Name)
 	}
 
-	if doTimeout {
-		// if we send on this when we haven't set up the receiver
-		// we'll deadlock
-		log.Debugf("%s.run sent timeout quit", c.Name)
-		quit <- 0
-	}
 	log.Debugf("%s.run complete", c.Name)
 	return nil
 }

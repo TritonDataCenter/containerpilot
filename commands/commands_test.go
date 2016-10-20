@@ -2,7 +2,10 @@ package commands
 
 import (
 	"errors"
+	"io/ioutil"
+	"os"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -78,10 +81,28 @@ func TestRunWithTimeout(t *testing.T) {
 }
 
 func TestRunWithTimeoutFailed(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "0")
+
+	log.SetLevel(log.DebugLevel)
+	defer log.SetLevel(log.InfoLevel)
+
+	tmp, _ := ioutil.TempFile("", "tmp")
+	defer os.Remove(tmp.Name())
+
+	log.SetOutput(tmp)
+	defer log.SetOutput(os.Stdout)
+
+	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "100ms")
 	fields := log.Fields{"process": "test"}
 	if err := RunWithTimeout(cmd, fields); err == nil {
 		t.Errorf("Expected error but got nil")
+	}
+	time.Sleep(200 * time.Millisecond)
+
+	buf, _ := ioutil.ReadFile(tmp.Name())
+	logs := string(buf)
+
+	if strings.Contains(logs, "timeout after") {
+		t.Fatalf("RunWithTimeout failed to cancel timeout after failure: %v", logs)
 	}
 }
 
