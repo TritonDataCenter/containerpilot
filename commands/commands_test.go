@@ -17,7 +17,7 @@ func TestRunAndWaitSuccess(t *testing.T) {
 }
 
 func BenchmarkRunAndWaitSuccess(b *testing.B) {
-	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", "0")
+	cmd, _ := NewCommand("./testdata/test.sh doNothing", "0")
 	for i := 0; i < b.N; i++ {
 		RunAndWait(cmd, nil)
 	}
