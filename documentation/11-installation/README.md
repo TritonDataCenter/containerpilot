@@ -11,7 +11,7 @@ RUN export CP_SHA1=c31333047d58ba09d647d717ae1fc691133db6eb \
     && curl -Lso /tmp/containerpilot.tar.gz \
          "https://github.com/joyent/containerpilot/releases/download/${CONTAINERPILOT_VERSION}/containerpilot-${CONTAINERPILOT_VERSION}.tar.gz" \
     && echo "${CP_SHA1}  /tmp/containerpilot.tar.gz" | sha1sum -c \
-    && tar zxf /tmp/containerpilot.tar.gz -C /bin \
+    && tar zxf /tmp/containerpilot.tar.gz -C /usr/local/bin \
     && rm /tmp/containerpilot.tar.gz
 ```
 
