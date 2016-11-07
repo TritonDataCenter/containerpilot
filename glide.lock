@@ -1,5 +1,5 @@
-hash: 21a6a3480ab824375461d97a619484adae555789815f71308e65b42416258f17
-updated: 2016-07-22T16:00:15.451451414Z
+hash: 52521105b41ac791c06d9f76686c304883700b2aea362fc7d87dad104742155c
+updated: 2016-09-14T20:42:43.28127229+02:00
 imports:
 - name: github.com/beorn7/perks
   version: b965b613227fddccbfffe13eae360ed3fa822f8d
@@ -14,7 +14,7 @@ imports:
   - pkg/pathutil
   - pkg/types
 - name: github.com/docker/go-units
-  version: f2d77a61e3c169b43402a0a1e84f06daf29b8190
+  version: f2145db703495b2e525c59662db69a7344b00bb8
 - name: github.com/golang/protobuf
   version: 6aaa8d47701fa6cf07e914ec01fde3d4a1fe79c3
   subpackages:
@@ -47,6 +47,10 @@ imports:
   version: 406e5b7bfd8201a36e2bb5f7bdae0b03380c2ce8
 - name: github.com/samalba/dockerclient
   version: a3036261847103270e9f732509f43b5f98710ace
+- name: github.com/samuel/go-zookeeper
+  version: 8c6a1d79a44d2742da3660540d1fd43f4ddcfc8c
+  subpackages:
+  - zk
 - name: github.com/Sirupsen/logrus
   version: be52937128b38f1d99787bb476c789e2af1147f1
 - name: golang.org/x/net

@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
+.PHONY: clean test integration consul etcd zookeeper run-consul run-etcd run-zookeeper example example-consul example-etcd example-consul ship dockerfile docker cover lint
 
 IMPORT_PATH := github.com/joyent/containerpilot
 VERSION ?= dev-build-not-for-release
@@ -13,10 +13,12 @@ ROOT := $(shell pwd)
 
 COMPOSE_PREFIX_ETCD := exetcd
 COMPOSE_PREFIX_CONSUL := exconsul
+COMPOSE_PREFIX_ZOOKEEPER= exzookeeper
 
 DOCKERRUN := docker run --rm \
 	--link containerpilot_consul:consul \
 	--link containerpilot_etcd:etcd \
+	--link containerpilot_zookeeper:zookeeper \
 	-v ${ROOT}/vendor:/go/src \
 	-v ${ROOT}:/cp/src/${IMPORT_PATH} \
 	-w /cp/src/${IMPORT_PATH} \
@@ -34,6 +36,7 @@ clean:
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	docker rm -f containerpilot_etcd > /dev/null 2>&1 || true
+	docker rm -f containerpilot_zookeeper > /dev/null 2>&1 || true
 	./scripts/test.sh clean
 
 # ----------------------------------------------
@@ -55,7 +58,7 @@ build/containerpilot_build:
 
 # shortcut target for other targets: asserts a
 # working test environment
-docker: build/containerpilot_build consul etcd
+docker: build/containerpilot_build consul etcd zookeeper
 
 # top-level target for vendoring our packages: glide install requires
 # being in the package directory so we have to run this for each package
@@ -112,6 +115,12 @@ etcd:
 		-initial-cluster-token etcd-cluster-1 \
 		-initial-cluster etcd0=http://etcd:2380 \
 		-initial-cluster-state new
+
+# Zookeeper Backend
+zookeeper:
+	docker rm -f containerpilot_zookeeper > /dev/null 2>&1 || true
+	docker run -d -m 256m --name containerpilot_zookeeper \
+		dnephin/docker-zookeeper:3.4.6
 
 release: build
 	mkdir -p release
