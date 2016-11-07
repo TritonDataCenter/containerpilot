@@ -42,7 +42,7 @@ RUN apt-get update \
         bc \
         curl \
         unzip \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/∗
 
 # Add Consul template
 # Releases at https://releases.hashicorp.com/consul-template/
