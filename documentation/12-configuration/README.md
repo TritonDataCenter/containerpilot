@@ -59,11 +59,12 @@ The format of the JSON file configuration is as follows:
         "eth2:inet",
         "eth2:inet6",
         "inet",
-        "inet6"
+        "inet6",
+        "static:192.168.1.100"
       ],
       "poll": 10,
       "ttl": 30,
-      "timeout": "10s"
+      "timeout": "10s",
       "tags": ["tag1"]
     }
   ],
