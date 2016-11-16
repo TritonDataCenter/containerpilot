@@ -122,7 +122,7 @@ func NewSensors(raw []interface{}) ([]*Sensor, error) {
 				Help:      s.Help,
 			})
 		default:
-			return nil, fmt.Errorf("Invalid sensor type: %s\n", s.Type)
+			return nil, fmt.Errorf("invalid sensor type: %s", s.Type)
 		}
 		// we're going to unregister before every attempt to register
 		// so that we can reload config

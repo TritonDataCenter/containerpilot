@@ -13,7 +13,7 @@ import (
 func ParseDuration(duration interface{}) (time.Duration, error) {
 	switch t := duration.(type) {
 	default:
-		return time.Second, fmt.Errorf("unexpected duration of type %T\n", t)
+		return time.Second, fmt.Errorf("unexpected duration of type %T", t)
 	case int64:
 		return time.Duration(t) * time.Second, nil
 	case int32:
