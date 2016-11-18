@@ -40,22 +40,16 @@ func TestEtcdParseStringEndpoints(t *testing.T) {
 	}
 }
 
-func TestEtcdTTLPass(t *testing.T) {
+func TestEtcdTTLExpires(t *testing.T) {
 	etcd, service := setupEtcd("service-TestEtcdTTLPass")
 	id := service.ID
 
-	etcd.SendHeartbeat(service) // force registration
-	if !checkServiceExists(etcd, service) {
-		t.Fatalf("Expected service %s to be registered, but was not", id)
+	etcd.SendHeartbeat(service) // force registration and TTL
+	if !checkServiceHealthy(etcd, service) {
+		t.Fatalf("Expected service %s to be registered and healthy, but was not", id)
 	}
 
-	etcd.SendHeartbeat(service) // write TTL and verify
-	if !checkServiceExists(etcd, service) {
-		t.Fatalf("Expected service %s to be registered, but was not", id)
-	}
-
-	time.Sleep(2 * time.Second)
-
+	time.Sleep(2 * time.Second) // wait for TTL to expire
 	if checkServiceExists(etcd, service) {
 		t.Fatalf("Expected service %s to be deregistered registered", id)
 	}
@@ -90,8 +84,7 @@ func TestEtcdCheckForChanges(t *testing.T) {
 	if etcd.CheckForUpstreamChanges(backend, "") {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
-	etcd.SendHeartbeat(service) // force registration
-	etcd.SendHeartbeat(service) // write TTL
+	etcd.SendHeartbeat(service) // force registration and TTL
 
 	if !etcd.CheckForUpstreamChanges(backend, "") {
 		t.Errorf("%v should have changed after first health check TTL", id)
@@ -113,4 +106,18 @@ func checkServiceExists(etcd *Etcd, service *discovery.ServiceDefinition) bool {
 		}
 	}
 	return true
+}
+
+func checkServiceHealthy(etcd *Etcd, service *discovery.ServiceDefinition) bool {
+	key := etcd.getNodeKey(service)
+	if resp, err := etcd.API.Get(context.Background(), key, nil); err != nil {
+		if etcdErr, ok := err.(client.Error); ok {
+			return etcdErr.Code != client.ErrorCodeKeyNotFound
+		}
+	} else {
+		if len(resp.Node.Nodes) == 1 {
+			return true
+		}
+	}
+	return false
 }

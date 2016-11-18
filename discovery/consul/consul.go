@@ -110,9 +110,16 @@ func (c *Consul) SendHeartbeat(service *discovery.ServiceDefinition) {
 		log.Infof("%v\nService not registered, registering...", err)
 		if err = c.registerService(*service); err != nil {
 			log.Warnf("Service registration failed: %s", err)
+			return
 		}
 		if err = c.registerCheck(*service); err != nil {
 			log.Warnf("Check registration failed: %s", err)
+			return
+		}
+		// now that we're ensured we're registered, we can push the
+		// heartbeat again
+		if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
+			log.Errorf("Failed to write heartbeat: %s", err)
 		}
 	}
 }
