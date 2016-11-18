@@ -98,7 +98,7 @@ integration: build
 consul:
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	docker run -d -m 256m --name containerpilot_consul \
-		progrium/consul:latest -server -bootstrap-expect 1 -ui-dir /ui
+		consul:latest agent -dev -client 0.0.0.0 -bind=0.0.0.0
 
 # Etcd Backend
 etcd:
