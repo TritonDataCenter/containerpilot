@@ -273,6 +273,18 @@ All executable fields, including `services/health`, `preStart`, `preStop`, `post
 ]
 ```
 
+### Environment Variables
+
+ContainerPilot will set the following environment variables.
+
+- `CONTAINERPILOT_{SERVICE_NAME}_IP`: the IP address of every service advertised by ContainerPilot. This is available to the command arguments of each hook but not to the ContainerPilot configuration file (see below).
+- `CONTAINERPILOT_PID`: the PID of ContainerPilot itself. This is available to all hooks and to the main application.
+- `CONTAINERPILOT_APP_PID`: the PID of the main shimmed application. This is available to all hooks except for the `preStart`. It is not available to the shimmed application itself (we need to start the application first to get its PID).
+- `CONTAINERPILOT_PRESTART_PID`: the PID of the `preStart` hook while it runs.
+- `CONTAINERPILOT_PRESTOP_PID`: the PID of the `preStop` hook while it runs.
+- `CONTAINERPILOT_POSTSTOP_PID`: the PID of the `postStop` hook while it runs.
+- `CONTAINERPILOT_{COPROCESS_NAME}_PID`: the PID of a `coprocess` hook while it runs.
+
 ### Template configuration
 
 ContainerPilot configuration has template support. If you have an environment variable such as `FOO=BAR` then you can use `{{.FOO}}` in your configuration file or in your command arguments and it will be substituted with `BAR`. The `CONTAINERPILOT_{SERVICE_NAME}_IP` environment variable that is set by the services configuration is available to the command arguments but not to the configuration file.

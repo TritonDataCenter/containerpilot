@@ -77,6 +77,7 @@ func LoadApp() (*App, error) {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
 
+	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
 	app, err := NewApp(configFlag)
 	if err != nil {
 		return nil, err
@@ -135,6 +136,7 @@ func (a *App) Run() {
 	if err != nil {
 		log.Errorf("Unable to parse command arguments: %v", err)
 	}
+	cmd.Name = "APP"
 	a.Command = cmd
 
 	a.handleSignals()

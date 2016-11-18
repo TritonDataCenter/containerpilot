@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -74,11 +75,7 @@ func RunAndWait(c *Command, fields log.Fields) (int, error) {
 		c.Cmd.Stderr = os.Stderr
 	}
 	log.Debugf("%s.Cmd.Run", c.Name)
-	if err := c.Cmd.Run(); err != nil {
-		if err.Error() == errNoChild {
-			log.Debugf(err.Error())
-			return 0, nil // process exited cleanly before we hit wait4
-		}
+	if err := c.Cmd.Start(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				return status.ExitStatus(), err
@@ -90,6 +87,16 @@ func RunAndWait(c *Command, fields log.Fields) (int, error) {
 		// wrong to that extent.
 		log.Errorln(err)
 		return 1, err
+	}
+	os.Setenv(
+		fmt.Sprintf("CONTAINERPILOT_%s_PID", strings.ToUpper(c.Name)),
+		fmt.Sprintf("%v", c.Cmd.Process.Pid),
+	)
+	state, err := c.Cmd.Process.Wait()
+	if err != nil || (state != nil && !state.Success()) {
+		if status, ok := state.Sys().(syscall.WaitStatus); ok {
+			return status.ExitStatus(), err
+		}
 	}
 	log.Debugf("%s.RunAndWait end", c.Name)
 	return 0, nil

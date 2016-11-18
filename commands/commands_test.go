@@ -14,8 +14,12 @@ import (
 
 func TestRunAndWaitSuccess(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", "0")
+	cmd.Name = "APP"
 	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 0 {
 		t.Errorf("Expected exit code 0 but got %d", exitCode)
+	}
+	if pid := os.Getenv("CONTAINERPILOT_APP_PID"); pid == "" {
+		t.Errorf("Expected CONTAINERPILOT_APP_PID to be set")
 	}
 }
 
