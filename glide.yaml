@@ -21,7 +21,7 @@ import:
   subpackages:
   - proto
 - package: github.com/hashicorp/consul
-  version: 158eabdd6f2408067c1d7656fa10e49434f96480
+  version: ~0.7.0
   subpackages:
   - api
 - package: github.com/matttproud/golang_protobuf_extensions
