@@ -1,3 +1,3 @@
-FROM progrium/consul:latest
+FROM consul:latest
 
-EXPOSE 53 8300 8301 8302 8400 8500 8600
+CMD ["agent","-dev","-client","0.0.0.0","-bind","0.0.0.0"]
