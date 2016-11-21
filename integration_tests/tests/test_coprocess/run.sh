@@ -16,6 +16,10 @@ trap finish EXIT
 
 docker-compose up -d
 
+# Wait for consul to elect a leader
+docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
+if [ ! $? -eq 0 ] ; then exit 1 ; fi
+
 ID=$(docker ps -l -f "ancestor=cpfix_app" --format="{{.ID}}")
 
 # verify the coprocess is running

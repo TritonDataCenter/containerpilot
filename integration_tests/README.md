@@ -4,15 +4,15 @@
 
 - To run integration tests:
 
-`make integration` or `./test.sh test`
+`make integration` or `./scripts/test.sh test`
 
 - To run a single integration test:
 
-`./test.sh test test_name`
+`./scripts/test.sh test test_name`
 
 - To clean fixtures. Next time tests are run they will be rebuilt.
 
-`make clean` or `./test.sh clean`
+`make clean` or `./scripts/test.sh clean`
 
 ## Making Tests
 
@@ -41,7 +41,6 @@ This script can make some assumptions:
 - Following environment variables are set:
   - `COMPOSE_FILE`
   - `COMPOSE_PROJECT_NAME` - The name of the test folder
-  - `DOCKER_IP` - The IP of docker on the host machine
   - `CONTAINERPILOT_BIN` - Absolute path to containerpilot binary on the host.
 - all fixtures in `integration_tests/fixtures` are created and are available as images
 

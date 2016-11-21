@@ -11,7 +11,11 @@ trap finish EXIT
 
 # start up consul and app
 docker-compose up -d consul
-sleep 2
+
+# Wait for consul to elect a leader
+docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
+if [ ! $? -eq 0 ] ; then exit 1 ; fi
+
 docker-compose up -d app
 
 APP_ID="$(docker-compose ps -q app)"

@@ -37,16 +37,6 @@ docker_running() {
 if [ ! -d $FIXTURE_DIR ]; then die "Unable to find fixtures: $FIXTURE_DIR"; fi
 if [ ! -d $TESTS_DIR ];   then die "Unable to find tests: $TESTS_DIR"; fi
 
-DOCKER_IP=127.0.0.1
-if which docker-machine > /dev/null; then
-  DOCKER_MACHINE_ACTIVE=$(docker-machine active)
-  DOCKER_IP=$(docker-machine ip $DOCKER_MACHINE_ACTIVE)
-fi
-
-## Log settings
-export DOCKER_IP
-debug "DOCKER_IP=$DOCKER_IP"
-
 export FIXTURE_PREFIX=${FIXTURE_PREFIX:-"cpfix_"}
 debug "FIXTURE_PREFIX=$FIXTURE_PREFIX"
 
@@ -159,6 +149,9 @@ clean_tests() {
 COMMAND=${1:-"test"}
 shift
 case $COMMAND in
+  create_test_fixtures)
+    create_test_fixtures
+  ;;
   test)
     create_test_fixtures
     run_tests "$1"

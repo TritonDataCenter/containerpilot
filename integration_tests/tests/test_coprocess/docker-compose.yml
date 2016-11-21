@@ -14,3 +14,12 @@ app:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
       - './containerpilot.json:/etc/containerpilot.json'
       - './coprocess.sh:/bin/coprocess.sh'
+
+test:
+    image: "cpfix_test_probe"
+    mem_limit: 128m
+    links:
+      - consul:consul
+      - app:app
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
