@@ -11,9 +11,6 @@ LDFLAGS := -X ${IMPORT_PATH}/core.GitHash='$(shell git rev-parse --short HEAD)' 
 
 ROOT := $(shell pwd)
 
-COMPOSE_PREFIX_ETCD := exetcd
-COMPOSE_PREFIX_CONSUL := exconsul
-
 DOCKERRUN := docker run --rm \
 	--link containerpilot_consul:consul \
 	--link containerpilot_etcd:etcd \

@@ -125,18 +125,27 @@ func (c *Consul) SendHeartbeat(service *discovery.ServiceDefinition) {
 }
 
 func (c *Consul) registerService(service discovery.ServiceDefinition) error {
+	var enableTagOverride bool
+	if service.ConsulExtras != nil {
+		enableTagOverride = service.ConsulExtras.EnableTagOverride
+	}
 	return c.Agent().ServiceRegister(
 		&consul.AgentServiceRegistration{
-			ID:      service.ID,
-			Name:    service.Name,
-			Tags:    service.Tags,
-			Port:    service.Port,
-			Address: service.IPAddress,
+			ID:                service.ID,
+			Name:              service.Name,
+			Tags:              service.Tags,
+			Port:              service.Port,
+			Address:           service.IPAddress,
+			EnableTagOverride: enableTagOverride,
 		},
 	)
 }
 
 func (c *Consul) registerCheck(service discovery.ServiceDefinition) error {
+	var deregisterCriticalServiceAfter string
+	if service.ConsulExtras != nil {
+		deregisterCriticalServiceAfter = service.ConsulExtras.DeregisterCriticalServiceAfter
+	}
 	return c.Agent().CheckRegister(
 		&consul.AgentCheckRegistration{
 			ID:        service.ID,
@@ -145,6 +154,7 @@ func (c *Consul) registerCheck(service discovery.ServiceDefinition) error {
 			ServiceID: service.ID,
 			AgentServiceCheck: consul.AgentServiceCheck{
 				TTL: fmt.Sprintf("%ds", service.TTL),
+				DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 			},
 		},
 	)

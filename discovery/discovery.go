@@ -14,12 +14,19 @@ type ServiceBackend interface {
 // ServiceDefinition is the concrete service structure that is
 // registered with the service discovery backend.
 type ServiceDefinition struct {
-	ID        string
-	Name      string
-	Port      int
-	TTL       int
-	Tags      []string
-	IPAddress string
+	ID           string
+	Name         string
+	Port         int
+	TTL          int
+	Tags         []string
+	IPAddress    string
+	ConsulExtras *ConsulExtras
+}
+
+// ConsulExtras handles additional Consul configuration.
+type ConsulExtras struct {
+	EnableTagOverride              bool   `mapstructure:"enableTagOverride"`
+	DeregisterCriticalServiceAfter string `mapstructure:"deregisterCriticalServiceAfter"`
 }
 
 // ServiceDiscoveryConfigHook parses a raw service discovery config

@@ -101,6 +101,102 @@ func TestServicesConfigError(t *testing.T) {
 		"Could not parse `health` in service myName: time: invalid duration xx")
 }
 
+func TestServicesConsulConfigEnableTagOverride(t *testing.T) {
+	jsonFragment := []byte(`[
+{
+  "name": "serviceA",
+  "port": 8080,
+  "interfaces": "eth0",
+  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
+  "poll": 30,
+  "ttl": 19,
+  "timeout": "1ms",
+  "tags": ["tag1","tag2"],
+  "consul": {
+	  "enableTagOverride": true
+  }
+}
+]`)
+
+	if services, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err != nil {
+		t.Fatalf("Could not parse service JSON: %s", err)
+	} else {
+		if services[0].ConsulConfig.EnableTagOverride != true {
+			t.Errorf("ConsulConfig should have had EnableTagOverride set to true.")
+		}
+	}
+}
+
+func TestInvalidServicesConsulConfigEnableTagOverride(t *testing.T) {
+	jsonFragment := []byte(`[
+{
+  "name": "serviceA",
+  "port": 8080,
+  "interfaces": "eth0",
+  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
+  "poll": 30,
+  "ttl": 19,
+  "timeout": "1ms",
+  "tags": ["tag1","tag2"],
+  "consul": {
+	  "enableTagOverride": "nope"
+  }
+}
+]`)
+
+	if _, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err == nil {
+		t.Errorf("ConsulConfig should have thrown error about EnableTagOverride being a string.")
+	}
+}
+
+func TestServicesConsulConfigDeregisterCriticalServiceAfter(t *testing.T) {
+	jsonFragment := []byte(`[
+{
+  "name": "serviceA",
+  "port": 8080,
+  "interfaces": "eth0",
+  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
+  "poll": 30,
+  "ttl": 19,
+  "timeout": "1ms",
+  "tags": ["tag1","tag2"],
+  "consul": {
+	  "deregisterCriticalServiceAfter": "40m"
+  }
+}
+]`)
+
+	if services, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err != nil {
+		t.Fatalf("Could not parse service JSON: %s", err)
+	} else {
+		if services[0].ConsulConfig.DeregisterCriticalServiceAfter != "40m" {
+			t.Errorf("ConsulConfig should have had DeregisterCriticalServiceAfter set to '40m'.")
+		}
+	}
+}
+
+func TestInvalidServicesConsulConfigDeregisterCriticalServiceAfter(t *testing.T) {
+	jsonFragment := []byte(`[
+{
+  "name": "serviceA",
+  "port": 8080,
+  "interfaces": "eth0",
+  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
+  "poll": 30,
+  "ttl": 19,
+  "timeout": "1ms",
+  "tags": ["tag1","tag2"],
+  "consul": {
+	  "deregisterCriticalServiceAfter": "nope"
+  }
+}
+]`)
+
+	if _, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err == nil {
+		t.Errorf("Error should have been generated for duration 'nope'.")
+	}
+}
+
 // ------------------------------------------
 // test helpers
 

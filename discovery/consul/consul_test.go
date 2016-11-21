@@ -19,6 +19,23 @@ func setupConsul(serviceName string) (*Consul, *discovery.ServiceDefinition) {
 	return consul, service
 }
 
+func setupWaitForLeader(consul *Consul) error {
+	maxRetry := 30
+	retry := 0
+	var err error
+
+	// we need to wait for Consul to start and self-elect
+	for ; retry < maxRetry; retry++ {
+		if retry > 0 {
+			time.Sleep(1 * time.Second)
+		}
+		if leader, err := consul.Status().Leader(); err == nil && leader != "" {
+			break
+		}
+	}
+	return err
+}
+
 func TestConsulObjectParse(t *testing.T) {
 	rawCfg := map[string]interface{}{
 		"address": "consul:8501",
@@ -57,6 +74,9 @@ func runParseTest(t *testing.T, uri, expectedAddress, expectedScheme string) {
 
 func TestConsulTTLPass(t *testing.T) {
 	consul, service := setupConsul("service-TestConsulTTLPass")
+	if err := setupWaitForLeader(consul); err != nil {
+		t.Errorf("Consul leader could not be elected.")
+	}
 	id := service.ID
 
 	consul.SendHeartbeat(service) // force registration and 1st heartbeat
@@ -70,6 +90,9 @@ func TestConsulTTLPass(t *testing.T) {
 func TestConsulCheckForChanges(t *testing.T) {
 	backend := "service-TestConsulCheckForChanges"
 	consul, service := setupConsul(backend)
+	if err := setupWaitForLeader(consul); err != nil {
+		t.Errorf("Consul leader could not be elected.")
+	}
 	id := service.ID
 	if consul.CheckForUpstreamChanges(backend, "") {
 		t.Fatalf("First read of %s should show `false` for change", id)
@@ -86,5 +109,38 @@ func TestConsulCheckForChanges(t *testing.T) {
 	time.Sleep(2 * time.Second) // wait for TTL to expire
 	if !consul.CheckForUpstreamChanges(backend, "") {
 		t.Errorf("%v should have changed after TTL expired.", id)
+	}
+}
+
+func TestConsulEnableTagOverride(t *testing.T) {
+	backend := "service-TestConsulEnableTagOverride"
+	consul, _ := NewConsulConfig("consul:8500")
+	if err := setupWaitForLeader(consul); err != nil {
+		t.Errorf("Consul leader could not be elected.")
+	}
+	service := &discovery.ServiceDefinition{
+		ID:        backend,
+		Name:      backend,
+		IPAddress: "192.168.1.1",
+		TTL:       1,
+		Port:      9000,
+		ConsulExtras: &discovery.ConsulExtras{
+			EnableTagOverride: true,
+		},
+	}
+	id := service.ID
+	if consul.CheckForUpstreamChanges(backend, "") {
+		t.Fatalf("First read of %s should show `false` for change", id)
+	}
+	consul.SendHeartbeat(service) // force registration
+	catalogService, _, err := consul.Catalog().Service(id, "", nil)
+	if err != nil {
+		t.Fatalf("Error finding service: %v", err)
+	}
+
+	for _, service := range catalogService {
+		if service.ServiceEnableTagOverride != true {
+			t.Errorf("%v should have had EnableTagOverride set to true", id)
+		}
 	}
 }
