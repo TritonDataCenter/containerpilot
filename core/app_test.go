@@ -244,6 +244,17 @@ func TestMetricServiceCreation(t *testing.T) {
 	}
 }
 
+func TestPidEnvVar(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	os.Args = []string{"this", "-config", "{}", "/testdata/test.sh"}
+	if _, err := LoadApp(); err == nil {
+		t.Fatalf("Expected error in LoadApp but got none")
+	}
+	if pid := os.Getenv("CONTAINERPILOT_PID"); pid == "" {
+		t.Errorf("Expected CONTAINERPILOT_PID to be set even on error")
+	}
+}
+
 // ----------------------------------------------------
 // test helpers
 
