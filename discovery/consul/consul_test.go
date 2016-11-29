@@ -59,16 +59,9 @@ func TestConsulTTLPass(t *testing.T) {
 	consul, service := setupConsul("service-TestConsulTTLPass")
 	id := service.ID
 
-	consul.SendHeartbeat(service) // force registration
+	consul.SendHeartbeat(service) // force registration and 1st heartbeat
 	checks, _ := consul.Agent().Checks()
 	check := checks[id]
-	if check.Status != "critical" {
-		t.Fatalf("status of check %s should be 'critical' but is %s", id, check.Status)
-	}
-
-	consul.SendHeartbeat(service) // write TTL and verify
-	checks, _ = consul.Agent().Checks()
-	check = checks[id]
 	if check.Status != "passing" {
 		t.Fatalf("status of check %s should be 'passing' but is %s", id, check.Status)
 	}

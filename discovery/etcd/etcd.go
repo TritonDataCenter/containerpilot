@@ -103,6 +103,12 @@ func (c *Etcd) SendHeartbeat(service *discovery.ServiceDefinition) {
 		log.Infof("Service not registered, registering...")
 		if err := c.registerService(service); err != nil {
 			log.Warnf("Error registering service %s: %s", service.Name, err)
+			return
+		}
+		// now that we're ensured we're registered, we can push the
+		// heartbeat again
+		if err := c.updateServiceTTL(service); err != nil {
+			log.Errorf("Failed to write heartbeat: %s", err)
 		}
 	}
 }
