@@ -31,14 +31,16 @@ func BenchmarkRunAndWaitSuccess(b *testing.B) {
 }
 
 func TestRunAndWaitFailed(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("Expected panic but did not.")
-		}
-	}()
 	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "0")
 	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 255 {
 		t.Errorf("Expected exit code 255 but got %d", exitCode)
+	}
+}
+
+func TestRunAndWaitInvalidCommand(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/invalidCommand", "0")
+	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 127 {
+		t.Errorf("Expected exit code 127 but got %d", exitCode)
 	}
 }
 
@@ -107,6 +109,14 @@ func TestRunWithTimeoutFailed(t *testing.T) {
 
 	if strings.Contains(logs, "timeout after") {
 		t.Fatalf("RunWithTimeout failed to cancel timeout after failure: %v", logs)
+	}
+}
+
+func TestRunWithTimeoutInvalidCommand(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/invalidCommand", "100ms")
+	fields := log.Fields{"process": "test"}
+	if err := RunWithTimeout(cmd, fields); err == nil {
+		t.Errorf("Expected error but got nil")
 	}
 }
 

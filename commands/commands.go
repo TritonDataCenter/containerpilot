@@ -76,27 +76,31 @@ func RunAndWait(c *Command, fields log.Fields) (int, error) {
 	}
 	log.Debugf("%s.Cmd.Run", c.Name)
 	if err := c.Cmd.Start(); err != nil {
-		if exiterr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				return status.ExitStatus(), err
-			}
-		}
-		// Should only happen if we misconfigure or there's some more
-		// serious problem with the underlying open/exec syscalls. But
-		// we'll let the lack of heartbeat tell us if something has gone
-		// wrong to that extent.
+		// the stdlib almost certainly won't include the underlying error
+		// code with this error (if any!). we can try to parse the various
+		// totally undocumented strings that come back but I'd rather do my
+		// own dentistry. a safe bet is that the end user has given us an
+		// invalid executable so we're going to return 127.
 		log.Errorln(err)
-		return 1, err
+		return 127, err
 	}
 	os.Setenv(
 		fmt.Sprintf("CONTAINERPILOT_%s_PID", strings.ToUpper(c.Name)),
 		fmt.Sprintf("%v", c.Cmd.Process.Pid),
 	)
-	state, err := c.Cmd.Process.Wait()
-	if err != nil || (state != nil && !state.Success()) {
-		if status, ok := state.Sys().(syscall.WaitStatus); ok {
+	waitStatus, err := c.Cmd.Process.Wait()
+	if waitStatus != nil && !waitStatus.Success() {
+		if status, ok := waitStatus.Sys().(syscall.WaitStatus); ok {
+			log.Debug(err)
 			return status.ExitStatus(), err
 		}
+	} else if err != nil {
+		if err.Error() == errNoChild {
+			log.Debugf(err.Error())
+			return 0, nil // process exited cleanly before we hit wait4
+		}
+		log.Errorf("%s exited with error: %v", c.Name, err)
+		return 1, err
 	}
 	log.Debugf("%s.RunAndWait end", c.Name)
 	return 0, nil
@@ -206,17 +210,16 @@ func (c *Command) waitForTimeout() error {
 		defer func() { quit <- 0 }()
 	}
 	log.Debugf("%s.run waiting for PID %d: ", c.Name, cmd.Process.Pid)
-	state, err := cmd.Process.Wait()
-	if err != nil {
+	waitStatus, err := cmd.Process.Wait()
+	if waitStatus != nil && !waitStatus.Success() {
+		return fmt.Errorf("%s exited with error", c.Name)
+	} else if err != nil {
 		if err.Error() == errNoChild {
 			log.Debugf(err.Error())
 			return nil // process exited cleanly before we hit wait4
 		}
 		log.Errorf("%s exited with error: %v", c.Name, err)
 		return err
-	}
-	if state != nil && !state.Success() {
-		return fmt.Errorf("%s exited with error", c.Name)
 	}
 
 	log.Debugf("%s.run complete", c.Name)
