@@ -27,7 +27,7 @@ func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)   
 
 func getSignalTestConfig() *App {
 	service, _ := services.NewService(
-		"test-service", 1, 1, 1, nil, nil, &NoopServiceBackend{})
+		"test-service", 1, 1, 1, nil, nil, nil, &NoopServiceBackend{})
 	app := EmptyApp()
 	cmd, _ := commands.NewCommand([]string{
 		"./testdata/test.sh",

@@ -65,7 +65,11 @@ The format of the JSON file configuration is as follows:
       "poll": 10,
       "ttl": 30,
       "timeout": "10s",
-      "tags": ["tag1"]
+      "tags": ["tag1"],
+      "consul": {
+        "enableTagOverride": true,
+        "deregisterCriticalServiceAfter": "90m"
+      }
     }
   ],
   "backends": [
@@ -124,7 +128,9 @@ The format of the JSON file configuration is as follows:
 - `ttl` is the time-to-live of a successful health check. This should be longer than the polling rate so that the polling process and the TTL aren't racing; otherwise Consul will mark the service as unhealthy.
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
 - `timeout` an optional value to wait before forcibly killing the health check. Health checks killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. This means that a heartbeat will not be sent. The minimum timeout is `1ms`. Omitting this field means that ContainerPilot will wait indefinitely for the health check. *Deprecation warning:* in ContainerPilot 3.0 this will default to the `poll` time.
-
+- `consul` an optional block of consul specific service configuration.
+    - [`enableTagOverride`](https://www.consul.io/docs/agent/services.html) if set to `true`, then external agents can update this service in the catalog and modify the tags.
+    - [`deregisterCriticalServiceAfter`](https://www.consul.io/docs/agent/http/agent.html) is a timeout in Go time format. If a check is in the critical state for more than this configured value, then its associated service (and all of its associated checks) will automatically be deregistered.
 
 ### `backends`
 

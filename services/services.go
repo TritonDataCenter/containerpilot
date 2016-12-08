@@ -23,9 +23,16 @@ type Service struct {
 	Tags             []string    `mapstructure:"tags"`
 	Timeout          string      `mapstructure:"timeout"`
 	IPAddress        string
+	ConsulConfig     *ConsulConfig `mapstructure:"consul"`
 	healthCheckCmd   *commands.Command
 	discoveryService discovery.ServiceBackend
 	definition       *discovery.ServiceDefinition
+}
+
+// ConsulConfig handles additional Consul configuration.
+type ConsulConfig struct {
+	EnableTagOverride              bool   `mapstructure:"enableTagOverride"`
+	DeregisterCriticalServiceAfter string `mapstructure:"deregisterCriticalServiceAfter"`
 }
 
 // NewServices new services from a raw config
@@ -47,14 +54,15 @@ func NewServices(raw []interface{}, disc discovery.ServiceBackend) ([]*Service, 
 
 // NewService creates a new service
 func NewService(name string, poll, port, ttl int, interfaces interface{},
-	tags []string, disc discovery.ServiceBackend) (*Service, error) {
+	tags []string, consulConfig *ConsulConfig, disc discovery.ServiceBackend) (*Service, error) {
 	service := &Service{
-		Name:       name,
-		Poll:       poll,
-		Port:       port,
-		TTL:        ttl,
-		Interfaces: interfaces,
-		Tags:       tags,
+		Name:         name,
+		Poll:         poll,
+		Port:         port,
+		TTL:          ttl,
+		Interfaces:   interfaces,
+		Tags:         tags,
+		ConsulConfig: consulConfig,
 	}
 	if err := parseService(service, disc); err != nil {
 		return nil, err
@@ -101,13 +109,29 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 	}
 	s.IPAddress = ipAddress
 
+	var consulExtras *discovery.ConsulExtras
+	if s.ConsulConfig != nil {
+
+		if s.ConsulConfig.DeregisterCriticalServiceAfter != "" {
+			if _, err := time.ParseDuration(s.ConsulConfig.DeregisterCriticalServiceAfter); err != nil {
+				return fmt.Errorf("Could not parse consul `deregisterCriticalServiceAfter` in service %s: %s", s.Name, err)
+			}
+		}
+
+		consulExtras = &discovery.ConsulExtras{
+			DeregisterCriticalServiceAfter: s.ConsulConfig.DeregisterCriticalServiceAfter,
+			EnableTagOverride:              s.ConsulConfig.EnableTagOverride,
+		}
+	}
+
 	s.definition = &discovery.ServiceDefinition{
-		ID:        s.ID,
-		Name:      s.Name,
-		Port:      s.Port,
-		TTL:       s.TTL,
-		Tags:      s.Tags,
-		IPAddress: s.IPAddress,
+		ID:           s.ID,
+		Name:         s.Name,
+		Port:         s.Port,
+		TTL:          s.TTL,
+		Tags:         s.Tags,
+		IPAddress:    s.IPAddress,
+		ConsulExtras: consulExtras,
 	}
 	return nil
 }

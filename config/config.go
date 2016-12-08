@@ -144,6 +144,7 @@ func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.S
 		t.TTL,
 		t.Interfaces,
 		t.Tags,
+		nil,
 		discoveryService)
 	if err != nil {
 		return nil, err
