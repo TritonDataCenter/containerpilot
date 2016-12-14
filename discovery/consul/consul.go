@@ -107,7 +107,7 @@ func (c *Consul) MarkForMaintenance(service *discovery.ServiceDefinition) {
 // its TTL check.
 func (c *Consul) SendHeartbeat(service *discovery.ServiceDefinition) {
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
-		log.Infof("%v\nService not registered, registering...", err)
+		log.Infof("Service not registered: %v", err)
 		if err = c.registerService(*service); err != nil {
 			log.Warnf("Service registration failed: %s", err)
 			return
@@ -121,6 +121,7 @@ func (c *Consul) SendHeartbeat(service *discovery.ServiceDefinition) {
 		if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
 			log.Errorf("Failed to write heartbeat: %s", err)
 		}
+		log.Infof("Service registered: %v", service.Name)
 	}
 }
 

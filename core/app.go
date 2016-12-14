@@ -96,8 +96,13 @@ func NewApp(configFlag string) (*App, error) {
 	if err = cfg.InitLogging(); err != nil {
 		return nil, err
 	}
-	configJSON, _ := json.Marshal(*cfg)
-	log.Debugf("Loaded config: %v", string(configJSON))
+	if log.GetLevel() >= log.DebugLevel {
+		configJSON, err := json.Marshal(cfg)
+		if err != nil {
+			log.Errorf("Error marshalling config for debug: %v", err)
+		}
+		log.Debugf("Loaded config: %v", string(configJSON))
+	}
 	a.PreStartCmd = cfg.PreStart
 	a.PreStopCmd = cfg.PreStop
 	a.PostStopCmd = cfg.PostStop
