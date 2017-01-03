@@ -1,0 +1,23 @@
+consul:
+    image: "cpfix_consul"
+    mem_limit: 128m
+    hostname: consul
+
+app:
+    image: "cpfix_app"
+    mem_limit: 128m
+    links:
+      - consul:consul
+    ports:
+      - 9090:9090
+    volumes:
+      - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
+
+test:
+    image: "cpfix_test_probe"
+    mem_limit: 128m
+    links:
+      - consul:consul
+      - app:app
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'

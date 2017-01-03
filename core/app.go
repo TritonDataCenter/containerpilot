@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -94,6 +95,13 @@ func NewApp(configFlag string) (*App, error) {
 	}
 	if err = cfg.InitLogging(); err != nil {
 		return nil, err
+	}
+	if log.GetLevel() >= log.DebugLevel {
+		configJSON, err := json.Marshal(cfg)
+		if err != nil {
+			log.Errorf("Error marshalling config for debug: %v", err)
+		}
+		log.Debugf("Loaded config: %v", string(configJSON))
 	}
 	a.PreStartCmd = cfg.PreStart
 	a.PreStopCmd = cfg.PreStop
