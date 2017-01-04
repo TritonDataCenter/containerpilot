@@ -24,9 +24,8 @@ func TestTemplate(t *testing.T) {
 	validateTemplate(t, "Default", `Hello, {{.NONAME | default 100 }}!`, env, "Hello, 100!")
 	validateTemplate(t, "Default", `Hello, {{.NONAME | default 10.1 }}!`, env, "Hello, 10.1!")
 	validateTemplate(t, "Split and Join", `Hello, {{.PARTS | split ":" | join "." }}!`, env, "Hello, a.b.c!")
-	validateTemplate(t, "Replace", `Hello, {{.NAME | replace "e" "_" }}!`, env, "Hello, T_mplat_!")
-	validateTemplate(t, "Regex Replace", `Hello, {{.NAME | regexReplace "[epa]+" "_" }}!`, env, "Hello, T_m_l_t_!")
-	validateTemplate(t, "Regexp Replace", `Hello, {{.NAME | regexpReplace "[epa]+" "_" }}!`, env, "Hello, T_m_l_t_!")
+	validateTemplate(t, "Replace All", `Hello, {{.NAME | replaceAll "e" "_" }}!`, env, "Hello, T_mplat_!")
+	validateTemplate(t, "Regex Replace All", `Hello, {{.NAME | regexReplaceAll "[epa]+" "_" }}!`, env, "Hello, T_m_l_t_!")
 }
 
 // Helper Functions
