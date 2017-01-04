@@ -11,6 +11,23 @@ import (
 // Environment is a map of environment variables to their values
 type Environment map[string]string
 
+// split is a version of strings.Split that can be piped
+func split(sep, s string) ([]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return []string{}, nil
+	}
+	return strings.Split(s, sep), nil
+}
+
+// join is a version of strings.Join that can be piped
+func join(sep string, s []string) (string, error) {
+	if len(s) == 0 {
+		return "", nil
+	}
+	return strings.Join(s, sep), nil
+}
+
 func parseEnvironment(environ []string) Environment {
 	env := make(Environment)
 	if len(environ) == 0 {
@@ -49,6 +66,8 @@ func NewTemplate(config []byte) (*Template, error) {
 	env := parseEnvironment(os.Environ())
 	tmpl, err := template.New("").Funcs(template.FuncMap{
 		"default": defaultValue,
+		"split":   split,
+		"join":    join,
 	}).Option("missingkey=zero").Parse(string(config))
 	if err != nil {
 		return nil, err
