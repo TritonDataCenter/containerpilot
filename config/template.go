@@ -4,12 +4,46 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"text/template"
 )
 
 // Environment is a map of environment variables to their values
 type Environment map[string]string
+
+// split is a version of strings.Split that can be piped
+func split(sep, s string) ([]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return []string{}, nil
+	}
+	return strings.Split(s, sep), nil
+}
+
+// join is a version of strings.Join that can be piped
+func join(sep string, s []string) (string, error) {
+	if len(s) == 0 {
+		return "", nil
+	}
+	return strings.Join(s, sep), nil
+}
+
+// replaceAll replaces all occurrences of a value in a string with the given
+// replacement value.
+func replaceAll(from, to, s string) (string, error) {
+	return strings.Replace(s, from, to, -1), nil
+}
+
+// regexReplaceAll replaces all occurrences of a regex in a string with the given
+// replacement value.
+func regexReplaceAll(re, to, s string) (string, error) {
+	compiled, err := regexp.Compile(re)
+	if err != nil {
+		return "", err
+	}
+	return compiled.ReplaceAllString(s, to), nil
+}
 
 func parseEnvironment(environ []string) Environment {
 	env := make(Environment)
@@ -48,7 +82,11 @@ func defaultValue(defaultValue, templateValue interface{}) string {
 func NewTemplate(config []byte) (*Template, error) {
 	env := parseEnvironment(os.Environ())
 	tmpl, err := template.New("").Funcs(template.FuncMap{
-		"default": defaultValue,
+		"default":         defaultValue,
+		"split":           split,
+		"join":            join,
+		"replaceAll":      replaceAll,
+		"regexReplaceAll": regexReplaceAll,
 	}).Option("missingkey=zero").Parse(string(config))
 	if err != nil {
 		return nil, err

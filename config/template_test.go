@@ -17,12 +17,15 @@ func TestParseEnvironment(t *testing.T) {
 }
 
 func TestTemplate(t *testing.T) {
-	env := parseEnvironment([]string{"NAME=Template", "USER=pilot"})
+	env := parseEnvironment([]string{"NAME=Template", "USER=pilot", "PARTS=a:b:c"})
 	validateTemplate(t, "One var", `Hello, {{.NAME}}!`, env, "Hello, Template!")
 	validateTemplate(t, "Var undefined", `Hello, {{.NONAME}}!`, env, "Hello, !")
 	validateTemplate(t, "Default", `Hello, {{.NONAME | default "World" }}!`, env, "Hello, World!")
 	validateTemplate(t, "Default", `Hello, {{.NONAME | default 100 }}!`, env, "Hello, 100!")
 	validateTemplate(t, "Default", `Hello, {{.NONAME | default 10.1 }}!`, env, "Hello, 10.1!")
+	validateTemplate(t, "Split and Join", `Hello, {{.PARTS | split ":" | join "." }}!`, env, "Hello, a.b.c!")
+	validateTemplate(t, "Replace All", `Hello, {{.NAME | replaceAll "e" "_" }}!`, env, "Hello, T_mplat_!")
+	validateTemplate(t, "Regex Replace All", `Hello, {{.NAME | regexReplaceAll "[epa]+" "_" }}!`, env, "Hello, T_m_l_t_!")
 }
 
 // Helper Functions
