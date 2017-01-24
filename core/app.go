@@ -29,6 +29,10 @@ var (
 	GitHash string
 )
 
+type Runnable interface {
+	Run()
+}
+
 // App encapsulates the state of ContainerPilot after the initial setup.
 // after it is run, it can be reloaded and paused with signals.
 type App struct {
@@ -59,14 +63,17 @@ func EmptyApp() *App {
 }
 
 // LoadApp parses the commandline arguments and loads the config
-func LoadApp() (*App, error) {
+func LoadApp() (Runnable, error) {
 
 	var configFlag string
+	var renderFlag string
 	var versionFlag bool
 
 	if !flag.Parsed() {
 		flag.StringVar(&configFlag, "config", "",
 			"JSON config or file:// path to JSON config file.")
+		flag.StringVar(&renderFlag, "render", "",
+		  "- for stdout or file:// path where to save redenred JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 		flag.Parse()
 	}
@@ -79,7 +86,14 @@ func LoadApp() (*App, error) {
 	}
 
 	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
-	app, err := NewApp(configFlag)
+	var app Runnable
+	var err error
+	if renderFlag == "" {
+		app, err = NewApp(configFlag)
+	} else {
+		app, err = config.NewRenderApp(configFlag, renderFlag)
+	}
+
 	if err != nil {
 		return nil, err
 	}
