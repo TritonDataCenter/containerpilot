@@ -29,6 +29,7 @@ var (
 	GitHash string
 )
 
+// Runnable is the returned interface for LoadApp.
 type Runnable interface {
 	Run()
 }

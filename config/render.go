@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// A Render Application
+// RenderApp encapsulates the rendered configuration file and the input and
+// output paths.
 type RenderApp struct {
-	ConfigFlag     string
-	RenderFlag     string
-	RenderedConfig []byte
+	renderFlag     string
+	renderedConfig []byte
 }
 
 // EmptyApp creates an empty application
@@ -33,8 +33,7 @@ func NewRenderApp(configFlag string, renderFlag string) (*RenderApp, error) {
 		return nil, errors.New("-render flag is invalid")
 	}
 
-	a.ConfigFlag = configFlag
-	a.RenderFlag = renderFlag
+	a.renderFlag = renderFlag
 
 	var data []byte
 	if strings.HasPrefix(configFlag, "file://") {
@@ -53,20 +52,21 @@ func NewRenderApp(configFlag string, renderFlag string) (*RenderApp, error) {
 			"Could not apply template to config: %v", err)
 	}
 
-	a.RenderedConfig = template
+	a.renderedConfig = template
 
 	return a, nil
 }
 
+// Run outputs the rendered configuration file to RenderApp.RenderFlag
 func (a *RenderApp) Run() {
-	if a.RenderFlag == "-" {
-		fmt.Printf("%s", a.RenderedConfig)
+	if a.renderFlag == "-" {
+		fmt.Printf("%s", a.renderedConfig)
 		os.Exit(0)
 	}
-	if strings.HasPrefix(a.RenderFlag, "file://") {
+	if strings.HasPrefix(a.renderFlag, "file://") {
 		var err error
-		fName := strings.SplitAfter(a.RenderFlag, "file://")[1]
-		if err = ioutil.WriteFile(fName, a.RenderedConfig, 0644); err != nil {
+		fName := strings.SplitAfter(a.renderFlag, "file://")[1]
+		if err = ioutil.WriteFile(fName, a.renderedConfig, 0644); err != nil {
 			panic(fmt.Errorf("Could not write config file: %s", err))
 		}
 		os.Exit(0)
