@@ -3,6 +3,7 @@ package core
 import (
 	"flag"
 	"os"
+	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
@@ -48,7 +49,13 @@ var testJSON = `{
 					"name": "upstreamB",
 					"poll": 79,
 					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
-			}
+			},
+            {
+                    "name": "upstreamC{{.TEST}}"
+                    "poll": 11,
+                    "onChange": "/bin/to/onChangeEvent/for/upstream.C.sh",
+                    "tag": "dev"
+            }
 	]
 }
 `
@@ -255,6 +262,88 @@ func TestPidEnvVar(t *testing.T) {
 	}
 }
 
+func TestInvalidRenderConfigFile(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	testRenderExpectError(t, "file:///xxxx", "-",
+		"Could not read config file: open /xxxx: no such file or directory")
+}
+
+func TestInvalidRenderFileConfig(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	testRenderExpectError(t, testJSON, "file:///a/b/c/d/e/f.json",
+		"Could not write config file: open /a/b/c/d/e/f.json: no such file or directory")
+}
+
+func TestRenderConfig(t *testing.T) {
+	// Because of the "exit(0)" in LoadApp, we need to use this testing pattern
+	// http://stackoverflow.com/questions/26225513/how-to-test-os-exit-scenarios-in-go
+	if render_file := os.Getenv("__RENDER_FILE"); render_file != "" {
+		defer argTestCleanup(argTestSetup())
+		os.Args = []string{"this", "-config", testJSON, "-render", render_file}
+		_, err := LoadApp()
+		t.Fatalf("LoadApp failed with err %v", err)
+		return
+	}
+}
+
+func TestRenderConfigFileStdout(t *testing.T) {
+	// Because of the "exit(0)" in LoadApp, we need to use this testing pattern
+	// http://stackoverflow.com/questions/26225513/how-to-test-os-exit-scenarios-in-go
+	defer os.Remove("testJSON.json")
+	defer os.Remove("testJSON-stdout.json")
+
+	// Render to file
+	cmd := exec.Command(os.Args[0], "-test.run=TestRenderConfig")
+	cmd.Env = append(os.Environ(), "__RENDER_FILE=file://testJSON.json")
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("process ran with err %v, want exit status 0", err)
+	}
+	if exists, err := fileExists("testJSON.json"); !exists || err != nil {
+		t.Errorf("Expected file testJSON.json to exist.")
+	}
+
+	// Render to stdout
+	cmd = exec.Command(os.Args[0], "-test.run=TestRenderConfig")
+	cmd.Env = append(os.Environ(), "__RENDER_FILE=-")
+	cmd.Stdout, _ = os.Create("testJSON-stdout.json")
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("process ran with err %v, want exit status 0", err)
+	}
+
+	// Assert they are the same size, should suffice to accept that
+	// the files are the same.
+	a_file, _ := os.Open("testJSON.json")
+	a_file_stat, _ := a_file.Stat()
+	b_file, _ := os.Open("testJSON-stdout.json")
+	b_file_stat, _ := b_file.Stat()
+	if a_file_stat.Size() != b_file_stat.Size() {
+		t.Fatalf("Expected the rendered files to be of the same size")
+	}
+	return
+}
+
+func TestRenderConfigIsValid(t *testing.T) {
+	defer os.Remove("testJSON.json")
+
+	// Render to file
+	cmd := exec.Command(os.Args[0], "-test.run=TestRenderConfig")
+	cmd.Env = append(os.Environ(), "TEST=SUCCESS", "__RENDER_FILE=file://testJSON.json")
+	cmd.Run()
+
+	defer argTestCleanup(argTestSetup())
+
+	os.Setenv("TEST", "FAILED")
+	os.Args = []string{"this", "-config", "file://testJSON.json", "/testdata/test.sh", "valid1", "--debug"}
+	app, err := LoadApp()
+	if err != nil {
+		t.Fatalf("Unexpected error in LoadApp: %v", err)
+	}
+	if strings.HasSuffix(app.Backends[2].Name, "SUCCESS") {
+		t.Errorf("Expected Backend[2] name to end in %s, but got: %s", "SUCCESS", app.Backends[2].Name)
+	}
+
+}
+
 // ----------------------------------------------------
 // test helpers
 
@@ -266,6 +355,13 @@ func argTestSetup() []string {
 
 func argTestCleanup(oldArgs []string) {
 	os.Args = oldArgs
+}
+
+func testRenderExpectError(t *testing.T, testJSON string, render string, expected string) {
+	os.Args = []string{"this", "-config", testJSON, "-render", render}
+	if _, err := LoadApp(); err != nil && !strings.Contains(err.Error(), expected) {
+		t.Errorf("Excepted %s but got %s", expected, err)
+	}
 }
 
 func testParseExpectError(t *testing.T, testJSON string, expected string) {
@@ -298,4 +394,15 @@ func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
 	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
 		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
 	}
+}
+
+func fileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
