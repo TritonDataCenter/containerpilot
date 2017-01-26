@@ -50,12 +50,11 @@ var testJSON = `{
 					"poll": 79,
 					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
 			},
-            {
-                    "name": "upstreamC{{.TEST}}"
-                    "poll": 11,
-                    "onChange": "/bin/to/onChangeEvent/for/upstream.C.sh",
-                    "tag": "dev"
-            }
+			{
+					"name": "upstreamC{{.TEST}}",
+					"poll": 79,
+					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh"
+			}
 	]
 }
 `
@@ -70,7 +69,7 @@ func TestValidConfigParse(t *testing.T) {
 		t.Fatalf("Unexpected error in LoadApp: %v", err)
 	}
 
-	if len(app.Backends) != 2 || len(app.Services) != 2 {
+	if len(app.Backends) != 3 || len(app.Services) != 2 {
 		t.Fatalf("Expected 2 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Backends), len(app.Services))
 	}
 	args := flag.Args()
@@ -277,9 +276,9 @@ func TestInvalidRenderFileConfig(t *testing.T) {
 func TestRenderConfig(t *testing.T) {
 	// Because of the "exit(0)" in LoadApp, we need to use this testing pattern
 	// http://stackoverflow.com/questions/26225513/how-to-test-os-exit-scenarios-in-go
-	if render_file := os.Getenv("__RENDER_FILE"); render_file != "" {
+	if renderFile := os.Getenv("__RENDER_FILE"); renderFile != "" {
 		defer argTestCleanup(argTestSetup())
-		os.Args = []string{"this", "-config", testJSON, "-render", render_file}
+		os.Args = []string{"this", "-config", testJSON, "-render", renderFile}
 		_, err := LoadApp()
 		t.Fatalf("LoadApp failed with err %v", err)
 		return
@@ -312,11 +311,11 @@ func TestRenderConfigFileStdout(t *testing.T) {
 
 	// Assert they are the same size, should suffice to accept that
 	// the files are the same.
-	a_file, _ := os.Open("testJSON.json")
-	a_file_stat, _ := a_file.Stat()
-	b_file, _ := os.Open("testJSON-stdout.json")
-	b_file_stat, _ := b_file.Stat()
-	if a_file_stat.Size() != b_file_stat.Size() {
+	aFile, _ := os.Open("testJSON.json")
+	aFileStat, _ := aFile.Stat()
+	bFile, _ := os.Open("testJSON-stdout.json")
+	bFileStat, _ := bFile.Stat()
+	if aFileStat.Size() != bFileStat.Size() {
 		t.Fatalf("Expected the rendered files to be of the same size")
 	}
 	return
