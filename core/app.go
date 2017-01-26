@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -28,11 +29,6 @@ var (
 	// GitHash is the short-form commit hash of this build, set at build time
 	GitHash string
 )
-
-// Runnable is the returned interface for LoadApp.
-type Runnable interface {
-	Run()
-}
 
 // App encapsulates the state of ContainerPilot after the initial setup.
 // after it is run, it can be reloaded and paused with signals.
@@ -64,7 +60,7 @@ func EmptyApp() *App {
 }
 
 // LoadApp parses the commandline arguments and loads the config
-func LoadApp() (Runnable, error) {
+func LoadApp() (*App, error) {
 
 	var configFlag string
 	var renderFlag string
@@ -74,7 +70,7 @@ func LoadApp() (Runnable, error) {
 		flag.StringVar(&configFlag, "config", "",
 			"JSON config or file:// path to JSON config file.")
 		flag.StringVar(&renderFlag, "render", "",
-		  "- for stdout or file:// path where to save redenred JSON config file.")
+			"- for stdout or file:// path where to save rendered JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 		flag.Parse()
 	}
@@ -85,16 +81,16 @@ func LoadApp() (Runnable, error) {
 	if configFlag == "" {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
-
-	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
-	var app Runnable
-	var err error
-	if renderFlag == "" {
-		app, err = NewApp(configFlag)
-	} else {
-		app, err = config.NewRenderApp(configFlag, renderFlag)
+	if renderFlag != "" {
+		err := renderConfig(configFlag, renderFlag)
+		if err != nil {
+			return nil, err
+		}
+		os.Exit(0)
 	}
 
+	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
+	app, err := NewApp(configFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +134,47 @@ func NewApp(configFlag string) (*App, error) {
 	}
 
 	return a, nil
+}
+
+// renderConfig renders the templated config in configFlag to renderFlag.
+func renderConfig(configFlag string, renderFlag string) error {
+	if configFlag == "" {
+		return fmt.Errorf(
+			"-config flag is required: '%s'", configFlag)
+	}
+
+	// This is not DRY, the same code path occurs in ParseConfig
+	var data []byte
+	if strings.HasPrefix(configFlag, "file://") {
+		var err error
+		fName := strings.SplitAfter(configFlag, "file://")[1]
+		if data, err = ioutil.ReadFile(fName); err != nil {
+			return fmt.Errorf("Could not read config file: %s", err)
+		}
+	} else {
+		data = []byte(configFlag)
+	}
+
+	template, err := config.ApplyTemplate(data)
+	if err != nil {
+		return fmt.Errorf(
+			"Could not apply template to config: %v", err)
+	}
+
+	// Save the template, either to stdout or to file://...
+	if renderFlag == "-" {
+		fmt.Printf("%s", template)
+	} else if strings.HasPrefix(renderFlag, "file://") {
+		var err error
+		fName := strings.SplitAfter(renderFlag, "file://")[1]
+		if err = ioutil.WriteFile(fName, template, 0644); err != nil {
+			return fmt.Errorf("Could not write config file: %s", err)
+		}
+	} else {
+		return fmt.Errorf("-render flag is invalid: '%s'", renderFlag)
+	}
+
+	return nil
 }
 
 // Normalize the validated service name as an environment variable
