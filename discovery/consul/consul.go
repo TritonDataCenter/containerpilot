@@ -17,7 +17,10 @@ func init() {
 }
 
 // Consul is a service discovery backend for Hashicorp Consul
-type Consul struct{ consul.Client }
+type Consul struct {
+	consul.Client
+	wasRegistered bool
+}
 
 // ConfigHook is the hook to register with the Consul backend
 func ConfigHook(raw interface{}) (discovery.ServiceBackend, error) {
@@ -47,7 +50,7 @@ func NewConsulConfig(config interface{}) (*Consul, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Consul{*client}, nil
+	return &Consul{*client, false}, nil
 }
 
 func configFromMap(raw map[string]interface{}) (*consul.Config, error) {
@@ -106,6 +109,13 @@ func (c *Consul) MarkForMaintenance(service *discovery.ServiceDefinition) {
 // If consul has never seen this service, we register the service and
 // its TTL check.
 func (c *Consul) SendHeartbeat(service *discovery.ServiceDefinition) {
+	if !c.wasRegistered {
+		if err := c.registerService(*service); err != nil {
+			log.Warnf("Service registration failed: %s", err)
+			return
+		}
+		c.wasRegistered = true
+	}
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
 		log.Infof("Service not registered: %v", err)
 		if err = c.registerService(*service); err != nil {

@@ -87,6 +87,31 @@ func TestConsulTTLPass(t *testing.T) {
 	}
 }
 
+func TestConsulReregister(t *testing.T) {
+	consul, service := setupConsul("service-TestConsulReregister")
+	if err := setupWaitForLeader(consul); err != nil {
+		t.Errorf("Consul leader could not be elected.")
+	}
+	id := service.ID
+	consul.SendHeartbeat(service) // force registration and 1st heartbeat
+	services, _ := consul.Agent().Services()
+	svc := services[id]
+	if svc.Address != "192.168.1.1" {
+		t.Fatalf("service address should be '192.168.1.1' but is %s", svc.Address)
+	}
+
+	// new Consul client (as though we've restarted)
+	consul, service = setupConsul("service-TestConsulReregister")
+	service.IPAddress = "192.168.1.2"
+	consul.SendHeartbeat(service) // force re-registration and 1st heartbeat
+
+	services, _ = consul.Agent().Services()
+	svc = services[id]
+	if svc.Address != "192.168.1.2" {
+		t.Fatalf("service address should be '192.168.1.2' but is %s", svc.Address)
+	}
+}
+
 func TestConsulCheckForChanges(t *testing.T) {
 	backend := "service-TestConsulCheckForChanges"
 	consul, service := setupConsul(backend)
