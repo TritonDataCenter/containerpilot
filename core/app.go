@@ -63,14 +63,17 @@ func EmptyApp() *App {
 func LoadApp() (*App, error) {
 
 	var configFlag string
-	var renderFlag string
 	var versionFlag bool
+	var renderFlag string
+	var templateFlag bool
 
 	if !flag.Parsed() {
 		flag.StringVar(&configFlag, "config", "",
 			"JSON config or file:// path to JSON config file.")
-		flag.StringVar(&renderFlag, "render", "",
-			"- for stdout or file:// path where to save rendered JSON config file.")
+		flag.BoolVar(&templateFlag, "template", false,
+			"Render template and quit. (default: false)")
+		flag.StringVar(&renderFlag, "out", "-",
+			"-(default) for stdout or file:// path where to save rendered JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 		flag.Parse()
 	}
@@ -81,7 +84,7 @@ func LoadApp() (*App, error) {
 	if configFlag == "" {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
-	if renderFlag != "" {
+	if templateFlag {
 		err := renderConfig(configFlag, renderFlag)
 		if err != nil {
 			return nil, err

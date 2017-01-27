@@ -70,7 +70,7 @@ func TestValidConfigParse(t *testing.T) {
 	}
 
 	if len(app.Backends) != 3 || len(app.Services) != 2 {
-		t.Fatalf("Expected 2 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Backends), len(app.Services))
+		t.Fatalf("Expected 3 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Backends), len(app.Services))
 	}
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/testdata/test.sh" {
@@ -278,7 +278,7 @@ func TestRenderConfig(t *testing.T) {
 	// http://stackoverflow.com/questions/26225513/how-to-test-os-exit-scenarios-in-go
 	if renderFile := os.Getenv("__RENDER_FILE"); renderFile != "" {
 		defer argTestCleanup(argTestSetup())
-		os.Args = []string{"this", "-config", testJSON, "-render", renderFile}
+		os.Args = []string{"this", "-template", "-config", testJSON, "-out", renderFile}
 		_, err := LoadApp()
 		t.Fatalf("LoadApp failed with err %v", err)
 		return
@@ -357,7 +357,7 @@ func argTestCleanup(oldArgs []string) {
 }
 
 func testRenderExpectError(t *testing.T, testJSON string, render string, expected string) {
-	os.Args = []string{"this", "-config", testJSON, "-render", render}
+	os.Args = []string{"this", "-template", "-config", testJSON, "-out", render}
 	if _, err := LoadApp(); err != nil && !strings.Contains(err.Error(), expected) {
 		t.Errorf("Excepted %s but got %s", expected, err)
 	}
