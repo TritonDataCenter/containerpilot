@@ -144,7 +144,6 @@ func (a *App) Run() {
 	if err != nil {
 		log.Errorf("Unable to parse command arguments: %v", err)
 	}
-	cmd.Name = "APP"
 	a.Command = cmd
 
 	a.handleSignals()
@@ -160,6 +159,7 @@ func (a *App) Run() {
 	a.handlePolling()
 
 	if a.Command != nil {
+		cmd.Name = "APP"
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
