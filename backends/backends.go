@@ -44,7 +44,7 @@ func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, 
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
 				b.Name, err)
 		}
-		cmd.Name = fmt.Sprintf("%s.health", b.Name)
+		cmd.Name = fmt.Sprintf("%s.onChange", b.Name)
 		b.onChangeCmd = cmd
 
 		if b.Poll < 1 {
