@@ -20,9 +20,10 @@ func init() {
 
 // Etcd is a service discovery backend for CoreOS etcd
 type Etcd struct {
-	Client client.Client
-	API    client.KeysAPI
-	Prefix string
+	Client        client.Client
+	API           client.KeysAPI
+	Prefix        string
+	wasRegistered bool
 }
 
 // ServiceNode is the serializable form of an Etcd service record
@@ -84,6 +85,7 @@ func NewEtcdConfig(raw interface{}) (*Etcd, error) {
 	}
 	etcd.Client = etcdClient
 	etcd.API = client.NewKeysAPI(etcdClient)
+	etcd.wasRegistered = false
 	return etcd, nil
 }
 
@@ -99,6 +101,13 @@ func (c *Etcd) MarkForMaintenance(service *discovery.ServiceDefinition) {
 
 // SendHeartbeat refreshes the TTL of this associated etcd node
 func (c *Etcd) SendHeartbeat(service *discovery.ServiceDefinition) {
+	if !c.wasRegistered {
+		if err := c.registerService(service); err != nil {
+			log.Warnf("Service registration failed: %s", err)
+			return
+		}
+		c.wasRegistered = true
+	}
 	if err := c.updateServiceTTL(service); err != nil {
 		log.Infof("Service not registered, registering...")
 		if err := c.registerService(service); err != nil {
