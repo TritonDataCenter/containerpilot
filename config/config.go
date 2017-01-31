@@ -163,27 +163,35 @@ func (cfg *rawConfig) parseTasks() ([]*tasks.Task, error) {
 	return tasks, nil
 }
 
-// ParseConfig parses a raw config flag
-func ParseConfig(configFlag string) (*Config, error) {
-	if configFlag == "" {
-		return nil, errors.New("-config flag is required")
+// RenderConfig renders the templated config in configFlag to renderFlag.
+func RenderConfig(configFlag, renderFlag string) error {
+	template, err := renderConfigTemplate(configFlag)
+	if err != nil {
+		return err
 	}
 
-	var data []byte
-	if strings.HasPrefix(configFlag, "file://") {
+	// Save the template, either to stdout or to file://...
+	if renderFlag == "-" {
+		fmt.Printf("%s", template)
+	} else if strings.HasPrefix(renderFlag, "file://") {
 		var err error
-		fName := strings.SplitAfter(configFlag, "file://")[1]
-		if data, err = ioutil.ReadFile(fName); err != nil {
-			return nil, fmt.Errorf("Could not read config file: %s", err)
+		fName := strings.SplitAfter(renderFlag, "file://")[1]
+		if err = ioutil.WriteFile(fName, template, 0644); err != nil {
+			return fmt.Errorf("Could not write config file: %s", err)
 		}
 	} else {
-		data = []byte(configFlag)
+		return fmt.Errorf("-render flag is invalid: '%s'", renderFlag)
 	}
 
-	template, err := ApplyTemplate(data)
+	return nil
+}
+
+// ParseConfig parses a raw config flag
+func ParseConfig(configFlag string) (*Config, error) {
+
+	template, err := renderConfigTemplate(configFlag)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Could not apply template to config: %v", err)
+		return nil, err
 	}
 	configMap, err := unmarshalConfig(template)
 	if err != nil {
@@ -268,6 +276,27 @@ func ParseConfig(configFlag string) (*Config, error) {
 	cfg.Coprocesses = coprocesses
 
 	return cfg, nil
+}
+
+func renderConfigTemplate(configFlag string) ([]byte, error) {
+	if configFlag == "" {
+		return nil, errors.New("-config flag is required")
+	}
+	var data []byte
+	if strings.HasPrefix(configFlag, "file://") {
+		var err error
+		fName := strings.SplitAfter(configFlag, "file://")[1]
+		if data, err = ioutil.ReadFile(fName); err != nil {
+			return nil, fmt.Errorf("Could not read config file: %s", err)
+		}
+	} else {
+		data = []byte(configFlag)
+	}
+	template, err := ApplyTemplate(data)
+	if err != nil {
+		err = fmt.Errorf("Could not apply template to config: %v", err)
+	}
+	return template, err
 }
 
 func unmarshalConfig(data []byte) (map[string]interface{}, error) {

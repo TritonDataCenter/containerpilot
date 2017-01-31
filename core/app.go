@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -85,7 +84,8 @@ func LoadApp() (*App, error) {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
 	if templateFlag {
-		err := renderConfig(configFlag, renderFlag)
+
+		err := config.RenderConfig(configFlag, renderFlag)
 		if err != nil {
 			return nil, err
 		}
@@ -137,47 +137,6 @@ func NewApp(configFlag string) (*App, error) {
 	}
 
 	return a, nil
-}
-
-// renderConfig renders the templated config in configFlag to renderFlag.
-func renderConfig(configFlag string, renderFlag string) error {
-	if configFlag == "" {
-		return fmt.Errorf(
-			"-config flag is required: '%s'", configFlag)
-	}
-
-	// This is not DRY, the same code path occurs in ParseConfig
-	var data []byte
-	if strings.HasPrefix(configFlag, "file://") {
-		var err error
-		fName := strings.SplitAfter(configFlag, "file://")[1]
-		if data, err = ioutil.ReadFile(fName); err != nil {
-			return fmt.Errorf("Could not read config file: %s", err)
-		}
-	} else {
-		data = []byte(configFlag)
-	}
-
-	template, err := config.ApplyTemplate(data)
-	if err != nil {
-		return fmt.Errorf(
-			"Could not apply template to config: %v", err)
-	}
-
-	// Save the template, either to stdout or to file://...
-	if renderFlag == "-" {
-		fmt.Printf("%s", template)
-	} else if strings.HasPrefix(renderFlag, "file://") {
-		var err error
-		fName := strings.SplitAfter(renderFlag, "file://")[1]
-		if err = ioutil.WriteFile(fName, template, 0644); err != nil {
-			return fmt.Errorf("Could not write config file: %s", err)
-		}
-	} else {
-		return fmt.Errorf("-render flag is invalid: '%s'", renderFlag)
-	}
-
-	return nil
 }
 
 // Normalize the validated service name as an environment variable
