@@ -1,8 +1,15 @@
 package config
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
+
+	// need to import this so that we have a registered backend
+	_ "github.com/joyent/containerpilot/discovery/consul"
 )
 
 func TestParseEnvironment(t *testing.T) {
@@ -28,6 +35,74 @@ func TestTemplate(t *testing.T) {
 	validateTemplate(t, "Regex Replace All", `Hello, {{.NAME | regexReplaceAll "[epa]+" "_" }}!`, env, "Hello, T_m_l_t_!")
 }
 
+func TestInvalidRenderConfigFile(t *testing.T) {
+	testRenderExpectError(t, "file:///xxxx", "-",
+		"Could not read config file: open /xxxx: no such file or directory")
+}
+
+func TestInvalidRenderFileConfig(t *testing.T) {
+	var testJSON = `{"consul": "consul:8500"}`
+	testRenderExpectError(t, testJSON, "file:///a/b/c/d/e/f.json",
+		"Could not write config file: open /a/b/c/d/e/f.json: no such file or directory")
+}
+
+func TestRenderConfigFileStdout(t *testing.T) {
+
+	var testJSON = `{
+	"consul": "consul:8500",
+	"backends": [{
+					"name": "upstreamA",
+					"poll": 11,
+					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh"}]}`
+
+	// Render to file
+	defer os.Remove("testJSON.json")
+	if err := RenderConfig(testJSON, "file://testJSON.json"); err != nil {
+		t.Fatalf("Expected no error from renderConfigTemplate but got: %v", err)
+	}
+	if exists, err := fileExists("testJSON.json"); !exists || err != nil {
+		t.Errorf("Expected file testJSON.json to exist.")
+	}
+
+	// Render to stdout
+	fname := filepath.Join(os.TempDir(), "stdout")
+	temp, _ := os.Create(fname)
+	old := os.Stdout
+	os.Stdout = temp
+	if err := RenderConfig(testJSON, "-"); err != nil {
+		t.Fatalf("Expected no error from renderConfigTemplate but got: %v", err)
+	}
+	temp.Close()
+	os.Stdout = old
+
+	renderedOut, _ := ioutil.ReadFile(fname)
+	renderedFile, _ := ioutil.ReadFile("testJSON.json")
+	if string(renderedOut) != string(renderedFile) {
+		t.Fatalf("Expected the rendered file and stdout to be identical")
+	}
+}
+
+func TestRenderedConfigIsParseable(t *testing.T) {
+
+	var testJSON = `{
+	"consul": "consul:8500",
+	"backends": [{
+					"name": "upstreamA{{.TESTRENDERCONFIGISPARSEABLE}}",
+					"poll": 11,
+					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh"}]}`
+
+	os.Setenv("TESTRENDERCONFIGISPARSEABLE", "-ok")
+	template, _ := renderConfigTemplate(testJSON)
+	config, err := ParseConfig(string(template))
+	if err != nil {
+		t.Fatalf("Unexpected error in ParseConfig: %v", err)
+	}
+	name := config.Backends[0].Name
+	if name != "upstreamA-ok" {
+		t.Fatalf("Expected Backend[0] name to be upstreamA-ok but got %s", name)
+	}
+}
+
 // Helper Functions
 
 func validateParseEnvironment(t *testing.T, message string, environ []string, expected Environment) {
@@ -50,4 +125,22 @@ func validateTemplate(t *testing.T, name string, template string, env Environmen
 	if strRes != expected {
 		t.Fatalf("%s - Expected %s but got: %s", name, expected, strRes)
 	}
+}
+
+func testRenderExpectError(t *testing.T, testJSON, render, expected string) {
+	err := RenderConfig(testJSON, render)
+	if err == nil || !strings.Contains(err.Error(), expected) {
+		t.Errorf("Expected %s but got %s", expected, err)
+	}
+}
+
+func fileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
