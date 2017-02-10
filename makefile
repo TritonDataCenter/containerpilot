@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: clean test integration consul etcd run-consul run-etcd example example-consul example-etcd ship dockerfile docker cover lint
+.PHONY: clean test integration consul ship dockerfile docker cover lint
 
 IMPORT_PATH := github.com/joyent/containerpilot
 VERSION ?= dev-build-not-for-release
@@ -13,7 +13,6 @@ ROOT := $(shell pwd)
 
 DOCKERRUN := docker run --rm \
 	--link containerpilot_consul:consul \
-	--link containerpilot_etcd:etcd \
 	-v ${ROOT}/vendor:/go/src \
 	-v ${ROOT}:/cp/src/${IMPORT_PATH} \
 	-w /cp/src/${IMPORT_PATH} \
@@ -30,7 +29,6 @@ clean:
 	rm -rf build release cover vendor
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
-	docker rm -f containerpilot_etcd > /dev/null 2>&1 || true
 	./scripts/test.sh clean
 
 # ----------------------------------------------
@@ -52,7 +50,7 @@ build/containerpilot_build:
 
 # shortcut target for other targets: asserts a
 # working test environment
-docker: build/containerpilot_build consul etcd
+docker: build/containerpilot_build consul
 
 # top-level target for vendoring our packages: glide install requires
 # being in the package directory so we have to run this for each package
@@ -96,19 +94,6 @@ consul:
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	docker run -d -m 256m --name containerpilot_consul \
 		consul:latest agent -dev -client 0.0.0.0 -bind=0.0.0.0
-
-# Etcd Backend
-etcd:
-	docker rm -f containerpilot_etcd > /dev/null 2>&1 || true
-	docker run -d -m 256m --name containerpilot_etcd -h etcd quay.io/coreos/etcd:v2.0.8 \
-		-name etcd0 \
-		-advertise-client-urls http://etcd:2379,http://etcd:4001 \
-		-listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
-		-initial-advertise-peer-urls http://etcd:2380 \
-		-listen-peer-urls http://0.0.0.0:2380 \
-		-initial-cluster-token etcd-cluster-1 \
-		-initial-cluster etcd0=http://etcd:2380 \
-		-initial-cluster-state new
 
 release: build
 	mkdir -p release
