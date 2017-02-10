@@ -13,10 +13,6 @@ RUN curl -Lo /tmp/consul_template_0.14.0_linux_amd64.zip https://releases.hashic
     unzip /tmp/consul_template_0.14.0_linux_amd64.zip && \
     mv consul-template /bin
 
-# Add confd to re-write our Nginx config from etcd
-RUN curl -Lo /bin/confd https://github.com/kelseyhightower/confd/releases/download/v0.11.0/confd-0.11.0-linux-amd64 && \
-    chmod 755 /bin/confd
-
 # add ContainerPilot build and configuration
 COPY build/containerpilot /bin/containerpilot
 COPY etc /etc
