@@ -4,22 +4,6 @@ license: MPL-2.0
 import:
 - package: github.com/Sirupsen/logrus
   version: ~0.9.0
-- package: github.com/beorn7/perks
-  version: b965b613227fddccbfffe13eae360ed3fa822f8d
-  subpackages:
-  - quantile
-- package: github.com/coreos/etcd
-  version: 6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b
-  subpackages:
-  - Godeps/_workspace/src/github.com/ugorji/go/codec
-  - Godeps/_workspace/src/golang.org/x/net/context
-  - client
-  - pkg/pathutil
-  - pkg/types
-- package: github.com/golang/protobuf
-  version: 6aaa8d47701fa6cf07e914ec01fde3d4a1fe79c3
-  subpackages:
-  - proto
 - package: github.com/hashicorp/consul
   version: ~0.7.0
   subpackages:
@@ -54,4 +38,3 @@ import:
   version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
   subpackages:
   - unix
-- package: github.com/samalba/dockerclient
