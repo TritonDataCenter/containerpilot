@@ -161,7 +161,7 @@ func TestSensorRecordSummary(t *testing.T) {
 		sensor.record(fmt.Sprintf("%v", i))
 	}
 	resp := getFromTestServer(t, testServer)
-	expected := [][]string{{"0.5", "5"}, {"0.9", "9"}, {"0.99", "9"}}
+	expected := [][]string{{"0.5", "5"}, {"0.9", "9"}, {"0.99", "10"}}
 	if !checkBuckets(resp, patt, expected) {
 		t.Fatalf("Failed to get match for sensor in response")
 	}
@@ -171,7 +171,7 @@ func TestSensorRecordSummary(t *testing.T) {
 		sensor.record(fmt.Sprintf("%v", i))
 	}
 	resp = getFromTestServer(t, testServer)
-	expected = [][]string{{"0.5", "4"}, {"0.9", "8"}, {"0.99", "9"}}
+	expected = [][]string{{"0.5", "4"}, {"0.9", "9"}, {"0.99", "10"}}
 	if !checkBuckets(resp, patt, expected) {
 		t.Fatalf("Failed to get match for sensor in response")
 	}

@@ -1,32 +1,24 @@
-hash: 874e4f3d7d988b377f35781a0bc6b063efe4c70422072bc4a0ab8861fc2d4e7b
-updated: 2016-11-18T13:01:24.244820685-06:00
+hash: da4c6759d51ce929aaf1e9959b9deed743e0b0e0aeed601024b5cf0b2385a5a6
+updated: 2017-02-10T18:26:54.577375574Z
 imports:
 - name: github.com/beorn7/perks
-  version: b965b613227fddccbfffe13eae360ed3fa822f8d
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
-- name: github.com/coreos/etcd
-  version: 6bc9b6e4edf44b59bb99b3761e4461a1ba608b0b
-  subpackages:
-  - Godeps/_workspace/src/github.com/ugorji/go/codec
-  - Godeps/_workspace/src/golang.org/x/net/context
-  - client
-  - pkg/pathutil
-  - pkg/types
 - name: github.com/docker/go-units
-  version: f2d77a61e3c169b43402a0a1e84f06daf29b8190
+  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/golang/protobuf
-  version: 6aaa8d47701fa6cf07e914ec01fde3d4a1fe79c3
+  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
   subpackages:
   - proto
 - name: github.com/hashicorp/consul
-  version: a9455cd4fc2809570ff1855c37d6ffc2449bd42f
+  version: 1c442cb5704841704c1ba88daf1156245d0b311e
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
   version: ad28ea4487f05916463e2423a55166280e8254b5
 - name: github.com/hashicorp/serf
-  version: f679d7594a349263f6118db40d87122d3a474e7d
+  version: cb45b412ee4f9d6cc2eeb2b2b7dd0f6cfd7545c1
   subpackages:
   - coordinate
 - name: github.com/matttproud/golang_protobuf_extensions

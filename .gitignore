@@ -29,7 +29,7 @@ build/
 release/
 cover/
 vendor/
-Godeps/_workspace/
+.glide
 *.tar.gz
 *.log
 
