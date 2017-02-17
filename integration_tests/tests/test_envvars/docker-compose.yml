@@ -1,4 +1,4 @@
-consul:
+test:
   image: cpfix_consul
   environment:
     - CONTAINERPILOT=file:///etc/containerpilot.json
@@ -7,7 +7,5 @@ consul:
     - './containerpilot.json:/etc/containerpilot.json'
   command: >
     /bin/containerpilot
-    /bin/consul agent -dev -client '{{ .CONTAINERPILOT_CONSUL_IP }}' -bind '{{ .CONTAINERPILOT_CONSUL_IP }}'
+    echo '{{ .CONTAINERPILOT_TESTENVVAR_IP | default "FAIL" }}'
   mem_limit: 128m
-  ports:
-    - "8500:8500"
