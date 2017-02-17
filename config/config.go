@@ -23,7 +23,6 @@ import (
 
 type rawConfig struct {
 	logConfig         *LogConfig
-	onStart           interface{}
 	preStart          interface{}
 	preStop           interface{}
 	postStop          interface{}
@@ -382,7 +381,6 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	}
 	result.stopTimeout = stopTimeout
 	result.logConfig = &logConfig
-	result.onStart = configMap["onStart"]
 	result.preStart = configMap["preStart"]
 	result.preStop = configMap["preStop"]
 	result.postStop = configMap["postStop"]
@@ -393,7 +391,6 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.telemetryConfig = configMap["telemetry"]
 
 	delete(configMap, "logging")
-	delete(configMap, "onStart")
 	delete(configMap, "preStart")
 	delete(configMap, "preStop")
 	delete(configMap, "postStop")
