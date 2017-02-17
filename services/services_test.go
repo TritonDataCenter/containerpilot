@@ -41,7 +41,7 @@ func TestServiceParse(t *testing.T) {
 {
   "name": "serviceA",
   "port": 8080,
-  "interfaces": "eth0",
+  "interfaces": "inet",
   "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
   "poll": 30,
   "ttl": 19,
@@ -51,7 +51,7 @@ func TestServiceParse(t *testing.T) {
 {
   "name": "serviceB",
   "port": 5000,
-  "interfaces": ["ethwe","eth0"],
+  "interfaces": ["ethwe","eth0", "inet"],
   "health": "/bin/to/healthcheck/for/service/B.sh B1 B2",
   "poll": 30,
   "ttl": 103
@@ -91,7 +91,7 @@ func TestServicesConfigError(t *testing.T) {
 	validateServiceConfigError(t, err, "`port` must be > 0 in service myName")
 
 	// no health check shouldn't return an error
-	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80}]`), &raw)
+	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80, "interfaces": "inet"}]`), &raw)
 	_, err = NewServices(raw, nil)
 	validateServiceConfigError(t, err, "")
 
@@ -106,7 +106,7 @@ func TestServicesConsulConfigEnableTagOverride(t *testing.T) {
 {
   "name": "serviceA",
   "port": 8080,
-  "interfaces": "eth0",
+  "interfaces": "inet",
   "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
   "poll": 30,
   "ttl": 19,
@@ -132,7 +132,7 @@ func TestInvalidServicesConsulConfigEnableTagOverride(t *testing.T) {
 {
   "name": "serviceA",
   "port": 8080,
-  "interfaces": "eth0",
+  "interfaces": "inet",
   "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
   "poll": 30,
   "ttl": 19,
@@ -154,7 +154,7 @@ func TestServicesConsulConfigDeregisterCriticalServiceAfter(t *testing.T) {
 {
   "name": "serviceA",
   "port": 8080,
-  "interfaces": "eth0",
+  "interfaces": "inet",
   "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
   "poll": 30,
   "ttl": 19,
@@ -180,7 +180,7 @@ func TestInvalidServicesConsulConfigDeregisterCriticalServiceAfter(t *testing.T)
 {
   "name": "serviceA",
   "port": 8080,
-  "interfaces": "eth0",
+  "interfaces": "inet",
   "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
   "poll": 30,
   "ttl": 19,

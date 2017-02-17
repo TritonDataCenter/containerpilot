@@ -31,7 +31,7 @@ func GetIP(specList []string) (string, error) {
 
 	if specList == nil || len(specList) == 0 {
 		// Use a sane default
-		specList = []string{"eth0:inet"}
+		specList = []string{"eth0:inet", "inet"}
 	}
 
 	specs, err := parseInterfaceSpecs(specList)

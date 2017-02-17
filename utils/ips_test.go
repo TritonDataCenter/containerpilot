@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -24,26 +26,42 @@ func (addr MockAddr) String() string {
 	return addr.StringAttr
 }
 
+var (
+	lo  = getLocalhostIfaceName()
+	lo6 = fmt.Sprintf("%s:inet6", lo)
+)
+
+func getLocalhostIfaceName() string {
+	ifaces, _ := net.Interfaces()
+	for _, iface := range ifaces {
+		if strings.HasPrefix(iface.Name, "lo") {
+			return iface.Name
+		}
+	}
+	return ""
+}
+
 func TestGetIp(t *testing.T) {
+
 	if ip, _ := GetIP([]string{}); ip == "" {
 		t.Errorf("Expected default interface to yield an IP, but got nothing.")
 	}
 	if ip, _ := GetIP(nil); ip == "" {
 		t.Errorf("Expected default interface to yield an IP, but got nothing.")
 	}
-	if ip, _ := GetIP([]string{"eth0"}); ip == "" {
-		t.Errorf("Expected to find IP for eth0, but found nothing.")
+	if ip, _ := GetIP([]string{"inet"}); ip == "" {
+		t.Errorf("Expected to find IP for inet, but found nothing.")
 	}
-	if ip, _ := GetIP([]string{"eth0", "lo"}); ip == "127.0.0.1" {
-		t.Errorf("Expected to find eth0 ip, but found loopback instead")
+	if ip, _ := GetIP([]string{"inet", lo}); ip == "127.0.0.1" {
+		t.Errorf("Expected to find inet ip, but found loopback instead")
 	}
-	if ip, _ := GetIP([]string{"lo", "eth0"}); ip != "127.0.0.1" {
+	if ip, _ := GetIP([]string{lo, "inet"}); ip != "127.0.0.1" {
 		t.Errorf("Expected to find loopback ip, but found: %s", ip)
 	}
 	if ip, err := GetIP([]string{"interface-does-not-exist"}); err == nil {
 		t.Errorf("Expected interface not found, but instead got an IP: %s", ip)
 	}
-	if ip, _ := GetIP([]string{"static:192.168.1.100", "lo"}); ip != "192.168.1.100" {
+	if ip, _ := GetIP([]string{"static:192.168.1.100", lo}); ip != "192.168.1.100" {
 		t.Errorf("Expected to find static ip 192.168.1.100, but found: %s", ip)
 	}
 }
@@ -54,7 +72,7 @@ func TestInterfaceIpsLoopback(t *testing.T) {
 	interfaces[0] = net.Interface{
 		Index: 1,
 		MTU:   65536,
-		Name:  "lo",
+		Name:  lo,
 		Flags: net.FlagUp | net.FlagLoopback,
 	}
 
@@ -70,13 +88,13 @@ func TestInterfaceIpsLoopback(t *testing.T) {
 	 * index 1 */
 
 	for _, ip := range interfaceIps {
-		if ip.Name != "lo" {
+		if ip.Name != lo {
 			t.Errorf("Expecting loopback interface, but got: %s", ip.Name)
 		}
 		if ip.IsIPv4() && ip.IPString() != "127.0.0.1" {
 			t.Errorf("Expecting loopback interface [127.0.0.1] to be returned, got %s", ip.IPString())
 		}
-		if !ip.IsIPv4() && ip.IPString() != "::1" {
+		if !ip.IsIPv4() && !strings.HasSuffix(ip.IPString(), "::1") {
 			t.Errorf("Expecting loopback interface [::1] to be returned, got %s", ip.IPString())
 		}
 	}
@@ -88,7 +106,7 @@ func TestInterfaceIpsError(t *testing.T) {
 	interfaces[0] = net.Interface{
 		Index: 1,
 		MTU:   65536,
-		Name:  "lo",
+		Name:  lo,
 		Flags: net.FlagUp | net.FlagLoopback,
 	}
 	interfaces[1] = net.Interface{
@@ -114,13 +132,13 @@ func TestInterfaceIpsError(t *testing.T) {
 	}
 
 	for _, ip := range interfaceIps {
-		if ip.Name != "lo" {
+		if ip.Name != lo {
 			t.Errorf("Expecting loopback interface, but got: %s", ip.Name)
 		}
 		if ip.IsIPv4() && ip.IPString() != "127.0.0.1" {
 			t.Errorf("Expecting loopback interface [127.0.0.1] to be returned, got %s", ip.IPString())
 		}
-		if !ip.IsIPv4() && ip.IPString() != "::1" {
+		if !ip.IsIPv4() && !strings.HasSuffix(ip.IPString(), "::1") {
 			t.Errorf("Expecting loopback interface [::1] to be returned, got %s", ip.IPString())
 		}
 	}
@@ -221,8 +239,8 @@ func TestFindIPWithSpecs(t *testing.T) {
 	iips := getTestIPs()
 
 	// Loopback
-	testIPSpec(t, iips, "127.0.0.1", "lo")
-	testIPSpec(t, iips, "::1", "lo:inet6")
+	testIPSpec(t, iips, "127.0.0.1", lo)
+	testIPSpec(t, iips, "::1", lo6)
 
 	// Static
 	testIPSpec(t, iips, "192.168.1.100", "static:192.168.1.100")
@@ -256,8 +274,8 @@ func TestFindIPWithSpecs(t *testing.T) {
 
 	// Test that inet and inet6 will never find the loopback address
 	loopback := []interfaceIP{
-		newInterfaceIP("lo", "::1"),
-		newInterfaceIP("lo", "127.0.0.1"),
+		newInterfaceIP(lo6, "::1"),
+		newInterfaceIP(lo, "127.0.0.1"),
 	}
 	testIPSpec(t, loopback, "", "inet")
 	testIPSpec(t, loopback, "", "inet6")
@@ -317,8 +335,8 @@ func getTestIPs() []interfaceIP {
 		newInterfaceIP("eth1", "10.0.0.200"),
 		newInterfaceIP("eth2", "10.1.0.200"),
 		newInterfaceIP("eth2", "fdc6:238c:c4bc::1"),
-		newInterfaceIP("lo", "::1"),
-		newInterfaceIP("lo", "127.0.0.1"),
+		newInterfaceIP(lo, "::1"),
+		newInterfaceIP(lo, "127.0.0.1"),
 		newInterfaceIP("static:192.168.1.100", "192.168.1.100"),
 	}
 }

@@ -14,7 +14,7 @@ RUNNER := -v ${ROOT}:/go/src/${IMPORT_PATH} -w /go/src/${IMPORT_PATH} containerp
 docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
 
 # TODO: remove once we've mocked-out Consul in unit tests
-dockerTest := docker run --rm -e LDFLAGS="${LDFLAGS}" --link containerpilot_consul:consul $(RUNNER)
+dockerTest := docker run --rm -e LDFLAGS="${LDFLAGS}" -e CONSUL="consul:8500" --link containerpilot_consul:consul $(RUNNER)
 
 # flags for local development
 GOOS := $(shell uname -s | tr A-Z a-iz)
@@ -152,5 +152,5 @@ integration: build
 ## stand up a Consul server in development mode in Docker
 consul:
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
-	docker run -d -m 256m --name containerpilot_consul \
+	docker run -d -m 256m -p 8500:8500 --name containerpilot_consul \
 		consul:latest agent -dev -client 0.0.0.0 -bind=0.0.0.0

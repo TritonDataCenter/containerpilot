@@ -12,7 +12,7 @@ import (
 
 var jsonFragment = []byte(`{
 	"port": 8000,
-	"interfaces": ["eth0"],
+	"interfaces": ["inet"],
 	"sensors": [
        {
 		"namespace": "telemetry",
@@ -41,7 +41,7 @@ func TestTelemetryParse(t *testing.T) {
 }
 
 func TestTelemetryParseBadSensor(t *testing.T) {
-	jsonFragment := []byte(`{"sensors": [{"check": "true"}]}`)
+	jsonFragment := []byte(`{"sensors": [{"check": "true"}], "interfaces": ["inet"]}`)
 	if _, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err == nil {
 		t.Fatalf("Expected error from bad sensor but got nil.")
 	} else if ok := strings.HasPrefix(err.Error(), "invalid sensor type"); !ok {
