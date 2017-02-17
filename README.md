@@ -5,6 +5,11 @@
 [![Build Status](https://travis-ci.org/joyent/containerpilot.svg)](https://travis-ci.org/joyent/containerpilot)
 [![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerpilot/blob/master/LICENSE)
 
+*NOTE: ContainerPilot v2 is still supported and will receive bug fixes, but work has begun on ContainerPilot v3. The master branch contains work on ContainerPilot v3, which should not yet be used for production!*
+
+*Follow along with ContainerPilot v3 design and development in the [RFD](https://github.com/joyent/rfd/pull/13) and download the latest pre-release builds from the [GitHub releases page](https://github.com/joyent/containerpilot/releases).*
+
+
 ## What is ContainerPilot?
 
 ContainerPilot is an application-centric micro-orchestrator that automates the process of service discovery, configuration, and lifecycle management inside the container.
