@@ -10,10 +10,6 @@ Alternately, if your application double-forks (which is not recommended for cont
 
 tl;dr: ContainerPilot is designed for Docker-style containers, but it can run anywhere, including in multi-process containers, infrastructure containers, and VMs.
 
-### I want to use Etcd (or ZooKeeper), but all the examples demonstrate Consul
-
-The service catalog that ContainerPilot looks up and registers services in is pluggable. Consul and Etcd are supported now, there is [discussion of ZooKeeper as well](https://github.com/joyent/containerpilot/issues/142).
-
 ### Can ContainerPilot start X before starting my main app?
 
 ContainerPilot can run tasks before starting the main app/process in the container, but those startup tasks must successfully complete and `exit 0` before ContainerPilot will continue and start the main app. If you need to run multiple processes simultaneously, you should use a supervisor such as runit or a coprocess.
@@ -48,7 +44,6 @@ Consul nodes can be either agents or servers. The architecture of Consul assumes
 - Deploy a multi-process container with both your application and a Consul agent, with a supervisor like [runit](http://smarden.org/runit/) or [s6](http://skarnet.org/software/s6/). Each container acts as its own Consul agent and will send status changes to the Consul server cluster. An example of this can be found [here](https://github.com/tgross/nginx-autopilotpattern/tree/multiprocess). This keeps orchestration simple but adds a small amount of complexity to your container.
 - Use a single Consul node as a "master" for writing. The failure of this node will prevent your services from getting updates for new members or failed members, but the services will otherwise operate normally. This lets you keep your container simple and gives you service availability at the cost of control plane availability.
 - Divide instances of your services among your Consul nodes, so that if (for example) you are using 3 Consul nodes then you'll send a third of each service's traffic to each node. This lets you keep your container simple at the cost of scheduling and placement complexity.
-- Use etcd. Although Consul has a richer API and better scalability, etcd does not assume that you're running local agents and so it might be a better solution for smaller deployments.
 
 Please follow [containerpilot#162](https://github.com/joyent/containerpilot/issues/162) for more details.
 
