@@ -141,7 +141,7 @@ The format of the JSON file configuration is as follows:
 
 ### Service catalog
 
-The service catalog (Consul and Etcd are both supported, others can be added) is where ContainerPilot registers the service(s) in the container, and where it looks to see what other services are registered. ContainerPilot works in conjunction with the service catalog of your choice as a complete service discovery solution.
+The Consul service catalog is where ContainerPilot registers the service(s) in the container, and where it looks to see what other services are registered. ContainerPilot works in conjunction with the service catalog of your choice as a complete service discovery solution.
 
 - `consul` configures discovery via [Hashicorp Consul](https://www.consul.io/). For use with Consul's [ACL system](https://www.consul.io/docs/internals/acl.html), use the `CONSUL_HTTP_TOKEN` environment variable. Expects `hostname:port` string. If you are communicating with Consul over TLS you may include the scheme (ex. `https://consul:8500`):
 
@@ -149,19 +149,6 @@ The service catalog (Consul and Etcd are both supported, others can be added) is
     "consul": "consul:8500"
     ```
 
-- `etcd` configures discovery via [CoreOS etcd](https://coreos.com/etcd/). Expects a config object:
-
-    ```
-    "etcd": {
-        "endpoints": [
-            "http://etcd:4001"
-        ],
-        "prefix": "/containerpilot"
-    }
-    ```
-
-    - `endpoints` is the list of etcd nodes in your cluster
-    - `prefix` is the path that will be prefixed to all service discovery keys. This key is optional. (Default: `/containerpilot`)
 
 ### `logging`
 
