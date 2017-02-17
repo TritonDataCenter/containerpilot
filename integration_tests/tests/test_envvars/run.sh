@@ -8,7 +8,7 @@ docker-compose up -d consul
 n=0
 while true
 do
-    if [ $n == 10 ]; then
+    if [ $n == 15 ]; then
         echo 'Timed out waiting for Consul.'
         exit 1;
     fi
