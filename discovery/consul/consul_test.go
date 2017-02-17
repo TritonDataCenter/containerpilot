@@ -1,14 +1,25 @@
 package consul
 
 import (
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/joyent/containerpilot/discovery"
 )
 
+func getTestConsulAddress() string {
+	addr := os.Getenv("CONSUL")
+	if addr == "" {
+		addr = "localhost:8500"
+	}
+	fmt.Println(addr)
+	return addr
+}
+
 func setupConsul(serviceName string) (*Consul, *discovery.ServiceDefinition) {
-	consul, _ := NewConsulConfig("consul:8500")
+	consul, _ := NewConsulConfig(getTestConsulAddress())
 	service := &discovery.ServiceDefinition{
 		ID:        serviceName,
 		Name:      serviceName,
@@ -139,7 +150,7 @@ func TestConsulCheckForChanges(t *testing.T) {
 
 func TestConsulEnableTagOverride(t *testing.T) {
 	backend := "service-TestConsulEnableTagOverride"
-	consul, _ := NewConsulConfig("consul:8500")
+	consul, _ := NewConsulConfig(getTestConsulAddress())
 	if err := setupWaitForLeader(consul); err != nil {
 		t.Errorf("Consul leader could not be elected.")
 	}

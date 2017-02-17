@@ -22,7 +22,7 @@ var testJSON = `{
 			{
 					"name": "serviceA",
 					"port": 8080,
-					"interfaces": "eth0",
+					"interfaces": "inet",
 					"health": "/bin/to/healthcheck/for/service/A.sh",
 					"poll": 30,
 					"ttl": "19",
@@ -31,7 +31,7 @@ var testJSON = `{
 			{
 					"name": "serviceB",
 					"port": 5000,
-					"interfaces": ["ethwe","eth0"],
+					"interfaces": ["ethwe","eth0", "inet"],
 					"health": "/bin/to/healthcheck/for/service/B.sh",
 					"poll": 30,
 					"ttl": 103
@@ -203,7 +203,13 @@ func TestParseTrailingComma(t *testing.T) {
 
 func TestRenderArgs(t *testing.T) {
 	flags := []string{"-name", "{{ .HOSTNAME }}"}
-	expected, _ := os.Hostname()
+	expected := os.Getenv("HOSTNAME")
+	if expected == "" {
+		// not all environments use this variable as a hostname but
+		// we really just want to make sure it's being rendered
+		expected, _ = os.Hostname()
+		os.Setenv("HOSTNAME", expected)
+	}
 	if got := getArgs(flags)[1]; got != expected {
 		t.Errorf("Expected %v but got %v for rendered hostname", expected, got)
 	}
@@ -221,6 +227,7 @@ func TestMetricServiceCreation(t *testing.T) {
 	jsonFragment := `{
     "consul": "consul:8500",
     "telemetry": {
+      "interfaces": ["inet"],
       "port": 9090
     }
   }`

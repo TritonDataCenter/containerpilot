@@ -25,9 +25,12 @@ func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool  
 func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
 func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
 
-func getSignalTestConfig() *App {
-	service, _ := services.NewService(
-		"test-service", 1, 1, 1, nil, nil, nil, &NoopServiceBackend{})
+func getSignalTestConfig(t *testing.T) *App {
+	service, err := services.NewService(
+		"test-service", 1, 1, 1, []string{"inet"}, nil, nil, &NoopServiceBackend{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	app := EmptyApp()
 	cmd, _ := commands.NewCommand([]string{
 		"./testdata/test.sh",
@@ -42,8 +45,7 @@ func getSignalTestConfig() *App {
 
 // Test handler for SIGUSR1
 func TestMaintenanceSignal(t *testing.T) {
-	app := getSignalTestConfig()
-
+	app := getSignalTestConfig(t)
 	if app.InMaintenanceMode() {
 		t.Fatal("Should not be in maintenance mode by default")
 	}
@@ -64,7 +66,7 @@ func TestMaintenanceSignal(t *testing.T) {
 // because they'll interfere with each other's state.
 func TestTerminateSignal(t *testing.T) {
 
-	app := getSignalTestConfig()
+	app := getSignalTestConfig(t)
 	startTime := time.Now()
 	go func() {
 		if exitCode, _ := commands.RunAndWait(app.Command, nil); exitCode != 2 {
@@ -85,7 +87,7 @@ func TestTerminateSignal(t *testing.T) {
 
 // Test handler for SIGHUP
 func TestReloadSignal(t *testing.T) {
-	app := getSignalTestConfig()
+	app := getSignalTestConfig(t)
 	app.ConfigFlag = "invalid"
 	err := app.Reload()
 	if err == nil {
