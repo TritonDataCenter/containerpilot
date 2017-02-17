@@ -2,7 +2,7 @@
   "consul": "127.0.0.1:8500",
   "services": [
     {
-      "name": "consul",
+      "name": "testenvvar",
       "port": 8500,
       "health": "true",
       "poll": 10,
