@@ -3,8 +3,6 @@ package utils
 import (
 	"fmt"
 	"regexp"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 var validName = regexp.MustCompile(`^[a-z][a-zA-Z0-9\-]+$`)
@@ -17,7 +15,7 @@ func ValidateServiceName(name string) error {
 		return fmt.Errorf("`name` must not be blank")
 	}
 	if ok := validName.MatchString(name); !ok {
-		log.Warnf("Deprecation warning: service names must be alpha-numeric with dashes. In a future version of ContainerPilot this will be an error.")
+		return fmt.Errorf("service names must be alphanumeric with dashes to comply with service discovery")
 	}
 	return nil
 }
