@@ -8,9 +8,8 @@ sudo: required
 services:
   - docker
 
-## Need docker-compose 1.5.x for Variable Interpolation
 env:
-  DOCKER_COMPOSE_VERSION: 1.5.2
+  DOCKER_COMPOSE_VERSION: 1.11.2
   GO15VENDOREXPERIMENT: 1
 
 before_install:
