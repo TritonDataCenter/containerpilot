@@ -12,16 +12,13 @@ LDFLAGS := -X ${IMPORT_PATH}/core.GitHash='$(shell git rev-parse --short HEAD)' 
 ROOT := $(shell pwd)
 RUNNER := -v ${ROOT}:/go/src/${IMPORT_PATH} -w /go/src/${IMPORT_PATH} containerpilot_build
 docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
-
-# TODO: remove once we've mocked-out Consul in unit tests
-dockerTest := docker run --rm -e LDFLAGS="${LDFLAGS}" -e CONSUL="consul:8500" --link containerpilot_consul:consul $(RUNNER)
+export PATH :=$(PATH):$(GOPATH)/bin
 
 # flags for local development
 GOOS := $(shell uname -s | tr A-Z a-iz)
 GOARCH := amd64
 CGO_ENABLED := 0
 GOEXPERIMENT := framepointer
-
 
 ## display this help message
 help:
@@ -93,14 +90,18 @@ dep-install:
 dep-add: build/containerpilot_build
 	$(docker) bash -c "DEP=$(DEP) ./scripts/add_dep.sh"
 
+# run 'GOOS=darwin make tools' if you're installing on MacOS
 ## set up local dev environment
 tools:
 	@go version | grep 1.8 || (echo 'go1.8 not installed'; exit 1)
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
 	go get github.com/golang/lint/golint
-	curl --fail -Lso glide.tgz "https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-$(OS)-amd64.tar.gz"
-	tar -C "$(GOPATH)/bin" -xzf glide.tgz --strip=1 $(OS)-amd64/glide
+	curl --fail -Lso glide.tgz "https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-$(GOOS)-$(GOARCH).tar.gz"
+	tar -C "$(GOPATH)/bin" -xzf glide.tgz --strip=1 $(GOOS)-$(GOARCH)/glide
 	rm glide.tgz
+	curl --fail -Lso consul.zip "https://releases.hashicorp.com/consul/0.7.5/consul_0.7.5_$(GOOS)_$(GOARCH).zip"
+	unzip consul.zip -d "$(GOPATH)/bin"
+	rm consul.zip
 
 
 # ----------------------------------------------
@@ -113,6 +114,7 @@ debug:
 	@echo VERSION=$(VERSION)
 	@echo ROOT=$(ROOT)
 	@echo GOPATH=$(GOPATH)
+	@echo PATH=$(PATH)
 	@echo GOOS=$(GOOS)
 	@echo GOARCH=$(GOARCH)
 	@echo CGO_ENABLED=$(CGO_ENABLED)
@@ -126,7 +128,6 @@ debug:
 ## prefix before other make targets to run in your local dev environment
 local: | quiet
 	@$(eval docker= )
-	@$(eval dockerTest= )
 quiet: # this is silly but shuts up 'Nothing to be done for `local`'
 	@:
 
@@ -135,13 +136,20 @@ lint:
 	$(docker) bash ./scripts/lint.sh
 
 ## run unit tests
-test: build/containerpilot_build consul
-	$(dockerTest) bash ./scripts/unit_test.sh
+test: build/containerpilot_build
+	$(docker) bash ./scripts/unit_test.sh
 
 ## run unit tests and write out HTML file of test coverage
-cover: build/containerpilot_build consul
+cover: build/containerpilot_build
 	mkdir -p cover
-	$(dockerTest) bash ./scripts/cover.sh
+	$(docker) bash ./scripts/cover.sh
+
+## generate Consul server test code
+generate: consul
+	go run integration_tests/generation/genconsul.go -- \
+		$(ROOT)/discovery/consul
+	@docker stop containerpilot_consul
+	@docker rm -f containerpilot_consul
 
 TEST ?= "all"
 ## run integration tests; filter with `TEST=testname make integration`
