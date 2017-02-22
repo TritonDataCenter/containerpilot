@@ -20,7 +20,6 @@ dockerTest := docker run --rm -e LDFLAGS="${LDFLAGS}" -e CONSUL="consul:8500" --
 GOOS := $(shell uname -s | tr A-Z a-iz)
 GOARCH := amd64
 CGO_ENABLED := 0
-GO15VENDOREXPERIMENT := 1
 GOEXPERIMENT := framepointer
 
 
@@ -96,7 +95,7 @@ dep-add: build/containerpilot_build
 
 ## set up local dev environment
 tools:
-	@go version | grep 1.7 || (echo 'go1.7 not installed'; exit 1)
+	@go version | grep 1.8 || (echo 'go1.8 not installed'; exit 1)
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
 	go get github.com/golang/lint/golint
 	curl --fail -Lso glide.tgz "https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-$(OS)-amd64.tar.gz"
