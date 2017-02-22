@@ -1,5 +1,4 @@
-FROM golang:latest
-ENV GO15VENDOREXPERIMENT 1
+FROM golang:1.8
 
 RUN go get github.com/tools/godep
 

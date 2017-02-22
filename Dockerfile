@@ -1,4 +1,4 @@
-FROM golang:1.6
+FROM golang:1.8
 
 RUN  go get github.com/golang/lint/golint \
   && curl -Lo /tmp/glide.tgz https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-linux-amd64.tar.gz \
@@ -6,6 +6,4 @@ RUN  go get github.com/golang/lint/golint \
 
 
 ENV CGO_ENABLED 0
-ENV GO15VENDOREXPERIMENT 1
-ENV GOEXPERIMENT framepointer
 ENV GOPATH /go:/cp
