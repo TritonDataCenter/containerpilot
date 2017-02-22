@@ -1,7 +1,11 @@
 {
   "consul": "consul:8500",
+  "logging": {
+    "level": "DEBUG",
+    "format": "text"
+  },
   "preStart": [
-    "consul-template", "-once", "-retry", "30s", "-consul", "consul:8500", "-template",
+    "consul-template", "-once", "-retry", "3s", "-consul", "consul:8500", "-template",
     "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf"
   ],
   "services": [

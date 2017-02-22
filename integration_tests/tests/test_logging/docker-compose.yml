@@ -1,9 +1,13 @@
-consul:
+version: "2.1"
+
+services:
+
+  consul:
     image: "cpfix_consul"
     mem_limit: 128m
     hostname: consul
 
-app:
+  app:
     image: "cpfix_app"
     mem_limit: 128m
     links:
@@ -13,7 +17,7 @@ app:
     volumes:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
-test:
+  test:
     image: "cpfix_test_probe"
     mem_limit: 128m
     links:
