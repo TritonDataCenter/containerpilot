@@ -20,6 +20,7 @@ type Backend struct {
 	discoveryService discovery.ServiceBackend
 	lastState        interface{}
 	onChangeCmd      *commands.Command
+	timeout          time.Duration
 }
 
 // NewBackends creates a new backend from a raw config structure
@@ -38,6 +39,9 @@ func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, 
 		if b.OnChangeExec == nil {
 			return nil, fmt.Errorf("`onChange` is required in backend %s",
 				b.Name)
+		}
+		if b.Timeout == "" {
+			b.Timeout = fmt.Sprintf("%ds", b.Poll)
 		}
 		cmd, err := commands.NewCommand(b.OnChangeExec, b.Timeout)
 		if err != nil {

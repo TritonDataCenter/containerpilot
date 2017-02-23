@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -88,21 +89,11 @@ func RunAndWait(c *Command, fields log.Fields) (int, error) {
 		fmt.Sprintf("CONTAINERPILOT_%s_PID", strings.ToUpper(c.Name)),
 		fmt.Sprintf("%v", c.Cmd.Process.Pid),
 	)
-	waitStatus, err := c.Cmd.Process.Wait()
-	if waitStatus != nil && !waitStatus.Success() {
-		if status, ok := waitStatus.Sys().(syscall.WaitStatus); ok {
-			log.Debug(err)
-			return status.ExitStatus(), err
-		}
-	} else if err != nil {
-		if err.Error() == errNoChild {
-			log.Debugf(err.Error())
-			return 0, nil // process exited cleanly before we hit wait4
-		}
+	defer log.Debugf("%s.RunAndWait end", c.Name)
+	if code, err := c.wait(); err != nil {
 		log.Errorf("%s exited with error: %v", c.Name, err)
-		return 1, err
+		return code, err
 	}
-	log.Debugf("%s.RunAndWait end", c.Name)
 	return 0, nil
 }
 
@@ -138,18 +129,49 @@ func RunWithTimeout(c *Command, fields log.Fields) error {
 		// anyway in case the caller cares
 		return errors.New("Command for RunWithTimeout was nil")
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), c.TimeoutDuration)
+	defer cancel()
+
 	log.Debugf("%s.RunWithTimeout start", c.Name)
 	c.setUpCmd(fields)
 	defer c.closeLogs()
-	log.Debugf("%s.Cmd.Start", c.Name)
+	log.Debugf("%s.Cmd start", c.Name)
 	if err := c.Cmd.Start(); err != nil {
-		log.Errorf("Unable to start %s: %v", c.Name, err)
+		log.Errorf("unable to start %s: %v", c.Name, err)
 		return err
 	}
+	go func() {
+		select {
+		case <-ctx.Done():
+			log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
+			c.Kill()
+		}
+	}()
 
-	err := c.waitForTimeout()
-	log.Debugf("%s.RunWithTimeout end", c.Name)
-	return err
+	defer log.Debugf("%s.RunWithTimeout end", c.Name)
+	if _, err := c.wait(); err != nil {
+		log.Errorf("%s exited with error: %v", c.Name, err)
+		return err
+	}
+	return nil
+}
+
+func (c *Command) wait() (int, error) {
+	waitStatus, err := c.Cmd.Process.Wait()
+	if waitStatus != nil && !waitStatus.Success() {
+		var returnStatus = 1
+		if status, ok := waitStatus.Sys().(syscall.WaitStatus); ok {
+			returnStatus = status.ExitStatus()
+		}
+		return returnStatus, fmt.Errorf("%s: %s", c.Name, waitStatus)
+	} else if err != nil {
+		if err.Error() == errNoChild {
+			log.Debugf(err.Error())
+			return 0, nil // process exited cleanly before we hit wait4
+		}
+		return 1, err
+	}
+	return 0, nil
 }
 
 func (c *Command) setUpCmd(fields log.Fields) {
@@ -161,69 +183,20 @@ func (c *Command) setUpCmd(fields log.Fields) {
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 	}
+
+	// assign a unique process group ID so we can kill all
+	// its children on timeout
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	c.Cmd = cmd
 }
 
 // Kill sends a kill signal to the underlying process.
-func (c *Command) Kill() error {
+func (c *Command) Kill() {
 	log.Debugf("%s.kill", c.Name)
 	if c.Cmd != nil && c.Cmd.Process != nil {
 		log.Warnf("killing command at pid: %d", c.Cmd.Process.Pid)
-		return c.Cmd.Process.Kill()
+		syscall.Kill(-c.Cmd.Process.Pid, syscall.SIGKILL)
 	}
-	return nil
-}
-
-func (c *Command) waitForTimeout() error {
-
-	quit := make(chan int)
-	cmd := c.Cmd
-
-	// for commands that don't have a timeout we just block forever;
-	// this is required for backwards compat.
-	doTimeout := c.TimeoutDuration != time.Duration(0)
-	if doTimeout {
-		// wrap a timer in a goroutine and kill the child process
-		// if the timer expires
-		ticker := time.NewTicker(c.TimeoutDuration)
-		go func() {
-			defer ticker.Stop()
-			select {
-			case <-ticker.C:
-				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
-				if err := c.Kill(); err != nil {
-					log.Errorf("error killing command: %v", err)
-					return
-				}
-				log.Debugf("%s.run#gofunc swallow quit", c.Name)
-				// Swallow quit signal
-				<-quit
-				log.Debugf("%s.run#gofunc swallow quit complete", c.Name)
-				return
-			case <-quit:
-				log.Debugf("%s.run#gofunc received quit", c.Name)
-				return
-			}
-		}()
-		// if we send on this when we haven't set up the receiver
-		// we'll deadlock
-		defer func() { quit <- 0 }()
-	}
-	log.Debugf("%s.run waiting for PID %d: ", c.Name, cmd.Process.Pid)
-	waitStatus, err := cmd.Process.Wait()
-	if waitStatus != nil && !waitStatus.Success() {
-		return fmt.Errorf("%s exited with error", c.Name)
-	} else if err != nil {
-		if err.Error() == errNoChild {
-			log.Debugf(err.Error())
-			return nil // process exited cleanly before we hit wait4
-		}
-		log.Errorf("%s exited with error: %v", c.Name, err)
-		return err
-	}
-
-	log.Debugf("%s.run complete", c.Name)
-	return nil
 }
 
 func (c *Command) closeLogs() {

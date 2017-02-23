@@ -1,11 +1,10 @@
 package commands
 
 import (
+	"context"
 	"errors"
-	"io/ioutil"
+	"fmt"
 	"os"
-	"runtime"
-	"strings"
 	"testing"
 	"time"
 
@@ -62,61 +61,80 @@ func TestRunAndWaitForOutput(t *testing.T) {
 	}
 }
 
-func TestRunWithTimeout(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh sleepStuff", "200ms")
-	fields := log.Fields{"process": "test"}
-	RunWithTimeout(cmd, fields)
-
-	// Ensure the task has time to start
-	runtime.Gosched()
-	// Wait for task to start + 250ms
-	ticker := time.NewTicker(650 * time.Millisecond)
-	select {
-	case <-ticker.C:
-		ticker.Stop()
-		err := cmd.Kill() // make sure we don't keep running
-		if err == nil {
-			// firing Kill should throw an error
-			t.Fatalf("Command was not stopped by timeout")
-		} else {
-			if err.Error() != "os: process already finished" {
-				t.Fatalf("Command.Kill got unexpected error: %s", err)
+// If the task isn't killed after 1 second, fail the test and
+// clean up the task
+func failIfNotTimedOut(t *testing.T, cmd *Command) context.CancelFunc {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	go func() {
+		select {
+		case <-ctx.Done():
+			//			cmd.Kill()
+			if t != nil {
+				t.Fatalf("command was not stopped by timeout")
 			}
+			return
 		}
+	}()
+	return cancel
+}
+
+// We want to make sure test tasks don't run forever and so if they
+// exceed their timeouts and don't return an error we want to know that.
+func failTestIfExceedingTimeout(t *testing.T, cmd *Command) error {
+	fields := log.Fields{"process": "test"}
+
+	c := make(chan error, 1)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	go func() { c <- RunWithTimeout(cmd, fields) }()
+	select {
+	case <-ctx.Done():
+		cmd.Kill()
+		return fmt.Errorf("command was not stopped by timeout")
+	case err := <-c:
+		return err
 	}
 }
 
-func TestRunWithTimeoutFailed(t *testing.T) {
-
-	log.SetLevel(log.DebugLevel)
-	defer log.SetLevel(log.InfoLevel)
-
-	tmp, _ := ioutil.TempFile("", "tmp")
-	defer os.Remove(tmp.Name())
-
-	log.SetOutput(tmp)
-	defer log.SetOutput(os.Stdout)
-
-	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "100ms")
-	fields := log.Fields{"process": "test"}
-	if err := RunWithTimeout(cmd, fields); err == nil {
-		t.Errorf("Expected error but got nil")
+// make sure we're backwards compatible for now
+func TestRunWithTimeoutZero(t *testing.T) {
+	cmd, _ := NewCommand("sleep 2", "0")
+	err := failTestIfExceedingTimeout(t, cmd)
+	if err == nil || err.Error() != "sleep: signal: killed" {
+		t.Fatalf("failed to stop command on timeout: %v", err)
 	}
-	time.Sleep(200 * time.Millisecond)
+}
 
-	buf, _ := ioutil.ReadFile(tmp.Name())
-	logs := string(buf)
+func TestRunWithTimeoutKilled(t *testing.T) {
+	cmd, _ := NewCommand("sleep 2", "200ms")
+	err := failTestIfExceedingTimeout(t, cmd)
+	if err == nil || err.Error() != "sleep: signal: killed" {
+		t.Fatalf("failed to stop command on timeout: %v", err)
+	}
+}
 
-	if strings.Contains(logs, "timeout after") {
-		t.Fatalf("RunWithTimeout failed to cancel timeout after failure: %v", logs)
+func TestRunWithTimeoutChildrenKilledToo(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/test.sh sleepStuff", "200ms")
+	err := failTestIfExceedingTimeout(t, cmd)
+	if err == nil || err.Error() != "./testdata/test.sh: signal: killed" {
+		t.Fatalf("failed to stop command on timeout: %v", err)
+	}
+}
+
+func TestRunWithTimeoutCommandFailed(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "100ms")
+	err := failTestIfExceedingTimeout(t, cmd)
+	if err == nil || err.Error() != "./testdata/test.sh: exit status 255" {
+		t.Fatalf("failed to stop command: %v", err)
 	}
 }
 
 func TestRunWithTimeoutInvalidCommand(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/invalidCommand", "100ms")
-	fields := log.Fields{"process": "test"}
-	if err := RunWithTimeout(cmd, fields); err == nil {
-		t.Errorf("Expected error but got nil")
+	err := failTestIfExceedingTimeout(t, cmd)
+	if err == nil ||
+		err.Error() != "fork/exec ./testdata/invalidCommand: no such file or directory" {
+		t.Errorf("Expected 'no such file' error but got %v", err)
 	}
 }
 
