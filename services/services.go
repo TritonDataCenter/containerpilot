@@ -91,8 +91,7 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 	// command; this is useful for the telemetry service
 	if s.HealthCheckExec != nil {
 		if s.Timeout == "" {
-			// default timeout
-			s.Timeout = "1s"
+			s.Timeout = fmt.Sprintf("%ds", s.Poll)
 		}
 		cmd, err := commands.NewCommand(s.HealthCheckExec, s.Timeout)
 		if err != nil {
