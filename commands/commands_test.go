@@ -61,23 +61,6 @@ func TestRunAndWaitForOutput(t *testing.T) {
 	}
 }
 
-// If the task isn't killed after 1 second, fail the test and
-// clean up the task
-func failIfNotTimedOut(t *testing.T, cmd *Command) context.CancelFunc {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	go func() {
-		select {
-		case <-ctx.Done():
-			//			cmd.Kill()
-			if t != nil {
-				t.Fatalf("command was not stopped by timeout")
-			}
-			return
-		}
-	}()
-	return cancel
-}
-
 // We want to make sure test tasks don't run forever and so if they
 // exceed their timeouts and don't return an error we want to know that.
 func failTestIfExceedingTimeout(t *testing.T, cmd *Command) error {
