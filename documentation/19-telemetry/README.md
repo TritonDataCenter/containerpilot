@@ -55,7 +55,7 @@ The fields for a sensor are as follows:
 - `type` is the type of collector Prometheus will use (one of `counter`, `gauge`, `histogram` or `summary`). See [below](#Collector_types) for details.
 - `poll` is the time in seconds between running the `check`.
 - `check` is the executable (and its arguments) that is called when it is time to perform a telemetry collection.
-- `timeout` an optional value to wait before forcibly killing the `check` handler. Handlers killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. The minimum timeout is `1ms`. Omitting this field means that ContainerPilot will wait indefinitely for the `check` handler. *Deprecation warning:* in ContainerPilot 3.0 this will default to the `poll` time.
+- `timeout` an optional value to wait before forcibly killing the `check` handler. Handlers killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. The minimum timeout is `1ms` (see the golang [`ParseDuration`](https://golang.org/pkg/time/#ParseDuration) docs for this format). This field is optional and defaults to be equal to the `poll` time.
 
 The check executable is expected to return via stdout a value that can be parsed as a single 64-bit float number. Whitespace will be trimmed, but any other text in the stdout of the executable will cause the metric to be dropped. If you need to return additional information for logging, you should return this via stderr (which ContainerPilot will pass along to the Docker engine).
 
