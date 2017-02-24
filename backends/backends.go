@@ -20,7 +20,6 @@ type Backend struct {
 	discoveryService discovery.ServiceBackend
 	lastState        interface{}
 	onChangeCmd      *commands.Command
-	timeout          time.Duration
 }
 
 // NewBackends creates a new backend from a raw config structure
