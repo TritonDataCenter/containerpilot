@@ -142,8 +142,12 @@ func RunWithTimeout(c *Command, fields log.Fields) error {
 	go func() {
 		select {
 		case <-ctx.Done():
-			log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
-			c.Kill()
+			// if the context was canceled we don't want to kill the
+			// process because it's already gone
+			if ctx.Err().Error() == "context deadline exceeded" {
+				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
+				c.Kill()
+			}
 		}
 	}()
 
