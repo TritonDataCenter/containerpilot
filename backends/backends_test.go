@@ -14,11 +14,11 @@ func TestOnChangeCmd(t *testing.T) {
 		onChangeCmd: cmd1,
 	}
 	if err := backend.OnChange(); err != nil {
-		t.Errorf("Unexpected error OnChange: %s", err)
+		t.Fatalf("Unexpected error OnChange: %s", err)
 	}
 	// Ensure we can run it more than once
 	if err := backend.OnChange(); err != nil {
-		t.Errorf("Unexpected error OnChange (x2): %s", err)
+		t.Fatalf("Unexpected error OnChange (x2): %s", err)
 	}
 }
 

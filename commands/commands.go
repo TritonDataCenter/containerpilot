@@ -129,13 +129,12 @@ func RunWithTimeout(c *Command, fields log.Fields) error {
 		// anyway in case the caller cares
 		return errors.New("Command for RunWithTimeout was nil")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), c.TimeoutDuration)
-	defer cancel()
-
 	log.Debugf("%s.RunWithTimeout start", c.Name)
 	c.setUpCmd(fields)
 	defer c.closeLogs()
 	log.Debugf("%s.Cmd start", c.Name)
+	ctx, cancel := context.WithTimeout(context.Background(), c.TimeoutDuration)
+	defer cancel()
 	if err := c.Cmd.Start(); err != nil {
 		log.Errorf("unable to start %s: %v", c.Name, err)
 		return err
