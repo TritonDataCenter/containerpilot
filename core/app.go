@@ -239,6 +239,9 @@ func (a *App) Terminate() {
 	defer a.signalLock.Unlock()
 	a.stopPolling()
 	a.forAllServices(deregisterService)
+	for _, coprocess := range a.Coprocesses {
+		coprocess.ShouldRestart(false)
+	}
 
 	// Run and wait for preStop command to exit (continues
 	// unconditionally so we don't worry about returned errors here)

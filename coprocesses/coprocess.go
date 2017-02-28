@@ -135,6 +135,11 @@ func (c *Coprocess) Start() {
 	}
 }
 
+// ShouldRestart sets whether a process from being restarted if it dies ignoring restart count
+func (coprocess *Coprocess) ShouldRestart(shouldRestart bool) {
+	coprocess.restart = shouldRestart
+} 
+
 // Stop kills a running coprocess
 func (c *Coprocess) Stop() {
 	log.Debugf("coprocess[%s].Stop", c.Name)
