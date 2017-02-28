@@ -39,6 +39,9 @@ func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, 
 			return nil, fmt.Errorf("`onChange` is required in backend %s",
 				b.Name)
 		}
+		if b.Timeout == "" {
+			b.Timeout = fmt.Sprintf("%ds", b.Poll)
+		}
 		cmd, err := commands.NewCommand(b.OnChangeExec, b.Timeout)
 		if err != nil {
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",

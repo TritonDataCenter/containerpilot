@@ -82,6 +82,9 @@ func NewSensors(raw []interface{}) ([]*Sensor, error) {
 		return nil, fmt.Errorf("Sensor configuration error: %v", err)
 	}
 	for _, s := range sensors {
+		if s.Timeout == "" {
+			s.Timeout = fmt.Sprintf("%ds", s.Poll)
+		}
 		check, err := commands.NewCommand(s.CheckExec, s.Timeout)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse check in sensor %s: %s", s.Name, err)

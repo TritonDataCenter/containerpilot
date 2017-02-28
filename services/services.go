@@ -90,6 +90,9 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 	// if the HealthCheckExec is nil then we'll have no health check
 	// command; this is useful for the telemetry service
 	if s.HealthCheckExec != nil {
+		if s.Timeout == "" {
+			s.Timeout = fmt.Sprintf("%ds", s.Poll)
+		}
 		cmd, err := commands.NewCommand(s.HealthCheckExec, s.Timeout)
 		if err != nil {
 			return fmt.Errorf("Could not parse `health` in service %s: %s", s.Name, err)
