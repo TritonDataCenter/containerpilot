@@ -52,7 +52,6 @@ func assertGetStatusHandled(t *testing.T, cs *ControlSocket) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println("Received the following body... %s", resp.Body)
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
