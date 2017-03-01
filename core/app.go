@@ -18,6 +18,7 @@ import (
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
+	"github.com/joyent/containerpilot/socket"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -38,6 +39,7 @@ type App struct {
 	Tasks          []*tasks.Task
 	Coprocesses    []*coprocesses.Coprocess
 	Telemetry      *telemetry.Telemetry
+	ControlSocket  *socket.ControlSocket
 	PreStartCmd    *commands.Command
 	PreStopCmd     *commands.Command
 	PostStopCmd    *commands.Command
@@ -60,7 +62,6 @@ func EmptyApp() *App {
 
 // LoadApp parses the commandline arguments and loads the config
 func LoadApp() (*App, error) {
-
 	var configFlag string
 	var versionFlag bool
 	var renderFlag string
@@ -127,6 +128,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.Tasks = cfg.Tasks
 	a.Coprocesses = cfg.Coprocesses
 	a.Telemetry = cfg.Telemetry
+	a.ControlSocket = cfg.ControlSocket
 	a.ConfigFlag = configFlag
 
 	// set an environment variable for each service IP address so that
@@ -313,6 +315,10 @@ func (a *App) load(newApp *App) {
 		a.Telemetry.Shutdown()
 	}
 	a.Telemetry = newApp.Telemetry
+	if a.ControlSocket != nil {
+		a.ControlSocket.Shutdown()
+	}
+	a.ControlSocket = newApp.ControlSocket
 	a.Tasks = newApp.Tasks
 	a.Coprocesses = newApp.Coprocesses
 	a.handlePolling()
@@ -342,6 +348,9 @@ func (a *App) handlePolling() {
 			quit = append(quit, a.poll(sensor))
 		}
 		a.Telemetry.Serve()
+	}
+	if a.ControlSocket != nil {
+		a.ControlSocket.Serve()
 	}
 	if a.Tasks != nil {
 		for _, task := range a.Tasks {

@@ -18,6 +18,7 @@ import (
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
+	"github.com/joyent/containerpilot/socket"
 	"github.com/joyent/containerpilot/utils"
 )
 
@@ -32,6 +33,7 @@ type rawConfig struct {
 	backendsConfig    []interface{}
 	tasksConfig       []interface{}
 	telemetryConfig   interface{}
+	socketConfig      interface{}
 }
 
 // Config contains the parsed config elements
@@ -47,6 +49,7 @@ type Config struct {
 	Backends       []*backends.Backend
 	Tasks          []*tasks.Task
 	Telemetry      *telemetry.Telemetry
+	ControlSocket  *socket.ControlSocket
 }
 
 const (
