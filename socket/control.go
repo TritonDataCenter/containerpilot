@@ -21,11 +21,10 @@ type ControlSocket struct {
 
 // Handle `/status` control endpoint
 // NOTE: Stubbed out temporarily....
-func GetStatusHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{ "message": true }`))
-	})
+func GetStatusHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{ "message": true }`))
 }
 
 // Initialize a new ControlSocket for our process
@@ -48,7 +47,7 @@ func NewControlSocket(raw interface{}) (*ControlSocket, error) {
 	}
 
 	cs.mux = http.NewServeMux()
-	cs.mux.Handle("/status", GetStatusHandler())
+	cs.mux.Handle("/status", http.HandlerFunc(GetStatusHandler))
 	return cs, nil
 }
 

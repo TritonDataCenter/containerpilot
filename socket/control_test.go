@@ -48,7 +48,7 @@ func assertGetStatusHandled(t *testing.T, cs *ControlSocket) {
 		Transport: transport,
 	}
 
-	resp, err := client.Get("http://sock/stats")
+	resp, err := client.Get("http://sock/status")
 	if err != nil {
 		t.Fatal(err)
 	}
