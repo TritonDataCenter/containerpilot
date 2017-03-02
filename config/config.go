@@ -13,12 +13,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/commands"
+	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/socket"
 	"github.com/joyent/containerpilot/utils"
 )
 
@@ -49,7 +49,7 @@ type Config struct {
 	Backends       []*backends.Backend
 	Tasks          []*tasks.Task
 	Telemetry      *telemetry.Telemetry
-	ControlSocket  *socket.ControlSocket
+	Server         *control.Server
 }
 
 const (

@@ -13,12 +13,12 @@ import (
 	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/config"
+	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/socket"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -39,7 +39,7 @@ type App struct {
 	Tasks          []*tasks.Task
 	Coprocesses    []*coprocesses.Coprocess
 	Telemetry      *telemetry.Telemetry
-	ControlSocket  *socket.ControlSocket
+	Server         *control.Server
 	PreStartCmd    *commands.Command
 	PreStopCmd     *commands.Command
 	PostStopCmd    *commands.Command
@@ -128,7 +128,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.Tasks = cfg.Tasks
 	a.Coprocesses = cfg.Coprocesses
 	a.Telemetry = cfg.Telemetry
-	a.ControlSocket = cfg.ControlSocket
+	a.Server = cfg.Server
 	a.ConfigFlag = configFlag
 
 	// set an environment variable for each service IP address so that
@@ -163,6 +163,11 @@ func (a *App) Run() {
 	a.Command = cmd
 
 	a.handleSignals()
+
+	// Serve up HTTP over a local control socket
+	if a.Server != nil {
+		a.Server.Serve()
+	}
 
 	if a.PreStartCmd != nil {
 		// Run the preStart handler, if any, and exit if it returns an error
@@ -315,10 +320,10 @@ func (a *App) load(newApp *App) {
 		a.Telemetry.Shutdown()
 	}
 	a.Telemetry = newApp.Telemetry
-	if a.ControlSocket != nil {
-		a.ControlSocket.Shutdown()
+	if a.Server != nil {
+		a.Server.Shutdown()
 	}
-	a.ControlSocket = newApp.ControlSocket
+	a.Server = newApp.Server
 	a.Tasks = newApp.Tasks
 	a.Coprocesses = newApp.Coprocesses
 	a.handlePolling()
@@ -348,9 +353,6 @@ func (a *App) handlePolling() {
 			quit = append(quit, a.poll(sensor))
 		}
 		a.Telemetry.Serve()
-	}
-	if a.ControlSocket != nil {
-		a.ControlSocket.Serve()
 	}
 	if a.Tasks != nil {
 		for _, task := range a.Tasks {
