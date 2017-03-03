@@ -97,9 +97,9 @@ func TestRenderedConfigIsParseable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error in ParseConfig: %v", err)
 	}
-	name := config.Backends[0].Name
+	name := config.Watches[0].ID
 	if name != "upstreamA-ok" {
-		t.Fatalf("Expected Backend[0] name to be upstreamA-ok but got %s", name)
+		t.Fatalf("Expected Watches[0] name to be upstreamA-ok but got %s", name)
 	}
 }
 

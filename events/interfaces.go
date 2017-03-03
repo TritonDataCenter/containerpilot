@@ -1,7 +1,7 @@
 package events
 
 type Runner interface {
-	Run()
+	Run(*EventBus)
 
 	// implementation should get these by embedding EventHandler
 	Subscribe(*EventBus)

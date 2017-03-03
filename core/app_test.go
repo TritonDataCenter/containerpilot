@@ -63,8 +63,8 @@ func TestValidConfigParse(t *testing.T) {
 		t.Fatalf("Unexpected error in LoadApp: %v", err)
 	}
 
-	if len(app.Backends) != 2 || len(app.Services) != 2 {
-		t.Fatalf("Expected 2 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Backends), len(app.Services))
+	if len(app.Watches) != 2 || len(app.Services) != 2 {
+		t.Fatalf("Expected 2 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Watches), len(app.Services))
 	}
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/testdata/test.sh" {
@@ -88,12 +88,12 @@ func TestValidConfigParse(t *testing.T) {
 		t.Errorf("Expected ttl=103 for serviceB, but got: %d", app.Services[1].TTL)
 	}
 
-	if app.Backends[0].Tag != "dev" {
-		t.Errorf("Expected tag %s for upstreamA, but got: %s", "dev", app.Backends[0].Tag)
+	if app.Watches[0].Tag != "dev" {
+		t.Errorf("expected tag %s for upstreamA, but got: %s", "dev", app.Watches[0].Tag)
 	}
 
-	if app.Backends[1].Tag != "" {
-		t.Errorf("Expected no tag for upstreamB, but got: %s", app.Backends[1].Tag)
+	if app.Watches[1].Tag != "" {
+		t.Errorf("expected no tag for upstreamB, but got: %s", app.Watches[1].Tag)
 	}
 
 	validateCommandParsed(t, "preStart", app.PreStartCmd,

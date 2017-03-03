@@ -10,14 +10,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
+	"github.com/joyent/containerpilot/watches"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -34,7 +35,7 @@ var (
 type App struct {
 	ServiceBackend discovery.ServiceBackend
 	Services       []*services.Service
-	Backends       []*backends.Backend
+	Watches        []*watches.Watch
 	Tasks          []*tasks.Task
 	Coprocesses    []*coprocesses.Coprocess
 	Telemetry      *telemetry.Telemetry
@@ -48,6 +49,7 @@ type App struct {
 	signalLock     *sync.RWMutex
 	paused         bool
 	ConfigFlag     string
+	Bus            *events.EventBus
 }
 
 // EmptyApp creates an empty application
@@ -123,7 +125,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.StopTimeout = cfg.StopTimeout
 	a.ServiceBackend = cfg.ServiceBackend
 	a.Services = cfg.Services
-	a.Backends = cfg.Backends
+	a.Watches = cfg.Watches
 	a.Tasks = cfg.Tasks
 	a.Coprocesses = cfg.Coprocesses
 	a.Telemetry = cfg.Telemetry
@@ -159,6 +161,8 @@ func (a *App) Run() {
 		log.Errorf("Unable to parse command arguments: %v", err)
 	}
 	a.Command = cmd
+
+	a.Bus = events.NewEventBus()
 
 	a.handleSignals()
 
@@ -307,7 +311,6 @@ func (a *App) load(newApp *App) {
 	a.PostStopCmd = newApp.PostStopCmd
 	a.PreStopCmd = newApp.PreStopCmd
 	a.Services = newApp.Services
-	a.Backends = newApp.Backends
 	a.StopTimeout = newApp.StopTimeout
 	if a.Telemetry != nil {
 		a.Telemetry.Shutdown()
@@ -331,8 +334,10 @@ func (a *App) forAllServices(fn serviceFunc) {
 // back to our config
 func (a *App) handlePolling() {
 	var quit []chan bool
-	for _, backend := range a.Backends {
-		quit = append(quit, a.poll(backend))
+
+	for _, watch := range a.Watches {
+		watch.Subscribe(a.Bus)
+		watch.Run(a.Bus)
 	}
 	for _, service := range a.Services {
 		quit = append(quit, a.poll(service))

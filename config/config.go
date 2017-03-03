@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
@@ -19,6 +18,7 @@ import (
 	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/watches"
 )
 
 type rawConfig struct {
@@ -29,8 +29,8 @@ type rawConfig struct {
 	stopTimeout       int
 	coprocessesConfig []interface{}
 	servicesConfig    []interface{}
-	backendsConfig    []interface{}
 	tasksConfig       []interface{}
+	watchesConfig     []interface{}
 	telemetryConfig   interface{}
 }
 
@@ -44,7 +44,7 @@ type Config struct {
 	StopTimeout    int
 	Coprocesses    []*coprocesses.Coprocess
 	Services       []*services.Service
-	Backends       []*backends.Backend
+	Watches        []*watches.Watch
 	Tasks          []*tasks.Task
 	Telemetry      *telemetry.Telemetry
 }
@@ -88,20 +88,20 @@ func (cfg *Config) InitLogging() error {
 	return nil
 }
 
-func (cfg *rawConfig) parseBackends(discoveryService discovery.ServiceBackend) ([]*backends.Backend, error) {
-	backends, err := backends.NewBackends(cfg.backendsConfig, discoveryService)
-	if err != nil {
-		return nil, err
-	}
-	return backends, nil
-}
-
 func (cfg *rawConfig) parseServices(discoveryService discovery.ServiceBackend) ([]*services.Service, error) {
 	services, err := services.NewServices(cfg.servicesConfig, discoveryService)
 	if err != nil {
 		return nil, err
 	}
 	return services, nil
+}
+
+func (cfg *rawConfig) parseWatches(discoveryService discovery.ServiceBackend) ([]*watches.Watch, error) {
+	watches, err := watches.NewWatches(cfg.watchesConfig, discoveryService)
+	if err != nil {
+		return nil, err
+	}
+	return watches, nil
 }
 
 func (cfg *rawConfig) parseCoprocesses() ([]*coprocesses.Coprocess, error) {
@@ -204,6 +204,7 @@ func ParseConfig(configFlag string) (*Config, error) {
 	for _, backend := range discovery.GetBackends() {
 		delete(configMap, backend)
 	}
+
 	raw := &rawConfig{}
 	if err = decodeConfig(configMap, raw); err != nil {
 		return nil, err
@@ -238,15 +239,15 @@ func ParseConfig(configFlag string) (*Config, error) {
 
 	services, err := raw.parseServices(discoveryService)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse services: %v", err)
+		return nil, fmt.Errorf("unable to parse services: %v", err)
 	}
 	cfg.Services = services
 
-	backends, err := raw.parseBackends(discoveryService)
+	watches, err := raw.parseWatches(discoveryService)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse backends: %v", err)
+		return nil, fmt.Errorf("unable to parse watches: %v", err)
 	}
-	cfg.Backends = backends
+	cfg.Watches = watches
 
 	telemetry, err := raw.parseTelemetry()
 	if err != nil {
@@ -385,7 +386,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.preStop = configMap["preStop"]
 	result.postStop = configMap["postStop"]
 	result.servicesConfig = decodeArray(configMap["services"])
-	result.backendsConfig = decodeArray(configMap["backends"])
+	result.watchesConfig = decodeArray(configMap["backends"])
 	result.tasksConfig = decodeArray(configMap["tasks"])
 	result.coprocessesConfig = decodeArray(configMap["coprocesses"])
 	result.telemetryConfig = configMap["telemetry"]
