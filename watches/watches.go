@@ -91,6 +91,9 @@ func (watch *Watch) Run(bus *events.EventBus) {
 				watch.Flush <- true
 				return
 			case watch.startupEvent.Code:
+				if event.Source != watch.startupEvent.Source {
+					break
+				}
 				watch.Bus.Publish(
 					events.Event{Code: events.Started, Source: watch.ID})
 				err := watch.OnChange(ctx)

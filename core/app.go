@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/coprocesses"
@@ -35,6 +36,7 @@ var (
 type App struct {
 	ServiceBackend discovery.ServiceBackend
 	Services       []*services.Service
+	Checks         []*checks.HealthCheck
 	Watches        []*watches.Watch
 	Tasks          []*tasks.Task
 	Coprocesses    []*coprocesses.Coprocess
@@ -124,6 +126,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.PostStopCmd = cfg.PostStop
 	a.StopTimeout = cfg.StopTimeout
 	a.ServiceBackend = cfg.ServiceBackend
+	a.Checks = cfg.Checks
 	a.Services = cfg.Services
 	a.Watches = cfg.Watches
 	a.Tasks = cfg.Tasks
@@ -311,6 +314,7 @@ func (a *App) load(newApp *App) {
 	a.PostStopCmd = newApp.PostStopCmd
 	a.PreStopCmd = newApp.PreStopCmd
 	a.Services = newApp.Services
+	a.Checks = newApp.Checks
 	a.StopTimeout = newApp.StopTimeout
 	if a.Telemetry != nil {
 		a.Telemetry.Shutdown()

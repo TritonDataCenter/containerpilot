@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
@@ -44,6 +45,7 @@ type Config struct {
 	StopTimeout    int
 	Coprocesses    []*coprocesses.Coprocess
 	Services       []*services.Service
+	Checks         []*checks.HealthCheck
 	Watches        []*watches.Watch
 	Tasks          []*tasks.Task
 	Telemetry      *telemetry.Telemetry
@@ -89,11 +91,23 @@ func (cfg *Config) InitLogging() error {
 }
 
 func (cfg *rawConfig) parseServices(discoveryService discovery.ServiceBackend) ([]*services.Service, error) {
+	// TODO: we'll split the servicesConfig from the checksConfig
+	// when we update the config syntax
 	services, err := services.NewServices(cfg.servicesConfig, discoveryService)
 	if err != nil {
 		return nil, err
 	}
 	return services, nil
+}
+
+func (cfg *rawConfig) parseChecks() ([]*checks.HealthCheck, error) {
+	// TODO: we'll split the servicesConfig from the checksConfig
+	// when we update the config syntax
+	checks, err := checks.NewHealthChecks(cfg.servicesConfig)
+	if err != nil {
+		return nil, err
+	}
+	return checks, nil
 }
 
 func (cfg *rawConfig) parseWatches(discoveryService discovery.ServiceBackend) ([]*watches.Watch, error) {
@@ -242,6 +256,12 @@ func ParseConfig(configFlag string) (*Config, error) {
 		return nil, fmt.Errorf("unable to parse services: %v", err)
 	}
 	cfg.Services = services
+
+	checks, err := raw.parseChecks()
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse checks: %v", err)
+	}
+	cfg.Checks = checks
 
 	watches, err := raw.parseWatches(discoveryService)
 	if err != nil {

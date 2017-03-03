@@ -10,8 +10,8 @@ import (
 )
 
 /*
-TODO: this is temporary while I hack out how this will interact
-with everything else. It'll go in the `services` package when I'm done
+TODO: services.Service is being moved to checks.HealthCheck and this
+package will end up running the services themselves
 */
 
 type ServiceEvents struct {
