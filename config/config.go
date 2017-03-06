@@ -33,7 +33,7 @@ type rawConfig struct {
 	backendsConfig    []interface{}
 	tasksConfig       []interface{}
 	telemetryConfig   interface{}
-	socketConfig      interface{}
+	controlConfig     interface{}
 }
 
 // Config contains the parsed config elements
@@ -154,6 +154,18 @@ func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.S
 	return svc, nil
 }
 
+// parseControl ...
+func (cfg *rawConfig) parseControl() (*control.Server, error) {
+	if cfg.controlConfig == nil {
+		return nil, nil
+	}
+	s, err := control.NewServer(cfg.controlConfig)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
 func (cfg *rawConfig) parseTasks() ([]*tasks.Task, error) {
 	if cfg.tasksConfig == nil {
 		return nil, nil
@@ -264,6 +276,12 @@ func ParseConfig(configFlag string) (*Config, error) {
 		cfg.Telemetry = telemetry
 		cfg.Services = append(cfg.Services, telemetryService)
 	}
+
+	controlServer, err := raw.parseControl()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Server = controlServer
 
 	tasks, err := raw.parseTasks()
 	if err != nil {
@@ -392,6 +410,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.tasksConfig = decodeArray(configMap["tasks"])
 	result.coprocessesConfig = decodeArray(configMap["coprocesses"])
 	result.telemetryConfig = configMap["telemetry"]
+	result.controlConfig = configMap["control"]
 
 	delete(configMap, "logging")
 	delete(configMap, "preStart")
@@ -403,6 +422,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	delete(configMap, "tasks")
 	delete(configMap, "coprocesses")
 	delete(configMap, "telemetry")
+	delete(configMap, "control")
 	var unused []string
 	for key := range configMap {
 		unused = append(unused, key)
