@@ -150,15 +150,20 @@ func (cfg *rawConfig) parseTelemetry() (*telemetry.Telemetry, error) {
 // createTelemetryService ...
 func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.ServiceBackend) (*services.Service, error) {
 	// create a new service for Telemetry
-	svc, err := services.NewService(
-		t.ServiceName,
-		t.Poll,
-		t.Port,
-		t.TTL,
-		t.Interfaces,
-		t.Tags,
-		nil,
-		discoveryService)
+
+	cfg := &services.ServiceConfig{
+		ID:           t.ServiceName,
+		Name:         t.ServiceName,
+		Heartbeat:    t.Poll,
+		Port:         t.Port,
+		TTL:          t.TTL,
+		Interfaces:   t.Interfaces,
+		Tags:         t.Tags,
+		IPAddress:    "TODO", // TODO
+		ConsulConfig: nil,    // ????    *ConsulConfig
+	}
+	cfg.AddDiscoveryConfig(discoveryService)
+	svc, err := services.NewService(cfg)
 	if err != nil {
 		return nil, err
 	}

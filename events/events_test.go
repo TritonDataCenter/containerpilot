@@ -12,7 +12,7 @@ func TestSafeUnsubscribe(t *testing.T) {
 	ts.Subscribe(bus)
 
 	ts.Run()
-	bus.Publish(Event{Code: Started, Name: "serviceA"})
+	bus.Publish(Event{Code: Startup, Source: "serviceA"})
 	ts.Close()
 
 	defer func() {
@@ -20,15 +20,15 @@ func TestSafeUnsubscribe(t *testing.T) {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	bus.Publish(Event{Code: Started, Name: "serviceB"}) // should not panic
+	bus.Publish(Event{Code: Startup, Source: "serviceB"}) // should not panic
 
 	expected := []Event{
-		Event{Code: Started, Name: "serviceA"},
+		Event{Code: Startup, Source: "serviceA"},
 		Event{Code: Quit},
 	}
 
 	for _, result := range ts.results {
-		if result.Name == "serviceB" {
+		if result.Source == "serviceB" {
 			t.Fatal("got Event after we closed receiver")
 		}
 	}

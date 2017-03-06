@@ -1,237 +1,58 @@
 package services
 
 import (
-	"encoding/json"
-	"reflect"
 	"testing"
+	"time"
 
-	"github.com/joyent/containerpilot/commands"
+	"github.com/joyent/containerpilot/events"
 )
 
-func TestHealthCheck(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
-	service := &Service{
-		healthCheckCmd: cmd1,
-	}
-	if err := service.CheckHealth(); err != nil {
-		t.Errorf("Unexpected error CheckHealth: %s", err)
-	}
-	// Ensure we can run it more than once
-	if err := service.CheckHealth(); err != nil {
-		t.Errorf("Unexpected error CheckHealth (x2): %s", err)
-	}
-}
+func TestService(t *testing.T) {
 
-func TestHealthCheckBad(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh failStuff", "")
-	service := &Service{
-		healthCheckCmd: cmd1,
-	}
-	if err := service.CheckHealth(); err == nil {
-		t.Errorf("Expected error from CheckHealth but got nil")
-	}
-}
+	bus := events.NewEventBus()
+	svc := Service{Name: "myservice"}
+	svc.Rx = make(chan events.Event, 1000)
+	svc.Flush = make(chan bool)
+	svc.startupEvent = events.Event{Code: events.ExitSuccess, Source: "upstream"}
+	svc.startupTimeout = 60
+	svc.restartsRemain = 0
+	svc.restartLimit = 0
+	svc.heartbeat = 3
 
-type TestFragmentServices struct {
-	Services []Service
-}
+	svc.Run(bus)
+	svc.Bus.Publish(events.Event{Code: events.Startup, Source: "serviceA"})
 
-func TestServiceParse(t *testing.T) {
-	jsonFragment := []byte(`[
-{
-  "name": "serviceA",
-  "port": 8080,
-  "interfaces": "inet",
-  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-  "poll": 30,
-  "ttl": 19,
-  "timeout": "1ms",
-  "tags": ["tag1","tag2"]
-},
-{
-  "name": "serviceB",
-  "port": 5000,
-  "interfaces": ["ethwe","eth0", "inet"],
-  "health": "/bin/to/healthcheck/for/service/B.sh B1 B2",
-  "poll": 30,
-  "ttl": 103
-}
-]`)
-	if services, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err != nil {
-		t.Fatalf("Could not parse service JSON: %s", err)
-	} else {
-		validateCommandParsed(t, "health",
-			services[0].healthCheckCmd,
-			"/bin/to/healthcheck/for/service/A.sh",
-			[]string{"A1", "A2"})
-		validateCommandParsed(t, "health",
-			services[1].healthCheckCmd,
-			"/bin/to/healthcheck/for/service/B.sh",
-			[]string{"B1", "B2"})
-	}
-}
-
-func TestServicesConfigError(t *testing.T) {
-	var raw []interface{}
-	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
-	_, err := NewServices(raw, nil)
-	validateServiceConfigError(t, err, "`name` must not be blank")
-	raw = nil
-
-	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
-	_, err = NewServices(raw, nil)
-	validateServiceConfigError(t, err, "`poll` must be > 0 in service myName")
-
-	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1}]`), &raw)
-	_, err = NewServices(raw, nil)
-	validateServiceConfigError(t, err, "`ttl` must be > 0 in service myName")
-
-	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1}]`), &raw)
-	_, err = NewServices(raw, nil)
-	validateServiceConfigError(t, err, "`port` must be > 0 in service myName")
-
-	// no health check shouldn't return an error
-	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80, "interfaces": "inet"}]`), &raw)
-	_, err = NewServices(raw, nil)
-	validateServiceConfigError(t, err, "")
-
-	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80, "health": "/bin/true", "timeout": "xx"}]`), &raw)
-	_, err = NewServices(raw, nil)
-	validateServiceConfigError(t, err,
-		"Could not parse `health` in service myName: time: invalid duration xx")
-}
-
-func TestServicesConsulConfigEnableTagOverride(t *testing.T) {
-	jsonFragment := []byte(`[
-{
-  "name": "serviceA",
-  "port": 8080,
-  "interfaces": "inet",
-  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-  "poll": 30,
-  "ttl": 19,
-  "timeout": "1ms",
-  "tags": ["tag1","tag2"],
-  "consul": {
-	  "enableTagOverride": true
-  }
-}
-]`)
-
-	if services, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err != nil {
-		t.Fatalf("Could not parse service JSON: %s", err)
-	} else {
-		if services[0].ConsulConfig.EnableTagOverride != true {
-			t.Errorf("ConsulConfig should have had EnableTagOverride set to true.")
+	svc.Close()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
-	}
+	}()
+	svc.Bus.Publish(events.Event{Code: events.Startup, Source: "serviceA"}) // should not panic
 }
 
-func TestInvalidServicesConsulConfigEnableTagOverride(t *testing.T) {
-	jsonFragment := []byte(`[
-{
-  "name": "serviceA",
-  "port": 8080,
-  "interfaces": "inet",
-  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-  "poll": 30,
-  "ttl": 19,
-  "timeout": "1ms",
-  "tags": ["tag1","tag2"],
-  "consul": {
-	  "enableTagOverride": "nope"
-  }
-}
-]`)
+func TestServiceTimeout(t *testing.T) {
 
-	if _, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err == nil {
-		t.Errorf("ConsulConfig should have thrown error about EnableTagOverride being a string.")
-	}
-}
+	bus := events.NewEventBus()
+	svc := Service{Name: "myservice"}
+	svc.Rx = make(chan events.Event, 1000)
+	svc.Flush = make(chan bool)
+	svc.startupEvent = events.Event{Code: events.Startup}
+	svc.startupTimeout = 1
+	svc.restartsRemain = 0
+	svc.restartLimit = 0
+	svc.heartbeat = 3
 
-func TestServicesConsulConfigDeregisterCriticalServiceAfter(t *testing.T) {
-	jsonFragment := []byte(`[
-{
-  "name": "serviceA",
-  "port": 8080,
-  "interfaces": "inet",
-  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-  "poll": 30,
-  "ttl": 19,
-  "timeout": "1ms",
-  "tags": ["tag1","tag2"],
-  "consul": {
-	  "deregisterCriticalServiceAfter": "40m"
-  }
-}
-]`)
+	svc.Run(bus)
+	svc.Bus.Publish(events.Event{Code: events.Startup, Source: "serviceA"})
 
-	if services, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err != nil {
-		t.Fatalf("Could not parse service JSON: %s", err)
-	} else {
-		if services[0].ConsulConfig.DeregisterCriticalServiceAfter != "40m" {
-			t.Errorf("ConsulConfig should have had DeregisterCriticalServiceAfter set to '40m'.")
+	// note that we can't send a .Close() after this b/c we've timed out
+	// and we'll end up blocking forever
+	time.Sleep(1 * time.Second)
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
-	}
-}
-
-func TestInvalidServicesConsulConfigDeregisterCriticalServiceAfter(t *testing.T) {
-	jsonFragment := []byte(`[
-{
-  "name": "serviceA",
-  "port": 8080,
-  "interfaces": "inet",
-  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-  "poll": 30,
-  "ttl": 19,
-  "timeout": "1ms",
-  "tags": ["tag1","tag2"],
-  "consul": {
-	  "deregisterCriticalServiceAfter": "nope"
-  }
-}
-]`)
-
-	if _, err := NewServices(decodeJSONRawService(t, jsonFragment), nil); err == nil {
-		t.Errorf("Error should have been generated for duration 'nope'.")
-	}
-}
-
-// ------------------------------------------
-// test helpers
-
-func decodeJSONRawService(t *testing.T, testJSON json.RawMessage) []interface{} {
-	var raw []interface{}
-	if err := json.Unmarshal(testJSON, &raw); err != nil {
-		t.Fatalf("Unexpected error decoding JSON:\n%s\n%v", testJSON, err)
-	}
-	return raw
-}
-
-func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
-	expectedExec string, expectedArgs []string) {
-	if parsed == nil {
-		t.Errorf("%s not configured", name)
-	}
-	if !reflect.DeepEqual(parsed.Exec, expectedExec) {
-		t.Errorf("%s executable not configured: %s != %s", name, parsed.Exec, expectedExec)
-	}
-	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
-		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
-	}
-}
-
-func validateServiceConfigError(t *testing.T, err error, expected string) {
-	if expected == "" {
-		if err != nil {
-			t.Fatalf("Expected no error but got %s", err)
-		}
-	} else {
-		if err == nil {
-			t.Fatalf("Expected %s but got nil error", expected)
-		}
-		if err.Error() != expected {
-			t.Fatalf("Expected %s but got %s", expected, err.Error())
-		}
-	}
+	}()
+	svc.Bus.Publish(events.Event{Code: events.Startup, Source: "serviceA"}) // should not panic
 }

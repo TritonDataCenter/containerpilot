@@ -11,7 +11,7 @@ import (
 )
 
 type HealthCheck struct {
-	ID   string
+	Name string
 	exec *commands.Command
 
 	// Event handling
@@ -25,12 +25,12 @@ type HealthCheck struct {
 // NewHealthCheck ...
 func NewHealthCheck(cfg *HealthCheckConfig) (*HealthCheck, error) {
 	check := &HealthCheck{}
-	check.ID = cfg.Name
+	check.Name = cfg.Name
 	check.poll = cfg.Poll
 
 	check.Rx = make(chan events.Event, 1000)
 	check.Flush = make(chan bool)
-	check.startupEvent = events.Event{Code: events.StatusChanged, Source: check.ID}
+	check.startupEvent = events.Event{Code: events.StatusChanged, Source: check.Name}
 	check.startupTimeout = -1
 
 	cmd, err := commands.NewCommand(cfg.HealthCheckExec, cfg.Timeout)
@@ -48,15 +48,14 @@ func (check *HealthCheck) CheckHealth(ctx context.Context) error {
 	// TODO: we want to update Run... functions to accept
 	// a parent context so we can cancel them from this main loop
 	return commands.RunWithTimeout(check.exec, log.Fields{
-		"process": check.startupEvent.Code, "check": check.ID})
+		"process": check.startupEvent.Code, "check": check.Name})
 }
 
-func (check *HealthCheck) Run() {
-	// TODO: this will probably be a background context b/c we've got
-	// message-passing to the main loop for cancellation
-	ctx, cancel := context.WithCancel(context.TODO())
+func (check *HealthCheck) Run(bus *events.EventBus) {
+	check.Bus = bus
+	ctx, cancel := context.WithCancel(context.Background())
 
-	timerSource := fmt.Sprintf("%s-check-timer", check.ID)
+	timerSource := fmt.Sprintf("%s-check-timer", check.Name)
 	events.NewEventTimer(ctx, check.Rx,
 		time.Duration(check.poll)*time.Second, timerSource)
 
@@ -67,10 +66,10 @@ func (check *HealthCheck) Run() {
 			case events.TimerExpired:
 				if event.Source == timerSource {
 					check.Bus.Publish(
-						events.Event{Code: check.startupEvent.Code, Source: check.ID})
+						events.Event{Code: check.startupEvent.Code, Source: check.Name})
 				}
 			case events.Quit:
-				if event.Source == check.ID {
+				if event.Source == check.Name {
 					break
 				}
 				fallthrough
@@ -81,18 +80,16 @@ func (check *HealthCheck) Run() {
 				check.Flush <- true
 				return
 			case check.startupEvent.Code:
-				if event.Source != check.ID {
+				if event.Source != check.Name {
 					break
 				}
-				check.Bus.Publish(
-					events.Event{Code: events.Started, Source: check.ID})
 				err := check.CheckHealth(ctx)
 				if err != nil {
 					check.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: check.ID})
+						events.Event{Code: events.ExitSuccess, Source: check.Name})
 				} else {
 					check.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: check.ID})
+						events.Event{Code: events.ExitSuccess, Source: check.Name})
 				}
 			default:
 				fmt.Println("don't care about this message")

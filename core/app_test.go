@@ -72,20 +72,20 @@ func TestValidConfigParse(t *testing.T) {
 	}
 
 	expectedTags := []string{"tag1", "tag2"}
-	if !reflect.DeepEqual(app.Services[0].Tags, expectedTags) {
-		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, app.Services[0].Tags)
+	if !reflect.DeepEqual(app.Services[0].Definition.Tags, expectedTags) {
+		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, app.Services[0].Definition.Tags)
 	}
 
-	if app.Services[1].Tags != nil {
-		t.Errorf("Expected no tags for serviceB, but got: %s", app.Services[1].Tags)
+	if app.Services[1].Definition.Tags != nil {
+		t.Errorf("Expected no tags for serviceB, but got: %s", app.Services[1].Definition.Tags)
 	}
 
-	if app.Services[0].TTL != 19 {
-		t.Errorf("Expected ttl=19 for serviceA, but got: %d", app.Services[1].TTL)
+	if app.Services[0].Definition.TTL != 19 {
+		t.Errorf("Expected ttl=19 for serviceA, but got: %d", app.Services[1].Definition.TTL)
 	}
 
-	if app.Services[1].TTL != 103 {
-		t.Errorf("Expected ttl=103 for serviceB, but got: %d", app.Services[1].TTL)
+	if app.Services[1].Definition.TTL != 103 {
+		t.Errorf("Expected ttl=103 for serviceB, but got: %d", app.Services[1].Definition.TTL)
 	}
 
 	if app.Watches[0].Tag != "dev" {

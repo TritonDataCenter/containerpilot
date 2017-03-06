@@ -28,6 +28,7 @@ services:
 
 
 watch:
+
   reconfigure:
     start: onChange db
     exec: reconfigure-db-connections.sh

@@ -33,7 +33,7 @@ func TestCheckParse(t *testing.T) {
   "ttl": 103
 }
 ]`)
-	if checks, err := NewHealthChecks(decodeJSONRawHealthCheck(t, jsonFragment), nil); err != nil {
+	if checks, err := NewHealthChecks(decodeJSONRawHealthCheck(t, jsonFragment)); err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
 	} else {
 		validateCommandParsed(t, "health",
@@ -50,16 +50,16 @@ func TestCheckParse(t *testing.T) {
 func TestHealthChecksConfigError(t *testing.T) {
 	var raw []interface{}
 	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
-	_, err := NewHealthChecks(raw, nil)
+	_, err := NewHealthChecks(raw)
 	validateHealthCheckConfigError(t, err, "`name` must not be blank")
 	raw = nil
 
 	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
-	_, err = NewHealthChecks(raw, nil)
+	_, err = NewHealthChecks(raw)
 	validateHealthCheckConfigError(t, err, "`poll` must be > 0 in service myName")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80, "health": "/bin/true", "timeout": "xx"}]`), &raw)
-	_, err = NewHealthChecks(raw, nil)
+	_, err = NewHealthChecks(raw)
 	validateHealthCheckConfigError(t, err,
 		"could not parse `health` in check myName: time: invalid duration xx")
 }

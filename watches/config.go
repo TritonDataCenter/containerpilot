@@ -27,27 +27,32 @@ func NewWatches(raw []interface{}, disc discovery.ServiceBackend) ([]*Watch, err
 		return nil, fmt.Errorf("Watch configuration error: %v", err)
 	}
 	for _, watchcfg := range watchcfgs {
-		if err := utils.ValidateServiceName(watchcfg.Name); err != nil {
-			return nil, err
-		}
-		if watchcfg.OnChangeExec == nil {
-			return nil, fmt.Errorf("`onChange` is required in watch %s",
-				watchcfg.Name)
-		}
-		if watchcfg.Timeout == "" {
-			watchcfg.Timeout = fmt.Sprintf("%ds", watchcfg.Poll)
-		}
-		if watchcfg.Poll < 1 {
-			return nil, fmt.Errorf("`poll` must be > 0 in watch %s",
-				watchcfg.Name)
+		if err := validateWatchConfig(watchcfg); err != nil {
+			return []*Watch{}, err
 		}
 		watchcfg.discoveryService = disc
 		watch, err := NewWatch(watchcfg)
 		if err != nil {
 			return []*Watch{}, err
 		}
-
 		watches = append(watches, watch)
 	}
 	return watches, nil
+}
+
+// ensure WatchConfig meets all requirements
+func validateWatchConfig(cfg *WatchConfig) error {
+	if err := utils.ValidateServiceName(cfg.Name); err != nil {
+		return err
+	}
+	if cfg.OnChangeExec == nil {
+		return fmt.Errorf("`onChange` is required in watch %s", cfg.Name)
+	}
+	if cfg.Timeout == "" {
+		cfg.Timeout = fmt.Sprintf("%ds", cfg.Poll)
+	}
+	if cfg.Poll < 1 {
+		return fmt.Errorf("`poll` must be > 0 in watch %s", cfg.Name)
+	}
+	return nil
 }

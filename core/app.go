@@ -38,13 +38,13 @@ type App struct {
 	Services       []*services.Service
 	Checks         []*checks.HealthCheck
 	Watches        []*watches.Watch
-	Tasks          []*tasks.Task
-	Coprocesses    []*coprocesses.Coprocess
+	Tasks          []*tasks.Task            // TODO: convert to Services
+	Coprocesses    []*coprocesses.Coprocess // TODO: convert to Services
 	Telemetry      *telemetry.Telemetry
-	PreStartCmd    *commands.Command
-	PreStopCmd     *commands.Command
-	PostStopCmd    *commands.Command
-	Command        *commands.Command
+	PreStartCmd    *commands.Command // TODO: convert to one-off Service
+	PreStopCmd     *commands.Command // TODO: convert to one-off Service
+	PostStopCmd    *commands.Command // TODO: convert to one-off Service
+	Command        *commands.Command // TODO: convert to Service
 	StopTimeout    int
 	QuitChannels   []chan bool
 	maintModeLock  *sync.RWMutex
@@ -138,7 +138,7 @@ func NewApp(configFlag string) (*App, error) {
 	// forked processes have access to this information
 	for _, service := range a.Services {
 		envKey := getEnvVarNameFromService(service.Name)
-		os.Setenv(envKey, service.IPAddress)
+		os.Setenv(envKey, service.Definition.IPAddress)
 	}
 
 	return a, nil
@@ -339,19 +339,30 @@ func (a *App) forAllServices(fn serviceFunc) {
 func (a *App) handlePolling() {
 	var quit []chan bool
 
+	for _, service := range a.Services {
+		service.Subscribe(a.Bus)
+		service.Run(a.Bus)
+	}
+	for _, check := range a.Checks {
+		check.Subscribe(a.Bus)
+		check.Run(a.Bus)
+	}
 	for _, watch := range a.Watches {
 		watch.Subscribe(a.Bus)
 		watch.Run(a.Bus)
 	}
-	for _, service := range a.Services {
-		quit = append(quit, a.poll(service))
-	}
+
 	if a.Telemetry != nil {
+		// TODO
+		// for _, sensor := range a.Telemetry.Sensors {
+		// 	sensor.Run(a.Bus)
+		// }
 		for _, sensor := range a.Telemetry.Sensors {
 			quit = append(quit, a.poll(sensor))
 		}
 		a.Telemetry.Serve()
 	}
+	// TODO: convert all Tasks to Services
 	if a.Tasks != nil {
 		for _, task := range a.Tasks {
 			quit = append(quit, a.poll(task))

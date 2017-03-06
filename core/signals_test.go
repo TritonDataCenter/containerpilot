@@ -26,8 +26,17 @@ func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefini
 func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
 
 func getSignalTestConfig(t *testing.T) *App {
-	service, err := services.NewService(
-		"test-service", 1, 1, 1, []string{"inet"}, nil, nil, &NoopServiceBackend{})
+
+	cfg := &services.ServiceConfig{
+		ID:         "test-service",
+		Name:       "test-service",
+		Heartbeat:  1,
+		Port:       1,
+		TTL:        1,
+		Interfaces: []string{"inet"},
+	}
+	cfg.AddDiscoveryConfig(&NoopServiceBackend{})
+	service, err := services.NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

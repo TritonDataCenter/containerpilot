@@ -6,7 +6,6 @@ import (
 
 type Event struct {
 	Code   EventCode
-	Name   string
 	Source string
 }
 
@@ -15,7 +14,6 @@ type EventCode int
 const (
 	ExitSuccess EventCode = iota
 	ExitFailed
-	Started // internal-only; a process has started (not available for work)
 	StatusHealthy
 	StatusUnhealthy
 	StatusChanged
@@ -24,6 +22,8 @@ const (
 	Startup  // fired once after events are set up and event loop is started
 	Shutdown // fired once after all jobs exit or on receiving SIGTERM
 )
+
+const Global = "global" // used by global event sources
 
 type EventBus struct {
 	registry map[Subscriber]bool

@@ -8,7 +8,7 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-// Service configures the service, discovery data, and health checks
+// HealthCheckConfig configures the health check
 type HealthCheckConfig struct {
 	ID              string
 	Name            string      `mapstructure:"name"`
@@ -28,7 +28,7 @@ type HealthCheckConfig struct {
 	servicePort       int         `mapstructure:"port"`
 }
 
-// NewHealthChecks new services from a raw config
+// NewHealthChecks new checks from a raw config
 func NewHealthChecks(raw []interface{}) ([]*HealthCheck, error) {
 	if raw == nil {
 		return []*HealthCheck{}, nil

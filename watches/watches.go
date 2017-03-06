@@ -13,7 +13,7 @@ import (
 
 // Watch represents a task to execute when something changes
 type Watch struct {
-	ID               string
+	Name             string
 	Tag              string
 	exec             *commands.Command
 	discoveryService discovery.ServiceBackend
@@ -27,17 +27,18 @@ type Watch struct {
 
 func NewWatch(cfg *WatchConfig) (*Watch, error) {
 	watch := &Watch{}
-	watch.ID = cfg.Name
+	watch.Name = cfg.Name
 	watch.poll = cfg.Poll
 	watch.Tag = cfg.Tag
 
 	watch.Rx = make(chan events.Event, 1000)
 	watch.Flush = make(chan bool)
-	watch.startupEvent = events.Event{Code: events.StatusChanged, Source: watch.ID}
+	watch.startupEvent = events.Event{Code: events.StatusChanged, Source: watch.Name}
 	watch.startupTimeout = -1
 
 	cmd, err := commands.NewCommand(cfg.OnChangeExec, cfg.Timeout)
 	if err != nil {
+		// TODO: this error message is tied to existing config syntax
 		return nil, fmt.Errorf("could not parse `onChange` in watch %s: %s",
 			cfg.Name, err)
 	}
@@ -48,7 +49,7 @@ func NewWatch(cfg *WatchConfig) (*Watch, error) {
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
 // in a dependent backend. Returns true when there has been a change.
 func (watch *Watch) CheckForUpstreamChanges() bool {
-	return watch.discoveryService.CheckForUpstreamChanges(watch.ID, watch.Tag)
+	return watch.discoveryService.CheckForUpstreamChanges(watch.Name, watch.Tag)
 }
 
 // OnChange runs the watch's executable, returning an error on failure.
@@ -56,14 +57,14 @@ func (watch *Watch) OnChange(ctx context.Context) error {
 	// TODO: we want to update Run... functions to accept
 	// a parent context so we can cancel them from this main loop
 	return commands.RunWithTimeout(watch.exec, log.Fields{
-		"process": watch.startupEvent.Code, "watch": watch.ID})
+		"process": watch.startupEvent.Code, "watch": watch.Name})
 }
 
 func (watch *Watch) Run(bus *events.EventBus) {
 	watch.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	timerSource := fmt.Sprintf("%s-watch-timer", watch.ID)
+	timerSource := fmt.Sprintf("%s-watch-timer", watch.Name)
 	events.NewEventTimer(ctx, watch.Rx,
 		time.Duration(watch.poll)*time.Second, timerSource)
 
@@ -76,11 +77,11 @@ func (watch *Watch) Run(bus *events.EventBus) {
 					changed := watch.CheckForUpstreamChanges()
 					if changed {
 						watch.Bus.Publish(
-							events.Event{Code: events.StatusChanged, Source: watch.ID})
+							events.Event{Code: events.StatusChanged, Source: watch.Name})
 					}
 				}
 			case events.Quit:
-				if event.Source != watch.ID {
+				if event.Source != watch.Name {
 					break
 				}
 				fallthrough
@@ -94,15 +95,13 @@ func (watch *Watch) Run(bus *events.EventBus) {
 				if event.Source != watch.startupEvent.Source {
 					break
 				}
-				watch.Bus.Publish(
-					events.Event{Code: events.Started, Source: watch.ID})
 				err := watch.OnChange(ctx)
 				if err != nil {
 					watch.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: watch.ID})
+						events.Event{Code: events.ExitSuccess, Source: watch.Name})
 				} else {
 					watch.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: watch.ID})
+						events.Event{Code: events.ExitSuccess, Source: watch.Name})
 				}
 			}
 		}
