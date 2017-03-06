@@ -12,7 +12,7 @@ The proposal is in two parts. A read-only endpoint exposing the state of all ser
 
 ##### `GetStatus GET /status`
 
-This API will expose the state of all services associated with thisContainerPilot instance as seen by ContainerPilot. The API endpoint also reports the dependencies of each service.
+This API will expose the state of all services associated with this ContainerPilot instance as seen by ContainerPilot. The API endpoint also reports the dependencies of each service.
 
 *Example Response*
 
