@@ -65,8 +65,7 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 			event := <-check.Rx
 			switch event {
 			case events.Event{events.TimerExpired, timerSource}:
-				check.Bus.Publish(
-					events.Event{Code: check.startupEvent.Code, Source: check.Name})
+				check.Bus.Publish(check.startupEvent)
 			case
 				events.Event{events.Quit, check.Name},
 				events.Event{events.Quit, events.Closed},

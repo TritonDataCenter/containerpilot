@@ -76,8 +76,7 @@ func (watch *Watch) Run(bus *events.EventBus) {
 			case events.Event{events.TimerExpired, timerSource}:
 				changed := watch.CheckForUpstreamChanges()
 				if changed {
-					watch.Bus.Publish(
-						events.Event{Code: events.StatusChanged, Source: watch.Name})
+					watch.Bus.Publish(watch.startupEvent)
 				}
 			case
 				events.Event{events.Quit, watch.Name},

@@ -120,7 +120,7 @@ func (svc *Service) Run(bus *events.EventBus) {
 					break
 				}
 				svc.restartsRemain--
-				svc.Rx <- events.Event{Code: svc.startupEvent.Code, Source: svc.Name}
+				svc.Rx <- svc.startupEvent
 			case
 				events.Event{events.Quit, svc.Name},
 				events.Event{events.Quit, events.Closed},
@@ -138,7 +138,7 @@ func (svc *Service) Run(bus *events.EventBus) {
 					break
 				}
 				svc.restartsRemain--
-				svc.Rx <- events.Event{Code: svc.startupEvent.Code, Source: svc.Name}
+				svc.Rx <- svc.startupEvent
 			case svc.startupEvent:
 				err := commands.RunWithTimeout(svc.exec, log.Fields{
 					"process": svc.startupEvent.Code, "id": svc.Name})
