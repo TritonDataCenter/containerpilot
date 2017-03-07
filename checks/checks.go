@@ -64,27 +64,20 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 		for {
 			select {
 			case event := <-check.Rx:
-				switch event.Code {
-				case events.TimerExpired:
-					if event.Source == timerSource {
-						check.Bus.Publish(
-							events.Event{Code: check.startupEvent.Code, Source: check.Name})
-					}
-				case events.Quit:
-					if event.Source != check.Name && event.Source != events.Closed {
-						break
-					}
-					fallthrough
-				case events.Shutdown:
+				switch event {
+				case events.Event{events.TimerExpired, timerSource}:
+					check.Bus.Publish(
+						events.Event{Code: check.startupEvent.Code, Source: check.Name})
+				case
+					events.Event{events.Quit, check.Name},
+					events.Event{events.Quit, events.Closed},
+					events.Event{events.Shutdown, events.Global}:
 					check.Unsubscribe(check.Bus)
 					close(check.Rx)
 					cancel()
 					check.Flush <- true
 					return
-				case check.startupEvent.Code:
-					if event.Source != check.Name {
-						break
-					}
+				case check.startupEvent:
 					err := check.CheckHealth(ctx)
 					if err != nil {
 						check.Bus.Publish(
@@ -93,8 +86,6 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 						check.Bus.Publish(
 							events.Event{Code: events.ExitSuccess, Source: check.Name})
 					}
-				default:
-					fmt.Println("don't care about this message")
 				}
 			}
 		}

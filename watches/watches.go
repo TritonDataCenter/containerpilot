@@ -73,30 +73,23 @@ func (watch *Watch) Run(bus *events.EventBus) {
 		for {
 			select {
 			case event := <-watch.Rx:
-				switch event.Code {
-				case events.TimerExpired:
-					if event.Source == timerSource {
-						changed := watch.CheckForUpstreamChanges()
-						if changed {
-							watch.Bus.Publish(
-								events.Event{Code: events.StatusChanged, Source: watch.Name})
-						}
+				switch event {
+				case events.Event{events.TimerExpired, timerSource}:
+					changed := watch.CheckForUpstreamChanges()
+					if changed {
+						watch.Bus.Publish(
+							events.Event{Code: events.StatusChanged, Source: watch.Name})
 					}
-				case events.Quit:
-					if event.Source != watch.Name && event.Source != events.Closed {
-						break
-					}
-					fallthrough
-				case events.Shutdown:
+				case
+					events.Event{events.Quit, watch.Name},
+					events.Event{events.Quit, events.Closed},
+					events.Event{events.Shutdown, events.Global}:
 					watch.Unsubscribe(watch.Bus)
 					close(watch.Rx)
 					cancel()
 					watch.Flush <- true
 					return
-				case watch.startupEvent.Code:
-					if event.Source != watch.startupEvent.Source {
-						break
-					}
+				case watch.startupEvent:
 					err := watch.OnChange(ctx)
 					if err != nil {
 						watch.Bus.Publish(
