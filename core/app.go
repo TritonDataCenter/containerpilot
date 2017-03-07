@@ -48,6 +48,7 @@ type App struct {
 	signalLock     *sync.RWMutex
 	paused         bool
 	ConfigFlag     string
+	NoDiscoveryFlag bool
 }
 
 // EmptyApp creates an empty application
@@ -65,6 +66,7 @@ func LoadApp() (*App, error) {
 	var versionFlag bool
 	var renderFlag string
 	var templateFlag bool
+	var noDiscoveryFlag bool
 
 	if !flag.Parsed() {
 		flag.StringVar(&configFlag, "config", "",
@@ -74,6 +76,7 @@ func LoadApp() (*App, error) {
 		flag.StringVar(&renderFlag, "out", "-",
 			"-(default) for stdout or file:// path where to save rendered JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
+		flag.BoolVar(&noDiscoveryFlag, "no-discovery", false, "Disable the use of built-in service discovery.")
 		flag.Parse()
 	}
 	if versionFlag {
@@ -93,7 +96,7 @@ func LoadApp() (*App, error) {
 	}
 
 	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
-	app, err := NewApp(configFlag)
+	app, err := NewApp(configFlag, noDiscoveryFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +104,9 @@ func LoadApp() (*App, error) {
 }
 
 // NewApp creates a new App from the config
-func NewApp(configFlag string) (*App, error) {
+func NewApp(configFlag string, noDiscoveryFlag bool) (*App, error) {
 	a := EmptyApp()
-	cfg, err := config.ParseConfig(configFlag)
+	cfg, err := config.ParseConfig(configFlag, noDiscoveryFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +131,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.Coprocesses = cfg.Coprocesses
 	a.Telemetry = cfg.Telemetry
 	a.ConfigFlag = configFlag
+	a.NoDiscoveryFlag = noDiscoveryFlag
 
 	// set an environment variable for each service IP address so that
 	// forked processes have access to this information
@@ -288,7 +292,7 @@ func (a *App) Reload() error {
 	defer a.signalLock.Unlock()
 	log.Infof("Reloading configuration.")
 
-	newApp, err := NewApp(a.ConfigFlag)
+	newApp, err := NewApp(a.ConfigFlag, a.NoDiscoveryFlag)
 	if err != nil {
 		log.Errorf("Error initializing config: %v", err)
 		return err

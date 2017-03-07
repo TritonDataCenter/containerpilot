@@ -186,7 +186,7 @@ func RenderConfig(configFlag, renderFlag string) error {
 }
 
 // ParseConfig parses a raw config flag
-func ParseConfig(configFlag string) (*Config, error) {
+func ParseConfig(configFlag string, noDiscoveryFlag bool) (*Config, error) {
 
 	template, err := renderConfigTemplate(configFlag)
 	if err != nil {
@@ -197,7 +197,7 @@ func ParseConfig(configFlag string) (*Config, error) {
 		return nil, err
 	}
 	discoveryService, err := parseServiceBackend(configMap)
-	if err != nil {
+	if err != nil && !noDiscoveryFlag{
 		return nil, err
 	}
 	// Delete discovery backend keys

@@ -231,7 +231,7 @@ func TestMetricServiceCreation(t *testing.T) {
       "port": 9090
     }
   }`
-	if app, err := NewApp(jsonFragment); err != nil {
+	if app, err := NewApp(jsonFragment, false); err != nil {
 		t.Fatalf("Got error while initializing config: %v", err)
 	} else {
 		if len(app.Services) != 1 {
@@ -283,7 +283,7 @@ func testParseExpectError(t *testing.T, testJSON string, expected string) {
 }
 
 func validateParseError(t *testing.T, testJSON string, matchStrings []string) {
-	if _, err := NewApp(testJSON); err == nil {
+	if _, err := NewApp(testJSON, false); err == nil {
 		t.Errorf("Expected error parsing config")
 	} else {
 		for _, match := range matchStrings {
