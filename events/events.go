@@ -9,6 +9,7 @@ type Event struct {
 	Source string
 }
 
+// go:generate stringer -type EventCode
 type EventCode int
 
 const (
@@ -23,7 +24,10 @@ const (
 	Shutdown // fired once after all jobs exit or on receiving SIGTERM
 )
 
-const Global = "global" // used by global event sources
+const (
+	Global = "global" // used by global event sources
+	Closed = "closed" // used by Close() method only and passed directly to chan
+)
 
 type EventBus struct {
 	registry map[Subscriber]bool

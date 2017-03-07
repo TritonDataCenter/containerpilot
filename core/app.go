@@ -340,15 +340,12 @@ func (a *App) handlePolling() {
 	var quit []chan bool
 
 	for _, service := range a.Services {
-		service.Subscribe(a.Bus)
 		service.Run(a.Bus)
 	}
 	for _, check := range a.Checks {
-		check.Subscribe(a.Bus)
 		check.Run(a.Bus)
 	}
 	for _, watch := range a.Watches {
-		watch.Subscribe(a.Bus)
 		watch.Run(a.Bus)
 	}
 

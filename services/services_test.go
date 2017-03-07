@@ -20,7 +20,7 @@ func TestService(t *testing.T) {
 	svc.heartbeat = 3
 
 	svc.Run(bus)
-	svc.Bus.Publish(events.Event{Code: events.Startup, Source: "serviceA"})
+	svc.Bus.Publish(events.Event{Code: events.Startup, Source: events.Global})
 
 	svc.Close()
 	defer func() {
@@ -28,7 +28,7 @@ func TestService(t *testing.T) {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	svc.Bus.Publish(events.Event{Code: events.Startup, Source: "serviceA"}) // should not panic
+	svc.Bus.Publish(events.Event{Code: events.Startup, Source: events.Global}) // should not panic
 }
 
 func TestServiceTimeout(t *testing.T) {

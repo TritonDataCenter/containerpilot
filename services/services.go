@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
@@ -37,12 +38,19 @@ type Service struct {
 
 // NewService creates a new service
 func NewService(cfg *ServiceConfig) (*Service, error) {
-	service := &Service{
-		Name:             cfg.Name,
-		heartbeat:        cfg.Heartbeat,
-		discoveryService: cfg.discoveryService,
-		Definition:       cfg.definition,
-	}
+
+	service := &Service{}
+	service.Name = cfg.Name
+	service.heartbeat = cfg.Heartbeat
+	service.discoveryService = cfg.discoveryService
+	service.Definition = cfg.definition
+
+	service.Rx = make(chan events.Event, 1000)
+	service.Flush = make(chan bool)
+	// TODO
+	service.startupEvent = events.Event{Code: events.Startup, Source: events.Global}
+	service.startupTimeout = -1
+
 	if cfg.Exec != nil {
 		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout)
 		if err != nil {
@@ -70,6 +78,7 @@ func (svc *Service) Deregister() {
 }
 
 func (svc *Service) Run(bus *events.EventBus) {
+	svc.Subscribe(bus)
 	svc.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -92,55 +101,66 @@ func (svc *Service) Run(bus *events.EventBus) {
 	}
 
 	go func() {
-		select {
-		case event := <-svc.Rx:
-			switch event.Code {
-			case events.TimerExpired:
-				switch event.Source {
-				case heartbeatSource:
-					// non-advertised services shouldn't receive this event
-					// but we'll hit a null-pointer if we screw it up
-					if svc.Status == true && svc.Definition != nil {
-						svc.SendHeartbeat()
+		for {
+			select {
+			case event := <-svc.Rx:
+				switch event.Code {
+				case events.TimerExpired:
+					switch event.Source {
+					case heartbeatSource:
+						// non-advertised services shouldn't receive this event
+						// but we'll hit a null-pointer if we screw it up
+						if svc.Status == true && svc.Definition != nil {
+							svc.SendHeartbeat()
+						}
+					case timeoutSource:
+						svc.Bus.Publish(events.Event{
+							Code: events.TimerExpired, Source: svc.Name})
+						svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
+					case runEverySource:
+						if !svc.restart || (svc.restartLimit != unlimitedRestarts &&
+							svc.restartsRemain <= haltRestarts) {
+							break
+						}
+						svc.restartsRemain--
+						svc.Rx <- events.Event{Code: svc.startupEvent.Code, Source: svc.Name}
 					}
-				case timeoutSource:
-					svc.Bus.Publish(events.Event{Code: events.TimerExpired, Source: svc.Name})
-					svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
-				case runEverySource:
+				case events.Quit:
+					if event.Source != svc.Name && event.Source != events.Closed {
+						break
+					}
+					fallthrough
+				case events.Shutdown:
+					svc.Unsubscribe(svc.Bus)
+					close(svc.Rx)
+					cancel()
+					svc.Flush <- true
+					return
+				case events.ExitSuccess:
+				case events.ExitFailed:
+					if event.Source != svc.Name {
+						break
+					}
 					if !svc.restart || (svc.restartLimit != unlimitedRestarts &&
 						svc.restartsRemain <= haltRestarts) {
 						break
 					}
 					svc.restartsRemain--
 					svc.Rx <- events.Event{Code: svc.startupEvent.Code, Source: svc.Name}
+				case svc.startupEvent.Code:
+					if event.Source != svc.Name {
+						break
+					}
+					err := commands.RunWithTimeout(svc.exec, log.Fields{
+						"process": svc.startupEvent.Code, "id": svc.Name})
+					if err != nil {
+						svc.Bus.Publish(
+							events.Event{Code: events.ExitSuccess, Source: svc.Name})
+					} else {
+						svc.Bus.Publish(
+							events.Event{Code: events.ExitSuccess, Source: svc.Name})
+					}
 				}
-			case events.Quit:
-				if event.Source != svc.Name {
-					break
-				}
-				fallthrough
-			case events.Shutdown:
-				svc.Unsubscribe(svc.Bus)
-				close(svc.Rx)
-				cancel()
-				svc.Flush <- true
-				return
-			case events.ExitSuccess:
-			case events.ExitFailed:
-				if event.Source != svc.Name {
-					break
-				}
-				if !svc.restart || (svc.restartLimit != unlimitedRestarts &&
-					svc.restartsRemain <= haltRestarts) {
-					break
-				}
-				svc.restartsRemain--
-				svc.Rx <- events.Event{Code: svc.startupEvent.Code, Source: svc.Name}
-			case svc.startupEvent.Code:
-				// run this in a goroutine and pass it our context
-				svc.Bus.Publish(events.Event{Code: events.Started, Source: svc.ID})
-				fmt.Println("running!")
-				svc.Bus.Publish(events.Event{Code: events.ExitSuccess, Source: svc.ID})
 			}
 		}
 	}()

@@ -24,7 +24,7 @@ func TestSafeUnsubscribe(t *testing.T) {
 
 	expected := []Event{
 		Event{Code: Startup, Source: "serviceA"},
-		Event{Code: Quit},
+		Event{Code: Quit, Source: Closed},
 	}
 
 	for _, result := range ts.results {

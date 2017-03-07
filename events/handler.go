@@ -38,7 +38,7 @@ func (evh *EventHandler) Receive(e Event) {
 // Close sends a Quit message to the EventHandler and then synchronously
 // waits for the EventHandler to be unregistered from all events.
 func (evh *EventHandler) Close() {
-	evh.Rx <- Event{Code: Quit}
+	evh.Rx <- Event{Code: Quit, Source: Closed}
 	<-evh.Flush
 	close(evh.Flush)
 }
