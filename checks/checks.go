@@ -62,30 +62,28 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 
 	go func() {
 		for {
-			select {
-			case event := <-check.Rx:
-				switch event {
-				case events.Event{events.TimerExpired, timerSource}:
+			event := <-check.Rx
+			switch event {
+			case events.Event{events.TimerExpired, timerSource}:
+				check.Bus.Publish(
+					events.Event{Code: check.startupEvent.Code, Source: check.Name})
+			case
+				events.Event{events.Quit, check.Name},
+				events.Event{events.Quit, events.Closed},
+				events.Event{events.Shutdown, events.Global}:
+				check.Unsubscribe(check.Bus)
+				close(check.Rx)
+				cancel()
+				check.Flush <- true
+				return
+			case check.startupEvent:
+				err := check.CheckHealth(ctx)
+				if err != nil {
 					check.Bus.Publish(
-						events.Event{Code: check.startupEvent.Code, Source: check.Name})
-				case
-					events.Event{events.Quit, check.Name},
-					events.Event{events.Quit, events.Closed},
-					events.Event{events.Shutdown, events.Global}:
-					check.Unsubscribe(check.Bus)
-					close(check.Rx)
-					cancel()
-					check.Flush <- true
-					return
-				case check.startupEvent:
-					err := check.CheckHealth(ctx)
-					if err != nil {
-						check.Bus.Publish(
-							events.Event{Code: events.ExitSuccess, Source: check.Name})
-					} else {
-						check.Bus.Publish(
-							events.Event{Code: events.ExitSuccess, Source: check.Name})
-					}
+						events.Event{Code: events.ExitSuccess, Source: check.Name})
+				} else {
+					check.Bus.Publish(
+						events.Event{Code: events.ExitSuccess, Source: check.Name})
 				}
 			}
 		}
