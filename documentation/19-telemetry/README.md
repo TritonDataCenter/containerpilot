@@ -16,6 +16,7 @@ A minimal configuration for ContainerPilot including telemetry might look like t
 {
   "consul": "consul:8500",
   "telemetry": {
+    "servicename": "containerpilot",
     "port": 9090,
     "interfaces": ["eth0"],
     "tags": ["tag1"],
@@ -37,6 +38,7 @@ A minimal configuration for ContainerPilot including telemetry might look like t
 
 The fields are as follows:
 
+- `servicename` is the service name the telemetry service will register in Consul. (Default value is `containerpilot`)
 - `port` is the port the telemetry service will advertise to the discovery service. (Default value is 9090.)
 - `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`)
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
