@@ -13,6 +13,7 @@ import (
 var jsonFragment = []byte(`{
 	"port": 8000,
 	"interfaces": ["inet"],
+	"servicename": "telemetry",
 	"sensors": [
        {
 		"namespace": "telemetry",

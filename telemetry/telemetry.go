@@ -19,7 +19,7 @@ type Telemetry struct {
 	Tags          []string      `mapstructure:"tags"`
 	SensorConfigs []interface{} `mapstructure:"sensors"`
 	Sensors       []*Sensor
-	ServiceName   string
+	ServiceName   string `mapstructure:"servicename"`
 	URL           string
 	TTL           int
 	Poll          int
