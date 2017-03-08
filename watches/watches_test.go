@@ -3,12 +3,14 @@ package watches
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/joyent/containerpilot/commands"
 )
 
 func TestOnChangeCmd(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug",
+		time.Duration(1*time.Second))
 	watch := &Watch{
 		exec: cmd1,
 	}

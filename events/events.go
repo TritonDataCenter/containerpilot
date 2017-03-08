@@ -19,6 +19,8 @@ const (
 	StatusUnhealthy
 	StatusChanged
 	TimerExpired
+	EnterMaintenance
+	ExitMaintenance
 	Quit
 	Startup  // fired once after events are set up and event loop is started
 	Shutdown // fired once after all jobs exit or on receiving SIGTERM
@@ -65,5 +67,16 @@ func (bus *EventBus) Publish(event Event) {
 		// sending to an unsubscribed Subscriber shouldn't be a runtime
 		// error, so this is in intentionally allowed to panic here
 		subscriber.Receive(event)
+	}
+}
+
+// Shutdown all Subscribers
+func (bus *EventBus) Shutdown() {
+	bus.lock.RLock()
+	defer bus.lock.RUnlock()
+	for subscriber, _ := range bus.registry {
+		// sending to an unsubscribed Subscriber shouldn't be a runtime
+		// error, so this is in intentionally allowed to panic here
+		subscriber.Close()
 	}
 }

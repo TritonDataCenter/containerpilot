@@ -13,11 +13,9 @@ import (
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/config"
-	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/services"
-	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/watches"
 
@@ -34,24 +32,17 @@ var (
 // App encapsulates the state of ContainerPilot after the initial setup.
 // after it is run, it can be reloaded and paused with signals.
 type App struct {
-	ServiceBackend discovery.ServiceBackend
-	Services       []*services.Service
-	Checks         []*checks.HealthCheck
-	Watches        []*watches.Watch
-	Tasks          []*tasks.Task            // TODO: convert to Services
-	Coprocesses    []*coprocesses.Coprocess // TODO: convert to Services
-	Telemetry      *telemetry.Telemetry
-	PreStartCmd    *commands.Command // TODO: convert to one-off Service
-	PreStopCmd     *commands.Command // TODO: convert to one-off Service
-	PostStopCmd    *commands.Command // TODO: convert to one-off Service
-	Command        *commands.Command // TODO: convert to Service
-	StopTimeout    int
-	QuitChannels   []chan bool
-	maintModeLock  *sync.RWMutex
-	signalLock     *sync.RWMutex
-	paused         bool
-	ConfigFlag     string
-	Bus            *events.EventBus
+	Discovery     discovery.Backend
+	Services      []*services.Service
+	Checks        []*checks.HealthCheck
+	Watches       []*watches.Watch
+	Telemetry     *telemetry.Telemetry
+	StopTimeout   int
+	maintModeLock *sync.RWMutex // TODO: probably want to move this to Service.Status
+	signalLock    *sync.RWMutex
+	paused        bool
+	ConfigFlag    string
+	Bus           *events.EventBus
 }
 
 // EmptyApp creates an empty application
@@ -107,38 +98,43 @@ func LoadApp() (*App, error) {
 // NewApp creates a new App from the config
 func NewApp(configFlag string) (*App, error) {
 	a := EmptyApp()
-	cfg, err := config.ParseConfig(configFlag)
+	cfg, err := config.LoadConfig(configFlag)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: need to make a Service out of these too
+	args := getArgs(flag.Args())
+	cmd, err := commands.NewCommand(args, "0")
+	if err != nil {
+		log.Errorf("Unable to parse command arguments: %v", err)
+	}
+
 	if err = cfg.InitLogging(); err != nil {
 		return nil, err
 	}
 	if log.GetLevel() >= log.DebugLevel {
 		configJSON, err := json.Marshal(cfg)
 		if err != nil {
-			log.Errorf("Error marshalling config for debug: %v", err)
+			log.Errorf("error marshalling config for debug: %v", err)
 		}
-		log.Debugf("Loaded config: %v", string(configJSON))
+		log.Debugf("loaded config: %v", string(configJSON))
 	}
-	a.PreStartCmd = cfg.PreStart
-	a.PreStopCmd = cfg.PreStop
-	a.PostStopCmd = cfg.PostStop
 	a.StopTimeout = cfg.StopTimeout
-	a.ServiceBackend = cfg.ServiceBackend
+	a.Discovery = cfg.Discovery
 	a.Checks = cfg.Checks
 	a.Services = cfg.Services
 	a.Watches = cfg.Watches
-	a.Tasks = cfg.Tasks
-	a.Coprocesses = cfg.Coprocesses
 	a.Telemetry = cfg.Telemetry
 	a.ConfigFlag = configFlag
 
 	// set an environment variable for each service IP address so that
 	// forked processes have access to this information
 	for _, service := range a.Services {
-		envKey := getEnvVarNameFromService(service.Name)
-		os.Setenv(envKey, service.Definition.IPAddress)
+		if service.Definition != nil {
+			envKey := getEnvVarNameFromService(service.Name)
+			os.Setenv(envKey, service.Definition.IPAddress)
+		}
 	}
 
 	return a, nil
@@ -158,48 +154,11 @@ func (a *App) Run() {
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
-	args := getArgs(flag.Args())
-	cmd, err := commands.NewCommand(args, "0")
-	if err != nil {
-		log.Errorf("Unable to parse command arguments: %v", err)
-	}
-	a.Command = cmd
-
 	a.Bus = events.NewEventBus()
-
 	a.handleSignals()
-
-	if a.PreStartCmd != nil {
-		// Run the preStart handler, if any, and exit if it returns an error
-		fields := log.Fields{"process": "PreStart"}
-		if code, err := commands.RunAndWait(a.PreStartCmd, fields); err != nil {
-			os.Exit(code)
-		}
-	}
-	a.handleCoprocesses()
 	a.handlePolling()
 
-	if a.Command != nil {
-		cmd.Name = "APP"
-		// Run our main application and capture its stdout/stderr.
-		// This will block until the main application exits and then os.Exit
-		// with the exit code of that application.
-		code, err := commands.RunAndWait(a.Command, nil)
-		if err != nil {
-			log.Println(err)
-		}
-		// Run the PostStop handler, if any, and exit if it returns an error
-		if a.PostStopCmd != nil {
-			fields := log.Fields{"process": "PostStop"}
-			if postStopCode, err := commands.RunAndWait(a.PostStopCmd, fields); err != nil {
-				os.Exit(postStopCode)
-			}
-		}
-		os.Exit(code)
-	}
-
-	// block forever, as we're polling in the two polling functions and
-	// did not os.Exit by waiting on an external application.
+	// block forever, as we're polling in the two polling functions
 	select {}
 }
 
@@ -227,7 +186,7 @@ func (a *App) ToggleMaintenanceMode() {
 	defer a.maintModeLock.RUnlock()
 	a.paused = !a.paused
 	if a.paused {
-		a.forAllServices(markServiceForMaintenance)
+		a.Bus.Publish(events.Event{events.EnterMaintenance, events.Global})
 	}
 }
 
@@ -244,8 +203,7 @@ func (a *App) InMaintenanceMode() bool {
 func (a *App) Terminate() {
 	a.signalLock.Lock()
 	defer a.signalLock.Unlock()
-	a.stopPolling()
-	a.forAllServices(deregisterService)
+	a.Bus.Shutdown()
 
 	// Run and wait for preStop command to exit (continues
 	// unconditionally so we don't worry about returned errors here)
@@ -271,22 +229,6 @@ func (a *App) Terminate() {
 	cmd.Process.Kill()
 }
 
-func (a *App) stopPolling() {
-	for _, quit := range a.QuitChannels {
-		quit <- true
-	}
-}
-
-func markServiceForMaintenance(service *services.Service) {
-	log.Infof("Marking for maintenance: %s", service.Name)
-	service.MarkForMaintenance()
-}
-
-func deregisterService(service *services.Service) {
-	log.Infof("Deregistering service: %s", service.Name)
-	service.Deregister()
-}
-
 // Reload will try to update the running application by
 // loading the config and applying changes to the services
 // A reload cannot change the shimmed application, or the preStart script
@@ -301,18 +243,13 @@ func (a *App) Reload() error {
 		return err
 	}
 
-	a.stopPolling()
-	a.forAllServices(deregisterService)
-	a.stopCoprocesses()
-
+	a.Bus.Shutdown()
 	a.load(newApp)
 	return nil
 }
 
 func (a *App) load(newApp *App) {
-	a.ServiceBackend = newApp.ServiceBackend
-	a.PostStopCmd = newApp.PostStopCmd
-	a.PreStopCmd = newApp.PreStopCmd
+	a.Discovery = newApp.Discovery
 	a.Services = newApp.Services
 	a.Checks = newApp.Checks
 	a.StopTimeout = newApp.StopTimeout
@@ -320,24 +257,12 @@ func (a *App) load(newApp *App) {
 		a.Telemetry.Shutdown()
 	}
 	a.Telemetry = newApp.Telemetry
-	a.Tasks = newApp.Tasks
-	a.Coprocesses = newApp.Coprocesses
 	a.handlePolling()
-	a.handleCoprocesses()
-}
-
-type serviceFunc func(service *services.Service)
-
-func (a *App) forAllServices(fn serviceFunc) {
-	for _, service := range a.Services {
-		fn(service)
-	}
 }
 
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
 func (a *App) handlePolling() {
-	var quit []chan bool
 
 	for _, service := range a.Services {
 		service.Run(a.Bus)
@@ -350,32 +275,9 @@ func (a *App) handlePolling() {
 	}
 
 	if a.Telemetry != nil {
-		// TODO
-		// for _, sensor := range a.Telemetry.Sensors {
-		// 	sensor.Run(a.Bus)
-		// }
 		for _, sensor := range a.Telemetry.Sensors {
-			quit = append(quit, a.poll(sensor))
+			sensor.Run(a.Bus)
 		}
 		a.Telemetry.Serve()
-	}
-	// TODO: convert all Tasks to Services
-	if a.Tasks != nil {
-		for _, task := range a.Tasks {
-			quit = append(quit, a.poll(task))
-		}
-	}
-	a.QuitChannels = quit
-}
-
-func (a *App) handleCoprocesses() {
-	for _, coprocess := range a.Coprocesses {
-		go coprocess.Start()
-	}
-}
-
-func (a *App) stopCoprocesses() {
-	for _, coprocess := range a.Coprocesses {
-		coprocess.Stop()
 	}
 }

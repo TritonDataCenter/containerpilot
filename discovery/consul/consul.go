@@ -23,7 +23,7 @@ type Consul struct {
 }
 
 // ConfigHook is the hook to register with the Consul backend
-func ConfigHook(raw interface{}) (discovery.ServiceBackend, error) {
+func ConfigHook(raw interface{}) (discovery.Backend, error) {
 	return NewConsulConfig(raw)
 }
 

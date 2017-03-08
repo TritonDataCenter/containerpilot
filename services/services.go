@@ -15,66 +15,66 @@ import (
 const (
 	haltRestarts      = -1
 	unlimitedRestarts = -2
+	eventBufferSize   = 1000
 )
 
 // Service configures the service discovery data
 type Service struct {
 	Name             string
 	exec             *commands.Command
-	heartbeat        int
 	Status           bool // TODO: we'll need this to carry more info than bool
-	discoveryService discovery.ServiceBackend
+	discoveryService discovery.Backend
 	Definition       *discovery.ServiceDefinition
 
-	// Event handling
-	events.EventHandler
+	// timing and restarts
 	startupEvent   events.Event
-	startupTimeout int
-	restart        bool
+	startupTimeout time.Duration
+	heartbeat      time.Duration
 	restartLimit   int
 	restartsRemain int
-	runEvery       int
+	frequency      time.Duration
+
+	events.EventHandler // Event handling
 }
 
-// NewService creates a new service
+// NewService creates a new Service from a ServiceConfig
 func NewService(cfg *ServiceConfig) (*Service, error) {
-
-	service := &Service{}
-	service.Name = cfg.Name
-	service.heartbeat = cfg.Heartbeat
-	service.discoveryService = cfg.discoveryService
-	service.Definition = cfg.definition
-
-	service.Rx = make(chan events.Event, 1000)
-	service.Flush = make(chan bool)
-	// TODO
-	service.startupEvent = events.Event{Code: events.Startup, Source: events.Global}
-	service.startupTimeout = -1
-
-	if cfg.Exec != nil {
-		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse `health` in service %s: %s", cfg.Name, err)
-		}
-		cmd.Name = fmt.Sprintf("%s.health", cfg.Name)
-		service.exec = cmd
+	service := &Service{
+		Name:             cfg.Name,
+		exec:             cfg.exec,
+		heartbeat:        cfg.heartbeatInterval,
+		discoveryService: cfg.discoveryService,
+		Definition:       cfg.definition,
+		startupEvent:     cfg.startupEvent,
+		startupTimeout:   cfg.startupTimeout,
+		restartLimit:     cfg.restartLimit,
+		restartsRemain:   cfg.restartLimit,
+		frequency:        cfg.freqInterval,
 	}
+	service.Rx = make(chan events.Event, eventBufferSize)
+	service.Flush = make(chan bool)
 	return service, nil
 }
 
 // SendHeartbeat sends a heartbeat for this service
 func (svc *Service) SendHeartbeat() {
-	svc.discoveryService.SendHeartbeat(svc.Definition)
+	if svc.discoveryService != nil || svc.Definition != nil {
+		svc.discoveryService.SendHeartbeat(svc.Definition)
+	}
 }
 
 // MarkForMaintenance marks this service for maintenance
 func (svc *Service) MarkForMaintenance() {
-	svc.discoveryService.MarkForMaintenance(svc.Definition)
+	if svc.discoveryService != nil || svc.Definition != nil {
+		svc.discoveryService.MarkForMaintenance(svc.Definition)
+	}
 }
 
 // Deregister will deregister this instance of the service
 func (svc *Service) Deregister() {
-	svc.discoveryService.Deregister(svc.Definition)
+	if svc.discoveryService != nil || svc.Definition != nil {
+		svc.discoveryService.Deregister(svc.Definition)
+	}
 }
 
 func (svc *Service) Run(bus *events.EventBus) {
@@ -83,21 +83,18 @@ func (svc *Service) Run(bus *events.EventBus) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	runEverySource := fmt.Sprintf("%s-run-every", svc.Name)
-	if svc.runEvery > 0 {
-		events.NewEventTimeout(ctx, svc.Rx,
-			time.Duration(svc.runEvery)*time.Second, runEverySource)
+	if svc.frequency > 0 {
+		events.NewEventTimeout(ctx, svc.Rx, svc.frequency, runEverySource)
 	}
 
 	heartbeatSource := fmt.Sprintf("%s-heartbeat", svc.Name)
 	if svc.heartbeat > 0 {
-		events.NewEventTimeout(ctx, svc.Rx,
-			time.Duration(svc.heartbeat)*time.Second, heartbeatSource)
+		events.NewEventTimeout(ctx, svc.Rx, svc.heartbeat, heartbeatSource)
 	}
 
 	timeoutSource := fmt.Sprintf("%s-wait-timeout", svc.Name)
 	if svc.startupTimeout > 0 {
-		events.NewEventTimeout(ctx, svc.Rx,
-			time.Duration(svc.startupTimeout)*time.Second, timeoutSource)
+		events.NewEventTimeout(ctx, svc.Rx, svc.startupTimeout, timeoutSource)
 	}
 
 	go func() {
@@ -115,8 +112,8 @@ func (svc *Service) Run(bus *events.EventBus) {
 					Code: events.TimerExpired, Source: svc.Name})
 				svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
 			case events.Event{events.TimerExpired, runEverySource}:
-				if !svc.restart || (svc.restartLimit != unlimitedRestarts &&
-					svc.restartsRemain <= haltRestarts) {
+				if svc.restartLimit != unlimitedRestarts &&
+					svc.restartsRemain <= haltRestarts {
 					break
 				}
 				svc.restartsRemain--
@@ -126,15 +123,18 @@ func (svc *Service) Run(bus *events.EventBus) {
 				events.Event{events.Quit, events.Closed},
 				events.Event{events.Shutdown, events.Global}:
 				svc.Unsubscribe(svc.Bus)
+				svc.Deregister()
 				close(svc.Rx)
 				cancel()
 				svc.Flush <- true
 				return
 			case
+				// TODO: need a way to catch check events:
+				// events.Event{Code: events.ExitSuccess, Source: check.Name})
 				events.Event{events.ExitSuccess, svc.Name},
 				events.Event{events.ExitFailed, svc.Name}:
-				if !svc.restart || (svc.restartLimit != unlimitedRestarts &&
-					svc.restartsRemain <= haltRestarts) {
+				if svc.restartLimit != unlimitedRestarts &&
+					svc.restartsRemain <= haltRestarts {
 					break
 				}
 				svc.restartsRemain--

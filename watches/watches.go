@@ -11,38 +11,34 @@ import (
 	"github.com/joyent/containerpilot/events"
 )
 
+const eventBufferSize = 1000
+
 // Watch represents a task to execute when something changes
 type Watch struct {
 	Name             string
 	Tag              string
 	exec             *commands.Command
-	discoveryService discovery.ServiceBackend
+	startupTimeout   int
+	poll             int
+	startupEvent     events.Event
+	discoveryService discovery.Backend
 
-	// Event handling
-	events.EventHandler
-	startupEvent   events.Event
-	startupTimeout int
-	poll           int
+	events.EventHandler // Event handling
 }
 
 func NewWatch(cfg *WatchConfig) (*Watch, error) {
-	watch := &Watch{}
-	watch.Name = cfg.Name
-	watch.poll = cfg.Poll
-	watch.Tag = cfg.Tag
-
-	watch.Rx = make(chan events.Event, 1000)
-	watch.Flush = make(chan bool)
-	watch.startupEvent = events.Event{Code: events.StatusChanged, Source: watch.Name}
-	watch.startupTimeout = -1
-
-	cmd, err := commands.NewCommand(cfg.OnChangeExec, cfg.Timeout)
-	if err != nil {
-		// TODO: this error message is tied to existing config syntax
-		return nil, fmt.Errorf("could not parse `onChange` in watch %s: %s",
-			cfg.Name, err)
+	evt := events.Event{Code: events.StatusChanged, Source: cfg.Name}
+	watch := &Watch{
+		Name:             cfg.Name,
+		poll:             cfg.Poll,
+		Tag:              cfg.Tag,
+		exec:             cfg.onChangeExec,
+		discoveryService: cfg.discoveryService,
+		startupEvent:     evt,
+		startupTimeout:   -1,
 	}
-	watch.exec = cmd
+	watch.Rx = make(chan events.Event, eventBufferSize)
+	watch.Flush = make(chan bool)
 	return watch, nil
 }
 

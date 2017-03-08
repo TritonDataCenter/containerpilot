@@ -3,7 +3,9 @@ package checks
 import (
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -11,10 +13,13 @@ import (
 // HealthCheckConfig configures the health check
 type HealthCheckConfig struct {
 	ID              string
-	Name            string      `mapstructure:"name"`
-	Poll            int         `mapstructure:"poll"` // time in seconds
+	Name            string `mapstructure:"name"`
+	Poll            int    `mapstructure:"poll"` // time in seconds
+	pollInterval    time.Duration
 	HealthCheckExec interface{} `mapstructure:"health"`
-	Timeout         string      `mapstructure:"timeout"`
+	exec            *commands.Command
+	Timeout         string `mapstructure:"timeout"`
+	timeout         time.Duration
 	definition      *discovery.ServiceDefinition
 
 	/* TODO:
@@ -28,37 +33,53 @@ type HealthCheckConfig struct {
 	servicePort       int         `mapstructure:"port"`
 }
 
-// NewHealthChecks new checks from a raw config
-func NewHealthChecks(raw []interface{}) ([]*HealthCheck, error) {
+// NewHealthCheckConfigs parses json config into a validated slice of HealthCheckConfigs
+func NewHealthCheckConfigs(raw []interface{}) ([]*HealthCheckConfig, error) {
+	var checks []*HealthCheckConfig
 	if raw == nil {
-		return []*HealthCheck{}, nil
+		return checks, nil
 	}
-
-	var checkcfgs []*HealthCheckConfig
-	var checks []*HealthCheck
-	if err := utils.DecodeRaw(raw, &checkcfgs); err != nil {
+	if err := utils.DecodeRaw(raw, &checks); err != nil {
 		return nil, fmt.Errorf("HealthCheck configuration error: %v", err)
 	}
-
-	for _, checkcfg := range checkcfgs {
-		if err := utils.ValidateServiceName(checkcfg.Name); err != nil {
-			return nil, err
-		}
-		hostname, _ := os.Hostname()
-		checkcfg.ID = fmt.Sprintf("%s-%s", checkcfg.Name, hostname)
-
-		if checkcfg.Poll < 1 {
-			return []*HealthCheck{},
-				fmt.Errorf("`poll` must be > 0 in service %s", checkcfg.Name)
-		}
-		if checkcfg.Timeout == "" {
-			checkcfg.Timeout = fmt.Sprintf("%ds", checkcfg.Poll)
-		}
-		check, err := NewHealthCheck(checkcfg)
+	for _, check := range checks {
+		err := check.Validate()
 		if err != nil {
-			return []*HealthCheck{}, err
+			return checks, err
 		}
 		checks = append(checks, check)
 	}
 	return checks, nil
+}
+
+// Validate ensures HealthCheckConfig meets all requirements
+func (check *HealthCheckConfig) Validate() error {
+	if err := utils.ValidateServiceName(check.Name); err != nil {
+		return err
+	}
+	hostname, _ := os.Hostname()
+	check.ID = fmt.Sprintf("%s-%s", check.Name, hostname)
+
+	if check.Poll < 1 {
+		return fmt.Errorf("`poll` must be > 0 in health check %s", check.Name)
+	}
+	check.pollInterval = time.Duration(check.Poll) * time.Second
+	if check.Timeout == "" {
+		check.Timeout = fmt.Sprintf("%ds", check.Poll)
+	}
+	timeout, err := utils.GetTimeout(check.Timeout)
+	if err != nil {
+		return err
+	}
+	check.timeout = timeout
+
+	cmd, err := commands.NewCommand(check.HealthCheckExec, check.timeout)
+	if err != nil {
+		// TODO: this is config syntax specific and should be updated
+		return fmt.Errorf("could not parse `health` in check %s: %s",
+			check.Name, err)
+	}
+	check.exec = cmd
+
+	return nil
 }

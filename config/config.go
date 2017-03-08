@@ -13,10 +13,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/commands"
-	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
-	"github.com/joyent/containerpilot/tasks"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/utils"
 	"github.com/joyent/containerpilot/watches"
@@ -37,18 +35,14 @@ type rawConfig struct {
 
 // Config contains the parsed config elements
 type Config struct {
-	ServiceBackend discovery.ServiceBackend
-	LogConfig      *LogConfig
-	PreStart       *commands.Command
-	PreStop        *commands.Command
-	PostStop       *commands.Command
-	StopTimeout    int
-	Coprocesses    []*coprocesses.Coprocess
-	Services       []*services.Service
-	Checks         []*checks.HealthCheck
-	Watches        []*watches.Watch
-	Tasks          []*tasks.Task
-	Telemetry      *telemetry.Telemetry
+	Discovery   discovery.Backend
+	LogConfig   *LogConfig
+	StopTimeout int
+	Services    []*services.ServiceConfig
+	Checks      []*checks.HealthCheckConfig
+	Watches     []*watches.WatchConfig
+	Sensors     []*sensors.SensorConfig
+	Telemetry   *telemetry.TelemetryConfig
 }
 
 const (
@@ -56,8 +50,8 @@ const (
 	defaultStopTimeout int = 5
 )
 
-func parseServiceBackend(rawCfg map[string]interface{}) (discovery.ServiceBackend, error) {
-	var discoveryService discovery.ServiceBackend
+func parseDiscoveryBackend(rawCfg map[string]interface{}) (discovery.Backend, error) {
+	var discoveryService discovery.Backend
 	var err error
 	discoveryCount := 0
 	for _, key := range discovery.GetBackends() {
@@ -90,42 +84,6 @@ func (cfg *Config) InitLogging() error {
 	return nil
 }
 
-func (cfg *rawConfig) parseServices(discoveryService discovery.ServiceBackend) ([]*services.Service, error) {
-	// TODO: we'll split the servicesConfig from the checksConfig
-	// when we update the config syntax
-	services, err := services.NewServices(cfg.servicesConfig, discoveryService)
-	if err != nil {
-		return nil, err
-	}
-	return services, nil
-}
-
-func (cfg *rawConfig) parseChecks() ([]*checks.HealthCheck, error) {
-	// TODO: we'll split the servicesConfig from the checksConfig
-	// when we update the config syntax
-	checks, err := checks.NewHealthChecks(cfg.servicesConfig)
-	if err != nil {
-		return nil, err
-	}
-	return checks, nil
-}
-
-func (cfg *rawConfig) parseWatches(discoveryService discovery.ServiceBackend) ([]*watches.Watch, error) {
-	watches, err := watches.NewWatches(cfg.watchesConfig, discoveryService)
-	if err != nil {
-		return nil, err
-	}
-	return watches, nil
-}
-
-func (cfg *rawConfig) parseCoprocesses() ([]*coprocesses.Coprocess, error) {
-	coprocesses, err := coprocesses.NewCoprocesses(cfg.coprocessesConfig)
-	if err != nil {
-		return nil, err
-	}
-	return coprocesses, nil
-}
-
 // parseStopTimeout ...
 func (cfg *rawConfig) parseStopTimeout() (int, error) {
 	if cfg.stopTimeout == 0 {
@@ -148,7 +106,7 @@ func (cfg *rawConfig) parseTelemetry() (*telemetry.Telemetry, error) {
 }
 
 // createTelemetryService ...
-func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.ServiceBackend) (*services.Service, error) {
+func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.Backend) (*services.Service, error) {
 	// create a new service for Telemetry
 
 	cfg := &services.ServiceConfig{
@@ -204,8 +162,8 @@ func RenderConfig(configFlag, renderFlag string) error {
 	return nil
 }
 
-// ParseConfig parses a raw config flag
-func ParseConfig(configFlag string) (*Config, error) {
+// LoadConfig parses and validates the raw config values
+func LoadConfig(configFlag string) (*Config, error) {
 
 	template, err := renderConfigTemplate(configFlag)
 	if err != nil {
@@ -215,7 +173,7 @@ func ParseConfig(configFlag string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	discoveryService, err := parseServiceBackend(configMap)
+	disc, err := parseDiscoveryBackend(configMap)
 	if err != nil {
 		return nil, err
 	}
@@ -229,26 +187,8 @@ func ParseConfig(configFlag string) (*Config, error) {
 		return nil, err
 	}
 	cfg := &Config{}
-	cfg.ServiceBackend = discoveryService
+	cfg.Discovery = disc
 	cfg.LogConfig = raw.logConfig
-
-	preStartCmd, err := raw.parsePreStart()
-	if err != nil {
-		return nil, err
-	}
-	cfg.PreStart = preStartCmd
-
-	preStopCmd, err := raw.parsePreStop()
-	if err != nil {
-		return nil, err
-	}
-	cfg.PreStop = preStopCmd
-
-	postStopCmd, err := raw.parsePostStop()
-	if err != nil {
-		return nil, err
-	}
-	cfg.PostStop = postStopCmd
 
 	stopTimeout, err := raw.parseStopTimeout()
 	if err != nil {
@@ -256,19 +196,40 @@ func ParseConfig(configFlag string) (*Config, error) {
 	}
 	cfg.StopTimeout = stopTimeout
 
-	services, err := raw.parseServices(discoveryService)
+	services, err := services.NewServiceConfigs(raw, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse services: %v", err)
 	}
 	cfg.Services = services
 
-	checks, err := raw.parseChecks()
+	// TODO: after we update config syntax we'll remove this section entirely
+	preStart, err := services.NewPreStartConfig(raw, disc)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse preStart: %v", err)
+	}
+	cfg.Services = append(cfg.Services, preStart)
+
+	// TODO: after we update config syntax we'll remove this section entirely
+	preStop, err := services.NewPreStopConfig(raw, disc)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse preStop: %v", err)
+	}
+	cfg.Services = append(cfg.Services, preStop)
+
+	// TODO: after we update config syntax we'll remove this section entirely
+	postStop, err := services.NewPostStopConfig(raw, disc)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse postStop: %v", err)
+	}
+	cfg.Services = append(cfg.Services, postStop)
+
+	checks, err := checks.NewHealthCheckConfigs(raw)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse checks: %v", err)
 	}
 	cfg.Checks = checks
 
-	watches, err := raw.parseWatches(discoveryService)
+	watches, err := watches.NewWatchConfigs(raw, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse watches: %v", err)
 	}
@@ -280,7 +241,7 @@ func ParseConfig(configFlag string) (*Config, error) {
 	}
 
 	if telemetry != nil {
-		telemetryService, err2 := createTelemetryService(telemetry, discoveryService)
+		telemetryService, err2 := createTelemetryService(telemetry, disc)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -288,17 +249,23 @@ func ParseConfig(configFlag string) (*Config, error) {
 		cfg.Services = append(cfg.Services, telemetryService)
 	}
 
-	tasks, err := raw.parseTasks()
+	// TODO: after we update config syntax we'll remove this section entirely
+	taskServices, err := services.NewTaskConfigs(raw, disc)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse tasks: %v", err)
 	}
-	cfg.Tasks = tasks
+	for task := range taskServices {
+		cfg.Services = append(cfg.Services, task)
+	}
 
-	coprocesses, err := raw.parseCoprocesses()
+	// TODO: after we update config syntax we'll remove this section entirely
+	coprocessServices, err := services.NewCoprocessConfigs(raw, disc)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse coprocesses: %v", err)
 	}
-	cfg.Coprocesses = coprocesses
+	for coprocess := range coprocessServices {
+		cfg.Services = append(cfg.Services, coprocess)
+	}
 
 	return cfg, nil
 }

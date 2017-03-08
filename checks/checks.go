@@ -10,36 +10,30 @@ import (
 	"github.com/joyent/containerpilot/events"
 )
 
-type HealthCheck struct {
-	Name string
-	exec *commands.Command
+const eventBufferSize = 1000
 
-	// Event handling
-	events.EventHandler
+type HealthCheck struct {
+	Name           string
+	exec           *commands.Command
 	startupEvent   events.Event
-	startupTimeout int
-	restarts       int
-	poll           int
+	startupTimeout time.Duration
+	poll           time.Duration
+
+	events.EventHandler // Event handling
 }
 
 // NewHealthCheck ...
 func NewHealthCheck(cfg *HealthCheckConfig) (*HealthCheck, error) {
-	check := &HealthCheck{}
-	check.Name = cfg.Name
-	check.poll = cfg.Poll
-
-	check.Rx = make(chan events.Event, 1000)
-	check.Flush = make(chan bool)
-	check.startupEvent = events.Event{Code: events.StatusChanged, Source: check.Name}
-	check.startupTimeout = -1
-
-	cmd, err := commands.NewCommand(cfg.HealthCheckExec, cfg.Timeout)
-	if err != nil {
-		// TODO: this is config syntax specific and should be updated
-		return nil, fmt.Errorf("could not parse `health` in check %s: %s",
-			cfg.Name, err)
+	evt := events.Event{Code: events.StatusChanged, Source: cfg.Name}
+	check := &HealthCheck{
+		Name:           cfg.Name,
+		exec:           cfg.exec,
+		poll:           cfg.pollInterval,
+		startupEvent:   evt,
+		startupTimeout: -1,
 	}
-	check.exec = cmd
+	check.Rx = make(chan events.Event, eventBufferSize)
+	check.Flush = make(chan bool)
 	return check, nil
 }
 
@@ -57,8 +51,7 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	timerSource := fmt.Sprintf("%s-check-timer", check.Name)
-	events.NewEventTimer(ctx, check.Rx,
-		time.Duration(check.poll)*time.Second, timerSource)
+	events.NewEventTimer(ctx, check.Rx, check.poll, timerSource)
 
 	go func() {
 		for {
