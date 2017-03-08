@@ -19,7 +19,7 @@ type Telemetry struct {
 	Tags          []string      `mapstructure:"tags"`
 	SensorConfigs []interface{} `mapstructure:"sensors"`
 	Sensors       []*Sensor
-	ServiceName   string
+	ServiceName   string `mapstructure:"servicename"`
 	URL           string
 	TTL           int
 	Poll          int
@@ -41,6 +41,9 @@ func NewTelemetry(raw interface{}) (*Telemetry, error) {
 	}
 
 	if err := utils.DecodeRaw(raw, t); err != nil {
+		return nil, fmt.Errorf("Telemetry configuration error: %v", err)
+	}
+	if err := utils.ValidateServiceName(t.ServiceName); err != nil {
 		return nil, fmt.Errorf("Telemetry configuration error: %v", err)
 	}
 	ipAddress, err := utils.IPFromInterfaces(t.Interfaces)
