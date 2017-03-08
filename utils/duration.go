@@ -6,6 +6,19 @@ import (
 	"time"
 )
 
+// GetTimeout converts a properly formatted string to a Duration,
+// returning an error if the Duration can't be parsed
+func GetTimeout(timeoutFmt string) (time.Duration, error) {
+	if timeoutFmt != "" {
+		timeout, err := ParseDuration(timeoutFmt)
+		if err != nil {
+			return time.Duration(0), err
+		}
+		return timeout, nil
+	}
+	return time.Duration(0), nil
+}
+
 // ParseDuration parses the given duration with multiple type support
 // int (defaults to seconds)
 // string with units

@@ -19,47 +19,31 @@ const errNoChild = "wait: no child processes"
 
 // Command wraps an os/exec.Cmd with a timeout, logging, and arg parsing.
 type Command struct {
-	Name            string // this gets used only in logs, defaults to Exec
-	Cmd             *exec.Cmd
-	Exec            string
-	Args            []string
-	Timeout         string
-	TimeoutDuration time.Duration
-	ticker          *time.Ticker
-	logWriters      []io.WriteCloser
+	Name       string // this gets used only in logs, defaults to Exec
+	Cmd        *exec.Cmd
+	Exec       string
+	Args       []string
+	Timeout    time.Duration
+	ticker     *time.Ticker
+	logWriters []io.WriteCloser
 }
 
 // NewCommand parses JSON config into a Command
-func NewCommand(rawArgs interface{}, timeoutFmt string) (*Command, error) {
+func NewCommand(rawArgs interface{}, timeout time.Duration) (*Command, error) {
 	exec, args, err := ParseArgs(rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	timeout, err := getTimeout(timeoutFmt)
 	if err != nil {
 		return nil, err
 	}
 	cmd := &Command{
-		Name:            exec, // override this in caller
-		Exec:            exec,
-		Args:            args,
-		Timeout:         timeoutFmt,
-		TimeoutDuration: timeout,
+		Name:    exec, // override this in caller
+		Exec:    exec,
+		Args:    args,
+		Timeout: timeout,
 	} // cmd, ticker, logWriters all created at RunAndWait or RunWithTimeout
 	return cmd, nil
-}
-
-func getTimeout(timeoutFmt string) (time.Duration, error) {
-	if timeoutFmt != "" {
-		timeout, err := utils.ParseDuration(timeoutFmt)
-		if err != nil {
-			return time.Duration(0), err
-		}
-		return timeout, nil
-	}
-	// support commands that don't have a timeout for backwards
-	// compatibility
-	return time.Duration(0), nil
 }
 
 // RunAndWait runs the given command and blocks until completed
@@ -133,7 +117,7 @@ func RunWithTimeout(c *Command, fields log.Fields) error {
 	c.setUpCmd(fields)
 	defer c.closeLogs()
 	log.Debugf("%s.Cmd start", c.Name)
-	ctx, cancel := context.WithTimeout(context.Background(), c.TimeoutDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 	if err := c.Cmd.Start(); err != nil {
 		log.Errorf("unable to start %s: %v", c.Name, err)
