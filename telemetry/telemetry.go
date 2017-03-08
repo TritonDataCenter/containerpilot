@@ -43,6 +43,9 @@ func NewTelemetry(raw interface{}) (*Telemetry, error) {
 	if err := utils.DecodeRaw(raw, t); err != nil {
 		return nil, fmt.Errorf("Telemetry configuration error: %v", err)
 	}
+	if err := utils.ValidateServiceName(t.ServiceName); err != nil {
+		return nil, fmt.Errorf("Telemetry configuration error: %v", err)
+	}
 	ipAddress, err := utils.IPFromInterfaces(t.Interfaces)
 	if err != nil {
 		return nil, err

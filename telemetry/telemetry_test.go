@@ -41,6 +41,15 @@ func TestTelemetryParse(t *testing.T) {
 	}
 }
 
+func TestTelemetryParseBadServiceName(t *testing.T) {
+	jsonFragment := []byte(`{"servicename": "wrong name"}`)
+	if _, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err == nil {
+		t.Fatalf("Expected error from bad servicename but got nil.")
+	} else if ok := strings.HasPrefix(err.Error(), "Telemetry configuration error: service names must be alphanumeric with dashes to comply with service discovery"); !ok {
+		t.Fatalf("Expected error from bad service name type but got %v", err)
+	}
+}
+
 func TestTelemetryParseBadSensor(t *testing.T) {
 	jsonFragment := []byte(`{"sensors": [{"check": "true"}], "interfaces": ["inet"]}`)
 	if _, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err == nil {
