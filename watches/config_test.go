@@ -32,13 +32,13 @@ func TestWatchsParse(t *testing.T) {
 		t.Fatalf("unexpected error decoding JSON: %v", err)
 	}
 
-	if watchs, err := NewWatches(raw, nil); err != nil {
+	if watchs, err := NewWatchConfigs(raw, nil); err != nil {
 		t.Fatalf("could not parse watchs JSON: %s", err)
 	} else {
-		validateCommandParsed(t, "onChange", watchs[0].exec,
+		validateCommandParsed(t, "onChange", watchs[0].onChangeExec,
 			"/bin/to/onChangeEvent/for/upstream/A.sh",
 			[]string{"A1", "A2"})
-		validateCommandParsed(t, "onChange", watchs[1].exec,
+		validateCommandParsed(t, "onChange", watchs[1].onChangeExec,
 			"/bin/to/onChangeEvent/for/upstream/B.sh",
 			[]string{"B1", "B2"})
 	}
@@ -47,21 +47,21 @@ func TestWatchsParse(t *testing.T) {
 func TestWatchsConfigError(t *testing.T) {
 	var raw []interface{}
 	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
-	_, err := NewWatches(raw, nil)
+	_, err := NewWatchConfigs(raw, nil)
 	validateWatchConfigError(t, err, "`name` must not be blank")
 	raw = nil
 
 	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
-	_, err = NewWatches(raw, nil)
+	_, err = NewWatchConfigs(raw, nil)
 	validateWatchConfigError(t, err, "`onChange` is required in watch myName")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "onChange": "/bin/true", "poll": 1, "timeout": "xx"}]`), &raw)
-	_, err = NewWatches(raw, nil)
+	_, err = NewWatchConfigs(raw, nil)
 	validateWatchConfigError(t, err,
-		"could not parse `onChange` in watch myName: time: invalid duration xx")
+		"could not parse `timeout` in watch myName: time: invalid duration xx")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "onChange": "/bin/true", "timeout": ""}]`), &raw)
-	_, err = NewWatches(raw, nil)
+	_, err = NewWatchConfigs(raw, nil)
 	validateWatchConfigError(t, err, "`poll` must be > 0 in watch myName")
 }
 

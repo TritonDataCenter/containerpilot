@@ -13,11 +13,11 @@ func TestHealthCheck(t *testing.T) {
 		time.Duration(1*time.Second))
 	check := &HealthCheck{exec: cmd1}
 	if err := check.CheckHealth(context.Background()); err != nil {
-		t.Errorf("Unexpected error CheckHealth: %s", err)
+		t.Errorf("unexpected error CheckHealth: %s", err)
 	}
 	// Ensure we can run it more than once
 	if err := check.CheckHealth(context.Background()); err != nil {
-		t.Errorf("Unexpected error CheckHealth (x2): %s", err)
+		t.Errorf("unexpected error CheckHealth (x2): %s", err)
 	}
 }
 
@@ -26,6 +26,6 @@ func TestHealthCheckBad(t *testing.T) {
 		time.Duration(1*time.Second))
 	check := &HealthCheck{exec: cmd1}
 	if err := check.CheckHealth(context.Background()); err == nil {
-		t.Errorf("Expected error from CheckHealth but got nil")
+		t.Errorf("expected error from CheckHealth but got nil")
 	}
 }

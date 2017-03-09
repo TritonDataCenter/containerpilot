@@ -56,12 +56,12 @@ func TestHealthChecksConfigError(t *testing.T) {
 
 	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
 	_, err = NewHealthCheckConfigs(raw)
-	validateHealthCheckConfigError(t, err, "`poll` must be > 0 in service myName")
+	validateHealthCheckConfigError(t, err, "`poll` must be > 0 in health check myName")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80, "health": "/bin/true", "timeout": "xx"}]`), &raw)
 	_, err = NewHealthCheckConfigs(raw)
 	validateHealthCheckConfigError(t, err,
-		"could not parse `health` in check myName: time: invalid duration xx")
+		"could not parse `timeout` in check myName: time: invalid duration xx")
 }
 
 // ------------------------------------------

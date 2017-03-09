@@ -53,33 +53,33 @@ func NewHealthCheckConfigs(raw []interface{}) ([]*HealthCheckConfig, error) {
 }
 
 // Validate ensures HealthCheckConfig meets all requirements
-func (check *HealthCheckConfig) Validate() error {
-	if err := utils.ValidateServiceName(check.Name); err != nil {
+func (cfg *HealthCheckConfig) Validate() error {
+	if err := utils.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}
 	hostname, _ := os.Hostname()
-	check.ID = fmt.Sprintf("%s-%s", check.Name, hostname)
+	cfg.ID = fmt.Sprintf("%s-%s", cfg.Name, hostname)
 
-	if check.Poll < 1 {
-		return fmt.Errorf("`poll` must be > 0 in health check %s", check.Name)
+	if cfg.Poll < 1 {
+		return fmt.Errorf("`poll` must be > 0 in health check %s", cfg.Name)
 	}
-	check.pollInterval = time.Duration(check.Poll) * time.Second
-	if check.Timeout == "" {
-		check.Timeout = fmt.Sprintf("%ds", check.Poll)
+	cfg.pollInterval = time.Duration(cfg.Poll) * time.Second
+	if cfg.Timeout == "" {
+		cfg.Timeout = fmt.Sprintf("%ds", cfg.Poll)
 	}
-	timeout, err := utils.GetTimeout(check.Timeout)
+	timeout, err := utils.GetTimeout(cfg.Timeout)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not parse `timeout` in check %s: %v", cfg.Name, err)
 	}
-	check.timeout = timeout
+	cfg.timeout = timeout
 
-	cmd, err := commands.NewCommand(check.HealthCheckExec, check.timeout)
+	cmd, err := commands.NewCommand(cfg.HealthCheckExec, cfg.timeout)
 	if err != nil {
 		// TODO: this is config syntax specific and should be updated
 		return fmt.Errorf("could not parse `health` in check %s: %s",
-			check.Name, err)
+			cfg.Name, err)
 	}
-	check.exec = cmd
+	cfg.exec = cmd
 
 	return nil
 }

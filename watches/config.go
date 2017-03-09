@@ -53,7 +53,7 @@ func (cfg *WatchConfig) Validate() error {
 	}
 	timeout, err := utils.GetTimeout(cfg.Timeout)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not parse `timeout` in watch %s: %v", cfg.Name, err)
 	}
 	cfg.timeout = timeout
 
