@@ -34,9 +34,6 @@ func NewCommand(rawArgs interface{}, timeout time.Duration) (*Command, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
 	cmd := &Command{
 		Name:    exec, // override this in caller
 		Exec:    exec,
