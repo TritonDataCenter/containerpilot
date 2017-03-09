@@ -115,14 +115,20 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 	cfg.startupEvent = events.Event{Code: events.Startup, Source: events.Global}
 	cfg.startupTimeout = -1
 
-	cfg.execTimeout = time.Duration(0) // TODO: no timeout???
-
+	if cfg.ExecTimeout != "" {
+		execTimeout, err := utils.GetTimeout(cfg.ExecTimeout)
+		if err != nil {
+			return fmt.Errorf("could not parse `timeout` for service %s: %v", cfg.Name, err)
+		}
+		cfg.execTimeout = execTimeout
+	}
 	if cfg.Exec != nil {
 		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout)
 		if err != nil {
 			return fmt.Errorf("could not parse `exec` for service %s: %s", cfg.Name, err)
 		}
 		cmd.Name = fmt.Sprintf("%s.exec", cfg.Name)
+		cfg.exec = cmd
 	}
 
 	interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
