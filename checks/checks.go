@@ -13,70 +13,56 @@ import (
 const eventBufferSize = 1000
 
 type HealthCheck struct {
-	Name           string
-	exec           *commands.Command
-	startupEvent   events.Event
-	startupTimeout time.Duration
-	poll           time.Duration
+	Name string
+	exec *commands.Command
+	poll time.Duration
 
 	events.EventHandler // Event handling
 }
 
 // NewHealthCheck ...
 func NewHealthCheck(cfg *HealthCheckConfig) (*HealthCheck, error) {
-	evt := events.Event{Code: events.StatusChanged, Source: cfg.Name}
 	check := &HealthCheck{
-		Name:           cfg.Name,
-		exec:           cfg.exec,
-		poll:           cfg.pollInterval,
-		startupEvent:   evt,
-		startupTimeout: -1,
+		Name: cfg.Name,
+		exec: cfg.exec,
+		poll: cfg.pollInterval,
 	}
 	check.Rx = make(chan events.Event, eventBufferSize)
 	check.Flush = make(chan bool)
 	return check, nil
 }
 
-// CheckHealth runs the health check and returns any error
-func (check *HealthCheck) CheckHealth(ctx context.Context) error {
-	// TODO: we want to update Run... functions to accept
-	// a parent context so we can cancel them from this main loop
-	return commands.RunWithTimeout(check.exec, log.Fields{
-		"process": check.startupEvent.Code, "check": check.Name})
+// CheckHealth runs the health check
+func (check *HealthCheck) CheckHealth(ctx context.Context) {
+	// TODO: what log fields do we really want here?
+	check.exec.Run(ctx, check.Bus, log.Fields{
+		"process": check.exec.Name, "check": check.Name})
 }
 
+// Run executes the event loop for the HealthCheck
 func (check *HealthCheck) Run(bus *events.EventBus) {
 	check.Subscribe(bus)
 	check.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	timerSource := fmt.Sprintf("%s-check-timer", check.Name)
-	events.NewEventTimer(ctx, check.Rx, check.poll, timerSource)
+	pollSource := fmt.Sprintf("%s-poll", check.Name)
+	events.NewEventTimer(ctx, check.Rx, check.poll, pollSource)
 
 	go func() {
 		for {
 			event := <-check.Rx
 			switch event {
-			case events.Event{events.TimerExpired, timerSource}:
-				check.Bus.Publish(check.startupEvent)
+			case events.Event{events.TimerExpired, pollSource}:
+				check.CheckHealth(ctx)
 			case
 				events.Event{events.Quit, check.Name},
-				events.Event{events.Quit, events.Closed},
-				events.Event{events.Shutdown, events.Global}:
+				events.QuitByClose,
+				events.GlobalShutdown:
 				check.Unsubscribe(check.Bus)
 				close(check.Rx)
 				cancel()
 				check.Flush <- true
 				return
-			case check.startupEvent:
-				err := check.CheckHealth(ctx)
-				if err != nil {
-					check.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: check.Name})
-				} else {
-					check.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: check.Name})
-				}
 			}
 		}
 	}()

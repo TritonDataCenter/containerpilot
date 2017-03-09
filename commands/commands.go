@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/utils"
 )
 
@@ -24,11 +26,11 @@ type Command struct {
 	Exec       string
 	Args       []string
 	Timeout    time.Duration
-	ticker     *time.Ticker
 	logWriters []io.WriteCloser
+	lock       *sync.Mutex
 }
 
-// NewCommand parses JSON config into a Command
+// newcommand parses JSON config into a Command
 func NewCommand(rawArgs interface{}, timeout time.Duration) (*Command, error) {
 	exec, args, err := ParseArgs(rawArgs)
 	if err != nil {
@@ -39,8 +41,63 @@ func NewCommand(rawArgs interface{}, timeout time.Duration) (*Command, error) {
 		Exec:    exec,
 		Args:    args,
 		Timeout: timeout,
-	} // cmd, ticker, logWriters all created at RunAndWait or RunWithTimeout
+		lock:    &sync.Mutex{},
+	} // cmd, logWriters all created at RunAndWait or RunWithTimeout
 	return cmd, nil
+}
+
+func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fields) {
+	if c == nil {
+		// TODO: will this ever get called like this?
+		log.Debugf("nothing to run for %s", c.Name)
+		return
+	}
+	// we should never have more than one instance running for any
+	// realistic configuration but this ensures that's the case
+	c.lock.Lock()
+	log.Debugf("%s.Run start", c.Name)
+	c.setUpCmd(fields)
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+	if c.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(pctx, c.Timeout)
+	} else {
+		ctx, cancel = context.WithCancel(pctx)
+	}
+	go func() {
+		defer cancel()
+		defer c.closeLogs()
+		defer log.Debugf("%s.Run end", c.Name)
+		if err := c.Cmd.Start(); err != nil {
+			log.Errorf("unable to start %s: %v", c.Name, err)
+			bus.Publish(events.Event{events.ExitFailed, c.Name})
+		}
+		// blocks this goroutine here; if the context gets cancelled
+		// we'll return from wait() and do all the cleanup
+		if _, err := c.wait(); err != nil {
+			log.Errorf("%s exited with error: %v", c.Name, err)
+			bus.Publish(events.Event{events.ExitFailed, c.Name})
+		} else {
+			bus.Publish(events.Event{events.ExitSuccess, c.Name})
+		}
+	}()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			// unlock only here because we'll receive this cancel from
+			// both a typical exit and a timeout
+			defer c.lock.Unlock()
+			// if the context was canceled we don't want to kill the
+			// process because it's already gone
+			if ctx.Err().Error() == "context deadline exceeded" {
+				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
+				c.Kill()
+			}
+		}
+	}()
 }
 
 // RunAndWait runs the given command and blocks until completed

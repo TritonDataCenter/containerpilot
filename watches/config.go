@@ -12,8 +12,8 @@ import (
 type WatchConfig struct {
 	Name             string      `mapstructure:"name"`
 	Poll             int         `mapstructure:"poll"` // time in seconds
-	OnChangeExec     interface{} `mapstructure:"onChange"`
-	onChangeExec     *commands.Command
+	Exec             interface{} `mapstructure:"onChange"`
+	exec             *commands.Command
 	Tag              string `mapstructure:"tag"`
 	Timeout          string `mapstructure:"timeout"`
 	timeout          time.Duration
@@ -30,21 +30,20 @@ func NewWatchConfigs(raw []interface{}, disc discovery.Backend) ([]*WatchConfig,
 		return watches, fmt.Errorf("Watch configuration error: %v", err)
 	}
 	for _, watch := range watches {
-		if err := watch.Validate(); err != nil {
+		if err := watch.Validate(disc); err != nil {
 			return watches, err
 		}
-		watch.discoveryService = disc
 		watches = append(watches, watch)
 	}
 	return watches, nil
 }
 
 // Validate ensures WatchConfig meets all requirements
-func (cfg *WatchConfig) Validate() error {
+func (cfg *WatchConfig) Validate(disc discovery.Backend) error {
 	if err := utils.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}
-	if cfg.OnChangeExec == nil {
+	if cfg.Exec == nil {
 		// TODO: this error message is tied to existing config syntax
 		return fmt.Errorf("`onChange` is required in watch %s", cfg.Name)
 	}
@@ -60,13 +59,14 @@ func (cfg *WatchConfig) Validate() error {
 	if cfg.Poll < 1 {
 		return fmt.Errorf("`poll` must be > 0 in watch %s", cfg.Name)
 	}
-	cmd, err := commands.NewCommand(cfg.OnChangeExec, cfg.timeout)
+	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout)
 	if err != nil {
 		// TODO: this error message is tied to existing config syntax
 		return fmt.Errorf("could not parse `onChange` in watch %s: %s",
 			cfg.Name, err)
 	}
-	cfg.onChangeExec = cmd
-
+	cmd.Name = cfg.Name
+	cfg.exec = cmd
+	cfg.discoveryService = disc
 	return nil
 }

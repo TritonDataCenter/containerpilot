@@ -48,7 +48,7 @@ func TestCoprocessConfigValidationRestarts(t *testing.T) {
 	expectCoprocessValidationError(t, err, errMsg)
 
 	service, _ := fromCoprocess(t, &CoprocessConfig{Exec: "true 4", Restarts: "unlimited"})
-	expectRestarts(t, service, true, -2)
+	expectRestarts(t, service, true, -1)
 	service, _ = fromCoprocess(t, &CoprocessConfig{Exec: "true 5", Restarts: "never"})
 	expectRestarts(t, service, false, 0)
 	service, _ = fromCoprocess(t, &CoprocessConfig{Exec: "true 6", Restarts: 1})

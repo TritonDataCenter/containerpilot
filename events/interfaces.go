@@ -7,12 +7,12 @@ type Runner interface {
 	Subscribe(*EventBus)
 	Unsubscribe(*EventBus)
 	Receive(Event)
-	Close()
+	Close() error
 }
 
 type Subscriber interface {
 	Subscribe(*EventBus)
 	Unsubscribe(*EventBus)
 	Receive(Event)
-	Close()
+	Close() error
 }

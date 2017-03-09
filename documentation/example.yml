@@ -24,7 +24,7 @@ services:
   myperiodictask:
     start: onHealthy db timeout 60s
     exec: check-for-certs.sh
-    run_every: 1h
+    frequency: 1h
 
 
 watch:

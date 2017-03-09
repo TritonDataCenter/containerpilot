@@ -24,7 +24,7 @@ func TestSafeUnsubscribe(t *testing.T) {
 
 	expected := []Event{
 		Event{Code: Startup, Source: "serviceA"},
-		Event{Code: Quit, Source: Closed},
+		QuitByClose,
 	}
 
 	for _, result := range ts.results {
@@ -49,7 +49,7 @@ type TestSubscriber struct {
 
 func NewTestSubscriber(bus *EventBus) *TestSubscriber {
 	my := &TestSubscriber{lock: &sync.RWMutex{}, results: []Event{}}
-	my.Rx = make(chan Event)
+	my.Rx = make(chan Event, 1000)
 	my.Flush = make(chan bool)
 	my.Bus = bus
 	return my

@@ -17,6 +17,13 @@ func NewEventTimeout(
 		case <-ctx.Done():
 			return
 		case <-timeout:
+			// sending the timeout event potentially races with a closing
+			// rx channel, so just recover from the panic and exit
+			defer func() {
+				if r := recover(); r != nil {
+					return
+				}
+			}()
 			rx <- Event{Code: TimerExpired, Source: name}
 		}
 	}()
@@ -30,11 +37,20 @@ func NewEventTimer(
 ) {
 	go func() {
 		ticker := time.NewTicker(tick)
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			rx <- Event{Code: TimerExpired, Source: name}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				// sending the timeout event potentially races with a closing
+				// rx channel, so just recover from the panic and exit
+				defer func() {
+					if r := recover(); r != nil {
+						return
+					}
+				}()
+				rx <- Event{Code: TimerExpired, Source: name}
+			}
 		}
 	}()
 }

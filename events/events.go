@@ -26,9 +26,10 @@ const (
 	Shutdown // fired once after all jobs exit or on receiving SIGTERM
 )
 
-const (
-	Global = "global" // used by global event sources
-	Closed = "closed" // used by Close() method only and passed directly to chan
+var (
+	GlobalStartup  = Event{Code: Startup, Source: "global"}
+	GlobalShutdown = Event{Code: Shutdown, Source: "global"}
+	QuitByClose    = Event{Code: Quit, Source: "closed"}
 )
 
 type EventBus struct {

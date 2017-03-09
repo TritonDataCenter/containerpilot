@@ -13,8 +13,7 @@ import (
 
 // Some magic numbers used internally by restart limits
 const (
-	haltRestarts      = -1
-	unlimitedRestarts = -2
+	unlimitedRestarts = -1
 	eventBufferSize   = 1000
 )
 
@@ -77,6 +76,13 @@ func (svc *Service) Deregister() {
 	}
 }
 
+// StartService runs the Service's executable
+func (svc *Service) StartService(ctx context.Context) {
+	svc.exec.Run(ctx, svc.Bus, log.Fields{
+		"process": svc.startupEvent.Code, "id": svc.Name})
+}
+
+// Run executes the event loop for the Service
 func (svc *Service) Run(bus *events.EventBus) {
 	svc.Subscribe(bus)
 	svc.Bus = bus
@@ -84,17 +90,17 @@ func (svc *Service) Run(bus *events.EventBus) {
 
 	runEverySource := fmt.Sprintf("%s-run-every", svc.Name)
 	if svc.frequency > 0 {
-		events.NewEventTimeout(ctx, svc.Rx, svc.frequency, runEverySource)
+		events.NewEventTimer(ctx, svc.Rx, svc.frequency, runEverySource)
 	}
 
 	heartbeatSource := fmt.Sprintf("%s-heartbeat", svc.Name)
 	if svc.heartbeat > 0 {
-		events.NewEventTimeout(ctx, svc.Rx, svc.heartbeat, heartbeatSource)
+		events.NewEventTimer(ctx, svc.Rx, svc.heartbeat, heartbeatSource)
 	}
 
-	timeoutSource := fmt.Sprintf("%s-wait-timeout", svc.Name)
+	startTimeoutSource := fmt.Sprintf("%s-wait-timeout", svc.Name)
 	if svc.startupTimeout > 0 {
-		events.NewEventTimeout(ctx, svc.Rx, svc.startupTimeout, timeoutSource)
+		events.NewEventTimeout(ctx, svc.Rx, svc.startupTimeout, startTimeoutSource)
 	}
 
 	go func() {
@@ -107,21 +113,22 @@ func (svc *Service) Run(bus *events.EventBus) {
 				if svc.Status == true && svc.Definition != nil {
 					svc.SendHeartbeat()
 				}
-			case events.Event{events.TimerExpired, timeoutSource}:
+			case events.Event{events.TimerExpired, startTimeoutSource}:
+				// TODO: we should check svc.Status here too I think
 				svc.Bus.Publish(events.Event{
 					Code: events.TimerExpired, Source: svc.Name})
 				svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
 			case events.Event{events.TimerExpired, runEverySource}:
 				if svc.restartLimit != unlimitedRestarts &&
-					svc.restartsRemain <= haltRestarts {
+					svc.restartsRemain <= 0 {
 					break
 				}
 				svc.restartsRemain--
 				svc.Rx <- svc.startupEvent
 			case
 				events.Event{events.Quit, svc.Name},
-				events.Event{events.Quit, events.Closed},
-				events.Event{events.Shutdown, events.Global}:
+				events.QuitByClose,
+				events.GlobalShutdown:
 				svc.Unsubscribe(svc.Bus)
 				svc.Deregister()
 				close(svc.Rx)
@@ -129,26 +136,17 @@ func (svc *Service) Run(bus *events.EventBus) {
 				svc.Flush <- true
 				return
 			case
-				// TODO: need a way to catch check events:
-				// events.Event{Code: events.ExitSuccess, Source: check.Name})
+				// TODO: check.Name won't always match svc.Name
 				events.Event{events.ExitSuccess, svc.Name},
 				events.Event{events.ExitFailed, svc.Name}:
-				if svc.restartLimit != unlimitedRestarts &&
-					svc.restartsRemain <= haltRestarts {
+				if (svc.restartLimit != unlimitedRestarts &&
+					svc.restartsRemain <= 0) || svc.frequency > 0 {
 					break
 				}
 				svc.restartsRemain--
 				svc.Rx <- svc.startupEvent
 			case svc.startupEvent:
-				err := commands.RunWithTimeout(svc.exec, log.Fields{
-					"process": svc.startupEvent.Code, "id": svc.Name})
-				if err != nil {
-					svc.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: svc.Name})
-				} else {
-					svc.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: svc.Name})
-				}
+				svc.StartService(ctx)
 			}
 		}
 	}()

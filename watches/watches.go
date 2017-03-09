@@ -27,15 +27,12 @@ type Watch struct {
 }
 
 func NewWatch(cfg *WatchConfig) (*Watch, error) {
-	evt := events.Event{Code: events.StatusChanged, Source: cfg.Name}
 	watch := &Watch{
 		Name:             cfg.Name,
 		poll:             cfg.Poll,
 		Tag:              cfg.Tag,
-		exec:             cfg.onChangeExec,
+		exec:             cfg.exec,
 		discoveryService: cfg.discoveryService,
-		startupEvent:     evt,
-		startupTimeout:   -1,
 	}
 	watch.Rx = make(chan events.Event, eventBufferSize)
 	watch.Flush = make(chan bool)
@@ -48,22 +45,22 @@ func (watch *Watch) CheckForUpstreamChanges() bool {
 	return watch.discoveryService.CheckForUpstreamChanges(watch.Name, watch.Tag)
 }
 
-// OnChange runs the watch's executable, returning an error on failure.
-func (watch *Watch) OnChange(ctx context.Context) error {
-	// TODO: we want to update Run... functions to accept
-	// a parent context so we can cancel them from this main loop
-	return commands.RunWithTimeout(watch.exec, log.Fields{
+// OnChange runs the Watch's executable
+func (watch *Watch) OnChange(ctx context.Context) {
+	watch.exec.Run(ctx, watch.Bus, log.Fields{
 		"process": watch.startupEvent.Code, "watch": watch.Name})
 }
 
+// Run executes the event loop for the Watch
 func (watch *Watch) Run(bus *events.EventBus) {
 	watch.Subscribe(bus)
 	watch.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	timerSource := fmt.Sprintf("%s-watch-timer", watch.Name)
+	timerSource := fmt.Sprintf("%s-watch-poll", watch.Name)
 	events.NewEventTimer(ctx, watch.Rx,
 		time.Duration(watch.poll)*time.Second, timerSource)
+	log.Debug(timerSource)
 
 	go func() {
 		for {
@@ -72,26 +69,17 @@ func (watch *Watch) Run(bus *events.EventBus) {
 			case events.Event{events.TimerExpired, timerSource}:
 				changed := watch.CheckForUpstreamChanges()
 				if changed {
-					watch.Bus.Publish(watch.startupEvent)
+					watch.OnChange(ctx)
 				}
 			case
 				events.Event{events.Quit, watch.Name},
-				events.Event{events.Quit, events.Closed},
-				events.Event{events.Shutdown, events.Global}:
+				events.QuitByClose,
+				events.GlobalShutdown:
 				watch.Unsubscribe(watch.Bus)
 				close(watch.Rx)
 				cancel()
 				watch.Flush <- true
 				return
-			case watch.startupEvent:
-				err := watch.OnChange(ctx)
-				if err != nil {
-					watch.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: watch.Name})
-				} else {
-					watch.Bus.Publish(
-						events.Event{Code: events.ExitSuccess, Source: watch.Name})
-				}
 			}
 		}
 	}()

@@ -36,9 +36,9 @@ type ServiceConfig struct {
 	// TODO: currently this will only appear when we create a ServiceConfig
 	// from a CoprocessConfig or TaskConfig
 	Restarts     interface{} `mapstructure:"restarts"`
+	Frequency    string      `mapstructure:"frequency"`
 	restart      bool
 	restartLimit int
-	Frequency    string `mapstructure:"frequency"`
 	freqInterval time.Duration
 
 	startupEvent   events.Event
@@ -105,15 +105,12 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 	if err := configureFrequency(cfg); err != nil {
 		return err
 	}
-	cfg.startupTimeout = 0 // TODO: need to expose this as a config value
+	//	cfg.startupTimeout = 0 // TODO: need to expose this as a config value
+	// cfg.startupEvent = events.GlobalStartup// TODO: need to expose this as a config value
 
 	if err := configureRestarts(cfg); err != nil {
 		return err
 	}
-
-	// TODO: figure out where to get these from the config
-	cfg.startupEvent = events.Event{Code: events.Startup, Source: events.Global}
-	cfg.startupTimeout = -1
 
 	if cfg.ExecTimeout != "" {
 		execTimeout, err := utils.GetTimeout(cfg.ExecTimeout)
@@ -127,7 +124,7 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 		if err != nil {
 			return fmt.Errorf("could not parse `exec` for service %s: %s", cfg.Name, err)
 		}
-		cmd.Name = fmt.Sprintf("%s.exec", cfg.Name)
+		cmd.Name = cfg.Name
 		cfg.exec = cmd
 	}
 

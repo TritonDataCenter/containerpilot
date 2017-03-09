@@ -1,5 +1,7 @@
 package events
 
+import "errors"
+
 // EventHandler should be embedded in all Runners so that we can reuse
 // the code for registering and unregistering handlers. This is why the
 // various fields are (unfortunately) public and we can't use struct
@@ -37,8 +39,18 @@ func (evh *EventHandler) Receive(e Event) {
 
 // Close sends a Quit message to the EventHandler and then synchronously
 // waits for the EventHandler to be unregistered from all events.
-func (evh *EventHandler) Close() {
-	evh.Rx <- Event{Code: Quit, Source: Closed}
+func (evh *EventHandler) Close() (err error) {
+	// we're going to recover from a panic here because otherwise
+	// its only safe to call Close once and we have no way of
+	// formalizing that except by being very careful
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("sent Close to closed handler")
+		}
+	}()
+
+	evh.Rx <- QuitByClose
 	<-evh.Flush
 	close(evh.Flush)
+	return err
 }

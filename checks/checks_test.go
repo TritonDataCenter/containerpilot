@@ -1,31 +1,62 @@
 package checks
 
 import (
-	"context"
+	"fmt"
 	"testing"
-	"time"
 
-	"github.com/joyent/containerpilot/commands"
+	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/events"
 )
 
-func TestHealthCheck(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug",
-		time.Duration(1*time.Second))
-	check := &HealthCheck{exec: cmd1}
-	if err := check.CheckHealth(context.Background()); err != nil {
-		t.Errorf("unexpected error CheckHealth: %s", err)
+func TestHealthCheckExecOk(t *testing.T) {
+	log.SetLevel(log.WarnLevel) // suppress test noise
+	cfg := &HealthCheckConfig{
+		Name:    "mycheckOk",
+		Exec:    "./testdata/test.sh doStuff --debug",
+		Timeout: "100ms",
+		Poll:    1,
 	}
-	// Ensure we can run it more than once
-	if err := check.CheckHealth(context.Background()); err != nil {
-		t.Errorf("unexpected error CheckHealth (x2): %s", err)
+	got := runHealthCheckTest(cfg)
+	poll := events.Event{events.TimerExpired, "mycheckOk-poll"}
+	exitOk := events.Event{events.ExitSuccess, "mycheckOk"}
+	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+		t.Fatalf("expected 2 successful poll events but got %v", got)
 	}
 }
 
-func TestHealthCheckBad(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh failStuff",
-		time.Duration(1*time.Second))
-	check := &HealthCheck{exec: cmd1}
-	if err := check.CheckHealth(context.Background()); err == nil {
-		t.Errorf("expected error from CheckHealth but got nil")
+func TestHealthCheckExecFail(t *testing.T) {
+	log.SetLevel(log.WarnLevel) // suppress test noise
+	cfg := &HealthCheckConfig{
+		Name:    "mycheckFail",
+		Exec:    "./testdata/test.sh failStuff",
+		Timeout: "100ms",
+		Poll:    1,
 	}
+	got := runHealthCheckTest(cfg)
+	poll := events.Event{events.TimerExpired, "mycheckFail-poll"}
+	exitOk := events.Event{events.ExitFailed, "mycheckFail"}
+	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+		t.Fatalf("expected 2 failed poll events but got %v", got)
+	}
+}
+
+func runHealthCheckTest(cfg *HealthCheckConfig) map[events.Event]int {
+	bus := events.NewEventBus()
+	ds := events.NewDebugSubscriber(bus, 5)
+	ds.Run(0)
+	cfg.Validate()
+	check, _ := NewHealthCheck(cfg)
+	check.Run(bus)
+
+	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-poll", cfg.Name)}
+	bus.Publish(poll)
+	bus.Publish(poll) // Ensure we can run it more than once
+	check.Close()
+	ds.Close()
+
+	got := map[events.Event]int{}
+	for _, result := range ds.Results {
+		got[result]++
+	}
+	return got
 }

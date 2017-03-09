@@ -35,10 +35,10 @@ func TestWatchsParse(t *testing.T) {
 	if watchs, err := NewWatchConfigs(raw, nil); err != nil {
 		t.Fatalf("could not parse watchs JSON: %s", err)
 	} else {
-		validateCommandParsed(t, "onChange", watchs[0].onChangeExec,
+		validateCommandParsed(t, "onChange", watchs[0].exec,
 			"/bin/to/onChangeEvent/for/upstream/A.sh",
 			[]string{"A1", "A2"})
-		validateCommandParsed(t, "onChange", watchs[1].onChangeExec,
+		validateCommandParsed(t, "onChange", watchs[1].exec,
 			"/bin/to/onChangeEvent/for/upstream/B.sh",
 			[]string{"B1", "B2"})
 	}
