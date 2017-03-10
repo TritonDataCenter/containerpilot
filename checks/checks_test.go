@@ -48,7 +48,7 @@ func runHealthCheckTest(cfg *HealthCheckConfig, count int) map[events.Event]int 
 	ds := events.NewDebugSubscriber(bus, count)
 	ds.Run(0)
 	cfg.Validate()
-	check, _ := NewHealthCheck(cfg)
+	check := NewHealthCheck(cfg)
 	check.Run(bus)
 
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-poll", cfg.Name)}

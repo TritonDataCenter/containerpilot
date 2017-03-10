@@ -103,7 +103,7 @@ func runSensorTest(cfg *SensorConfig, count int) map[events.Event]int {
 	ds := events.NewDebugSubscriber(bus, count)
 	ds.Run(0)
 	cfg.Validate()
-	sensor, _ := NewSensor(cfg)
+	sensor := NewSensor(cfg)
 	sensor.Run(bus)
 
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}

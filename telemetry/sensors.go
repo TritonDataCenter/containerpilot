@@ -36,7 +36,7 @@ type Sensor struct {
 }
 
 // NewSensor ...
-func NewSensor(cfg *SensorConfig) (*Sensor, error) {
+func NewSensor(cfg *SensorConfig) *Sensor {
 	sensor := &Sensor{
 		Name:      cfg.Name,
 		Type:      cfg.sensorType,
@@ -46,7 +46,7 @@ func NewSensor(cfg *SensorConfig) (*Sensor, error) {
 	}
 	sensor.Rx = make(chan events.Event, eventBufferSize)
 	sensor.Flush = make(chan bool)
-	return sensor, nil
+	return sensor
 }
 
 // SensorHealth runs the health sensor

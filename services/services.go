@@ -37,7 +37,7 @@ type Service struct {
 }
 
 // NewService creates a new Service from a ServiceConfig
-func NewService(cfg *ServiceConfig) (*Service, error) {
+func NewService(cfg *ServiceConfig) *Service {
 	service := &Service{
 		Name:             cfg.Name,
 		exec:             cfg.exec,
@@ -52,7 +52,17 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	}
 	service.Rx = make(chan events.Event, eventBufferSize)
 	service.Flush = make(chan bool)
-	return service, nil
+	return service
+}
+
+// FromServiceConfigs ...
+func FromServiceConfigs(cfgs []*ServiceConfig) []*Service {
+	services := []*Service{}
+	for _, cfg := range cfgs {
+		service := NewService(cfg)
+		services = append(services, service)
+	}
+	return services
 }
 
 // SendHeartbeat sends a heartbeat for this service

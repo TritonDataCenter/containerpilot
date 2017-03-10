@@ -13,23 +13,16 @@ func TestTelemetryServerRestart(t *testing.T) {
 	cfg := &TelemetryConfig{Port: 9090, Interfaces: []interface{}{"lo", "lo0", "inet"}}
 	cfg.Validate(&NoopServiceBackend{})
 
-	telem, err := NewTelemetry(cfg)
-	if err != nil {
-		t.Fatalf("unexpected error setting up telemetry server: %v", err)
-	} else {
-		// initial server
-		telem.Serve()
-		checkServerIsListening(t, telem)
-		telem.Shutdown()
+	telem := NewTelemetry(cfg)
+	// initial server
+	telem.Serve()
+	checkServerIsListening(t, telem)
+	telem.Shutdown()
 
-		// reloaded server
-		telem, err := NewTelemetry(cfg)
-		if err != nil {
-			t.Fatalf("unexpected error setting up telemetry server: %v", err)
-		}
-		telem.Serve()
-		checkServerIsListening(t, telem)
-	}
+	// reloaded server
+	telem = NewTelemetry(cfg)
+	telem.Serve()
+	checkServerIsListening(t, telem)
 }
 
 func checkServerIsListening(t *testing.T, telem *Telemetry) {

@@ -21,7 +21,7 @@ type HealthCheck struct {
 }
 
 // NewHealthCheck ...
-func NewHealthCheck(cfg *HealthCheckConfig) (*HealthCheck, error) {
+func NewHealthCheck(cfg *HealthCheckConfig) *HealthCheck {
 	check := &HealthCheck{
 		Name: cfg.Name,
 		exec: cfg.exec,
@@ -29,7 +29,17 @@ func NewHealthCheck(cfg *HealthCheckConfig) (*HealthCheck, error) {
 	}
 	check.Rx = make(chan events.Event, eventBufferSize)
 	check.Flush = make(chan bool)
-	return check, nil
+	return check
+}
+
+// FromHealthCheckConfigs ...
+func FromHealthCheckConfigs(cfgs []*HealthCheckConfig) []*HealthCheck {
+	checks := []*HealthCheck{}
+	for _, cfg := range cfgs {
+		check := NewHealthCheck(cfg)
+		checks = append(checks, check)
+	}
+	return checks
 }
 
 // CheckHealth runs the health check

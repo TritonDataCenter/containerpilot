@@ -14,7 +14,7 @@ func TestServiceRunSafeClose(t *testing.T) {
 	ds := events.NewDebugSubscriber(bus, 2)
 	ds.Run(0)
 
-	svc, _ := NewService(&ServiceConfig{Name: "myservice"})
+	svc := NewService(&ServiceConfig{Name: "myservice"})
 	svc.Run(bus)
 	svc.Bus.Publish(events.GlobalStartup)
 	svc.Close()
@@ -45,7 +45,7 @@ func TestServiceRunStartupTimeout(t *testing.T) {
 		startupEvent:   events.Event{events.Startup, "never"},
 	}
 	cfg.Validate(&NoopServiceBackend{})
-	svc, _ := NewService(cfg)
+	svc := NewService(cfg)
 	svc.Run(bus)
 	svc.Bus.Publish(events.GlobalStartup)
 
@@ -86,7 +86,7 @@ func TestServiceRunRestarts(t *testing.T) {
 			Restarts:     restarts,
 		}
 		cfg.Validate(&NoopServiceBackend{})
-		svc, _ := NewService(cfg)
+		svc := NewService(cfg)
 		svc.Run(bus)
 		svc.Bus.Publish(events.GlobalStartup)
 		exitOk := events.Event{Code: events.ExitSuccess, Source: "myservice"}
@@ -122,7 +122,7 @@ func TestServiceRunPeriodic(t *testing.T) {
 		Restarts:     "unlimited",
 	}
 	cfg.Validate(&NoopServiceBackend{})
-	svc, _ := NewService(cfg)
+	svc := NewService(cfg)
 	svc.Run(bus)
 	ds.Run(time.Duration(100 * time.Millisecond))
 	svc.Bus.Publish(events.GlobalStartup)

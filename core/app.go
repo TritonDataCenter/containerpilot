@@ -7,11 +7,8 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"syscall"
-	"time"
 
 	"github.com/joyent/containerpilot/checks"
-	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
@@ -103,12 +100,14 @@ func NewApp(configFlag string) (*App, error) {
 		return nil, err
 	}
 
-	// TODO: need to make a Service out of these too
+	// TODO: remove this after configuration update
 	args := getArgs(flag.Args())
-	cmd, err := commands.NewCommand(args, "0")
-	if err != nil {
-		log.Errorf("Unable to parse command arguments: %v", err)
+	mainService := &services.ServiceConfig{
+		Name:     "APP",
+		Exec:     args,
+		Restarts: "never",
 	}
+	mainService.Validate(cfg.Discovery)
 
 	if err = cfg.InitLogging(); err != nil {
 		return nil, err
@@ -122,10 +121,10 @@ func NewApp(configFlag string) (*App, error) {
 	}
 	a.StopTimeout = cfg.StopTimeout
 	a.Discovery = cfg.Discovery
-	a.Checks = cfg.Checks
-	a.Services = cfg.Services
-	a.Watches = cfg.Watches
-	a.Telemetry = cfg.Telemetry
+	a.Checks = checks.FromHealthCheckConfigs(cfg.Checks)
+	a.Services = services.FromServiceConfigs(cfg.Services)
+	a.Watches = watches.FromWatchConfigs(cfg.Watches)
+	a.Telemetry = telemetry.NewTelemetry(cfg.Telemetry)
 	a.ConfigFlag = configFlag
 
 	// set an environment variable for each service IP address so that
@@ -186,7 +185,7 @@ func (a *App) ToggleMaintenanceMode() {
 	defer a.maintModeLock.RUnlock()
 	a.paused = !a.paused
 	if a.paused {
-		a.Bus.Publish(events.Event{events.EnterMaintenance, events.Global})
+		a.Bus.Publish(events.Event{events.EnterMaintenance, "global"})
 	}
 }
 
@@ -205,28 +204,30 @@ func (a *App) Terminate() {
 	defer a.signalLock.Unlock()
 	a.Bus.Shutdown()
 
-	// Run and wait for preStop command to exit (continues
-	// unconditionally so we don't worry about returned errors here)
-	commands.RunAndWait(a.PreStopCmd, log.Fields{"process": "PreStop"})
-	if a.Command == nil || a.Command.Cmd == nil ||
-		a.Command.Cmd.Process == nil {
-		// Not managing the process, so don't do anything
-		return
-	}
-	cmd := a.Command.Cmd // get the underlying process
-	if a.StopTimeout > 0 {
-		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-			log.Warnf("Error sending SIGTERM to application: %s", err)
-		} else {
-			time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
-				log.Infof("Killing Process %#v", cmd.Process)
-				cmd.Process.Kill()
-			})
-			return
-		}
-	}
-	log.Infof("Killing Process %#v", a.Command.Cmd.Process)
-	cmd.Process.Kill()
+	// TODO
+
+	// // Run and wait for preStop command to exit (continues
+	// // unconditionally so we don't worry about returned errors here)
+	// commands.RunAndWait(a.PreStopCmd, log.Fields{"process": "PreStop"})
+	// if a.Command == nil || a.Command.Cmd == nil ||
+	// 	a.Command.Cmd.Process == nil {
+	// 	// Not managing the process, so don't do anything
+	// 	return
+	// }
+	// cmd := a.Command.Cmd // get the underlying process
+	// if a.StopTimeout > 0 {
+	// 	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+	// 		log.Warnf("Error sending SIGTERM to application: %s", err)
+	// 	} else {
+	// 		time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
+	// 			log.Infof("Killing Process %#v", cmd.Process)
+	// 			cmd.Process.Kill()
+	// 		})
+	// 		return
+	// 	}
+	// }
+	// log.Infof("Killing Process %#v", a.Command.Cmd.Process)
+	// cmd.Process.Kill()
 }
 
 // Reload will try to update the running application by
@@ -274,7 +275,7 @@ func (a *App) handlePolling() {
 		watch.Run(a.Bus)
 	}
 	if a.Telemetry != nil {
-		for _, sensor := range a.Sensors {
+		for _, sensor := range a.Telemetry.Sensors {
 			sensor.Run(a.Bus)
 		}
 		a.Telemetry.Serve()

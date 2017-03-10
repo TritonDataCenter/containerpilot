@@ -23,7 +23,7 @@ type Telemetry struct {
 }
 
 // NewTelemetry configures a new prometheus Telemetry server
-func NewTelemetry(cfg *TelemetryConfig) (*Telemetry, error) {
+func NewTelemetry(cfg *TelemetryConfig) *Telemetry {
 	t := &Telemetry{
 		Path:    "/metrics", // TODO hard-coded?
 		lock:    sync.RWMutex{},
@@ -34,13 +34,10 @@ func NewTelemetry(cfg *TelemetryConfig) (*Telemetry, error) {
 	t.mux = http.NewServeMux()
 	t.mux.Handle(t.Path, prometheus.Handler())
 	for _, sensorCfg := range cfg.SensorConfigs {
-		sensor, err := NewSensor(sensorCfg)
-		if err != nil {
-			return t, err
-		}
+		sensor := NewSensor(sensorCfg)
 		t.Sensors = append(t.Sensors, sensor)
 	}
-	return t, nil
+	return t
 }
 
 var listener net.Listener

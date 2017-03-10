@@ -67,9 +67,9 @@ func parseDiscoveryBackend(rawCfg map[string]interface{}) (discovery.Backend, er
 		}
 	}
 	if discoveryCount == 0 {
-		return nil, errors.New("No discovery backend defined")
+		return nil, errors.New("no discovery backend defined")
 	} else if discoveryCount > 1 {
-		return nil, errors.New("More than one discovery backend defined")
+		return nil, errors.New("more than one discovery backend defined")
 	}
 	return discoveryService, nil
 }
@@ -124,6 +124,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(configMap)
 	disc, err := parseDiscoveryBackend(configMap)
 	if err != nil {
 		return nil, err

@@ -26,7 +26,7 @@ type Watch struct {
 	events.EventHandler // Event handling
 }
 
-func NewWatch(cfg *WatchConfig) (*Watch, error) {
+func NewWatch(cfg *WatchConfig) *Watch {
 	watch := &Watch{
 		Name:             cfg.Name,
 		poll:             cfg.Poll,
@@ -36,7 +36,17 @@ func NewWatch(cfg *WatchConfig) (*Watch, error) {
 	}
 	watch.Rx = make(chan events.Event, eventBufferSize)
 	watch.Flush = make(chan bool)
-	return watch, nil
+	return watch
+}
+
+// FromWatchConfigs ...
+func FromWatchConfigs(cfgs []*WatchConfig) []*Watch {
+	watches := []*Watch{}
+	for _, cfg := range cfgs {
+		watch := NewWatch(cfg)
+		watches = append(watches, watch)
+	}
+	return watches
 }
 
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
