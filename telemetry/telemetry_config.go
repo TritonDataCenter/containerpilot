@@ -31,7 +31,7 @@ func NewTelemetryConfig(raw interface{}, disc discovery.Backend) (*TelemetryConf
 		return nil, fmt.Errorf("telemetry configuration error: %v", err)
 	}
 	if err := cfg.Validate(disc); err != nil {
-		return nil, fmt.Errorf("telemetry configuration error: %v", err)
+		return nil, fmt.Errorf("telemetry validation error: %v", err)
 	}
 	if cfg.Sensors != nil {
 		// note that we don't return an error if there are no sensors

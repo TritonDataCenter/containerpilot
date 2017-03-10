@@ -12,7 +12,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/checks"
-	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/telemetry"
@@ -21,16 +20,16 @@ import (
 )
 
 type rawConfig struct {
-	logConfig         *LogConfig
-	preStart          interface{}
-	preStop           interface{}
-	postStop          interface{}
-	stopTimeout       int
-	coprocessesConfig []interface{}
-	servicesConfig    []interface{}
-	tasksConfig       []interface{}
-	watchesConfig     []interface{}
-	telemetryConfig   interface{}
+	logConfig   *LogConfig
+	preStart    interface{}
+	preStop     interface{}
+	postStop    interface{}
+	stopTimeout int
+	coprocesses []interface{}
+	services    []interface{}
+	tasks       []interface{}
+	watches     []interface{}
+	telemetry   interface{}
 }
 
 // Config contains the parsed config elements
@@ -91,53 +90,6 @@ func (cfg *rawConfig) parseStopTimeout() (int, error) {
 	return cfg.stopTimeout, nil
 }
 
-// parseTelemetry ...
-func (cfg *rawConfig) parseTelemetry() (*telemetry.Telemetry, error) {
-
-	if cfg.telemetryConfig == nil {
-		return nil, nil
-	}
-	t, err := telemetry.NewTelemetry(cfg.telemetryConfig)
-	if err != nil {
-		return nil, err
-	}
-	return t, nil
-}
-
-// createTelemetryService ...
-func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.Backend) (*services.Service, error) {
-	// create a new service for Telemetry
-
-	cfg := &services.ServiceConfig{
-		ID:           t.ServiceName,
-		Name:         t.ServiceName,
-		Heartbeat:    t.Poll,
-		Port:         t.Port,
-		TTL:          t.TTL,
-		Interfaces:   t.Interfaces,
-		Tags:         t.Tags,
-		IPAddress:    "TODO", // TODO
-		ConsulConfig: nil,    // ????    *ConsulConfig
-	}
-	cfg.AddDiscoveryConfig(discoveryService)
-	svc, err := services.NewService(cfg)
-	if err != nil {
-		return nil, err
-	}
-	return svc, nil
-}
-
-func (cfg *rawConfig) parseTasks() ([]*tasks.Task, error) {
-	if cfg.tasksConfig == nil {
-		return nil, nil
-	}
-	tasks, err := tasks.NewTasks(cfg.tasksConfig)
-	if err != nil {
-		return nil, err
-	}
-	return tasks, nil
-}
-
 // RenderConfig renders the templated config in configFlag to renderFlag.
 func RenderConfig(configFlag, renderFlag string) error {
 	template, err := renderConfigTemplate(configFlag)
@@ -152,7 +104,7 @@ func RenderConfig(configFlag, renderFlag string) error {
 		var err error
 		fName := strings.SplitAfter(renderFlag, "file://")[1]
 		if err = ioutil.WriteFile(fName, template, 0644); err != nil {
-			return fmt.Errorf("Could not write config file: %s", err)
+			return fmt.Errorf("could not write config file: %s", err)
 		}
 	} else {
 		return fmt.Errorf("-render flag is invalid: '%s'", renderFlag)
@@ -195,74 +147,69 @@ func LoadConfig(configFlag string) (*Config, error) {
 	}
 	cfg.StopTimeout = stopTimeout
 
-	services, err := services.NewServiceConfigs(raw, disc)
+	serviceConfigs, err := services.NewServiceConfigs(raw.services, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse services: %v", err)
 	}
-	cfg.Services = services
+	cfg.Services = serviceConfigs
 
 	// TODO: after we update config syntax we'll remove this section entirely
-	preStart, err := services.NewPreStartConfig(raw, disc)
+	preStart, err := services.NewPreStartConfig(raw.preStart, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse preStart: %v", err)
 	}
 	cfg.Services = append(cfg.Services, preStart)
 
 	// TODO: after we update config syntax we'll remove this section entirely
-	preStop, err := services.NewPreStopConfig(raw, disc)
+	preStop, err := services.NewPreStopConfig(raw.preStop, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse preStop: %v", err)
 	}
 	cfg.Services = append(cfg.Services, preStop)
 
 	// TODO: after we update config syntax we'll remove this section entirely
-	postStop, err := services.NewPostStopConfig(raw, disc)
+	postStop, err := services.NewPostStopConfig(raw.postStop, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse postStop: %v", err)
 	}
 	cfg.Services = append(cfg.Services, postStop)
 
-	checks, err := checks.NewHealthCheckConfigs(raw)
+	checks, err := checks.NewHealthCheckConfigs(raw.services)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse checks: %v", err)
 	}
 	cfg.Checks = checks
 
-	watches, err := watches.NewWatchConfigs(raw, disc)
+	watches, err := watches.NewWatchConfigs(raw.watches, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse watches: %v", err)
 	}
 	cfg.Watches = watches
 
-	telemetry, err := raw.parseTelemetry()
+	telemetry, err := telemetry.NewTelemetryConfig(raw.telemetry, disc)
 	if err != nil {
 		return nil, err
 	}
-
 	if telemetry != nil {
-		telemetryService, err2 := createTelemetryService(telemetry, disc)
-		if err2 != nil {
-			return nil, err2
-		}
 		cfg.Telemetry = telemetry
-		cfg.Services = append(cfg.Services, telemetryService)
+		cfg.Services = append(cfg.Services, telemetry.ServiceConfig)
 	}
 
 	// TODO: after we update config syntax we'll remove this section entirely
-	taskServices, err := services.NewTaskConfigs(raw, disc)
+	taskServices, err := services.NewTaskConfigs(raw.tasks)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse tasks: %v", err)
 	}
-	for task := range taskServices {
+	for _, task := range taskServices {
 		cfg.Services = append(cfg.Services, task)
 	}
 
 	// TODO: after we update config syntax we'll remove this section entirely
-	coprocessServices, err := services.NewCoprocessConfigs(raw, disc)
+	coprocessServices, err := services.NewCoprocessConfigs(raw.coprocesses)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse coprocesses: %v", err)
 	}
-	for coprocess := range coprocessServices {
+	for _, coprocess := range coprocessServices {
 		cfg.Services = append(cfg.Services, coprocess)
 	}
 
@@ -278,14 +225,14 @@ func renderConfigTemplate(configFlag string) ([]byte, error) {
 		var err error
 		fName := strings.SplitAfter(configFlag, "file://")[1]
 		if data, err = ioutil.ReadFile(fName); err != nil {
-			return nil, fmt.Errorf("Could not read config file: %s", err)
+			return nil, fmt.Errorf("could not read config file: %s", err)
 		}
 	} else {
 		data = []byte(configFlag)
 	}
 	template, err := ApplyTemplate(data)
 	if err != nil {
-		err = fmt.Errorf("Could not apply template to config: %v", err)
+		err = fmt.Errorf("could not apply template to config: %v", err)
 	}
 	return template, err
 }
@@ -296,7 +243,7 @@ func unmarshalConfig(data []byte) (map[string]interface{}, error) {
 		syntax, ok := err.(*json.SyntaxError)
 		if !ok {
 			return nil, fmt.Errorf(
-				"Could not parse configuration: %s",
+				"could not parse configuration: %s",
 				err)
 		}
 		return nil, newJSONparseError(data, syntax)
@@ -306,7 +253,7 @@ func unmarshalConfig(data []byte) (map[string]interface{}, error) {
 
 func newJSONparseError(js []byte, syntax *json.SyntaxError) error {
 	line, col, err := highlightError(js, syntax.Offset)
-	return fmt.Errorf("Parse error at line:col [%d:%d]: %s\n%s", line, col, syntax, err)
+	return fmt.Errorf("parse error at line:col [%d:%d]: %s\n%s", line, col, syntax, err)
 }
 
 func highlightError(data []byte, pos int64) (int, int, string) {
@@ -376,11 +323,11 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.preStart = configMap["preStart"]
 	result.preStop = configMap["preStop"]
 	result.postStop = configMap["postStop"]
-	result.servicesConfig = decodeArray(configMap["services"])
-	result.watchesConfig = decodeArray(configMap["backends"])
-	result.tasksConfig = decodeArray(configMap["tasks"])
-	result.coprocessesConfig = decodeArray(configMap["coprocesses"])
-	result.telemetryConfig = configMap["telemetry"]
+	result.services = decodeArray(configMap["services"])
+	result.watches = decodeArray(configMap["backends"])
+	result.tasks = decodeArray(configMap["tasks"])
+	result.coprocesses = decodeArray(configMap["coprocesses"])
+	result.telemetry = configMap["telemetry"]
 
 	delete(configMap, "logging")
 	delete(configMap, "preStart")
@@ -397,7 +344,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 		unused = append(unused, key)
 	}
 	if len(unused) > 0 {
-		return fmt.Errorf("Unknown config keys: %v", unused)
+		return fmt.Errorf("unknown config keys: %v", unused)
 	}
 	return nil
 }

@@ -5,6 +5,6 @@ import (
 )
 
 // TODO!
-func NewPreStartConfig(raw []interface{}, disc discovery.Backend) (*ServiceConfig, error) {
+func NewPreStartConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
 	return &ServiceConfig{}, nil
 }

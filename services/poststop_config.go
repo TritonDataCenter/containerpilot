@@ -5,6 +5,6 @@ import (
 )
 
 // TODO!
-func NewPostStopConfig(raw []interface{}, disc discovery.Backend) (*ServiceConfig, error) {
+func NewPostStopConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
 	return &ServiceConfig{}, nil
 }
