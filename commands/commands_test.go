@@ -3,122 +3,96 @@ package commands
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/events"
 )
 
-func TestRunAndWaitSuccess(t *testing.T) {
+func TestCommandRunAndWaitForOutputOk(t *testing.T) {
+	bus := events.NewEventBus()
+	ds := events.NewDebugSubscriber(bus, 2)
+	ds.Run(0)
 	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", time.Duration(0))
-	cmd.Name = "APP"
-	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 0 {
-		t.Errorf("Expected exit code 0 but got %d", exitCode)
+	cmd.Name = "TestRunAndWaitForOutputOk"
+	out, got := runtestCommandRunAndWaitForOutput(cmd, 2)
+	if out != "Running doStuff with args: --debug\n" {
+		t.Fatalf("unexpected output from 'test.sh doStuff': %s", out)
 	}
-	if pid := os.Getenv("CONTAINERPILOT_APP_PID"); pid == "" {
-		t.Errorf("Expected CONTAINERPILOT_APP_PID to be set")
-	}
-}
-
-func BenchmarkRunAndWaitSuccess(b *testing.B) {
-	cmd, _ := NewCommand("./testdata/test.sh doNothing", time.Duration(0))
-	for i := 0; i < b.N; i++ {
-		RunAndWait(cmd, nil)
+	if got[events.Event{events.ExitFailed, cmd.Name}] > 0 {
+		t.Fatalf("unexpected error in 'test.sh doStuff")
 	}
 }
 
-func TestRunAndWaitFailed(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", time.Duration(0))
-	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 255 {
-		t.Errorf("Expected exit code 255 but got %d", exitCode)
+func TestCommandRunAndWaitForOutputBad(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/doesNotExist.sh", time.Duration(0))
+	cmd.Name = "TestRunAndWaitForOutputBad"
+	out, got := runtestCommandRunAndWaitForOutput(cmd, 2)
+	if out != "" {
+		t.Fatalf("expected no output from 'doesNotExist' but got %s", out)
+	}
+	exitFail := events.Event{events.ExitFailed, cmd.Name}
+	errMsg := events.Event{events.Error,
+		"fork/exec ./testdata/doesNotExist.sh: no such file or directory"}
+	if got[exitFail] != 1 || got[errMsg] != 1 {
+		t.Fatalf("expected error in events from 'doesNotExist' but got %v", got)
 	}
 }
 
-func TestRunAndWaitInvalidCommand(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/invalidCommand", time.Duration(0))
-	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 127 {
-		t.Errorf("Expected exit code 127 but got %d", exitCode)
-	}
-}
-
-func TestRunAndWaitForOutput(t *testing.T) {
-
-	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", time.Duration(0))
-	if out, err := RunAndWaitForOutput(cmd); err != nil {
-		t.Fatalf("Unexpected error from 'test.sh doStuff': %s", err)
-	} else if out != "Running doStuff with args: --debug\n" {
-		t.Fatalf("Unexpected output from 'test.sh doStuff': %s", out)
-	}
-
-	// Ensure bad commands return error
-	cmd2, _ := NewCommand("./testdata/doesNotExist.sh", time.Duration(0))
-	if out, err := RunAndWaitForOutput(cmd2); err == nil {
-		t.Fatalf("Expected error from 'doesNotExist.sh' but got %s", out)
-	} else if err.Error() != "fork/exec ./testdata/doesNotExist.sh: no such file or directory" {
-		t.Fatalf("Unexpected error from 'doesNotExist.sh': %s", err)
-	}
-}
-
-// We want to make sure test tasks don't run forever and so if they
-// exceed their timeouts and don't return an error we want to know that.
-func failTestIfExceedingTimeout(t *testing.T, cmd *Command) error {
-	fields := log.Fields{"process": "test"}
-
-	c := make(chan error, 1)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	go func() { c <- RunWithTimeout(cmd, fields) }()
-	select {
-	case <-ctx.Done():
-		cmd.Kill()
-		return fmt.Errorf("command was not stopped by timeout")
-	case err := <-c:
-		return err
-	}
-}
-
-// make sure we're backwards compatible for now
-func TestRunWithTimeoutZero(t *testing.T) {
+func TestCommandRunWithTimeoutZero(t *testing.T) {
 	cmd, _ := NewCommand("sleep 2", time.Duration(0))
-	err := failTestIfExceedingTimeout(t, cmd)
-	if err == nil || err.Error() != "sleep: signal: killed" {
-		t.Fatalf("failed to stop command on timeout: %v", err)
+	got := runtestCommandRun(cmd, 2)
+	expired := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
+	if got[expired] != 1 {
+		t.Fatalf("stopped command prior to test timeout, got events %v", got)
 	}
 }
 
-func TestRunWithTimeoutKilled(t *testing.T) {
-	cmd, _ := NewCommand("sleep 2", time.Duration(200*time.Millisecond))
-	err := failTestIfExceedingTimeout(t, cmd)
-	if err == nil || err.Error() != "sleep: signal: killed" {
-		t.Fatalf("failed to stop command on timeout: %v", err)
+func TestCommandRunWithTimeoutKilled(t *testing.T) {
+	log.SetLevel(log.ErrorLevel) // suppress test noise
+	cmd, _ := NewCommand("sleep 2", time.Duration(100*time.Millisecond))
+	cmd.Name = t.Name()
+	got := runtestCommandRun(cmd, 3)
+	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
+	expired := events.Event{events.ExitFailed, t.Name()}
+	errMsg := events.Event{events.Error, fmt.Sprintf("%s: signal: killed", cmd.Name)}
+	if got[testTimeout] > 0 || got[expired] != 1 || got[errMsg] != 1 {
+		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", expired, errMsg, got)
 	}
 }
 
-func TestRunWithTimeoutChildrenKilledToo(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh sleepStuff", time.Duration(200*time.Millisecond))
-	err := failTestIfExceedingTimeout(t, cmd)
-	if err == nil || err.Error() != "./testdata/test.sh: signal: killed" {
-		t.Fatalf("failed to stop command on timeout: %v", err)
-	}
-}
-
-func TestRunWithTimeoutCommandFailed(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug",
+func TestCommandRunChildrenKilled(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/test.sh sleepStuff",
 		time.Duration(100*time.Millisecond))
-	err := failTestIfExceedingTimeout(t, cmd)
-	if err == nil || err.Error() != "./testdata/test.sh: exit status 255" {
-		t.Fatalf("failed to stop command: %v", err)
+	cmd.Name = t.Name()
+	got := runtestCommandRun(cmd, 3)
+	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
+	expired := events.Event{events.ExitFailed, t.Name()}
+	errMsg := events.Event{events.Error, fmt.Sprintf("%s: signal: killed", cmd.Name)}
+	if got[testTimeout] > 0 || got[expired] != 1 || got[errMsg] != 1 {
+		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", expired, errMsg, got)
 	}
 }
 
-func TestRunWithTimeoutInvalidCommand(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/invalidCommand",
-		time.Duration(100*time.Millisecond))
-	err := failTestIfExceedingTimeout(t, cmd)
-	if err == nil ||
-		err.Error() != "fork/exec ./testdata/invalidCommand: no such file or directory" {
-		t.Errorf("Expected 'no such file' error but got %v", err)
+func TestCommandRunExecFailed(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", time.Duration(0))
+	got := runtestCommandRun(cmd, 3)
+	failed := events.Event{events.ExitFailed, "./testdata/test.sh"}
+	errMsg := events.Event{events.Error, "./testdata/test.sh: exit status 255"}
+	if got[failed] != 1 || got[errMsg] != 1 {
+		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", failed, errMsg, got)
+	}
+}
+
+func TestCommandRunExecInvalid(t *testing.T) {
+	cmd, _ := NewCommand("./testdata/invalidCommand", time.Duration(0))
+	got := runtestCommandRun(cmd, 3)
+	failed := events.Event{events.ExitFailed, "./testdata/invalidCommand"}
+	errMsg := events.Event{events.Error,
+		"fork/exec ./testdata/invalidCommand: no such file or directory"}
+	if got[failed] != 1 || got[errMsg] != 1 {
+		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", failed, errMsg, got)
 	}
 }
 
@@ -128,12 +102,38 @@ func TestEmptyCommand(t *testing.T) {
 	}
 }
 
-func TestReuseCmd(t *testing.T) {
+func TestCommandRunReuseCmd(t *testing.T) {
 	cmd, _ := NewCommand("true", time.Duration(0))
-	if code, err := RunAndWait(cmd, nil); code != 0 || err != nil {
-		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
+	runtestCommandRun(cmd, 3)
+	runtestCommandRun(cmd, 3)
+}
+
+// test helpers
+
+func runtestCommandRunAndWaitForOutput(cmd *Command, count int) (string, map[events.Event]int) {
+	bus := events.NewEventBus()
+	ds := events.NewDebugSubscriber(bus, count)
+	ds.Run(0)
+	out := cmd.RunAndWaitForOutput(context.Background(), bus)
+	ds.Close()
+	got := map[events.Event]int{}
+	for _, result := range ds.Results {
+		got[result]++
 	}
-	if code, err := RunAndWait(cmd, nil); code != 0 || err != nil {
-		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
+	return out, got
+}
+
+func runtestCommandRun(cmd *Command, count int) map[events.Event]int {
+	bus := events.NewEventBus()
+	ds := events.NewDebugSubscriber(bus, count)
+	ds.Run(200 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	cmd.Run(ctx, bus, log.Fields{"process": "test"})
+	defer cancel()
+	ds.Close()
+	got := map[events.Event]int{}
+	for _, result := range ds.Results {
+		got[result]++
 	}
+	return got
 }

@@ -71,6 +71,7 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fie
 		if err := c.Cmd.Start(); err != nil {
 			log.Errorf("unable to start %s: %v", c.Name, err)
 			bus.Publish(events.Event{events.ExitFailed, c.Name})
+			bus.Publish(events.Event{events.Error, err.Error()})
 			return
 		}
 		// blocks this goroutine here; if the context gets cancelled
@@ -78,6 +79,7 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fie
 		if _, err := c.wait(); err != nil {
 			log.Errorf("%s exited with error: %v", c.Name, err)
 			bus.Publish(events.Event{events.ExitFailed, c.Name})
+			bus.Publish(events.Event{events.Error, err.Error()})
 		} else {
 			bus.Publish(events.Event{events.ExitSuccess, c.Name})
 		}
@@ -152,6 +154,7 @@ func (c *Command) RunAndWaitForOutput(pctx context.Context, bus *events.EventBus
 	if err != nil {
 		log.Errorf("%s exited with error: %v", c.Name, err)
 		bus.Publish(events.Event{events.ExitFailed, c.Name})
+		bus.Publish(events.Event{events.Error, err.Error()})
 		return ""
 	}
 	bus.Publish(events.Event{events.ExitSuccess, c.Name})

@@ -36,7 +36,7 @@ func TestSensorObserve(t *testing.T) {
 		Timeout:   "100ms",
 	}
 
-	got := runSensorTest(cfg)
+	got := runSensorTest(cfg, 5)
 	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", cfg.Name)}
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
 	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
@@ -60,10 +60,14 @@ func TestSensorBadExec(t *testing.T) {
 		Exec:      "./testdata/doesNotExist.sh",
 		Timeout:   "100ms",
 	}
-	got := runSensorTest(cfg)
+	got := runSensorTest(cfg, 7)
 	exitFail := events.Event{events.ExitFailed, fmt.Sprintf("%s.sensor", cfg.Name)}
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
-	if got[exitFail] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+	errMsg := events.Event{events.Error,
+		"fork/exec ./testdata/doesNotExist.sh: no such file or directory"}
+
+	if got[exitFail] != 2 || got[poll] != 2 ||
+		got[events.QuitByClose] != 1 || got[errMsg] != 2 {
 		t.Fatalf("expected 2 failed poll events but got %v", got)
 	}
 }
@@ -82,7 +86,7 @@ func TestSensorBadRecord(t *testing.T) {
 		Exec:      "./testdata/test.sh doStuff --debug",
 		Timeout:   "100ms",
 	}
-	got := runSensorTest(cfg)
+	got := runSensorTest(cfg, 5)
 	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", cfg.Name)}
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
 	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
@@ -94,9 +98,9 @@ func TestSensorBadRecord(t *testing.T) {
 	}
 }
 
-func runSensorTest(cfg *SensorConfig) map[events.Event]int {
+func runSensorTest(cfg *SensorConfig, count int) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 5)
+	ds := events.NewDebugSubscriber(bus, count)
 	ds.Run(0)
 	cfg.Validate()
 	sensor, _ := NewSensor(cfg)

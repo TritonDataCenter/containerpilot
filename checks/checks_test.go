@@ -16,7 +16,7 @@ func TestHealthCheckExecOk(t *testing.T) {
 		Timeout: "100ms",
 		Poll:    1,
 	}
-	got := runHealthCheckTest(cfg)
+	got := runHealthCheckTest(cfg, 5)
 	poll := events.Event{events.TimerExpired, "mycheckOk-poll"}
 	exitOk := events.Event{events.ExitSuccess, "mycheckOk"}
 	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
@@ -32,17 +32,20 @@ func TestHealthCheckExecFail(t *testing.T) {
 		Timeout: "100ms",
 		Poll:    1,
 	}
-	got := runHealthCheckTest(cfg)
+	got := runHealthCheckTest(cfg, 7)
 	poll := events.Event{events.TimerExpired, "mycheckFail-poll"}
 	exitOk := events.Event{events.ExitFailed, "mycheckFail"}
-	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+	errMsg := events.Event{events.Error, "mycheckFail: exit status 255"}
+
+	if got[exitOk] != 2 || got[poll] != 2 ||
+		got[events.QuitByClose] != 1 || got[errMsg] != 2 {
 		t.Fatalf("expected 2 failed poll events but got %v", got)
 	}
 }
 
-func runHealthCheckTest(cfg *HealthCheckConfig) map[events.Event]int {
+func runHealthCheckTest(cfg *HealthCheckConfig, count int) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 5)
+	ds := events.NewDebugSubscriber(bus, count)
 	ds.Run(0)
 	cfg.Validate()
 	check, _ := NewHealthCheck(cfg)
