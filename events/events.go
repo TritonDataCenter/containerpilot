@@ -4,14 +4,18 @@ import (
 	"sync"
 )
 
+// Event ...
 type Event struct {
 	Code   EventCode
 	Source string
 }
 
 // go:generate stringer -type EventCode
+
+// EventCode ...
 type EventCode int
 
+// EventCode enum
 const (
 	ExitSuccess EventCode = iota
 	ExitFailed
@@ -27,17 +31,20 @@ const (
 	Shutdown // fired once after all jobs exit or on receiving SIGTERM
 )
 
+// global events
 var (
 	GlobalStartup  = Event{Code: Startup, Source: "global"}
 	GlobalShutdown = Event{Code: Shutdown, Source: "global"}
 	QuitByClose    = Event{Code: Quit, Source: "closed"}
 )
 
+// EventBus ...
 type EventBus struct {
 	registry map[Subscriber]bool
 	lock     *sync.RWMutex
 }
 
+// NewEventBus ...
 func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
 	reg := make(map[Subscriber]bool)
@@ -65,7 +72,7 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 func (bus *EventBus) Publish(event Event) {
 	bus.lock.RLock()
 	defer bus.lock.RUnlock()
-	for subscriber, _ := range bus.registry {
+	for subscriber := range bus.registry {
 		// sending to an unsubscribed Subscriber shouldn't be a runtime
 		// error, so this is in intentionally allowed to panic here
 		subscriber.Receive(event)
@@ -76,7 +83,7 @@ func (bus *EventBus) Publish(event Event) {
 func (bus *EventBus) Shutdown() {
 	bus.lock.RLock()
 	defer bus.lock.RUnlock()
-	for subscriber, _ := range bus.registry {
+	for subscriber := range bus.registry {
 		// sending to an unsubscribed Subscriber shouldn't be a runtime
 		// error, so this is in intentionally allowed to panic here
 		subscriber.Close()

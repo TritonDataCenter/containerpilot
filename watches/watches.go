@@ -26,6 +26,7 @@ type Watch struct {
 	events.EventHandler // Event handling
 }
 
+// NewWatch ...
 func NewWatch(cfg *WatchConfig) *Watch {
 	watch := &Watch{
 		Name:             cfg.Name,

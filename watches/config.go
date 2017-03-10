@@ -9,6 +9,7 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
+// WatchConfig ...
 type WatchConfig struct {
 	Name             string      `mapstructure:"name"`
 	Poll             int         `mapstructure:"poll"` // time in seconds

@@ -1,7 +1,8 @@
+package services
+
 /*
 TODO: this entire file will be eliminated after we update config syntax
 */
-package services
 
 import (
 	"fmt"
@@ -36,17 +37,17 @@ func NewTaskConfigs(raw []interface{}) ([]*ServiceConfig, error) {
 	for _, cfg := range tasks {
 		if err := cfg.Validate(); err != nil {
 			return nil, err
-		} else {
-			service := cfg.ToServiceConfig()
-			if err := service.Validate(nil); err != nil {
-				return nil, err
-			}
-			services = append(services, service)
 		}
+		service := cfg.ToServiceConfig()
+		if err := service.Validate(nil); err != nil {
+			return nil, err
+		}
+		services = append(services, service)
 	}
 	return services, nil
 }
 
+// ToServiceConfig ...
 func (task *TaskConfig) ToServiceConfig() *ServiceConfig {
 	service := &ServiceConfig{
 		Exec:         task.Exec,
@@ -60,6 +61,7 @@ func (task *TaskConfig) ToServiceConfig() *ServiceConfig {
 	return service
 }
 
+// Validate ...
 func (task *TaskConfig) Validate() error {
 	if task.Exec == nil {
 		return fmt.Errorf("task did not provide a command")

@@ -23,7 +23,7 @@ type TelemetryConfig struct {
 	addr          net.TCPAddr
 }
 
-// NewTelemetryConfigs parses json config into a validated TelemetryConfig
+// NewTelemetryConfig parses json config into a validated TelemetryConfig
 // including a validated ServiceConfig and validated SensorConfigs
 func NewTelemetryConfig(raw interface{}, disc discovery.Backend) (*TelemetryConfig, error) {
 	cfg := &TelemetryConfig{Port: 9090} // default values
@@ -46,6 +46,7 @@ func NewTelemetryConfig(raw interface{}, disc discovery.Backend) (*TelemetryConf
 	return cfg, nil
 }
 
+// Validate ...
 func (cfg *TelemetryConfig) Validate(disc discovery.Backend) error {
 	ipAddress, err := utils.IPFromInterfaces(cfg.Interfaces)
 	if err != nil {
@@ -61,6 +62,7 @@ func (cfg *TelemetryConfig) Validate(disc discovery.Backend) error {
 	return nil
 }
 
+// ToServiceConfig
 func (cfg *TelemetryConfig) ToServiceConfig() *services.ServiceConfig {
 	service := &services.ServiceConfig{
 		Name:       "containerpilot", // TODO: hard-coded?

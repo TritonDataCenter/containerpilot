@@ -4,7 +4,9 @@ import (
 	"github.com/joyent/containerpilot/discovery"
 )
 
-// TODO!
+// NewPreStartConfig ...
 func NewPreStartConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
+	// TODO!
+
 	return &ServiceConfig{}, nil
 }

@@ -12,6 +12,7 @@ type DebugSubscriber struct {
 	max     int
 }
 
+// NewDebugSubscriber ...
 func NewDebugSubscriber(bus *EventBus, max int) *DebugSubscriber {
 	ds := &DebugSubscriber{
 		Results: []Event{},
@@ -23,6 +24,7 @@ func NewDebugSubscriber(bus *EventBus, max int) *DebugSubscriber {
 	return ds
 }
 
+// Run ...
 func (ds *DebugSubscriber) Run(timeout time.Duration) {
 	ds.Subscribe(ds.Bus)
 	if timeout == 0 {

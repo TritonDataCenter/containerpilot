@@ -208,8 +208,7 @@ func configureRestarts(cfg *ServiceConfig) error {
 	return nil
 }
 
-// TODO: we should further break up the config parsing of the service
-// from the config for the Consul service definition
+// AddDiscoveryConfig ...
 func (cfg *ServiceConfig) AddDiscoveryConfig(disc discovery.Backend) error {
 	cfg.discoveryService = disc
 	var consulExtras *discovery.ConsulExtras

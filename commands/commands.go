@@ -28,7 +28,7 @@ type Command struct {
 	lock       *sync.Mutex
 }
 
-// newcommand parses JSON config into a Command
+// NewCommand parses JSON config into a Command
 func NewCommand(rawArgs interface{}, timeout time.Duration) (*Command, error) {
 	exec, args, err := ParseArgs(rawArgs)
 	if err != nil {
@@ -44,6 +44,7 @@ func NewCommand(rawArgs interface{}, timeout time.Duration) (*Command, error) {
 	return cmd, nil
 }
 
+// Run ...
 func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fields) {
 	if c == nil {
 		// TODO: will this ever get called like this?

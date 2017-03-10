@@ -16,8 +16,11 @@ import (
 const eventBufferSize = 1000
 
 // go:generate stringer -type SensorType
+
+// SensorType ...
 type SensorType int
 
+// SensorType enum
 const (
 	Counter SensorType = iota
 	Gauge
@@ -25,6 +28,7 @@ const (
 	Summary
 )
 
+// Sensor ...
 type Sensor struct {
 	Name      string
 	Type      SensorType
@@ -49,7 +53,7 @@ func NewSensor(cfg *SensorConfig) *Sensor {
 	return sensor
 }
 
-// SensorHealth runs the health sensor
+// Observe runs the health sensor and captures its output for recording
 func (sensor *Sensor) Observe(ctx context.Context) {
 	// TODO: this should be replaced with the async Run once
 	// the control plane is available for Sensors to POST to

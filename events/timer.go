@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// NewEventTimeout ...
 func NewEventTimeout(
 	ctx context.Context,
 	rx chan Event,
@@ -29,6 +30,7 @@ func NewEventTimeout(
 	}()
 }
 
+// NewEventTimer ...
 func NewEventTimer(
 	ctx context.Context,
 	rx chan Event,

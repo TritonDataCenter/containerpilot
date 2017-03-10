@@ -1,5 +1,6 @@
 package events
 
+// Runner ...
 type Runner interface {
 	Run(*EventBus)
 
@@ -10,6 +11,7 @@ type Runner interface {
 	Close() error
 }
 
+// Subscriber ...
 type Subscriber interface {
 	Subscribe(*EventBus)
 	Unsubscribe(*EventBus)

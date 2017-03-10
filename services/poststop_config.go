@@ -4,7 +4,8 @@ import (
 	"github.com/joyent/containerpilot/discovery"
 )
 
-// TODO!
+// NewPostStopConfig ...
 func NewPostStopConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
+	// TODO!
 	return &ServiceConfig{}, nil
 }

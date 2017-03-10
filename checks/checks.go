@@ -12,6 +12,7 @@ import (
 
 const eventBufferSize = 1000
 
+// HealthCheck ...
 type HealthCheck struct {
 	Name string
 	exec *commands.Command

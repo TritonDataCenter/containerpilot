@@ -1,7 +1,8 @@
+package services
+
 /*
 TODO: this entire file will be eliminated after we update config syntax
 */
-package services
 
 import (
 	"fmt"
@@ -33,17 +34,17 @@ func NewCoprocessConfigs(raw []interface{}) ([]*ServiceConfig, error) {
 	for _, cfg := range coprocesses {
 		if err := cfg.Validate(); err != nil {
 			return nil, err
-		} else {
-			service := cfg.ToServiceConfig()
-			if err := service.Validate(nil); err != nil {
-				return nil, err
-			}
-			services = append(services, service)
 		}
+		service := cfg.ToServiceConfig()
+		if err := service.Validate(nil); err != nil {
+			return nil, err
+		}
+		services = append(services, service)
 	}
 	return services, nil
 }
 
+// ToServiceConfig ...
 func (co *CoprocessConfig) ToServiceConfig() *ServiceConfig {
 	service := &ServiceConfig{
 		Name:     co.Name,
@@ -53,6 +54,7 @@ func (co *CoprocessConfig) ToServiceConfig() *ServiceConfig {
 	return service
 }
 
+// Validate ...
 func (co *CoprocessConfig) Validate() error {
 	if co.Exec == nil {
 		return fmt.Errorf("coprocess did not provide a command")
