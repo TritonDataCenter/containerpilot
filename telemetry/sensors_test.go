@@ -1,7 +1,6 @@
 package telemetry
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,7 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joyent/containerpilot/commands"
+	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -22,37 +22,97 @@ in our tests. So for those tests we'll stand up a test HTTP server and give it
 the prometheus handler and then check the results of a GET.
 */
 
-func TestSensorPollAction(t *testing.T) {
+func TestSensorObserve(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-	cmd, _ := commands.NewCommand("./testdata/test.sh measureStuff", "0")
-	sensor := &Sensor{
-		Type:     "counter",
-		checkCmd: cmd,
-		collector: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "telemetry",
-			Subsystem: "sensors",
-			Name:      "TestSensorPollAction",
-			Help:      "help",
-		})}
-	prometheus.MustRegister(sensor.collector)
-	sensor.PollAction()
+	cfg := &SensorConfig{
+		Namespace: "telemetry",
+		Subsystem: "sensors",
+		Name:      "TestSensorObserve",
+		Help:      "help",
+		Type:      "counter",
+		Poll:      1,
+		Exec:      "./testdata/test.sh measureStuff",
+		Timeout:   "100ms",
+	}
+
+	got := runSensorTest(cfg)
+	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", cfg.Name)}
+	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
+	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+		t.Fatalf("expected 2 successful poll events but got %v", got)
+	}
+
 	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_TestSensorPollAction 42") != 1 {
+	if strings.Count(resp, "telemetry_sensors_TestSensorObserve 84") != 1 {
 		t.Fatalf("Failed to get match for sensor in response: %s", resp)
 	}
 }
 
-func TestSensorBadPollAction(t *testing.T) {
-	cmd, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0")
-	sensor := &Sensor{checkCmd: cmd}
-	sensor.PollAction() // logs but no crash
+func TestSensorBadExec(t *testing.T) {
+	cfg := &SensorConfig{
+		Namespace: "telemetry",
+		Subsystem: "sensors",
+		Name:      "TestSensorBadExec",
+		Help:      "help",
+		Type:      "counter",
+		Poll:      1,
+		Exec:      "./testdata/doesNotExist.sh",
+		Timeout:   "100ms",
+	}
+	got := runSensorTest(cfg)
+	exitFail := events.Event{events.ExitFailed, fmt.Sprintf("%s.sensor", cfg.Name)}
+	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
+	if got[exitFail] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+		t.Fatalf("expected 2 failed poll events but got %v", got)
+	}
 }
 
 func TestSensorBadRecord(t *testing.T) {
-	cmd, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "0")
-	sensor := &Sensor{checkCmd: cmd}
-	sensor.PollAction() // logs but no crash
+	log.SetLevel(log.WarnLevel) // suppress test noise
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+	cfg := &SensorConfig{
+		Namespace: "telemetry",
+		Subsystem: "sensors",
+		Name:      "TestSensorBadRecord",
+		Help:      "help",
+		Type:      "counter",
+		Poll:      1,
+		Exec:      "./testdata/test.sh doStuff --debug",
+		Timeout:   "100ms",
+	}
+	got := runSensorTest(cfg)
+	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", cfg.Name)}
+	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
+	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+		t.Fatalf("expected 2 successful poll events but got %v", got)
+	}
+	resp := getFromTestServer(t, testServer)
+	if strings.Count(resp, "telemetry_sensors_TestSensorBadRecord 0") != 1 {
+		t.Fatalf("expected 0-value sensor data for TestSensorBadRecord but got: %s", resp)
+	}
+}
+
+func runSensorTest(cfg *SensorConfig) map[events.Event]int {
+	bus := events.NewEventBus()
+	ds := events.NewDebugSubscriber(bus, 5)
+	ds.Run(0)
+	cfg.Validate()
+	sensor, _ := NewSensor(cfg)
+	sensor.Run(bus)
+
+	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
+	bus.Publish(poll)
+	bus.Publish(poll) // Ensure we can run it more than once
+	sensor.Close()
+	ds.Close()
+
+	got := map[events.Event]int{}
+	for _, result := range ds.Results {
+		got[result]++
+	}
+	return got
 }
 
 func TestSensorRecordCounter(t *testing.T) {
@@ -60,7 +120,7 @@ func TestSensorRecordCounter(t *testing.T) {
 	defer testServer.Close()
 
 	sensor := &Sensor{
-		Type: "counter",
+		Type: Counter,
 		collector: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "telemetry",
 			Subsystem: "sensors",
@@ -85,7 +145,7 @@ func TestSensorRecordGauge(t *testing.T) {
 	defer testServer.Close()
 
 	sensor := &Sensor{
-		Type: "gauge",
+		Type: Gauge,
 		collector: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: "telemetry",
 			Subsystem: "sensors",
@@ -111,7 +171,7 @@ func TestSensorRecordHistogram(t *testing.T) {
 	defer testServer.Close()
 
 	sensor := &Sensor{
-		Type: "histogram",
+		Type: Histogram,
 		collector: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Namespace: "telemetry",
 			Subsystem: "sensors",
@@ -146,7 +206,7 @@ func TestSensorRecordSummary(t *testing.T) {
 	defer testServer.Close()
 
 	sensor := &Sensor{
-		Type: "summary",
+		Type: Summary,
 		collector: prometheus.NewSummary(prometheus.SummaryOpts{
 			Namespace: "telemetry",
 			Subsystem: "sensors",
@@ -176,6 +236,8 @@ func TestSensorRecordSummary(t *testing.T) {
 		t.Fatalf("Failed to get match for sensor in response")
 	}
 }
+
+// test helpers
 
 func checkBuckets(resp, patt string, expected [][]string) bool {
 	re := regexp.MustCompile(patt)
@@ -212,141 +274,4 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 		}
 	}
 	return ""
-}
-
-func TestSensorObserve(t *testing.T) {
-
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
-	sensor := &Sensor{checkCmd: cmd1}
-	if val, err := sensor.observe(); err != nil {
-		t.Fatalf("Unexpected error from sensor check: %s", err)
-	} else if val != "Running doStuff with args: --debug\n" {
-		t.Fatalf("Unexpected output from sensor check: %s", val)
-	}
-
-	// Ensure we can run it more than once
-	if _, err := sensor.observe(); err != nil {
-		t.Fatalf("Unexpected error from sensor check (x2): %s", err)
-	}
-
-	// Ensure bad commands return error
-	cmd2, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0")
-	sensor = &Sensor{checkCmd: cmd2}
-	if val, err := sensor.observe(); err == nil {
-		t.Fatalf("Expected error from sensor check but got %s", val)
-	} else if err.Error() != "fork/exec ./testdata/doesNotExist.sh: no such file or directory" {
-		t.Fatalf("Unexpected error from invalid sensor check: %s", err)
-	}
-
-}
-
-func TestSensorParse(t *testing.T) {
-	jsonFragment := `[{
-	"namespace": "telemetry",
-	"subsystem": "sensors",
-	"name": "%s",
-	"help": "help",
-	"type": "%s",
-	"poll": 10,
-	"check": ["/bin/sensor.sh"]
-}]`
-
-	test1Json := []byte(fmt.Sprintf(jsonFragment,
-		"TestSensorParse_counter", "counter"))
-	collector := parseSensors(t, test1Json)[0].collector
-	if _, ok := collector.(prometheus.Counter); !ok {
-		t.Fatalf("Incorrect collector; expected Counter but got %v", collector)
-	}
-
-	test2Json := []byte(fmt.Sprintf(jsonFragment,
-		"TestSensorParse_gauge", "gauge"))
-	collector = parseSensors(t, test2Json)[0].collector
-	if _, ok := collector.(prometheus.Gauge); !ok {
-		t.Fatalf("Incorrect collector; expected Gauge but got %v", collector)
-	}
-
-	test3Json := []byte(fmt.Sprintf(jsonFragment,
-		"TestSensorParse_histogram", "histogram"))
-	collector = parseSensors(t, test3Json)[0].collector
-	if _, ok := collector.(prometheus.Histogram); !ok {
-		t.Fatalf("Incorrect collector; expected Histogram but got %v", collector)
-	}
-
-	test4Json := []byte(fmt.Sprintf(jsonFragment,
-		"TestSensorParse_summary", "summary"))
-	collector = parseSensors(t, test4Json)[0].collector
-	if _, ok := collector.(prometheus.Summary); !ok {
-		t.Fatalf("Incorrect collector; expected Summary but got %v", collector)
-	}
-}
-
-// invalid collector type
-func TestSensorBadType(t *testing.T) {
-	jsonFragment := []byte(`[{
-	"namespace": "telemetry",
-	"subsystem": "sensors",
-	"name": "TestSensorBadType",
-	"type": "nonsense",
-	"check": "true"}]`)
-
-	if sensors, err := NewSensors(decodeJSONRawSensor(t, jsonFragment)); err == nil {
-		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
-	}
-}
-
-// invalid metric name
-func TestSensorBadName(t *testing.T) {
-	jsonFragment := []byte(`[{
-	"namespace": "telemetry",
-	"subsystem": "sensors",
-	"name": "Test.Sensor.Bad.Name",
-	"type": "counter",
-	"check": "true"}]`)
-
-	if sensors, err := NewSensors(decodeJSONRawSensor(t, jsonFragment)); err == nil {
-		t.Fatalf("Did not get expected error from parsing sensors: %v", sensors)
-	}
-}
-
-// partial metric name parses ok and write out as expected
-func TestSensorPartialName(t *testing.T) {
-
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
-	defer testServer.Close()
-
-	jsonFragment := []byte(`[{
-	"name": "telemetry_sensors_partial_name",
-	"help": "help text",
-	"type": "counter",
-	"check": "true"}]`)
-	sensor := parseSensors(t, jsonFragment)[0]
-	if _, ok := sensor.collector.(prometheus.Counter); !ok {
-		t.Fatalf("Incorrect collector; expected Counter but got %v", sensor.collector)
-	}
-
-	sensor.record("1")
-	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_partial_name 1") != 1 {
-		t.Fatalf("Failed to get match for sensor in response: %s", resp)
-	}
-}
-
-func decodeJSONRawSensor(t *testing.T, testJSON json.RawMessage) []interface{} {
-	var raw []interface{}
-	if err := json.Unmarshal(testJSON, &raw); err != nil {
-		t.Fatalf("Unexpected error decoding JSON:\n%s\n%v", testJSON, err)
-	}
-	return raw
-}
-
-func parseSensors(t *testing.T, testJSON json.RawMessage) []*Sensor {
-	if sensors, err := NewSensors(decodeJSONRawSensor(t, testJSON)); err != nil {
-		t.Fatalf("Could not parse sensor JSON: %s", err)
-	} else {
-		if len(sensors) == 0 {
-			t.Fatalf("Did not get a valid sensor from JSON.")
-		}
-		return sensors
-	}
-	return nil
 }

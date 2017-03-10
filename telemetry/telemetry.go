@@ -1,65 +1,44 @@
 package telemetry
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Telemetry represents the service to advertise for finding the metrics
 // endpoint, and the collection of Sensors.
 type Telemetry struct {
-	Port          int           `mapstructure:"port"`
-	Interfaces    []interface{} `mapstructure:"interfaces"` // optional override
-	Tags          []string      `mapstructure:"tags"`
-	SensorConfigs []interface{} `mapstructure:"sensors"`
-	Sensors       []*Sensor
-	ServiceName   string
-	URL           string
-	TTL           int
-	Poll          int
-	mux           *http.ServeMux
-	lock          sync.RWMutex
-	addr          net.TCPAddr
-	listening     bool
+	Sensors   []*Sensor
+	Path      string
+	heartbeat time.Duration
+	mux       *http.ServeMux
+	lock      sync.RWMutex
+	addr      net.TCPAddr
+	listening bool
 }
 
 // NewTelemetry configures a new prometheus Telemetry server
-func NewTelemetry(raw interface{}) (*Telemetry, error) {
+func NewTelemetry(cfg *TelemetryConfig) (*Telemetry, error) {
 	t := &Telemetry{
-		Port:        9090,
-		ServiceName: "containerpilot",
-		URL:         "/metrics",
-		TTL:         15,
-		Poll:        5,
-		lock:        sync.RWMutex{},
+		Path:    "/metrics", // TODO hard-coded?
+		lock:    sync.RWMutex{},
+		Sensors: []*Sensor{},
 	}
 
-	if err := utils.DecodeRaw(raw, t); err != nil {
-		return nil, fmt.Errorf("Telemetry configuration error: %v", err)
-	}
-	ipAddress, err := utils.IPFromInterfaces(t.Interfaces)
-	if err != nil {
-		return nil, err
-	}
-	ip := net.ParseIP(ipAddress)
-	t.addr = net.TCPAddr{IP: ip, Port: t.Port}
+	t.addr = cfg.addr
 	t.mux = http.NewServeMux()
-	t.mux.Handle(t.URL, prometheus.Handler())
-	// note that we don't return an error if there are no sensors
-	// because the prometheus handler will still pick up metrics
-	// internal to ContainerPilot (i.e. the golang runtime)
-	if t.SensorConfigs != nil {
-		sensors, err := NewSensors(t.SensorConfigs)
+	t.mux.Handle(t.Path, prometheus.Handler())
+	for _, sensorCfg := range cfg.SensorConfigs {
+		sensor, err := NewSensor(sensorCfg)
 		if err != nil {
-			return nil, err
+			return t, err
 		}
-		t.Sensors = sensors
+		t.Sensors = append(t.Sensors, sensor)
 	}
 	return t, nil
 }

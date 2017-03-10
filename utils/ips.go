@@ -92,7 +92,7 @@ func findIPWithSpecs(specs []interfaceSpec, interfaceIPs []interfaceIP) (string,
 	}
 
 	// Interface not found, return error
-	return "", fmt.Errorf("None of the interface specifications were able to match\nSpecifications: %s\nInterfaces IPs: %s",
+	return "", fmt.Errorf("none of the interface specifications were able to match\nSpecifications: %s\nInterfaces IPs: %s",
 		specs, interfaceIPs)
 }
 

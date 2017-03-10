@@ -30,19 +30,26 @@ services:
 watch:
 
   reconfigure:
+
     start: onChange db
     exec: reconfigure-db-connections.sh
     poll: 5s
 
 health:
+
   app:
+
     checkId: app-{{ .hostname }}
     exec: curl -s --fail localhost:3000/health
     poll: 3s
     timeout: 3s
 
-sensors:
-  sensor1:
-    start: onStartup
-    exec: sensor-one.sh
-    poll: 10s
+telemetry:
+
+  port: 9090
+  sensors:
+
+    sensor1:
+      start: onStartup
+      exec: sensor-one.sh
+      poll: 10s

@@ -41,7 +41,6 @@ type Config struct {
 	Services    []*services.ServiceConfig
 	Checks      []*checks.HealthCheckConfig
 	Watches     []*watches.WatchConfig
-	Sensors     []*sensors.SensorConfig
 	Telemetry   *telemetry.TelemetryConfig
 }
 

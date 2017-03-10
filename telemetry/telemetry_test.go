@@ -1,76 +1,21 @@
 package telemetry
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/joyent/containerpilot/discovery"
 )
 
-var jsonFragment = []byte(`{
-	"port": 8000,
-	"interfaces": ["inet"],
-	"sensors": [
-       {
-		"namespace": "telemetry",
-		"subsystem": "telemetry",
-		"name": "TestTelemetryParse",
-		"help": "help",
-		"type": "counter",
-		"poll": 5,
-		"check": ["/bin/sensor.sh"]
-	  }
-	]
- }`)
-
-func TestTelemetryParse(t *testing.T) {
-	if telem, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err != nil {
-		t.Fatalf("Could not parse telemetry JSON: %s", err)
-	} else {
-		if len(telem.Sensors) != 1 {
-			t.Fatalf("Expected 1 sensor but got: %v", telem.Sensors)
-		}
-		sensor := telem.Sensors[0]
-		if _, ok := sensor.collector.(prometheus.Counter); !ok {
-			t.Fatalf("Incorrect collector; expected Counter but got %v", sensor.collector)
-		}
-	}
-}
-
-func TestTelemetryParseBadSensor(t *testing.T) {
-	jsonFragment := []byte(`{"sensors": [{"check": "true"}], "interfaces": ["inet"]}`)
-	if _, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err == nil {
-		t.Fatalf("Expected error from bad sensor but got nil.")
-	} else if ok := strings.HasPrefix(err.Error(), "invalid sensor type"); !ok {
-		t.Fatalf("Expected error from bad sensor type but got %v", err)
-	}
-}
-
-func TestTelemetryParseBadInterface(t *testing.T) {
-	jsonFragment := []byte(`{
-	"interfaces": ["xxxx"]
- }`)
-	if _, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err == nil {
-		t.Fatalf("Expected error from bad interface but got nil.")
-	} else if ok := strings.HasPrefix(err.Error(), "None of the interface"); !ok {
-		t.Fatalf("Expected error from bad interface specification but got %v", err)
-	}
-}
-
-func decodeJSONRawTelemetry(t *testing.T, testJSON json.RawMessage) interface{} {
-	var raw interface{}
-	if err := json.Unmarshal(testJSON, &raw); err != nil {
-		t.Fatalf("Unexpected error decoding JSON:\n%s\n%v", testJSON, err)
-	}
-	return raw
-}
-
 func TestTelemetryServerRestart(t *testing.T) {
-	if telem, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment)); err != nil {
-		t.Fatalf("Could not parse telemetry JSON: %s", err)
+
+	cfg := &TelemetryConfig{Port: 9090, Interfaces: []interface{}{"lo", "lo0", "inet"}}
+	cfg.Validate(&NoopServiceBackend{})
+
+	telem, err := NewTelemetry(cfg)
+	if err != nil {
+		t.Fatalf("unexpected error setting up telemetry server: %v", err)
 	} else {
 		// initial server
 		telem.Serve()
@@ -78,9 +23,9 @@ func TestTelemetryServerRestart(t *testing.T) {
 		telem.Shutdown()
 
 		// reloaded server
-		telem, err := NewTelemetry(decodeJSONRawTelemetry(t, jsonFragment))
+		telem, err := NewTelemetry(cfg)
 		if err != nil {
-			t.Fatalf("Could not parse telemetry JSON: %s", err)
+			t.Fatalf("unexpected error setting up telemetry server: %v", err)
 		}
 		telem.Serve()
 		checkServerIsListening(t, telem)
@@ -97,11 +42,20 @@ func verifyMetricsEndpointOk(t *testing.T, telem *Telemetry) {
 	url := fmt.Sprintf("http://%v:%v/metrics", telem.addr.IP, telem.addr.Port)
 	resp, err := http.Get(url)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not connect to telemetry server: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		t.Fatalf("Got %v status from telemetry server", resp.StatusCode)
+		t.Fatalf("got %v status from telemetry server", resp.StatusCode)
 	}
 
 }
+
+// Mock Discovery
+// TODO this should probably go into the discovery package for use in testing everywhere
+type NoopServiceBackend struct{}
+
+func (c *NoopServiceBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
+func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool        { return false }
+func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
+func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}

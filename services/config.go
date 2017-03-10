@@ -25,7 +25,7 @@ type ServiceConfig struct {
 	TTL               int         `mapstructure:"ttl"`
 	Interfaces        interface{} `mapstructure:"interfaces"`
 	Tags              []string    `mapstructure:"tags"`
-	IPAddress         string
+	ipAddress         string
 	ConsulConfig      *ConsulConfig `mapstructure:"consul"`
 	discoveryService  discovery.Backend
 	definition        *discovery.ServiceDefinition
@@ -137,7 +137,7 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 	if err != nil {
 		return err
 	}
-	cfg.IPAddress = ipAddress
+	cfg.ipAddress = ipAddress
 
 	if err := cfg.AddDiscoveryConfig(disc); err != nil {
 		return err
@@ -230,7 +230,7 @@ func (cfg *ServiceConfig) AddDiscoveryConfig(disc discovery.Backend) error {
 		Port:         cfg.Port,
 		TTL:          cfg.TTL,
 		Tags:         cfg.Tags,
-		IPAddress:    cfg.IPAddress,
+		IPAddress:    cfg.ipAddress,
 		ConsulExtras: consulExtras,
 	}
 	return nil

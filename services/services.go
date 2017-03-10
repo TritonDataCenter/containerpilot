@@ -78,8 +78,10 @@ func (svc *Service) Deregister() {
 
 // StartService runs the Service's executable
 func (svc *Service) StartService(ctx context.Context) {
-	svc.exec.Run(ctx, svc.Bus, log.Fields{
-		"process": svc.startupEvent.Code, "id": svc.Name})
+	if svc.exec != nil {
+		svc.exec.Run(ctx, svc.Bus, log.Fields{
+			"process": svc.startupEvent.Code, "id": svc.Name})
+	}
 }
 
 // Run executes the event loop for the Service
