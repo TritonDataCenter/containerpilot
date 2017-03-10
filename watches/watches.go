@@ -20,7 +20,7 @@ type Watch struct {
 	exec             *commands.Command
 	startupTimeout   int
 	poll             int
-	startupEvent     events.Event
+	startupEvent     events.Event // TODO: probably want this to be a Service name?
 	discoveryService discovery.Backend
 
 	events.EventHandler // Event handling

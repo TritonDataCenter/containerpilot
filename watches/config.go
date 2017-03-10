@@ -33,7 +33,6 @@ func NewWatchConfigs(raw []interface{}, disc discovery.Backend) ([]*WatchConfig,
 		if err := watch.Validate(disc); err != nil {
 			return watches, err
 		}
-		watches = append(watches, watch)
 	}
 	return watches, nil
 }

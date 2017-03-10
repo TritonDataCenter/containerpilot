@@ -45,7 +45,6 @@ func NewHealthCheckConfigs(raw []interface{}) ([]*HealthCheckConfig, error) {
 		if err != nil {
 			return checks, err
 		}
-		checks = append(checks, check)
 	}
 	return checks, nil
 }
