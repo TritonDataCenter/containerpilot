@@ -4,12 +4,13 @@ import (
 	"os"
 	"os/signal"
 	//	"runtime"
-	//	"syscall"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/joyent/containerpilot/discovery"
-	//	"github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/services"
 )
 
@@ -40,30 +41,29 @@ func getSignalTestConfig(t *testing.T) *App {
 	app := EmptyApp()
 	app.StopTimeout = 5
 	app.Services = []*services.Service{service}
+	app.Bus = events.NewEventBus()
 	return app
 }
 
 // ------------------------------------------
 
-// TODO
-
 // Test handler for SIGUSR1
-// func TestMaintenanceSignal(t *testing.T) {
-// 	app := getSignalTestConfig(t)
-// 	if app.InMaintenanceMode() {
-// 		t.Fatal("Should not be in maintenance mode by default")
-// 	}
+func TestMaintenanceSignal(t *testing.T) {
+	app := getSignalTestConfig(t)
+	if app.InMaintenanceMode() {
+		t.Fatal("Should not be in maintenance mode by default")
+	}
 
-// 	app.ToggleMaintenanceMode()
-// 	if !app.InMaintenanceMode() {
-// 		t.Fatal("Should be in maintenance mode after receiving SIGUSR1")
-// 	}
+	app.ToggleMaintenanceMode()
+	if !app.InMaintenanceMode() {
+		t.Fatal("Should be in maintenance mode after receiving SIGUSR1")
+	}
 
-// 	app.ToggleMaintenanceMode()
-// 	if app.InMaintenanceMode() {
-// 		t.Fatal("Should not be in maintenance mode after receiving second SIGUSR1")
-// 	}
-// }
+	app.ToggleMaintenanceMode()
+	if app.InMaintenanceMode() {
+		t.Fatal("Should not be in maintenance mode after receiving second SIGUSR1")
+	}
+}
 
 // TODO
 
@@ -91,39 +91,36 @@ func getSignalTestConfig(t *testing.T) *App {
 // 	}
 // }
 
-// TODO
-
 // Test handler for SIGHUP
-// func TestReloadSignal(t *testing.T) {
-// 	app := getSignalTestConfig(t)
-// 	app.ConfigFlag = "invalid"
-// 	err := app.Reload()
-// 	if err == nil {
-// 		t.Errorf("Invalid configuration did not return error")
-// 	}
-// 	app.ConfigFlag = `{ "consul": "newconsul:8500" }`
-// 	err = app.Reload()
-// 	if err != nil {
-// 		t.Errorf("Valid configuration returned error: %v", err)
-// 	}
-// 	discSvc := app.Discovery
-// 	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
-// 		t.Errorf("Configuration was not reloaded: %v", discSvc)
-// 	}
-// }
-
-// TODO
+func TestReloadSignal(t *testing.T) {
+	app := getSignalTestConfig(t)
+	app.ConfigFlag = "invalid"
+	err := app.Reload()
+	if err == nil {
+		t.Errorf("Invalid configuration did not return error")
+	}
+	app.ConfigFlag = `{ "consul": "newconsul:8500" }`
+	err = app.Reload()
+	if err != nil {
+		t.Errorf("Valid configuration returned error: %v", err)
+	}
+	discSvc := app.Discovery
+	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
+		t.Errorf("Configuration was not reloaded: %v", discSvc)
+	}
+}
 
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
-// func TestSignalWiring(t *testing.T) {
-// 	app := EmptyApp()
-// 	app.handleSignals()
-// 	sendAndWaitForSignal(t, syscall.SIGUSR1)
-// 	sendAndWaitForSignal(t, syscall.SIGTERM)
-// 	sendAndWaitForSignal(t, syscall.SIGCHLD)
-// 	sendAndWaitForSignal(t, syscall.SIGHUP)
-// }
+func TestSignalWiring(t *testing.T) {
+	app := EmptyApp()
+	app.Bus = events.NewEventBus()
+	app.handleSignals()
+	sendAndWaitForSignal(t, syscall.SIGUSR1)
+	sendAndWaitForSignal(t, syscall.SIGTERM)
+	sendAndWaitForSignal(t, syscall.SIGCHLD)
+	sendAndWaitForSignal(t, syscall.SIGHUP)
+}
 
 // Helper to ensure the signal that we send has been received so that
 // we don't muddy subsequent tests of the signal handler.
