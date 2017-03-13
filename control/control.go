@@ -7,18 +7,17 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/utils"
 )
 
 // Server contains the state of the HTTP Server used by ContainerPilot's HTTP
 // transport control plane. Currently this is listening via a UNIX socket file.
 type Server struct {
-	Socket string
-	mux *http.ServeMux
-	addr net.UnixAddr
+	Socket    string      `mapstructure:"socket"`
+	Mux       *http.ServeMux
+	addr      net.UnixAddr
 	listening bool
-	lock sync.RWMutex
+	lock      sync.RWMutex
 }
 
 // NewServer initializes a new control server for manipulating ContainerPilot's
@@ -31,7 +30,6 @@ func NewServer(raw interface{}) (*Server, error) {
 		listening: false,
 	}
 
-	// NOTE: Might not need this...
 	if err := utils.DecodeRaw(raw, s); err != nil {
 		return nil, fmt.Errorf("Control server configuration error: %v", err)
 	}
@@ -41,8 +39,7 @@ func NewServer(raw interface{}) (*Server, error) {
 		Net: "unix",
 	}
 
-	s.mux = http.NewServeMux()
-	s.mux.Handle("/status", http.HandlerFunc(telemetry.GetStatusHandler))
+	s.Mux = http.NewServeMux()
 	return s, nil
 }
 
@@ -68,7 +65,7 @@ func (s *Server) Serve() {
 
 	go func() {
 		log.Infof("control: Serving at %s", s.addr.String())
-		log.Fatal(http.Serve(ln, s.mux))
+		log.Fatal(http.Serve(ln, s.Mux))
 		log.Debugf("control: Stopped serving at %s", s.addr.String())
 	}()
 }

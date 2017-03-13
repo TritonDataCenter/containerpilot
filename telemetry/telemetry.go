@@ -96,11 +96,3 @@ func (t *Telemetry) Serve() {
 func (t *Telemetry) Shutdown() {
 	log.Debug("telemetry: shutdown received but currently a no-op")
 }
-
-// GetStatusHandler generates HTTP response for Telemetry status control plane
-// endpoint.
-func GetStatusHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{ "message": true }`))
-}
