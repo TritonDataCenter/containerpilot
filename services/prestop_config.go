@@ -7,5 +7,8 @@ import (
 // NewPreStopConfig ...
 func NewPreStopConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
 	// TODO!
-	return &ServiceConfig{}, nil
+	if raw == nil {
+		return nil, nil
+	}
+	return &ServiceConfig{Name: "preStop"}, nil
 }

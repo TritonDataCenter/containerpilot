@@ -24,12 +24,14 @@ type Telemetry struct {
 
 // NewTelemetry configures a new prometheus Telemetry server
 func NewTelemetry(cfg *TelemetryConfig) *Telemetry {
+	if cfg == nil {
+		return nil
+	}
 	t := &Telemetry{
 		Path:    "/metrics", // TODO hard-coded?
 		lock:    sync.RWMutex{},
 		Sensors: []*Sensor{},
 	}
-
 	t.addr = cfg.addr
 	t.mux = http.NewServeMux()
 	t.mux.Handle(t.Path, prometheus.Handler())

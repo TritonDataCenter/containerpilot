@@ -26,6 +26,9 @@ type TelemetryConfig struct {
 // NewTelemetryConfig parses json config into a validated TelemetryConfig
 // including a validated ServiceConfig and validated SensorConfigs
 func NewTelemetryConfig(raw interface{}, disc discovery.Backend) (*TelemetryConfig, error) {
+	if raw == nil {
+		return nil, nil
+	}
 	cfg := &TelemetryConfig{Port: 9090} // default values
 	if err := utils.DecodeRaw(raw, cfg); err != nil {
 		return nil, fmt.Errorf("telemetry configuration error: %v", err)

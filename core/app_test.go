@@ -2,13 +2,19 @@ package core
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/joyent/containerpilot/commands"
+	_ "github.com/joyent/containerpilot/discovery/consul"
 )
+
+/*
+a LOT of the these tests should be moved to the config package
+*/
 
 // ------------------------------------------
 
@@ -63,8 +69,8 @@ func TestValidConfigParse(t *testing.T) {
 		t.Fatalf("unexpected error in LoadApp: %v", err)
 	}
 
-	if len(app.Watches) != 2 || len(app.Services) != 2 {
-		t.Fatalf("expected 2 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Watches), len(app.Services))
+	if len(app.Watches) != 2 || len(app.Services) != 5 {
+		t.Fatalf("expected 2 watches and 2 services but got: len(watches)=%d, len(services)=%d", len(app.Watches), len(app.Services))
 	}
 	args := flag.Args()
 	if len(args) != 3 || args[0] != "/testdata/test.sh" {
@@ -165,7 +171,7 @@ func TestInvalidConfigParseFile(t *testing.T) {
 func TestInvalidConfigParseNotJson(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t, "<>",
-		"Parse error at line:col [1:1]")
+		"parse error at line:col [1:1]")
 }
 
 func TestJSONTemplateParseError(t *testing.T) {
@@ -175,7 +181,7 @@ func TestJSONTemplateParseError(t *testing.T) {
     "test": {{ .NO_SUCH_KEY }},
     "test2": "hello"
 }`,
-		"Parse error at line:col [2:13]")
+		"parse error at line:col [2:13]")
 }
 
 func TestJSONTemplateParseError2(t *testing.T) {
@@ -187,7 +193,7 @@ func TestJSONTemplateParseError2(t *testing.T) {
     "test3": false,
     test2: "hello"
 }`,
-		"Parse error at line:col [5:5]")
+		"parse error at line:col [5:5]")
 }
 
 func TestParseTrailingComma(t *testing.T) {
@@ -212,14 +218,14 @@ func TestRenderArgs(t *testing.T) {
 		os.Setenv("HOSTNAME", expected)
 	}
 	if got := getArgs(flags)[1]; got != expected {
-		t.Errorf("Expected %v but got %v for rendered hostname", expected, got)
+		t.Errorf("expected %v but got %v for rendered hostname", expected, got)
 	}
 
 	// invalid template should just be returned unchanged
 	flags = []string{"-name", "{{ .HOSTNAME }"}
 	expected = "{{ .HOSTNAME }"
 	if got := getArgs(flags)[1]; got != expected {
-		t.Errorf("Expected %v but got %v for unrendered hostname", expected, got)
+		t.Errorf("expected %v but got %v for unrendered hostname", expected, got)
 	}
 }
 
@@ -233,21 +239,24 @@ func TestMetricServiceCreation(t *testing.T) {
     }
   }`
 	if app, err := NewApp(jsonFragment); err != nil {
-		t.Fatalf("Got error while initializing config: %v", err)
+		t.Fatalf("got error while initializing config: %v", err)
 	} else {
 		if len(app.Services) != 1 {
-			t.Errorf("Expected telemetry service but got %v", app.Services)
+			for _, svc := range app.Services {
+				fmt.Printf("%+v\n", svc.Name)
+			}
+			t.Errorf("expected telemetry service but got %v", app.Services)
 		} else {
 			service := app.Services[0]
 			if service.Name != "containerpilot" {
-				t.Errorf("Got incorrect service back: %v", service)
+				t.Errorf("got incorrect service back: %v", service)
 			}
 			for _, envVar := range os.Environ() {
 				if strings.HasPrefix(envVar, "CONTAINERPILOT_CONTAINERPILOT_IP") {
 					return
 				}
 			}
-			t.Errorf("Did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
+			t.Errorf("did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
 		}
 	}
 }
@@ -256,10 +265,10 @@ func TestPidEnvVar(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	os.Args = []string{"this", "-config", "{}", "/testdata/test.sh"}
 	if _, err := LoadApp(); err == nil {
-		t.Fatalf("Expected error in LoadApp but got none")
+		t.Fatalf("expected error in LoadApp but got none")
 	}
 	if pid := os.Getenv("CONTAINERPILOT_PID"); pid == "" {
-		t.Errorf("Expected CONTAINERPILOT_PID to be set even on error")
+		t.Errorf("expected CONTAINERPILOT_PID to be set even on error")
 	}
 }
 

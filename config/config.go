@@ -52,6 +52,7 @@ func parseDiscoveryBackend(rawCfg map[string]interface{}) (discovery.Backend, er
 	var discoveryService discovery.Backend
 	var err error
 	discoveryCount := 0
+
 	for _, key := range discovery.GetBackends() {
 		handler := discovery.GetConfigHook(key)
 		if handler != nil {
@@ -124,7 +125,6 @@ func LoadConfig(configFlag string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(configMap)
 	disc, err := parseDiscoveryBackend(configMap)
 	if err != nil {
 		return nil, err
@@ -158,22 +158,25 @@ func LoadConfig(configFlag string) (*Config, error) {
 	preStart, err := services.NewPreStartConfig(raw.preStart, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse preStart: %v", err)
+	} else if preStart != nil {
+		cfg.Services = append(cfg.Services, preStart)
 	}
-	cfg.Services = append(cfg.Services, preStart)
 
 	// TODO: after we update config syntax we'll remove this section entirely
 	preStop, err := services.NewPreStopConfig(raw.preStop, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse preStop: %v", err)
+	} else if preStop != nil {
+		cfg.Services = append(cfg.Services, preStop)
 	}
-	cfg.Services = append(cfg.Services, preStop)
 
 	// TODO: after we update config syntax we'll remove this section entirely
 	postStop, err := services.NewPostStopConfig(raw.postStop, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse postStop: %v", err)
+	} else if postStop != nil {
+		cfg.Services = append(cfg.Services, postStop)
 	}
-	cfg.Services = append(cfg.Services, postStop)
 
 	checks, err := checks.NewHealthCheckConfigs(raw.services)
 	if err != nil {
