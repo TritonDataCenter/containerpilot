@@ -94,6 +94,17 @@ func (svc *Service) StartService(ctx context.Context) {
 	}
 }
 
+// Kill sends SIGTERM to the Service's executable, if any
+func (svc *Service) Kill() {
+	if svc.exec != nil {
+		if svc.exec.Cmd != nil {
+			if svc.exec.Cmd.Process != nil {
+				svc.exec.Cmd.Process.Kill()
+			}
+		}
+	}
+}
+
 // Run executes the event loop for the Service
 func (svc *Service) Run(bus *events.EventBus) {
 	svc.Subscribe(bus)

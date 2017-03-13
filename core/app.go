@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/config"
@@ -157,6 +158,7 @@ func (a *App) Run() {
 	a.handleSignals()
 	a.handlePolling()
 
+	// TODO: need a way to signal we're done so we can quit!
 	// block forever, as we're polling in the two polling functions
 	select {}
 }
@@ -204,30 +206,19 @@ func (a *App) Terminate() {
 	defer a.signalLock.Unlock()
 	a.Bus.Shutdown()
 
-	// TODO
-
-	// // Run and wait for preStop command to exit (continues
-	// // unconditionally so we don't worry about returned errors here)
-	// commands.RunAndWait(a.PreStopCmd, log.Fields{"process": "PreStop"})
-	// if a.Command == nil || a.Command.Cmd == nil ||
-	// 	a.Command.Cmd.Process == nil {
-	// 	// Not managing the process, so don't do anything
-	// 	return
-	// }
-	// cmd := a.Command.Cmd // get the underlying process
-	// if a.StopTimeout > 0 {
-	// 	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-	// 		log.Warnf("Error sending SIGTERM to application: %s", err)
-	// 	} else {
-	// 		time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
-	// 			log.Infof("Killing Process %#v", cmd.Process)
-	// 			cmd.Process.Kill()
-	// 		})
-	// 		return
-	// 	}
-	// }
-	// log.Infof("Killing Process %#v", a.Command.Cmd.Process)
-	// cmd.Process.Kill()
+	if a.StopTimeout > 0 {
+		time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
+			for _, service := range a.Services {
+				log.Infof("killing processes for service %#v", service.Name)
+				service.Kill()
+			}
+		})
+		return
+	}
+	for _, service := range a.Services {
+		log.Infof("killing processes for service %#v", service.Name)
+		service.Kill()
+	}
 }
 
 // Reload will try to update the running application by
