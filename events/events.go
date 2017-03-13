@@ -79,13 +79,8 @@ func (bus *EventBus) Publish(event Event) {
 	}
 }
 
-// Shutdown all Subscribers
+// Shutdown asks all Subscribers to halt by sending the GlobalShutdown
+// message. Subscribers are responsible for handling this message.
 func (bus *EventBus) Shutdown() {
-	bus.lock.RLock()
-	defer bus.lock.RUnlock()
-	for subscriber := range bus.registry {
-		// sending to an unsubscribed Subscriber shouldn't be a runtime
-		// error, so this is in intentionally allowed to panic here
-		subscriber.Close()
-	}
+	bus.Publish(GlobalShutdown)
 }

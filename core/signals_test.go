@@ -3,7 +3,7 @@ package core
 import (
 	"os"
 	"os/signal"
-	//	"runtime"
+	"reflect"
 	"syscall"
 	"testing"
 	"time"
@@ -36,7 +36,7 @@ func getSignalTestConfig(t *testing.T) *App {
 		Interfaces: []string{"inet"},
 		Exec:       []string{"./testdata/test.sh", "interruptSleep"},
 	}
-	cfg.AddDiscoveryConfig(&NoopServiceBackend{})
+	cfg.Validate(&NoopServiceBackend{})
 	service := services.NewService(cfg)
 	app := EmptyApp()
 	app.StopTimeout = 5
@@ -65,31 +65,24 @@ func TestMaintenanceSignal(t *testing.T) {
 	}
 }
 
-// TODO
-
 // Test handler for SIGTERM. Note that the SIGCHLD handler is fired
 // by this same test, but that we don't have a separate unit test
 // because they'll interfere with each other's state.
-// func TestTerminateSignal(t *testing.T) {
+func TestTerminateSignal(t *testing.T) {
+	app := getSignalTestConfig(t)
+	bus := app.Bus
+	app.Services[0].Run(bus)
 
-// 	app := getSignalTestConfig(t)
-// 	startTime := time.Now()
-// 	go func() {
-// 		if exitCode, _ := commands.RunAndWait(app.Command, nil); exitCode != 2 {
-// 			t.Fatalf("Expected exit code 2 but got %d", exitCode)
-// 		}
-// 	}()
-// 	// we need time for the forked process to start up and this is async
-// 	runtime.Gosched()
-// 	time.Sleep(10 * time.Millisecond)
+	ds := events.NewDebugSubscriber(bus, 2)
+	ds.Run(0)
 
-// 	app.Terminate()
-// 	elapsed := time.Since(startTime)
-// 	if elapsed.Seconds() > float64(app.StopTimeout) {
-// 		t.Fatalf("Expected elapsed time <= %d seconds, but was %.2f",
-// 			app.StopTimeout, elapsed.Seconds())
-// 	}
-// }
+	app.Terminate()
+	ds.Close()
+	expected := []events.Event{events.GlobalShutdown, events.QuitByClose}
+	if !reflect.DeepEqual(ds.Results, expected) {
+		t.Fatalf("expected shutdown but got %v", ds.Results)
+	}
+}
 
 // Test handler for SIGHUP
 func TestReloadSignal(t *testing.T) {
