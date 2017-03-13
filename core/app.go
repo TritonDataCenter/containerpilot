@@ -10,9 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"net/http"
+
 	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/config"
+	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
@@ -38,6 +41,7 @@ type App struct {
 	Tasks          []*tasks.Task
 	Coprocesses    []*coprocesses.Coprocess
 	Telemetry      *telemetry.Telemetry
+	Server         *control.Server
 	PreStartCmd    *commands.Command
 	PreStopCmd     *commands.Command
 	PostStopCmd    *commands.Command
@@ -60,7 +64,6 @@ func EmptyApp() *App {
 
 // LoadApp parses the commandline arguments and loads the config
 func LoadApp() (*App, error) {
-
 	var configFlag string
 	var versionFlag bool
 	var renderFlag string
@@ -127,6 +130,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.Tasks = cfg.Tasks
 	a.Coprocesses = cfg.Coprocesses
 	a.Telemetry = cfg.Telemetry
+	a.Server = cfg.Server
 	a.ConfigFlag = configFlag
 
 	// set an environment variable for each service IP address so that
@@ -161,6 +165,12 @@ func (a *App) Run() {
 	a.Command = cmd
 
 	a.handleSignals()
+
+	// Serve up HTTP over a local control socket
+	if a.Server != nil {
+		log.Debugf("Bootstrapping control server...")
+		a.handleServer()
+	}
 
 	if a.PreStartCmd != nil {
 		// Run the preStart handler, if any, and exit if it returns an error
@@ -313,6 +323,10 @@ func (a *App) load(newApp *App) {
 		a.Telemetry.Shutdown()
 	}
 	a.Telemetry = newApp.Telemetry
+	if a.Server != nil {
+		a.Server.Shutdown()
+	}
+	a.Server = newApp.Server
 	a.Tasks = newApp.Tasks
 	a.Coprocesses = newApp.Coprocesses
 	a.handlePolling()
@@ -361,4 +375,38 @@ func (a *App) stopCoprocesses() {
 	for _, coprocess := range a.Coprocesses {
 		coprocess.Stop()
 	}
+}
+
+// getStatusHandler generates HTTP response for Telemetry status control plane
+// endpoint.
+func (a *App) getStatusHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: need to test for GET requests
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+
+	servicesJSON, err := json.Marshal(a.Services)
+	if err != nil {
+		log.Errorf("Error generating services for '/status': %v", err)
+	}
+	log.Debugf("Marshaled services: %v", string(servicesJSON))
+
+	// w.Write([]byte(`{ "message": true }`))
+	w.Write(servicesJSON)
+}
+
+// postEnvHandler generates HTTP response for updating environment variables of
+// future CP managed processes.
+func (a *App) postEnvHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: need to test HTTP method
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{ "message": true }`))
+}
+
+func (a *App) handleServer() *control.Server {
+	s := a.Server
+	s.Mux.HandleFunc("/status", a.getStatusHandler)
+	s.Mux.HandleFunc("/v3/env", a.postEnvHandler)
+	s.Serve()
+	return s
 }

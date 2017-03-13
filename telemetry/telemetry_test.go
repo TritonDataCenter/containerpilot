@@ -14,7 +14,7 @@ var jsonFragment = []byte(`{
 	"port": 8000,
 	"interfaces": ["inet"],
 	"sensors": [
-       {
+	   {
 		"namespace": "telemetry",
 		"subsystem": "telemetry",
 		"name": "TestTelemetryParse",

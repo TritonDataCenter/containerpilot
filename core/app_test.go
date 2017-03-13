@@ -262,6 +262,23 @@ func TestPidEnvVar(t *testing.T) {
 	}
 }
 
+func TestControlServerConfigParse(t *testing.T) {
+	jsonFragment := `{
+    "consul": "consul:8500",
+    "control": {
+	"socket": "/var/run/cp.socket"
+    }
+  }`
+
+	if app, err := NewApp(jsonFragment); err != nil {
+		t.Fatalf("Got error while initializing config: %v", err)
+	} else {
+		if app.Server.Socket != "/var/run/cp.socket" {
+			t.Errorf("Got incorrect server socket: %v", app.Server.Socket)
+		}
+	}
+}
+
 // ----------------------------------------------------
 // test helpers
 

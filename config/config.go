@@ -13,6 +13,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/backends"
 	"github.com/joyent/containerpilot/commands"
+	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/coprocesses"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/services"
@@ -32,6 +33,7 @@ type rawConfig struct {
 	backendsConfig    []interface{}
 	tasksConfig       []interface{}
 	telemetryConfig   interface{}
+	controlConfig     interface{}
 }
 
 // Config contains the parsed config elements
@@ -47,6 +49,7 @@ type Config struct {
 	Backends       []*backends.Backend
 	Tasks          []*tasks.Task
 	Telemetry      *telemetry.Telemetry
+	Server         *control.Server
 }
 
 const (
@@ -149,6 +152,18 @@ func createTelemetryService(t *telemetry.Telemetry, discoveryService discovery.S
 		return nil, err
 	}
 	return svc, nil
+}
+
+// parseControl ...
+func (cfg *rawConfig) parseControl() (*control.Server, error) {
+	if cfg.controlConfig == nil {
+		return nil, nil
+	}
+	s, err := control.NewServer(cfg.controlConfig)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 func (cfg *rawConfig) parseTasks() ([]*tasks.Task, error) {
@@ -261,6 +276,12 @@ func ParseConfig(configFlag string) (*Config, error) {
 		cfg.Telemetry = telemetry
 		cfg.Services = append(cfg.Services, telemetryService)
 	}
+
+	controlServer, err := raw.parseControl()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Server = controlServer
 
 	tasks, err := raw.parseTasks()
 	if err != nil {
@@ -389,6 +410,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.tasksConfig = decodeArray(configMap["tasks"])
 	result.coprocessesConfig = decodeArray(configMap["coprocesses"])
 	result.telemetryConfig = configMap["telemetry"]
+	result.controlConfig = configMap["control"]
 
 	delete(configMap, "logging")
 	delete(configMap, "preStart")
@@ -400,6 +422,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	delete(configMap, "tasks")
 	delete(configMap, "coprocesses")
 	delete(configMap, "telemetry")
+	delete(configMap, "control")
 	var unused []string
 	for key := range configMap {
 		unused = append(unused, key)
