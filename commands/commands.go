@@ -67,7 +67,6 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fie
 	}
 	go func() {
 		defer cancel()
-		defer c.closeLogs()
 		defer log.Debugf("%s.Run end", c.Name)
 		if err := c.Cmd.Start(); err != nil {
 			log.Errorf("unable to start %s: %v", c.Name, err)
@@ -89,9 +88,10 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fie
 	go func() {
 		select {
 		case <-ctx.Done():
-			// unlock only here because we'll receive this cancel from
-			// both a typical exit and a timeout
+			// unlock and close logs only here because we'll receive this
+			// cancel from both a typical exit and a timeout
 			defer c.lock.Unlock()
+			defer c.closeLogs()
 			// if the context was canceled we don't want to kill the
 			// process because it's already gone
 			if ctx.Err().Error() == "context deadline exceeded" {
@@ -127,14 +127,14 @@ func (c *Command) RunAndWaitForOutput(pctx context.Context, bus *events.EventBus
 		ctx, cancel = context.WithCancel(pctx)
 	}
 	defer cancel()
-	defer c.closeLogs()
 
 	go func() {
 		select {
 		case <-ctx.Done():
-			// unlock only here because we'll receive this cancel from
-			// both a typical exit and a timeout
+			// unlock and close logs only here because we'll receive this
+			// cancel from both a typical exit and a timeout
 			defer c.lock.Unlock()
+			defer c.closeLogs()
 			// if the context was canceled we don't want to kill the
 			// process because it's already gone
 			if ctx.Err().Error() == "context deadline exceeded" {
