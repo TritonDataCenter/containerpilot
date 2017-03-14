@@ -23,7 +23,7 @@ type Telemetry struct {
 }
 
 // NewTelemetry configures a new prometheus Telemetry server
-func NewTelemetry(cfg *TelemetryConfig) *Telemetry {
+func NewTelemetry(cfg *Config) *Telemetry {
 	if cfg == nil {
 		return nil
 	}

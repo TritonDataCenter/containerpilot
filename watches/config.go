@@ -9,8 +9,8 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-// WatchConfig ...
-type WatchConfig struct {
+// Config ...
+type Config struct {
 	Name             string      `mapstructure:"name"`
 	Poll             int         `mapstructure:"poll"` // time in seconds
 	Exec             interface{} `mapstructure:"onChange"`
@@ -21,9 +21,9 @@ type WatchConfig struct {
 	discoveryService discovery.Backend
 }
 
-// NewWatchConfigs parses json config into a validated slice of WatchConfigs
-func NewWatchConfigs(raw []interface{}, disc discovery.Backend) ([]*WatchConfig, error) {
-	var watches []*WatchConfig
+// NewConfigs parses json config into a validated slice of Configs
+func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
+	var watches []*Config
 	if raw == nil {
 		return watches, nil
 	}
@@ -38,8 +38,8 @@ func NewWatchConfigs(raw []interface{}, disc discovery.Backend) ([]*WatchConfig,
 	return watches, nil
 }
 
-// Validate ensures WatchConfig meets all requirements
-func (cfg *WatchConfig) Validate(disc discovery.Backend) error {
+// Validate ensures Config meets all requirements
+func (cfg *Config) Validate(disc discovery.Backend) error {
 	if err := utils.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}

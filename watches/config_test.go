@@ -32,7 +32,7 @@ func TestWatchsParse(t *testing.T) {
 		t.Fatalf("unexpected error decoding JSON: %v", err)
 	}
 
-	if watchs, err := NewWatchConfigs(raw, nil); err != nil {
+	if watchs, err := NewConfigs(raw, nil); err != nil {
 		t.Fatalf("could not parse watchs JSON: %s", err)
 	} else {
 		validateCommandParsed(t, "onChange", watchs[0].exec,
@@ -47,22 +47,22 @@ func TestWatchsParse(t *testing.T) {
 func TestWatchsConfigError(t *testing.T) {
 	var raw []interface{}
 	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
-	_, err := NewWatchConfigs(raw, nil)
-	validateWatchConfigError(t, err, "`name` must not be blank")
+	_, err := NewConfigs(raw, nil)
+	validateConfigError(t, err, "`name` must not be blank")
 	raw = nil
 
 	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
-	_, err = NewWatchConfigs(raw, nil)
-	validateWatchConfigError(t, err, "`onChange` is required in watch myName")
+	_, err = NewConfigs(raw, nil)
+	validateConfigError(t, err, "`onChange` is required in watch myName")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "onChange": "/bin/true", "poll": 1, "timeout": "xx"}]`), &raw)
-	_, err = NewWatchConfigs(raw, nil)
-	validateWatchConfigError(t, err,
+	_, err = NewConfigs(raw, nil)
+	validateConfigError(t, err,
 		"could not parse `timeout` in watch myName: time: invalid duration xx")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "onChange": "/bin/true", "timeout": ""}]`), &raw)
-	_, err = NewWatchConfigs(raw, nil)
-	validateWatchConfigError(t, err, "`poll` must be > 0 in watch myName")
+	_, err = NewConfigs(raw, nil)
+	validateConfigError(t, err, "`poll` must be > 0 in watch myName")
 }
 
 // ------------------------------------------
@@ -81,7 +81,7 @@ func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
 	}
 }
 
-func validateWatchConfigError(t *testing.T, err error, expected string) {
+func validateConfigError(t *testing.T, err error, expected string) {
 	if expected == "" {
 		if err != nil {
 			t.Fatalf("expected no error but got '%s'", err)

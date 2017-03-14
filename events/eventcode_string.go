@@ -4,13 +4,13 @@ package events
 
 import "fmt"
 
-const _EventCode_name = "NoneExitSuccessExitFailedStoppingStoppedStatusHealthyStatusUnhealthyStatusChangedTimerExpiredEnterMaintenanceExitMaintenanceErrorQuitStartupShutdown"
+const eventCodename = "NoneExitSuccessExitFailedStoppingStoppedStatusHealthyStatusUnhealthyStatusChangedTimerExpiredEnterMaintenanceExitMaintenanceErrorQuitStartupShutdown"
 
-var _EventCode_index = [...]uint8{0, 4, 15, 25, 33, 40, 53, 68, 81, 93, 109, 124, 129, 133, 140, 148}
+var eventCodeindex = [...]uint8{0, 4, 15, 25, 33, 40, 53, 68, 81, 93, 109, 124, 129, 133, 140, 148}
 
 func (i EventCode) String() string {
-	if i < 0 || i >= EventCode(len(_EventCode_index)-1) {
+	if i < 0 || i >= EventCode(len(eventCodeindex)-1) {
 		return fmt.Sprintf("EventCode(%d)", i)
 	}
-	return _EventCode_name[_EventCode_index[i]:_EventCode_index[i+1]]
+	return eventCodename[eventCodeindex[i]:eventCodeindex[i+1]]
 }

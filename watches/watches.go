@@ -27,7 +27,7 @@ type Watch struct {
 }
 
 // NewWatch ...
-func NewWatch(cfg *WatchConfig) *Watch {
+func NewWatch(cfg *Config) *Watch {
 	watch := &Watch{
 		Name:             cfg.Name,
 		poll:             cfg.Poll,
@@ -40,8 +40,8 @@ func NewWatch(cfg *WatchConfig) *Watch {
 	return watch
 }
 
-// FromWatchConfigs ...
-func FromWatchConfigs(cfgs []*WatchConfig) []*Watch {
+// FromConfigs ...
+func FromConfigs(cfgs []*Config) []*Watch {
 	watches := []*Watch{}
 	for _, cfg := range cfgs {
 		watch := NewWatch(cfg)

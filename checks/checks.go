@@ -22,7 +22,7 @@ type HealthCheck struct {
 }
 
 // NewHealthCheck ...
-func NewHealthCheck(cfg *HealthCheckConfig) *HealthCheck {
+func NewHealthCheck(cfg *Config) *HealthCheck {
 	check := &HealthCheck{
 		Name: cfg.Name,
 		exec: cfg.exec,
@@ -33,8 +33,8 @@ func NewHealthCheck(cfg *HealthCheckConfig) *HealthCheck {
 	return check
 }
 
-// FromHealthCheckConfigs ...
-func FromHealthCheckConfigs(cfgs []*HealthCheckConfig) []*HealthCheck {
+// FromConfigs ...
+func FromConfigs(cfgs []*Config) []*HealthCheck {
 	checks := []*HealthCheck{}
 	for _, cfg := range cfgs {
 		check := NewHealthCheck(cfg)

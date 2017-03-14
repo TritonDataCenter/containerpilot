@@ -11,7 +11,7 @@ import (
 
 func TestWatchExecOk(t *testing.T) {
 	log.SetLevel(log.WarnLevel) // suppress test noise
-	cfg := &WatchConfig{
+	cfg := &Config{
 		Name:    "mywatchOk",
 		Exec:    "./testdata/test.sh doStuff --debug",
 		Timeout: "100ms",
@@ -27,7 +27,7 @@ func TestWatchExecOk(t *testing.T) {
 
 func TestWatchExecFail(t *testing.T) {
 	log.SetLevel(log.WarnLevel) // suppress test noise
-	cfg := &WatchConfig{
+	cfg := &Config{
 		Name:    "mywatchFail",
 		Exec:    "./testdata/test.sh failStuff",
 		Timeout: "100ms",
@@ -43,7 +43,7 @@ func TestWatchExecFail(t *testing.T) {
 	}
 }
 
-func runWatchTest(cfg *WatchConfig, count int) map[events.Event]int {
+func runWatchTest(cfg *Config, count int) map[events.Event]int {
 	bus := events.NewEventBus()
 	ds := events.NewDebugSubscriber(bus, count)
 	ds.Run(0)

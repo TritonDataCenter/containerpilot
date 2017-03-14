@@ -10,7 +10,7 @@ import (
 
 func TestHealthCheckExecOk(t *testing.T) {
 	log.SetLevel(log.WarnLevel) // suppress test noise
-	cfg := &HealthCheckConfig{
+	cfg := &Config{
 		Name:    "mycheckOk",
 		Exec:    "./testdata/test.sh doStuff --debug",
 		Timeout: "100ms",
@@ -26,7 +26,7 @@ func TestHealthCheckExecOk(t *testing.T) {
 
 func TestHealthCheckExecFail(t *testing.T) {
 	log.SetLevel(log.WarnLevel) // suppress test noise
-	cfg := &HealthCheckConfig{
+	cfg := &Config{
 		Name:    "mycheckFail",
 		Exec:    "./testdata/test.sh failStuff",
 		Timeout: "100ms",
@@ -43,7 +43,7 @@ func TestHealthCheckExecFail(t *testing.T) {
 	}
 }
 
-func runHealthCheckTest(cfg *HealthCheckConfig, count int) map[events.Event]int {
+func runHealthCheckTest(cfg *Config, count int) map[events.Event]int {
 	bus := events.NewEventBus()
 	ds := events.NewDebugSubscriber(bus, count)
 	ds.Run(0)

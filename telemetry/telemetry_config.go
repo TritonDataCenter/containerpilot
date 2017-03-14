@@ -9,9 +9,9 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-// TelemetryConfig represents the service to advertise for finding the metrics
+// Config represents the service to advertise for finding the metrics
 // endpoint, and the collection of Sensors.
-type TelemetryConfig struct {
+type Config struct {
 	Port       int           `mapstructure:"port"`
 	Interfaces []interface{} `mapstructure:"interfaces"` // optional override
 	Tags       []string      `mapstructure:"tags"`
@@ -23,13 +23,13 @@ type TelemetryConfig struct {
 	addr          net.TCPAddr
 }
 
-// NewTelemetryConfig parses json config into a validated TelemetryConfig
+// NewConfig parses json config into a validated Config
 // including a validated ServiceConfig and validated SensorConfigs
-func NewTelemetryConfig(raw interface{}, disc discovery.Backend) (*TelemetryConfig, error) {
+func NewConfig(raw interface{}, disc discovery.Backend) (*Config, error) {
 	if raw == nil {
 		return nil, nil
 	}
-	cfg := &TelemetryConfig{Port: 9090} // default values
+	cfg := &Config{Port: 9090} // default values
 	if err := utils.DecodeRaw(raw, cfg); err != nil {
 		return nil, fmt.Errorf("telemetry configuration error: %v", err)
 	}
@@ -50,7 +50,7 @@ func NewTelemetryConfig(raw interface{}, disc discovery.Backend) (*TelemetryConf
 }
 
 // Validate ...
-func (cfg *TelemetryConfig) Validate(disc discovery.Backend) error {
+func (cfg *Config) Validate(disc discovery.Backend) error {
 	ipAddress, err := utils.IPFromInterfaces(cfg.Interfaces)
 	if err != nil {
 		return err
@@ -65,8 +65,8 @@ func (cfg *TelemetryConfig) Validate(disc discovery.Backend) error {
 	return nil
 }
 
-// ToServiceConfig
-func (cfg *TelemetryConfig) ToServiceConfig() *services.ServiceConfig {
+// ToServiceConfig ...
+func (cfg *Config) ToServiceConfig() *services.ServiceConfig {
 	service := &services.ServiceConfig{
 		Name:       "containerpilot", // TODO: hard-coded?
 		TTL:        15,               // TODO: hard-coded?

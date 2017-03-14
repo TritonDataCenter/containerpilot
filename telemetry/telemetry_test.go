@@ -10,7 +10,7 @@ import (
 
 func TestTelemetryServerRestart(t *testing.T) {
 
-	cfg := &TelemetryConfig{Port: 9090, Interfaces: []interface{}{"lo", "lo0", "inet"}}
+	cfg := &Config{Port: 9090, Interfaces: []interface{}{"lo", "lo0", "inet"}}
 	cfg.Validate(&NoopServiceBackend{})
 
 	telem := NewTelemetry(cfg)

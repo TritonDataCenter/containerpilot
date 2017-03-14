@@ -9,8 +9,8 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-// HealthCheckConfig configures the health check
-type HealthCheckConfig struct {
+// Config configures the health check
+type Config struct {
 	ID           string
 	Name         string `mapstructure:"name"`
 	Poll         int    `mapstructure:"poll"` // time in seconds
@@ -31,9 +31,9 @@ type HealthCheckConfig struct {
 	servicePort       int         `mapstructure:"port"`
 }
 
-// NewHealthCheckConfigs parses json config into a validated slice of HealthCheckConfigs
-func NewHealthCheckConfigs(raw []interface{}) ([]*HealthCheckConfig, error) {
-	var checks []*HealthCheckConfig
+// NewConfigs parses json config into a validated slice of Configs
+func NewConfigs(raw []interface{}) ([]*Config, error) {
+	var checks []*Config
 	if raw == nil {
 		return checks, nil
 	}
@@ -49,8 +49,8 @@ func NewHealthCheckConfigs(raw []interface{}) ([]*HealthCheckConfig, error) {
 	return checks, nil
 }
 
-// Validate ensures HealthCheckConfig meets all requirements
-func (cfg *HealthCheckConfig) Validate() error {
+// Validate ensures Config meets all requirements
+func (cfg *Config) Validate() error {
 	if err := utils.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}

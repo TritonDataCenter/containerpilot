@@ -122,9 +122,9 @@ func NewApp(configFlag string) (*App, error) {
 	}
 	a.StopTimeout = cfg.StopTimeout
 	a.Discovery = cfg.Discovery
-	a.Checks = checks.FromHealthCheckConfigs(cfg.Checks)
+	a.Checks = checks.FromConfigs(cfg.Checks)
 	a.Services = services.FromServiceConfigs(cfg.Services)
-	a.Watches = watches.FromWatchConfigs(cfg.Watches)
+	a.Watches = watches.FromConfigs(cfg.Watches)
 	a.Telemetry = telemetry.NewTelemetry(cfg.Telemetry)
 	a.ConfigFlag = configFlag
 

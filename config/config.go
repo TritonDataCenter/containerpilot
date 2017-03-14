@@ -40,9 +40,9 @@ type Config struct {
 	LogConfig   *LogConfig
 	StopTimeout int
 	Services    []*services.ServiceConfig
-	Checks      []*checks.HealthCheckConfig
-	Watches     []*watches.WatchConfig
-	Telemetry   *telemetry.TelemetryConfig
+	Checks      []*checks.Config
+	Watches     []*watches.Config
+	Telemetry   *telemetry.Config
 }
 
 const (
@@ -191,19 +191,19 @@ func LoadConfig(configFlag string) (*Config, error) {
 		}
 	}
 
-	checks, err := checks.NewHealthCheckConfigs(raw.services)
+	checks, err := checks.NewConfigs(raw.services)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse checks: %v", err)
 	}
 	cfg.Checks = checks
 
-	watches, err := watches.NewWatchConfigs(raw.watches, disc)
+	watches, err := watches.NewConfigs(raw.watches, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse watches: %v", err)
 	}
 	cfg.Watches = watches
 
-	telemetry, err := telemetry.NewTelemetryConfig(raw.telemetry, disc)
+	telemetry, err := telemetry.NewConfig(raw.telemetry, disc)
 	if err != nil {
 		return nil, err
 	}

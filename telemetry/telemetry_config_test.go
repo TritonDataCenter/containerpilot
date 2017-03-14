@@ -26,7 +26,7 @@ var testConfig = []byte(`{
 
 func TestTelemetryConfigParse(t *testing.T) {
 	jsonFragment := decodeRaw(t, testConfig)
-	if telem, err := NewTelemetryConfig(jsonFragment, &NoopServiceBackend{}); err != nil {
+	if telem, err := NewConfig(jsonFragment, &NoopServiceBackend{}); err != nil {
 		t.Fatalf("could not parse telemetry JSON: %s", err)
 	} else {
 		if len(telem.SensorConfigs) != 1 {
@@ -42,7 +42,7 @@ func TestTelemetryConfigParse(t *testing.T) {
 func TestTelemetryConfigBadSensor(t *testing.T) {
 	raw := []byte(`{"sensors": [{"check": "true"}], "interfaces": ["inet"]}`)
 	jsonFragment := decodeRaw(t, raw)
-	_, err := NewTelemetryConfig(jsonFragment, &NoopServiceBackend{})
+	_, err := NewConfig(jsonFragment, &NoopServiceBackend{})
 	expected := "invalid sensor type"
 	if err == nil || !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected '%v' in error from bad sensor type but got %v", err)
@@ -51,7 +51,7 @@ func TestTelemetryConfigBadSensor(t *testing.T) {
 
 func TestTelemetryConfigBadInterface(t *testing.T) {
 	jsonFragment := decodeRaw(t, []byte(`{"interfaces": ["xxxx"]}`))
-	_, err := NewTelemetryConfig(jsonFragment, &NoopServiceBackend{})
+	_, err := NewConfig(jsonFragment, &NoopServiceBackend{})
 	expected := "none of the interface specifications were able to match"
 	if err == nil || !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected '%v' in error from bad interface spec but got '%v'", expected, err)

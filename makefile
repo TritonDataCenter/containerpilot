@@ -144,12 +144,11 @@ cover: build/containerpilot_build
 	mkdir -p cover
 	$(docker) bash ./scripts/cover.sh
 
-## generate Consul server test code
-generate: consul
-	go run integration_tests/generation/genconsul.go -- \
-		$(ROOT)/discovery/consul
-	@docker stop containerpilot_consul
-	@docker rm -f containerpilot_consul
+## generate stringer code
+generate:
+	cd events && stringer -type EventCode
+	# fix this up for making it pass linting
+	sed -i 's/_EventCode_/eventCode/g' ./events/eventcode_string.go
 
 TEST ?= "all"
 ## run integration tests; filter with `TEST=testname make integration`
