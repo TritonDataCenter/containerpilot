@@ -73,14 +73,23 @@ func TestTerminateSignal(t *testing.T) {
 	bus := app.Bus
 	app.Services[0].Run(bus)
 
-	ds := events.NewDebugSubscriber(bus, 2)
+	ds := events.NewDebugSubscriber(bus, 4)
 	ds.Run(0)
 
 	app.Terminate()
 	ds.Close()
-	expected := []events.Event{events.GlobalShutdown, events.QuitByClose}
-	if !reflect.DeepEqual(ds.Results, expected) {
-		t.Fatalf("expected shutdown but got %v", ds.Results)
+
+	got := map[events.Event]int{}
+	for _, result := range ds.Results {
+		got[result]++
+	}
+	if !reflect.DeepEqual(got, map[events.Event]int{
+		events.GlobalShutdown:                                       1,
+		events.QuitByClose:                                          1,
+		events.Event{Code: events.Stopping, Source: "test-service"}: 1,
+		events.Event{Code: events.Stopped, Source: "test-service"}:  1,
+	}) {
+		t.Fatalf("expected shutdown but got:\n%v", ds.Results)
 	}
 }
 
