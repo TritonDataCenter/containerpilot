@@ -9,10 +9,12 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/discovery"
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/utils"
@@ -155,27 +157,38 @@ func LoadConfig(configFlag string) (*Config, error) {
 	cfg.Services = serviceConfigs
 
 	// TODO: after we update config syntax we'll remove this section entirely
-	preStart, err := services.NewPreStartConfig(raw.preStart, disc)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse preStart: %v", err)
-	} else if preStart != nil {
-		cfg.Services = append(cfg.Services, preStart)
-	}
 
-	// TODO: after we update config syntax we'll remove this section entirely
-	preStop, err := services.NewPreStopConfig(raw.preStop, disc)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse preStop: %v", err)
-	} else if preStop != nil {
-		cfg.Services = append(cfg.Services, preStop)
-	}
+	// the "main" service is the one that in v2 we would be waiting for.
+	// we'll use this config to wire up events for preStart/preStop/postStop
+	if len(cfg.Services) > 0 {
+		mainService := cfg.Services[0]
 
-	// TODO: after we update config syntax we'll remove this section entirely
-	postStop, err := services.NewPostStopConfig(raw.postStop, disc)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse postStop: %v", err)
-	} else if postStop != nil {
-		cfg.Services = append(cfg.Services, postStop)
+		preStart, err := services.NewPreStartConfig(raw.preStart, disc)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse preStart: %v", err)
+		} else if preStart != nil {
+			cfg.Services = append(cfg.Services, preStart)
+			mainService.SetStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
+		}
+
+		// TODO: after we update config syntax we'll remove this section entirely
+		preStop, err := services.NewPreStopConfig(raw.preStop, disc)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse preStop: %v", err)
+		} else if preStop != nil {
+			mainService.SetStopping(events.Event{events.ExitSuccess, preStop.Name},
+				time.Duration(10*time.Second)) // TODO where does this come from?
+			cfg.Services = append(cfg.Services, preStop)
+		}
+
+		// TODO: after we update config syntax we'll remove this section entirely
+		postStop, err := services.NewPostStopConfig(raw.postStop, disc)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse postStop: %v", err)
+		} else if postStop != nil {
+			postStop.SetStartup(events.Event{events.Stopped, mainService.Name}, 0)
+			cfg.Services = append(cfg.Services, postStop)
+		}
 	}
 
 	checks, err := checks.NewHealthCheckConfigs(raw.services)

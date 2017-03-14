@@ -41,8 +41,10 @@ type ServiceConfig struct {
 	restartLimit int
 	freqInterval time.Duration
 
-	startupEvent   events.Event
-	startupTimeout time.Duration
+	startupEvent    events.Event
+	startupTimeout  time.Duration
+	stoppingEvent   events.Event
+	stoppingTimeout time.Duration
 
 	/* TODO:
 	These fields are here *only* so we can reuse the config map we use
@@ -76,6 +78,18 @@ func NewServiceConfigs(raw []interface{}, disc discovery.Backend) ([]*ServiceCon
 	return services, nil
 }
 
+// SetStartup ... (TODO: probably temporary until we do the config update)
+func (cfg *ServiceConfig) SetStartup(evt events.Event, timeout time.Duration) {
+	cfg.startupEvent = evt
+	cfg.startupTimeout = timeout
+}
+
+// SetStopping ... (TODO: probably temporary until we do the config update)
+func (cfg *ServiceConfig) SetStopping(evt events.Event, timeout time.Duration) {
+	cfg.stoppingEvent = evt
+	cfg.stoppingTimeout = timeout
+}
+
 // Validate ensures that a ServiceConfig meets all constraints
 func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 	if disc != nil {
@@ -105,8 +119,12 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 	if err := configureFrequency(cfg); err != nil {
 		return err
 	}
-	//	cfg.startupTimeout = 0 // TODO: need to expose this as a config value
-	// cfg.startupEvent = events.GlobalStartup// TODO: need to expose this as a config value
+
+	// TODO: these will be exposed as config values when we do the config update
+	cfg.startupTimeout = 0
+	cfg.startupEvent = events.GlobalStartup
+	cfg.stoppingTimeout = 0
+	cfg.stoppingEvent = events.NonEvent
 
 	if err := configureRestarts(cfg); err != nil {
 		return err
@@ -128,19 +146,19 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 		cfg.exec = cmd
 	}
 
-	interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
-	if ifaceErr != nil {
-		return ifaceErr
-	}
-
-	ipAddress, err := utils.GetIP(interfaces)
-	if err != nil {
-		return err
-	}
-	cfg.ipAddress = ipAddress
-
-	if err := cfg.AddDiscoveryConfig(disc); err != nil {
-		return err
+	if cfg.Port != 0 {
+		interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
+		if ifaceErr != nil {
+			return ifaceErr
+		}
+		ipAddress, err := utils.GetIP(interfaces)
+		if err != nil {
+			return err
+		}
+		cfg.ipAddress = ipAddress
+		if err := cfg.AddDiscoveryConfig(disc); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -11,7 +11,7 @@ import (
 
 func TestServiceRunSafeClose(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 2)
+	ds := events.NewDebugSubscriber(bus, 4)
 	ds.Run(0)
 
 	svc := NewService(&ServiceConfig{Name: "myservice"})
@@ -27,7 +27,12 @@ func TestServiceRunSafeClose(t *testing.T) {
 	}()
 	svc.Bus.Publish(events.GlobalStartup)
 
-	expected := []events.Event{events.GlobalStartup, events.QuitByClose}
+	expected := []events.Event{
+		events.GlobalStartup,
+		events.Event{events.Stopping, "myservice"},
+		events.Event{events.Stopped, "myservice"},
+		events.QuitByClose,
+	}
 	if !reflect.DeepEqual(expected, ds.Results) {
 		t.Fatalf("expected: %v\ngot: %v", expected, ds.Results)
 	}
@@ -36,15 +41,15 @@ func TestServiceRunSafeClose(t *testing.T) {
 // A Service should timeout if not started before the startupTimeout
 func TestServiceRunStartupTimeout(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 4)
+	ds := events.NewDebugSubscriber(bus, 5)
 	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
 
-	cfg := &ServiceConfig{
-		Name:           "myservice",
-		startupTimeout: time.Duration(100 * time.Millisecond),
-		startupEvent:   events.Event{events.Startup, "never"},
-	}
+	cfg := &ServiceConfig{Name: "myservice"}
 	cfg.Validate(&NoopServiceBackend{})
+	cfg.SetStartup(
+		events.Event{events.Startup, "never"},
+		time.Duration(100*time.Millisecond),
+	)
 	svc := NewService(cfg)
 	svc.Run(bus)
 	svc.Bus.Publish(events.GlobalStartup)
@@ -57,17 +62,20 @@ func TestServiceRunStartupTimeout(t *testing.T) {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	svc.Bus.Publish(events.GlobalStartup)
 	ds.Close()
 
-	expected := []events.Event{
-		events.GlobalStartup,
-		events.Event{Code: events.TimerExpired, Source: "myservice"},
-		events.GlobalStartup,
-		events.QuitByClose,
+	got := map[events.Event]int{}
+	for _, result := range ds.Results {
+		got[result]++
 	}
-	if !reflect.DeepEqual(expected, ds.Results) {
-		t.Fatalf("expected: %v\ngot: %v", expected, ds.Results)
+	if !reflect.DeepEqual(got, map[events.Event]int{
+		events.Event{Code: events.TimerExpired, Source: "myservice"}: 1,
+		events.GlobalStartup:                                         1,
+		events.QuitByClose:                                           1,
+		events.Event{Code: events.Stopping, Source: "myservice"}:     1,
+		events.Event{Code: events.Stopped, Source: "myservice"}:      1,
+	}) {
+		t.Fatalf("expected timeout after startup but got:\n%v", ds.Results)
 	}
 }
 

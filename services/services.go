@@ -25,9 +25,13 @@ type Service struct {
 	discoveryService discovery.Backend
 	Definition       *discovery.ServiceDefinition
 
+	// related events
+	startupEvent    events.Event
+	startupTimeout  time.Duration
+	stoppingEvent   events.Event
+	stoppingTimeout time.Duration
+
 	// timing and restarts
-	startupEvent   events.Event
-	startupTimeout time.Duration
 	heartbeat      time.Duration
 	restartLimit   int
 	restartsRemain int
@@ -46,6 +50,8 @@ func NewService(cfg *ServiceConfig) *Service {
 		Definition:       cfg.definition,
 		startupEvent:     cfg.startupEvent,
 		startupTimeout:   cfg.startupTimeout,
+		stoppingEvent:    cfg.stoppingEvent,
+		stoppingTimeout:  cfg.stoppingTimeout,
 		restartLimit:     cfg.restartLimit,
 		restartsRemain:   cfg.restartLimit,
 		frequency:        cfg.freqInterval,
@@ -127,6 +133,7 @@ func (svc *Service) Run(bus *events.EventBus) {
 	}
 
 	go func() {
+	loop: // aw yeah, goto like it's 1968!
 		for {
 			event := <-svc.Rx
 			switch event {
@@ -142,9 +149,8 @@ func (svc *Service) Run(bus *events.EventBus) {
 					Code: events.TimerExpired, Source: svc.Name})
 				svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
 			case events.Event{events.TimerExpired, runEverySource}:
-				if svc.restartLimit != unlimitedRestarts &&
-					svc.restartsRemain <= 0 {
-					break
+				if !svc.restartPermitted() {
+					break loop
 				}
 				svc.restartsRemain--
 				svc.Rx <- svc.startupEvent
@@ -152,19 +158,16 @@ func (svc *Service) Run(bus *events.EventBus) {
 				events.Event{events.Quit, svc.Name},
 				events.QuitByClose,
 				events.GlobalShutdown:
-				svc.Unsubscribe(svc.Bus)
-				svc.Deregister()
-				close(svc.Rx)
-				cancel()
-				svc.Flush <- true
-				return
+				break loop
 			case
 				// TODO: check.Name won't always match svc.Name
 				events.Event{events.ExitSuccess, svc.Name},
 				events.Event{events.ExitFailed, svc.Name}:
-				if (svc.restartLimit != unlimitedRestarts &&
-					svc.restartsRemain <= 0) || svc.frequency > 0 {
-					break
+				if svc.frequency > 0 {
+					break // note: breaks switch only
+				}
+				if !svc.restartPermitted() {
+					break loop
 				}
 				svc.restartsRemain--
 				svc.Rx <- svc.startupEvent
@@ -172,5 +175,44 @@ func (svc *Service) Run(bus *events.EventBus) {
 				svc.StartService(ctx)
 			}
 		}
+		svc.cleanup(ctx, cancel)
 	}()
+}
+
+func (svc *Service) restartPermitted() bool {
+	if svc.restartLimit != unlimitedRestarts && svc.restartsRemain <= 0 {
+		return false
+	}
+	return true
+}
+
+// cleanup fires the Stopping event and will wait to receive a stoppingEvent
+// if one is configured. cleans up registration to event bus and closes all
+// channels and contexts when done.
+func (svc *Service) cleanup(ctx context.Context, cancel context.CancelFunc) {
+	stoppingTimeout := fmt.Sprintf("%s-stopping-timeout", svc.Name)
+	svc.Bus.Publish(events.Event{Code: events.Stopping, Source: svc.Name})
+	if svc.stoppingEvent != events.NonEvent {
+		if svc.stoppingTimeout > 0 {
+			// not having this set is a programmer error not a runtime error
+			events.NewEventTimeout(ctx, svc.Rx,
+				svc.stoppingTimeout, stoppingTimeout)
+		}
+	loop:
+		for {
+			event := <-svc.Rx
+			switch event {
+			case svc.stoppingEvent:
+				break loop
+			case events.Event{events.Stopping, stoppingTimeout}:
+				break loop
+			}
+		}
+	}
+	svc.Unsubscribe(svc.Bus)
+	svc.Deregister()
+	close(svc.Rx)
+	cancel()
+	svc.Bus.Publish(events.Event{Code: events.Stopped, Source: svc.Name})
+	svc.Flush <- true
 }

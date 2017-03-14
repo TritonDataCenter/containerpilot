@@ -30,17 +30,21 @@ func (ds *DebugSubscriber) Run(timeout time.Duration) {
 	if timeout == 0 {
 		timeout = time.Duration(100 * time.Millisecond)
 	}
+	selfTimeout := Event{TimerExpired, "DebugSubscriberTimeout"}
 	NewEventTimeout(context.Background(), ds.Rx, timeout, "DebugSubscriberTimeout")
 	go func() {
 		for {
 			event := <-ds.Rx
-			ds.Results = append(ds.Results, event)
+			// we don't want the mock to record its own timeouts
+			if event != selfTimeout {
+				ds.Results = append(ds.Results, event)
+			}
 			if len(ds.Results) == ds.max {
 				break
 			}
 			switch event {
 			case
-				Event{TimerExpired, "DebugSubscriberTimeout"},
+				selfTimeout,
 				GlobalShutdown,
 				QuitByClose:
 				break

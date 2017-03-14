@@ -17,8 +17,11 @@ type EventCode int
 
 // EventCode enum
 const (
-	ExitSuccess EventCode = iota
-	ExitFailed
+	None        EventCode = iota // placeholder nil-event
+	ExitSuccess                  // emitted when a Runner's exec completes with 0 exit code
+	ExitFailed                   // emitted when a Runner's exec completes with non-0 exit code
+	Stopping                     // emitted when a Runner is about to stop
+	Stopped                      // emitted when a Runner has stopped
 	StatusHealthy
 	StatusUnhealthy
 	StatusChanged
@@ -36,6 +39,7 @@ var (
 	GlobalStartup  = Event{Code: Startup, Source: "global"}
 	GlobalShutdown = Event{Code: Shutdown, Source: "global"}
 	QuitByClose    = Event{Code: Quit, Source: "closed"}
+	NonEvent       = Event{Code: None, Source: ""}
 )
 
 // EventBus ...

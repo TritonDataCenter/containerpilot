@@ -43,8 +43,8 @@ func TestCommandRunAndWaitForOutputBad(t *testing.T) {
 func TestCommandRunWithTimeoutZero(t *testing.T) {
 	cmd, _ := NewCommand("sleep 2", time.Duration(0))
 	got := runtestCommandRun(cmd, 2)
-	expired := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
-	if got[expired] != 1 {
+	timedout := events.Event{events.ExitFailed, "sleep"}
+	if got[timedout] != 1 {
 		t.Fatalf("stopped command prior to test timeout, got events %v", got)
 	}
 }
@@ -104,8 +104,8 @@ func TestEmptyCommand(t *testing.T) {
 
 func TestCommandRunReuseCmd(t *testing.T) {
 	cmd, _ := NewCommand("true", time.Duration(0))
-	runtestCommandRun(cmd, 3)
-	runtestCommandRun(cmd, 3)
+	runtestCommandRun(cmd, 2)
+	runtestCommandRun(cmd, 2)
 }
 
 // test helpers
