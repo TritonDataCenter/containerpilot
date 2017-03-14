@@ -1,14 +1,10 @@
 package services
 
-import (
-	"github.com/joyent/containerpilot/discovery"
-)
-
 // NewPreStartConfig ...
-func NewPreStartConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
-	// TODO!
-	if raw == nil {
-		return nil, nil
+func NewPreStartConfig(raw interface{}) (*ServiceConfig, error) {
+	service := &ServiceConfig{Name: "preStart", Exec: raw}
+	if err := service.Validate(nil); err != nil {
+		return nil, err
 	}
-	return &ServiceConfig{Name: "preStart"}, nil
+	return service, nil
 }

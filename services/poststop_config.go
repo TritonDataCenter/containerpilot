@@ -1,14 +1,10 @@
 package services
 
-import (
-	"github.com/joyent/containerpilot/discovery"
-)
-
 // NewPostStopConfig ...
-func NewPostStopConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
-	// TODO!
-	if raw == nil {
-		return nil, nil
+func NewPostStopConfig(raw interface{}) (*ServiceConfig, error) {
+	service := &ServiceConfig{Name: "postStop", Exec: raw}
+	if err := service.Validate(nil); err != nil {
+		return nil, err
 	}
-	return &ServiceConfig{Name: "postStop"}, nil
+	return service, nil
 }

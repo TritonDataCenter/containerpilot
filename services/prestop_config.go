@@ -1,14 +1,10 @@
 package services
 
-import (
-	"github.com/joyent/containerpilot/discovery"
-)
-
 // NewPreStopConfig ...
-func NewPreStopConfig(raw interface{}, disc discovery.Backend) (*ServiceConfig, error) {
-	// TODO!
-	if raw == nil {
-		return nil, nil
+func NewPreStopConfig(raw interface{}) (*ServiceConfig, error) {
+	service := &ServiceConfig{Name: "preStop", Exec: raw}
+	if err := service.Validate(nil); err != nil {
+		return nil, err
 	}
-	return &ServiceConfig{Name: "preStop"}, nil
+	return service, nil
 }

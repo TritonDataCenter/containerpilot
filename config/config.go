@@ -163,7 +163,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 	if len(cfg.Services) > 0 {
 		mainService := cfg.Services[0]
 
-		preStart, err := services.NewPreStartConfig(raw.preStart, disc)
+		preStart, err := services.NewPreStartConfig(raw.preStart)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse preStart: %v", err)
 		} else if preStart != nil {
@@ -172,7 +172,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 		}
 
 		// TODO: after we update config syntax we'll remove this section entirely
-		preStop, err := services.NewPreStopConfig(raw.preStop, disc)
+		preStop, err := services.NewPreStopConfig(raw.preStop)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse preStop: %v", err)
 		} else if preStop != nil {
@@ -182,7 +182,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 		}
 
 		// TODO: after we update config syntax we'll remove this section entirely
-		postStop, err := services.NewPostStopConfig(raw.postStop, disc)
+		postStop, err := services.NewPostStopConfig(raw.postStop)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse postStop: %v", err)
 		} else if postStop != nil {
