@@ -46,13 +46,15 @@ var (
 type EventBus struct {
 	registry map[Subscriber]bool
 	lock     *sync.RWMutex
+	done     chan bool
 }
 
 // NewEventBus ...
 func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
 	reg := make(map[Subscriber]bool)
-	bus := &EventBus{registry: reg, lock: lock}
+	done := make(chan bool, 1)
+	bus := &EventBus{registry: reg, lock: lock, done: done}
 	return bus
 }
 
@@ -69,6 +71,9 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 	defer bus.lock.Unlock()
 	if _, ok := bus.registry[subscriber]; ok {
 		delete(bus.registry, subscriber)
+	}
+	if len(bus.registry) == 0 {
+		bus.done <- true
 	}
 }
 
@@ -87,4 +92,10 @@ func (bus *EventBus) Publish(event Event) {
 // message. Subscribers are responsible for handling this message.
 func (bus *EventBus) Shutdown() {
 	bus.Publish(GlobalShutdown)
+}
+
+// Wait blocks until the EventBus registry is unpopulated
+func (bus *EventBus) Wait() {
+	<-bus.done
+	close(bus.done)
 }

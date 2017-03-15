@@ -157,10 +157,7 @@ func (a *App) Run() {
 	a.Bus = events.NewEventBus()
 	a.handleSignals()
 	a.handlePolling()
-
-	// TODO: need a way to signal we're done so we can quit!
-	// block forever, as we're polling in the two polling functions
-	select {}
+	a.Bus.Wait()
 }
 
 // Render the command line args thru golang templating so we can
