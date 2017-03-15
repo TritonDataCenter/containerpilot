@@ -53,7 +53,6 @@ func (task *TaskConfig) ToServiceConfig() *ServiceConfig {
 		Exec:         task.Exec,
 		Name:         task.Name,
 		execTimeout:  task.timeout,
-		restart:      true,
 		restartLimit: unlimitedRestarts,
 		freqInterval: task.freqDuration,
 		startupEvent: events.Event{events.TimerExpired, task.Name}, // TODO: probably not the event we want here

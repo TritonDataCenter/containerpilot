@@ -214,10 +214,6 @@ func assertServiceConfigError(t *testing.T, err error, expected string) {
 }
 
 func expectRestarts(t *testing.T, cfg *ServiceConfig, doRestart bool, restartLimit int) {
-	if cfg.restart != doRestart {
-		t.Errorf("service['%v'] restart was %v but expected %v",
-			cfg.Name, cfg.restart, doRestart)
-	}
 	if cfg.restartLimit != restartLimit {
 		t.Errorf("service['%v'] restartLimit %v, but expected %v",
 			cfg.Name, cfg.restartLimit, restartLimit)

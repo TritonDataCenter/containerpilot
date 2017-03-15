@@ -37,7 +37,6 @@ type ServiceConfig struct {
 	// from a CoprocessConfig or TaskConfig
 	Restarts     interface{} `mapstructure:"restarts"`
 	Frequency    string      `mapstructure:"frequency"`
-	restart      bool
 	restartLimit int
 	freqInterval time.Duration
 
@@ -184,7 +183,6 @@ func configureRestarts(cfg *ServiceConfig) error {
 
 	// defaults if omitted
 	if cfg.Restarts == nil {
-		cfg.restart = false
 		cfg.restartLimit = 0
 		return nil
 	}
@@ -219,9 +217,6 @@ func configureRestarts(cfg *ServiceConfig) error {
 	default:
 		return fmt.Errorf(msg, cfg.Restarts)
 	}
-
-	cfg.restart = (cfg.restartLimit > 0 ||
-		cfg.restartLimit == unlimitedRestarts)
 
 	return nil
 }

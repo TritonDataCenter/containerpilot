@@ -113,6 +113,12 @@ func (svc *Service) Kill() {
 
 // Run executes the event loop for the Service
 func (svc *Service) Run(bus *events.EventBus) {
+	if svc.exec == nil {
+		// temporary: after config update having nil exec will be
+		// an error
+		return
+	}
+
 	svc.Subscribe(bus)
 	svc.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
@@ -136,6 +142,7 @@ func (svc *Service) Run(bus *events.EventBus) {
 	loop: // aw yeah, goto like it's 1968!
 		for {
 			event := <-svc.Rx
+			log.Debug(event)
 			switch event {
 			case events.Event{events.TimerExpired, heartbeatSource}:
 				// non-advertised services shouldn't receive this event
@@ -180,10 +187,11 @@ func (svc *Service) Run(bus *events.EventBus) {
 }
 
 func (svc *Service) restartPermitted() bool {
-	if svc.restartLimit != unlimitedRestarts && svc.restartsRemain <= 0 {
-		return false
+	log.Debug("restartPermitted: %v", svc.Name)
+	if svc.restartLimit == unlimitedRestarts || svc.restartsRemain > 0 {
+		return true
 	}
-	return true
+	return false
 }
 
 // cleanup fires the Stopping event and will wait to receive a stoppingEvent

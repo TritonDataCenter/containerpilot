@@ -14,7 +14,9 @@ func TestServiceRunSafeClose(t *testing.T) {
 	ds := events.NewDebugSubscriber(bus, 4)
 	ds.Run(0)
 
-	svc := NewService(&ServiceConfig{Name: "myservice"})
+	cfg := &ServiceConfig{Name: "myservice", Exec: "true"}
+	cfg.Validate(&NoopServiceBackend{})
+	svc := NewService(cfg)
 	svc.Run(bus)
 	svc.Bus.Publish(events.GlobalStartup)
 	svc.Close()
@@ -44,7 +46,7 @@ func TestServiceRunStartupTimeout(t *testing.T) {
 	ds := events.NewDebugSubscriber(bus, 5)
 	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
 
-	cfg := &ServiceConfig{Name: "myservice"}
+	cfg := &ServiceConfig{Name: "myservice", Exec: "true"}
 	cfg.Validate(&NoopServiceBackend{})
 	cfg.SetStartup(
 		events.Event{events.Startup, "never"},
