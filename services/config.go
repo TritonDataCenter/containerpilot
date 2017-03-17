@@ -83,7 +83,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 			if err != nil {
 				return nil, err
 			}
-			service.SetStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
+			service.setStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
 			services = append(services, preStart)
 		}
 		if service.PreStopExec != nil {
@@ -91,8 +91,8 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 			if err != nil {
 				return nil, err
 			}
-			preStop.SetStartup(events.Event{events.Stopping, service.Name}, 0)
-			service.SetStopping(events.Event{events.Stopped, preStop.Name}, 0)
+			preStop.setStartup(events.Event{events.Stopping, service.Name}, 0)
+			service.setStopping(events.Event{events.Stopped, preStop.Name}, 0)
 			services = append(services, preStop)
 		}
 		if service.PostStopExec != nil {
@@ -100,23 +100,11 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 			if err != nil {
 				return nil, err
 			}
-			postStop.SetStartup(events.Event{events.Stopped, service.Name}, 0)
+			postStop.setStartup(events.Event{events.Stopped, service.Name}, 0)
 			services = append(services, postStop)
 		}
 	}
 	return services, nil
-}
-
-// SetStartup ... (TODO: probably temporary until we do the config update)
-func (cfg *Config) SetStartup(evt events.Event, timeout time.Duration) {
-	cfg.startupEvent = evt
-	cfg.startupTimeout = timeout
-}
-
-// SetStopping ... (TODO: probably temporary until we do the config update)
-func (cfg *Config) SetStopping(evt events.Event, timeout time.Duration) {
-	cfg.stoppingEvent = evt
-	cfg.stoppingTimeout = timeout
 }
 
 // Validate ensures that a Config meets all constraints
@@ -127,36 +115,82 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 			return err
 		}
 	}
+	if err := cfg.validateDiscovery(disc); err != nil {
+		return err
+	}
+	if err := cfg.validateFrequency(); err != nil {
+		return err
+	}
+	if err := cfg.validateDependencies(); err != nil {
+		return err
+	}
+	if err := cfg.validateRestarts(); err != nil {
+		return err
+	}
+	if err := cfg.validateExec(); err != nil {
+		return err
+	}
+	return nil
+}
 
+func (cfg *Config) setStartup(evt events.Event, timeout time.Duration) {
+	cfg.startupEvent = evt
+	cfg.startupTimeout = timeout
+}
+
+func (cfg *Config) setStopping(evt events.Event, timeout time.Duration) {
+	cfg.stoppingEvent = evt
+	cfg.stoppingTimeout = timeout
+}
+
+func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
 	// if port isn't set then we won't do any discovery for this service
 	if cfg.Port == 0 {
 		if cfg.Heartbeat > 0 || cfg.TTL > 0 {
 			return fmt.Errorf("`heartbeat` and `ttl` may not be set in service `%s` if `port` is not set", cfg.Name)
 		}
-	} else {
-		if cfg.Heartbeat < 1 {
-			return fmt.Errorf("`poll` must be > 0 in service `%s` when `port` is set", cfg.Name)
-		}
-		if cfg.TTL < 1 {
-			return fmt.Errorf("`ttl` must be > 0 in service `%s` when `port` is set", cfg.Name)
-		}
+		return nil
 	}
-
+	if cfg.Heartbeat < 1 {
+		return fmt.Errorf("`poll` must be > 0 in service `%s` when `port` is set", cfg.Name)
+	}
+	if cfg.TTL < 1 {
+		return fmt.Errorf("`ttl` must be > 0 in service `%s` when `port` is set", cfg.Name)
+	}
 	cfg.heartbeatInterval = time.Duration(cfg.Heartbeat) * time.Second
-	if err := configureFrequency(cfg); err != nil {
+	if err := cfg.AddDiscoveryConfig(disc); err != nil {
 		return err
 	}
+	return nil
+}
 
-	// TODO: these will be exposed as config values when we do the config update
+func (cfg *Config) validateFrequency() error {
+	if cfg.Frequency == "" {
+		// defaults if omitted
+		return nil
+	}
+	freq, err := utils.ParseDuration(cfg.Frequency)
+	if err != nil {
+		return fmt.Errorf("unable to parse frequency '%s': %v", cfg.Frequency, err)
+	}
+	if freq < taskMinDuration {
+		return fmt.Errorf("frequency '%s' cannot be less than %v", cfg.Frequency, taskMinDuration)
+	}
+	cfg.freqInterval = freq
+	return nil
+}
+
+func (cfg *Config) validateDependencies() error {
+	// TODO: these will be exposed as config values when we do the
+	// config update. for now we set defaults here
 	cfg.startupTimeout = 0
 	cfg.startupEvent = events.GlobalStartup
 	cfg.stoppingTimeout = 0
 	cfg.stoppingEvent = events.NonEvent
+	return nil
+}
 
-	if err := configureRestarts(cfg); err != nil {
-		return err
-	}
-
+func (cfg *Config) validateExec() error {
 	if cfg.ExecTimeout != "" {
 		execTimeout, err := utils.GetTimeout(cfg.ExecTimeout)
 		if err != nil {
@@ -180,33 +214,10 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 		cmd.Name = cfg.Name
 		cfg.exec = cmd
 	}
-
-	if cfg.Port != 0 {
-		if err := cfg.AddDiscoveryConfig(disc); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-func configureFrequency(cfg *Config) error {
-	if cfg.Frequency == "" {
-		// defaults if omitted
-		return nil
-	}
-	freq, err := utils.ParseDuration(cfg.Frequency)
-	if err != nil {
-		return fmt.Errorf("unable to parse frequency '%s': %v", cfg.Frequency, err)
-	}
-	if freq < taskMinDuration {
-		return fmt.Errorf("frequency '%s' cannot be less than %v", cfg.Frequency, taskMinDuration)
-	}
-	cfg.freqInterval = freq
-	return nil
-}
-
-func configureRestarts(cfg *Config) error {
+func (cfg *Config) validateRestarts() error {
 
 	// defaults if omitted
 	if cfg.Restarts == nil {
@@ -258,6 +269,8 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 	if err != nil {
 		return err
 	}
+	hostname, _ := os.Hostname()
+	id := fmt.Sprintf("%s-%s", cfg.Name, hostname)
 
 	cfg.discoveryService = disc
 
@@ -273,9 +286,6 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 			EnableTagOverride:              cfg.ConsulConfig.EnableTagOverride,
 		}
 	}
-	hostname, _ := os.Hostname()
-	id := fmt.Sprintf("%s-%s", cfg.Name, hostname)
-
 	cfg.definition = &discovery.ServiceDefinition{
 		ID:           id,
 		Name:         cfg.Name,

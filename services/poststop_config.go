@@ -2,7 +2,7 @@ package services
 
 // NewPostStopConfig ...
 func NewPostStopConfig(serviceName string, raw interface{}) (*Config, error) {
-	if raw == nil || raw == "" {
+	if raw == nil {
 		return nil, nil
 	}
 	service := &Config{Name: serviceName + ".postStop", Exec: raw}

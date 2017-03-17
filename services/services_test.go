@@ -15,7 +15,7 @@ func TestServiceRunSafeClose(t *testing.T) {
 	ds.Run(0)
 
 	cfg := &Config{Name: "myservice", Exec: "true"}
-	cfg.Validate(&NoopServiceBackend{})
+	cfg.Validate(&NoopDiscoveryBackend{})
 	svc := NewService(cfg)
 	svc.Run(bus)
 	svc.Bus.Publish(events.GlobalStartup)
@@ -47,8 +47,8 @@ func TestServiceRunStartupTimeout(t *testing.T) {
 	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
 
 	cfg := &Config{Name: "myservice", Exec: "true"}
-	cfg.Validate(&NoopServiceBackend{})
-	cfg.SetStartup(
+	cfg.Validate(&NoopDiscoveryBackend{})
+	cfg.setStartup(
 		events.Event{events.Startup, "never"},
 		time.Duration(100*time.Millisecond),
 	)
@@ -95,7 +95,7 @@ func TestServiceRunRestarts(t *testing.T) {
 			Exec:         []string{"./testdata/test.sh", "doStuff", "runRestartsTest"},
 			Restarts:     restarts,
 		}
-		cfg.Validate(&NoopServiceBackend{})
+		cfg.Validate(&NoopDiscoveryBackend{})
 		svc := NewService(cfg)
 		svc.Run(bus)
 		svc.Bus.Publish(events.GlobalStartup)
@@ -131,7 +131,7 @@ func TestServiceRunPeriodic(t *testing.T) {
 		Frequency:    "10ms",
 		Restarts:     "unlimited",
 	}
-	cfg.Validate(&NoopServiceBackend{})
+	cfg.Validate(&NoopDiscoveryBackend{})
 	svc := NewService(cfg)
 	svc.Run(bus)
 	ds.Run(time.Duration(100 * time.Millisecond))
