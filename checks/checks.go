@@ -78,3 +78,8 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 		}
 	}()
 }
+
+// String implements the stdlib fmt.Stringer interface for pretty-printing
+func (check *HealthCheck) String() string {
+	return "HealthCheck[%v]" + check.Name // TODO: is there a better representation???
+}

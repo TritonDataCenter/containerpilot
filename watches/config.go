@@ -70,3 +70,8 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	cfg.discoveryService = disc
 	return nil
 }
+
+// String implements the stdlib fmt.Stringer interface for pretty-printing
+func (cfg *Config) String() string {
+	return "watches.Config[" + cfg.Name + "]" // TODO: is there a better representation???
+}

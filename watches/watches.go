@@ -95,3 +95,8 @@ func (watch *Watch) Run(bus *events.EventBus) {
 		}
 	}()
 }
+
+// String implements the stdlib fmt.Stringer interface for pretty-printing
+func (watch *Watch) String() string {
+	return "watches.Watch[" + watch.Name + "]" // TODO: is there a better representation???
+}

@@ -81,3 +81,8 @@ func (cfg *Config) Validate() error {
 
 	return nil
 }
+
+// String implements the stdlib fmt.Stringer interface for pretty-printing
+func (cfg *Config) String() string {
+	return "checks.Config[" + cfg.Name + "]" // TODO: is there a better representation???
+}
