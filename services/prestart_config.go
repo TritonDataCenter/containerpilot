@@ -1,11 +1,11 @@
 package services
 
 // NewPreStartConfig ...
-func NewPreStartConfig(raw interface{}) (*ServiceConfig, error) {
+func NewPreStartConfig(serviceName string, raw interface{}) (*Config, error) {
 	if raw == nil || raw == "" {
 		return nil, nil
 	}
-	service := &ServiceConfig{Name: "preStart", Exec: raw}
+	service := &Config{Name: serviceName + ".preStart", Exec: raw}
 	if err := service.Validate(nil); err != nil {
 		return nil, err
 	}

@@ -29,24 +29,38 @@ type Config struct {
 	serviceInterfaces interface{} `mapstructure:"interfaces"`
 	serviceTags       []string    `mapstructure:"tags"`
 	servicePort       int         `mapstructure:"port"`
+	serviceExec       interface{} `mapstructure:"exec"`
+	servicePreStart   interface{} `mapstructure:"preStart"`
+	servicePreStop    interface{} `mapstructure:"preStop"`
+	servicePostStop   interface{} `mapstructure:"postStop"`
+	serviceRestarts   interface{} `mapstructure:"restarts"`
+	serviceFrequency  interface{} `mapstructure:"frequency"`
 }
 
 // NewConfigs parses json config into a validated slice of Configs
 func NewConfigs(raw []interface{}) ([]*Config, error) {
-	var checks []*Config
+	var (
+		unvalidatedChecks []*Config
+		validatedChecks   []*Config
+	)
 	if raw == nil {
-		return checks, nil
+		return validatedChecks, nil
 	}
-	if err := utils.DecodeRaw(raw, &checks); err != nil {
+	if err := utils.DecodeRaw(raw, &unvalidatedChecks); err != nil {
 		return nil, fmt.Errorf("HealthCheck configuration error: %v", err)
 	}
-	for _, check := range checks {
-		err := check.Validate()
-		if err != nil {
-			return checks, err
+	for _, check := range unvalidatedChecks {
+		// TODO: we'll remove this check when we split the check
+		// from the service config
+		if check.Exec != nil {
+			err := check.Validate()
+			if err != nil {
+				return validatedChecks, err
+			}
+			validatedChecks = append(validatedChecks, check)
 		}
 	}
-	return checks, nil
+	return validatedChecks, nil
 }
 
 // Validate ensures Config meets all requirements

@@ -9,12 +9,10 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strings"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/services"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/utils"
@@ -23,13 +21,8 @@ import (
 
 type rawConfig struct {
 	logConfig   *LogConfig
-	preStart    interface{}
-	preStop     interface{}
-	postStop    interface{}
 	stopTimeout int
-	coprocesses []interface{}
 	services    []interface{}
-	tasks       []interface{}
 	watches     []interface{}
 	telemetry   interface{}
 }
@@ -39,7 +32,7 @@ type Config struct {
 	Discovery   discovery.Backend
 	LogConfig   *LogConfig
 	StopTimeout int
-	Services    []*services.ServiceConfig
+	Services    []*services.Config
 	Checks      []*checks.Config
 	Watches     []*watches.Config
 	Telemetry   *telemetry.Config
@@ -142,6 +135,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 	}
 	cfg := &Config{}
 	cfg.Discovery = disc
+
 	cfg.LogConfig = raw.logConfig
 
 	stopTimeout, err := raw.parseStopTimeout()
@@ -150,46 +144,11 @@ func LoadConfig(configFlag string) (*Config, error) {
 	}
 	cfg.StopTimeout = stopTimeout
 
-	serviceConfigs, err := services.NewServiceConfigs(raw.services, disc)
+	serviceConfigs, err := services.NewConfigs(raw.services, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse services: %v", err)
 	}
 	cfg.Services = serviceConfigs
-
-	// TODO: after we update config syntax we'll remove this section entirely
-
-	// the "main" service is the one that in v2 we would be waiting for.
-	// we'll use this config to wire up events for preStart/preStop/postStop
-	if len(cfg.Services) > 0 {
-		mainService := cfg.Services[0]
-
-		preStart, err := services.NewPreStartConfig(raw.preStart)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse preStart: %v", err)
-		} else if preStart != nil {
-			cfg.Services = append(cfg.Services, preStart)
-			mainService.SetStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
-		}
-
-		// TODO: after we update config syntax we'll remove this section entirely
-		preStop, err := services.NewPreStopConfig(raw.preStop)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse preStop: %v", err)
-		} else if preStop != nil {
-			mainService.SetStopping(events.Event{events.ExitSuccess, preStop.Name},
-				time.Duration(10*time.Second)) // TODO where does this come from?
-			cfg.Services = append(cfg.Services, preStop)
-		}
-
-		// TODO: after we update config syntax we'll remove this section entirely
-		postStop, err := services.NewPostStopConfig(raw.postStop)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse postStop: %v", err)
-		} else if postStop != nil {
-			postStop.SetStartup(events.Event{events.Stopped, mainService.Name}, 0)
-			cfg.Services = append(cfg.Services, postStop)
-		}
-	}
 
 	checks, err := checks.NewConfigs(raw.services)
 	if err != nil {
@@ -210,24 +169,6 @@ func LoadConfig(configFlag string) (*Config, error) {
 	if telemetry != nil {
 		cfg.Telemetry = telemetry
 		cfg.Services = append(cfg.Services, telemetry.ServiceConfig)
-	}
-
-	// TODO: after we update config syntax we'll remove this section entirely
-	taskServices, err := services.NewTaskConfigs(raw.tasks)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse tasks: %v", err)
-	}
-	for _, task := range taskServices {
-		cfg.Services = append(cfg.Services, task)
-	}
-
-	// TODO: after we update config syntax we'll remove this section entirely
-	coprocessServices, err := services.NewCoprocessConfigs(raw.coprocesses)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse coprocesses: %v", err)
-	}
-	for _, coprocess := range coprocessServices {
-		cfg.Services = append(cfg.Services, coprocess)
 	}
 
 	return cfg, nil
@@ -337,24 +278,14 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	}
 	result.stopTimeout = stopTimeout
 	result.logConfig = &logConfig
-	result.preStart = configMap["preStart"]
-	result.preStop = configMap["preStop"]
-	result.postStop = configMap["postStop"]
 	result.services = decodeArray(configMap["services"])
 	result.watches = decodeArray(configMap["backends"])
-	result.tasks = decodeArray(configMap["tasks"])
-	result.coprocesses = decodeArray(configMap["coprocesses"])
 	result.telemetry = configMap["telemetry"]
 
 	delete(configMap, "logging")
-	delete(configMap, "preStart")
-	delete(configMap, "preStop")
-	delete(configMap, "postStop")
 	delete(configMap, "stopTimeout")
 	delete(configMap, "services")
 	delete(configMap, "backends")
-	delete(configMap, "tasks")
-	delete(configMap, "coprocesses")
 	delete(configMap, "telemetry")
 	var unused []string
 	for key := range configMap {

@@ -27,8 +27,7 @@ func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)   
 
 func getSignalTestConfig(t *testing.T) *App {
 
-	cfg := &services.ServiceConfig{
-		ID:         "test-service",
+	cfg := &services.Config{
 		Name:       "test-service",
 		Heartbeat:  1,
 		Port:       1,

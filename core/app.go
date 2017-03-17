@@ -77,7 +77,6 @@ func LoadApp() (*App, error) {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
 	if templateFlag {
-
 		err := config.RenderConfig(configFlag, renderFlag)
 		if err != nil {
 			return nil, err
@@ -101,16 +100,7 @@ func NewApp(configFlag string) (*App, error) {
 		return nil, err
 	}
 
-	// TODO: remove this after configuration update
-	args := getArgs(flag.Args())
-	mainService := &services.ServiceConfig{
-		Name:     "APP",
-		Exec:     args,
-		Restarts: "never",
-	}
-	mainService.Validate(cfg.Discovery)
-
-	if err = cfg.InitLogging(); err != nil {
+	if err := cfg.InitLogging(); err != nil {
 		return nil, err
 	}
 	if log.GetLevel() >= log.DebugLevel {
@@ -123,10 +113,10 @@ func NewApp(configFlag string) (*App, error) {
 	a.StopTimeout = cfg.StopTimeout
 	a.Discovery = cfg.Discovery
 	a.Checks = checks.FromConfigs(cfg.Checks)
-	a.Services = services.FromServiceConfigs(cfg.Services)
+	a.Services = services.FromConfigs(cfg.Services)
 	a.Watches = watches.FromConfigs(cfg.Watches)
 	a.Telemetry = telemetry.NewTelemetry(cfg.Telemetry)
-	a.ConfigFlag = configFlag
+	a.ConfigFlag = configFlag // stash the old config
 
 	// set an environment variable for each service IP address so that
 	// forked processes have access to this information
@@ -231,22 +221,22 @@ func (a *App) Reload() error {
 		log.Errorf("Error initializing config: %v", err)
 		return err
 	}
-
 	a.Bus.Shutdown()
-	a.load(newApp)
+	a.cloneFrom(newApp)
+	a.handlePolling()
 	return nil
 }
 
-func (a *App) load(newApp *App) {
+func (a *App) cloneFrom(newApp *App) {
 	a.Discovery = newApp.Discovery
 	a.Services = newApp.Services
 	a.Checks = newApp.Checks
+	a.Watches = newApp.Watches
 	a.StopTimeout = newApp.StopTimeout
 	if a.Telemetry != nil {
 		a.Telemetry.Shutdown()
 	}
 	a.Telemetry = newApp.Telemetry
-	a.handlePolling()
 }
 
 // HandlePolling sets up polling functions and write their quit channels

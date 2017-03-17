@@ -1,11 +1,11 @@
 package services
 
 // NewPostStopConfig ...
-func NewPostStopConfig(raw interface{}) (*ServiceConfig, error) {
+func NewPostStopConfig(serviceName string, raw interface{}) (*Config, error) {
 	if raw == nil || raw == "" {
 		return nil, nil
 	}
-	service := &ServiceConfig{Name: "postStop", Exec: raw}
+	service := &Config{Name: serviceName + ".postStop", Exec: raw}
 	if err := service.Validate(nil); err != nil {
 		return nil, err
 	}

@@ -19,12 +19,12 @@ type Config struct {
 
 	// derived in Validate
 	SensorConfigs []*SensorConfig
-	ServiceConfig *services.ServiceConfig
+	ServiceConfig *services.Config
 	addr          net.TCPAddr
 }
 
 // NewConfig parses json config into a validated Config
-// including a validated ServiceConfig and validated SensorConfigs
+// including a validated Config and validated SensorConfigs
 func NewConfig(raw interface{}, disc discovery.Backend) (*Config, error) {
 	if raw == nil {
 		return nil, nil
@@ -66,8 +66,8 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 }
 
 // ToServiceConfig ...
-func (cfg *Config) ToServiceConfig() *services.ServiceConfig {
-	service := &services.ServiceConfig{
+func (cfg *Config) ToServiceConfig() *services.Config {
+	service := &services.Config{
 		Name:       "containerpilot", // TODO: hard-coded?
 		TTL:        15,               // TODO: hard-coded?
 		Heartbeat:  5,                // TODO hard-coded?

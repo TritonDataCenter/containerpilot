@@ -14,32 +14,35 @@ import (
 
 const taskMinDuration = time.Millisecond
 
-// ServiceConfig holds the configuration for service discovery data
-type ServiceConfig struct {
-	ID                string      // used only for ServiceDefinition
-	Exec              interface{} // TODO: this will be parsed from config when we update syntax
-	Name              string      `mapstructure:"name"`
-	Heartbeat         int         `mapstructure:"poll"` // time in seconds
-	heartbeatInterval time.Duration
-	Port              int         `mapstructure:"port"`
-	TTL               int         `mapstructure:"ttl"`
-	Interfaces        interface{} `mapstructure:"interfaces"`
-	Tags              []string    `mapstructure:"tags"`
-	ipAddress         string
+// Config holds the configuration for service discovery data
+type Config struct {
+	Name string      `mapstructure:"name"`
+	Exec interface{} `mapstructure:"exec"`
+
+	// heartbeat and service discovery config
+	Heartbeat         int           `mapstructure:"poll"` // time in seconds
+	TTL               int           `mapstructure:"ttl"`
+	Port              int           `mapstructure:"port"`
+	Interfaces        interface{}   `mapstructure:"interfaces"`
+	Tags              []string      `mapstructure:"tags"`
 	ConsulConfig      *ConsulConfig `mapstructure:"consul"`
+	heartbeatInterval time.Duration
 	discoveryService  discovery.Backend
 	definition        *discovery.ServiceDefinition
-	exec              *commands.Command
-	ExecTimeout       string // TODO: this will be parsed from config when we update syntax
-	execTimeout       time.Duration
 
-	// TODO: currently this will only appear when we create a ServiceConfig
-	// from a CoprocessConfig or TaskConfig
+	// timeouts and restarts
+	ExecTimeout  string      `mapstructure:"execTimeout"`
 	Restarts     interface{} `mapstructure:"restarts"`
 	Frequency    string      `mapstructure:"frequency"`
+	execTimeout  time.Duration
+	exec         *commands.Command
 	restartLimit int
 	freqInterval time.Duration
 
+	// related services
+	PreStartExec    interface{} `mapstructure:"preStart"`
+	PreStopExec     interface{} `mapstructure:"preStop"`
+	PostStopExec    interface{} `mapstructure:"postStop"`
 	startupEvent    events.Event
 	startupTimeout  time.Duration
 	stoppingEvent   events.Event
@@ -60,9 +63,9 @@ type ConsulConfig struct {
 	DeregisterCriticalServiceAfter string `mapstructure:"deregisterCriticalServiceAfter"`
 }
 
-// NewServiceConfigs parses json config into a validated slice of ServiceConfigs
-func NewServiceConfigs(raw []interface{}, disc discovery.Backend) ([]*ServiceConfig, error) {
-	var services []*ServiceConfig
+// NewConfigs parses json config into a validated slice of Configs
+func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
+	var services []*Config
 	if raw == nil {
 		return services, nil
 	}
@@ -74,31 +77,56 @@ func NewServiceConfigs(raw []interface{}, disc discovery.Backend) ([]*ServiceCon
 			return nil, err
 		}
 	}
+	for _, service := range services {
+		if service.PreStartExec != nil {
+			preStart, err := NewPreStartConfig(service.Name, service.PreStartExec)
+			if err != nil {
+				return nil, err
+			}
+			service.SetStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
+			services = append(services, preStart)
+		}
+		if service.PreStopExec != nil {
+			preStop, err := NewPreStopConfig(service.Name, service.PreStopExec)
+			if err != nil {
+				return nil, err
+			}
+			preStop.SetStartup(events.Event{events.Stopping, service.Name}, 0)
+			service.SetStopping(events.Event{events.Stopped, preStop.Name}, 0)
+			services = append(services, preStop)
+		}
+		if service.PostStopExec != nil {
+			postStop, err := NewPostStopConfig(service.Name, service.PostStopExec)
+			if err != nil {
+				return nil, err
+			}
+			postStop.SetStartup(events.Event{events.Stopped, service.Name}, 0)
+			services = append(services, postStop)
+		}
+	}
 	return services, nil
 }
 
 // SetStartup ... (TODO: probably temporary until we do the config update)
-func (cfg *ServiceConfig) SetStartup(evt events.Event, timeout time.Duration) {
+func (cfg *Config) SetStartup(evt events.Event, timeout time.Duration) {
 	cfg.startupEvent = evt
 	cfg.startupTimeout = timeout
 }
 
 // SetStopping ... (TODO: probably temporary until we do the config update)
-func (cfg *ServiceConfig) SetStopping(evt events.Event, timeout time.Duration) {
+func (cfg *Config) SetStopping(evt events.Event, timeout time.Duration) {
 	cfg.stoppingEvent = evt
 	cfg.stoppingTimeout = timeout
 }
 
-// Validate ensures that a ServiceConfig meets all constraints
-func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
+// Validate ensures that a Config meets all constraints
+func (cfg *Config) Validate(disc discovery.Backend) error {
 	if disc != nil {
 		// non-advertised services don't need to have their names validated
 		if err := utils.ValidateServiceName(cfg.Name); err != nil {
 			return err
 		}
 	}
-	hostname, _ := os.Hostname()
-	cfg.ID = fmt.Sprintf("%s-%s", cfg.Name, hostname)
 
 	// if port isn't set then we won't do any discovery for this service
 	if cfg.Port == 0 {
@@ -134,6 +162,11 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 		if err != nil {
 			return fmt.Errorf("could not parse `timeout` for service %s: %v", cfg.Name, err)
 		}
+		if execTimeout < time.Duration(1*time.Millisecond) {
+			// if there's no timeout set, that's ok, but if we have a timeout
+			// set we need to make sure it's functional
+			return fmt.Errorf("timeout '%v' cannot be less than 1ms", cfg.ExecTimeout)
+		}
 		cfg.execTimeout = execTimeout
 	}
 	if cfg.Exec != nil {
@@ -141,20 +174,14 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 		if err != nil {
 			return fmt.Errorf("could not parse `exec` for service %s: %s", cfg.Name, err)
 		}
+		if cfg.Name == "" {
+			cfg.Name = cmd.Exec
+		}
 		cmd.Name = cfg.Name
 		cfg.exec = cmd
 	}
 
 	if cfg.Port != 0 {
-		interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
-		if ifaceErr != nil {
-			return ifaceErr
-		}
-		ipAddress, err := utils.GetIP(interfaces)
-		if err != nil {
-			return err
-		}
-		cfg.ipAddress = ipAddress
 		if err := cfg.AddDiscoveryConfig(disc); err != nil {
 			return err
 		}
@@ -163,7 +190,7 @@ func (cfg *ServiceConfig) Validate(disc discovery.Backend) error {
 	return nil
 }
 
-func configureFrequency(cfg *ServiceConfig) error {
+func configureFrequency(cfg *Config) error {
 	if cfg.Frequency == "" {
 		// defaults if omitted
 		return nil
@@ -179,7 +206,7 @@ func configureFrequency(cfg *ServiceConfig) error {
 	return nil
 }
 
-func configureRestarts(cfg *ServiceConfig) error {
+func configureRestarts(cfg *Config) error {
 
 	// defaults if omitted
 	if cfg.Restarts == nil {
@@ -187,7 +214,7 @@ func configureRestarts(cfg *ServiceConfig) error {
 		return nil
 	}
 
-	const msg = `invalid 'restarts' field "%v": accepts positive integers, "unlimited" or "never"`
+	const msg = `invalid 'restarts' field "%v": accepts positive integers, "unlimited", or "never"`
 
 	switch t := cfg.Restarts.(type) {
 	case string:
@@ -222,8 +249,18 @@ func configureRestarts(cfg *ServiceConfig) error {
 }
 
 // AddDiscoveryConfig ...
-func (cfg *ServiceConfig) AddDiscoveryConfig(disc discovery.Backend) error {
+func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
+	interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
+	if ifaceErr != nil {
+		return ifaceErr
+	}
+	ipAddress, err := utils.GetIP(interfaces)
+	if err != nil {
+		return err
+	}
+
 	cfg.discoveryService = disc
+
 	var consulExtras *discovery.ConsulExtras
 	if cfg.ConsulConfig != nil {
 		if cfg.ConsulConfig.DeregisterCriticalServiceAfter != "" {
@@ -236,14 +273,22 @@ func (cfg *ServiceConfig) AddDiscoveryConfig(disc discovery.Backend) error {
 			EnableTagOverride:              cfg.ConsulConfig.EnableTagOverride,
 		}
 	}
+	hostname, _ := os.Hostname()
+	id := fmt.Sprintf("%s-%s", cfg.Name, hostname)
+
 	cfg.definition = &discovery.ServiceDefinition{
-		ID:           cfg.ID,
+		ID:           id,
 		Name:         cfg.Name,
 		Port:         cfg.Port,
 		TTL:          cfg.TTL,
 		Tags:         cfg.Tags,
-		IPAddress:    cfg.ipAddress,
+		IPAddress:    ipAddress,
 		ConsulExtras: consulExtras,
 	}
 	return nil
+}
+
+// String implements the stdlib fmt.Stringer interface for pretty-printing
+func (cfg *Config) String() string {
+	return "services.Config[" + cfg.Name + "]" // TODO: is there a better representation???
 }

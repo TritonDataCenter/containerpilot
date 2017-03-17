@@ -59,57 +59,57 @@ var testJSON = `{
 }
 `
 
-func TestValidConfigParse(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
+// func TestValidConfigParse(t *testing.T) {
+// 	defer argTestCleanup(argTestSetup())
 
-	os.Setenv("TEST", "HELLO")
-	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "valid1", "--debug"}
-	app, err := LoadApp()
-	if err != nil {
-		t.Fatalf("unexpected error in LoadApp: %v", err)
-	}
+// 	os.Setenv("TEST", "HELLO")
+// 	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "valid1", "--debug"}
+// 	app, err := LoadApp()
+// 	if err != nil {
+// 		t.Fatalf("unexpected error in LoadApp: %v", err)
+// 	}
 
-	if len(app.Watches) != 2 || len(app.Services) != 5 {
-		t.Fatalf("expected 2 watches and 2 services but got: len(watches)=%d, len(services)=%d", len(app.Watches), len(app.Services))
-	}
-	args := flag.Args()
-	if len(args) != 3 || args[0] != "/testdata/test.sh" {
-		t.Errorf("expected 3 args but got unexpected results: %v", args)
-	}
+// 	if len(app.Watches) != 2 || len(app.Services) != 5 {
+// 		t.Fatalf("expected 2 watches and 2 services but got: len(watches)=%d, len(services)=%d", len(app.Watches), len(app.Services))
+// 	}
+// 	args := flag.Args()
+// 	if len(args) != 3 || args[0] != "/testdata/test.sh" {
+// 		t.Errorf("expected 3 args but got unexpected results: %v", args)
+// 	}
 
-	expectedTags := []string{"tag1", "tag2"}
-	if !reflect.DeepEqual(app.Services[0].Definition.Tags, expectedTags) {
-		t.Errorf("expected tags %s for serviceA, but got: %s", expectedTags, app.Services[0].Definition.Tags)
-	}
+// 	expectedTags := []string{"tag1", "tag2"}
+// 	if !reflect.DeepEqual(app.Services[0].Definition.Tags, expectedTags) {
+// 		t.Errorf("expected tags %s for serviceA, but got: %s", expectedTags, app.Services[0].Definition.Tags)
+// 	}
 
-	if app.Services[1].Definition.Tags != nil {
-		t.Errorf("expected no tags for serviceB, but got: %s", app.Services[1].Definition.Tags)
-	}
+// 	if app.Services[1].Definition.Tags != nil {
+// 		t.Errorf("expected no tags for serviceB, but got: %s", app.Services[1].Definition.Tags)
+// 	}
 
-	if app.Services[0].Definition.TTL != 19 {
-		t.Errorf("expected ttl=19 for serviceA, but got: %d", app.Services[1].Definition.TTL)
-	}
+// 	if app.Services[0].Definition.TTL != 19 {
+// 		t.Errorf("expected ttl=19 for serviceA, but got: %d", app.Services[1].Definition.TTL)
+// 	}
 
-	if app.Services[1].Definition.TTL != 103 {
-		t.Errorf("expected ttl=103 for serviceB, but got: %d", app.Services[1].Definition.TTL)
-	}
+// 	if app.Services[1].Definition.TTL != 103 {
+// 		t.Errorf("expected ttl=103 for serviceB, but got: %d", app.Services[1].Definition.TTL)
+// 	}
 
-	if app.Watches[0].Tag != "dev" {
-		t.Errorf("expected tag %s for upstreamA, but got: %s", "dev", app.Watches[0].Tag)
-	}
+// 	if app.Watches[0].Tag != "dev" {
+// 		t.Errorf("expected tag %s for upstreamA, but got: %s", "dev", app.Watches[0].Tag)
+// 	}
 
-	if app.Watches[1].Tag != "" {
-		t.Errorf("expected no tag for upstreamB, but got: %s", app.Watches[1].Tag)
-	}
+// 	if app.Watches[1].Tag != "" {
+// 		t.Errorf("expected no tag for upstreamB, but got: %s", app.Watches[1].Tag)
+// 	}
 
-	// TODO
-	// validateCommandParsed(t, "preStart", app.PreStartCmd,
-	// 	"/bin/to/preStart.sh", []string{"arg1", "arg2"})
-	// validateCommandParsed(t, "preStop", app.PreStopCmd,
-	// 	"/bin/to/preStop.sh", []string{"arg1", "arg2"})
-	// validateCommandParsed(t, "postStop", app.PostStopCmd,
-	// 	"/bin/to/postStop.sh", nil) //[]string{})
-}
+// 	// TODO
+// 	// validateCommandParsed(t, "preStart", app.PreStartCmd,
+// 	// 	"/bin/to/preStart.sh", []string{"arg1", "arg2"})
+// 	// validateCommandParsed(t, "preStop", app.PreStopCmd,
+// 	// 	"/bin/to/preStop.sh", []string{"arg1", "arg2"})
+// 	// validateCommandParsed(t, "postStop", app.PostStopCmd,
+// 	// 	"/bin/to/postStop.sh", nil) //[]string{})
+// }
 
 func TestServiceConfigRequiredFields(t *testing.T) {
 	// Missing `name`

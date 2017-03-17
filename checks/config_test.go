@@ -49,12 +49,12 @@ func TestCheckParse(t *testing.T) {
 
 func TestHealthChecksConfigError(t *testing.T) {
 	var raw []interface{}
-	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
+	json.Unmarshal([]byte(`[{"name": "", "health": "/bin/true"}]`), &raw)
 	_, err := NewConfigs(raw)
 	validateConfigError(t, err, "`name` must not be blank")
 	raw = nil
 
-	json.Unmarshal([]byte(`[{"name": "myName"}]`), &raw)
+	json.Unmarshal([]byte(`[{"name": "myName", "health": "/bin/true"}]`), &raw)
 	_, err = NewConfigs(raw)
 	validateConfigError(t, err, "`poll` must be > 0 in health check myName")
 

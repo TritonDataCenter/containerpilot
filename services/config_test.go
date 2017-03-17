@@ -12,36 +12,27 @@ type TestFragmentServices struct {
 	Services []Service
 }
 
-// Mock Discovery
-// TODO this should probably go into the discovery package for use in testing everywhere
-type NoopServiceBackend struct{}
-
-func (c *NoopServiceBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
-func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool        { return false }
-func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
-func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
-
 func TestServiceConfigValidateExec(t *testing.T) {
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Name:        "serviceA",
 		Exec:        []string{"/bin/to/healthcheck/for/service/A.sh", "A1", "A2"},
 		ExecTimeout: "1ms",
 	}
-	assertServiceConfigExecParsed(t, cfg,
+	assertConfigExecParsed(t, cfg,
 		"/bin/to/healthcheck/for/service/A.sh",
 		[]string{"A1", "A2"})
 
-	cfg = &ServiceConfig{
+	cfg = &Config{
 		Name:        "serviceB",
 		Exec:        "/bin/to/healthcheck/for/service/B.sh B1 B2",
 		ExecTimeout: "1ms",
 	}
-	assertServiceConfigExecParsed(t, cfg,
+	assertConfigExecParsed(t, cfg,
 		"/bin/to/healthcheck/for/service/B.sh",
 		[]string{"B1", "B2"})
 
-	cfg = &ServiceConfig{
+	cfg = &Config{
 		Name:        "myName",
 		Exec:        "/bin/true",
 		ExecTimeout: "xx",
@@ -53,31 +44,31 @@ func TestServiceConfigValidateExec(t *testing.T) {
 	}
 }
 
-func TestServicesConfigValidation(t *testing.T) {
+func TestServiceConfigValidation(t *testing.T) {
 	var raw []interface{}
 	json.Unmarshal([]byte(`[{"name": ""}]`), &raw)
-	_, err := NewServiceConfigs(raw, &NoopServiceBackend{})
-	assertServiceConfigError(t, err, "`name` must not be blank")
+	_, err := NewConfigs(raw, &NoopServiceBackend{})
+	assertConfigError(t, err, "`name` must not be blank")
 	raw = nil
 
 	json.Unmarshal([]byte(`[{"name": "myName", "port": 80}]`), &raw)
-	_, err = NewServiceConfigs(raw, &NoopServiceBackend{})
-	assertServiceConfigError(t, err,
+	_, err = NewConfigs(raw, &NoopServiceBackend{})
+	assertConfigError(t, err,
 		"`poll` must be > 0 in service `myName` when `port` is set")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "port": 80, "poll": 1}]`), &raw)
-	_, err = NewServiceConfigs(raw, &NoopServiceBackend{})
-	assertServiceConfigError(t, err,
+	_, err = NewConfigs(raw, &NoopServiceBackend{})
+	assertConfigError(t, err,
 		"`ttl` must be > 0 in service `myName` when `port` is set")
 
 	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1}]`), &raw)
-	_, err = NewServiceConfigs(raw, &NoopServiceBackend{})
-	assertServiceConfigError(t, err,
+	_, err = NewConfigs(raw, &NoopServiceBackend{})
+	assertConfigError(t, err,
 		"`heartbeat` and `ttl` may not be set in service `myName` if `port` is not set")
 
 	// no health check shouldn't return an error
 	json.Unmarshal([]byte(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80, "interfaces": "inet"}]`), &raw)
-	_, err = NewServiceConfigs(raw, &NoopServiceBackend{})
+	_, err = NewConfigs(raw, &NoopServiceBackend{})
 	if err != nil {
 		t.Fatalf("expected no error but got %v", err)
 	}
@@ -100,7 +91,7 @@ func TestServicesConsulExtrasEnableTagOverride(t *testing.T) {
 }
 ]`)
 
-	if services, err := NewServiceConfigs(decodeJSONRawService(t, jsonFragment), nil); err != nil {
+	if services, err := NewConfigs(decodeJSONRawService(t, jsonFragment), nil); err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
 	} else {
 		if services[0].definition.ConsulExtras.EnableTagOverride != true {
@@ -126,7 +117,7 @@ func TestInvalidServicesConsulExtrasEnableTagOverride(t *testing.T) {
 }
 ]`)
 
-	if _, err := NewServiceConfigs(decodeJSONRawService(t, jsonFragment), nil); err == nil {
+	if _, err := NewConfigs(decodeJSONRawService(t, jsonFragment), nil); err == nil {
 		t.Errorf("ConsulExtras should have thrown error about EnableTagOverride being a string.")
 	}
 }
@@ -148,7 +139,7 @@ func TestServicesConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
 }
 ]`)
 
-	if services, err := NewServiceConfigs(decodeJSONRawService(t, jsonFragment), nil); err != nil {
+	if services, err := NewConfigs(decodeJSONRawService(t, jsonFragment), nil); err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
 	} else {
 		if services[0].definition.ConsulExtras.DeregisterCriticalServiceAfter != "40m" {
@@ -174,13 +165,22 @@ func TestInvalidServicesConsulExtrasDeregisterCriticalServiceAfter(t *testing.T)
 }
 ]`)
 
-	if _, err := NewServiceConfigs(decodeJSONRawService(t, jsonFragment), nil); err == nil {
+	if _, err := NewConfigs(decodeJSONRawService(t, jsonFragment), nil); err == nil {
 		t.Errorf("error should have been generated for duration 'nope'.")
 	}
 }
 
 // ------------------------------------------
 // test helpers
+
+// Mock Discovery
+// TODO this should probably go into the discovery package for use in testing everywhere
+type NoopServiceBackend struct{}
+
+func (c *NoopServiceBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
+func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool        { return false }
+func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
+func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
 
 func decodeJSONRawService(t *testing.T, testJSON json.RawMessage) []interface{} {
 	var raw []interface{}
@@ -190,7 +190,7 @@ func decodeJSONRawService(t *testing.T, testJSON json.RawMessage) []interface{} 
 	return raw
 }
 
-func assertServiceConfigExecParsed(t *testing.T, cfg *ServiceConfig,
+func assertConfigExecParsed(t *testing.T, cfg *Config,
 	expectedExec string, expectedArgs []string) {
 	err := cfg.Validate(&NoopServiceBackend{})
 	if err != nil {
@@ -204,7 +204,7 @@ func assertServiceConfigExecParsed(t *testing.T, cfg *ServiceConfig,
 	}
 }
 
-func assertServiceConfigError(t *testing.T, err error, expected string) {
+func assertConfigError(t *testing.T, err error, expected string) {
 	if err == nil {
 		t.Fatalf("expected '%s' but got nil error", expected)
 	}
@@ -213,7 +213,7 @@ func assertServiceConfigError(t *testing.T, err error, expected string) {
 	}
 }
 
-func expectRestarts(t *testing.T, cfg *ServiceConfig, doRestart bool, restartLimit int) {
+func expectRestarts(t *testing.T, cfg *Config, doRestart bool, restartLimit int) {
 	if cfg.restartLimit != restartLimit {
 		t.Errorf("service['%v'] restartLimit %v, but expected %v",
 			cfg.Name, cfg.restartLimit, restartLimit)

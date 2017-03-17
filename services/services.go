@@ -40,8 +40,8 @@ type Service struct {
 	events.EventHandler // Event handling
 }
 
-// NewService creates a new Service from a ServiceConfig
-func NewService(cfg *ServiceConfig) *Service {
+// NewService creates a new Service from a Config
+func NewService(cfg *Config) *Service {
 	service := &Service{
 		Name:             cfg.Name,
 		exec:             cfg.exec,
@@ -61,8 +61,8 @@ func NewService(cfg *ServiceConfig) *Service {
 	return service
 }
 
-// FromServiceConfigs ...
-func FromServiceConfigs(cfgs []*ServiceConfig) []*Service {
+// FromConfigs ...
+func FromConfigs(cfgs []*Config) []*Service {
 	services := []*Service{}
 	for _, cfg := range cfgs {
 		service := NewService(cfg)
@@ -223,4 +223,9 @@ func (svc *Service) cleanup(ctx context.Context, cancel context.CancelFunc) {
 	cancel()
 	svc.Bus.Publish(events.Event{Code: events.Stopped, Source: svc.Name})
 	svc.Flush <- true
+}
+
+// String implements the stdlib fmt.Stringer interface for pretty-printing
+func (svc *Service) String() string {
+	return "services.Service[" + svc.Name + "]" // TODO: is there a better representation???
 }

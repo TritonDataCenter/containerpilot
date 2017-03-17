@@ -1,11 +1,11 @@
 package services
 
 // NewPreStopConfig ...
-func NewPreStopConfig(raw interface{}) (*ServiceConfig, error) {
+func NewPreStopConfig(serviceName string, raw interface{}) (*Config, error) {
 	if raw == nil || raw == "" {
 		return nil, nil
 	}
-	service := &ServiceConfig{Name: "preStop", Exec: raw}
+	service := &Config{Name: serviceName + ".preStop", Exec: raw}
 	if err := service.Validate(nil); err != nil {
 		return nil, err
 	}
