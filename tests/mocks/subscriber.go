@@ -1,24 +1,26 @@
-package events
+package mocks
 
 import (
 	"context"
 	"time"
+
+	"github.com/joyent/containerpilot/events"
 )
 
 // DebugSubscriber is a test helper or for instrumentation/debugging
 type DebugSubscriber struct {
-	EventHandler
-	Results []Event
+	events.EventHandler
+	Results []events.Event
 	max     int
 }
 
 // NewDebugSubscriber ...
-func NewDebugSubscriber(bus *EventBus, max int) *DebugSubscriber {
+func NewDebugSubscriber(bus *events.EventBus, max int) *DebugSubscriber {
 	ds := &DebugSubscriber{
-		Results: []Event{},
+		Results: []events.Event{},
 		max:     max,
 	}
-	ds.Rx = make(chan Event, 100)
+	ds.Rx = make(chan events.Event, 100)
 	ds.Flush = make(chan bool)
 	ds.Bus = bus
 	return ds
@@ -30,8 +32,8 @@ func (ds *DebugSubscriber) Run(timeout time.Duration) {
 	if timeout == 0 {
 		timeout = time.Duration(100 * time.Millisecond)
 	}
-	selfTimeout := Event{TimerExpired, "DebugSubscriberTimeout"}
-	NewEventTimeout(context.Background(), ds.Rx, timeout, "DebugSubscriberTimeout")
+	selfTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
+	events.NewEventTimeout(context.Background(), ds.Rx, timeout, "DebugSubscriberTimeout")
 	go func() {
 		for {
 			event := <-ds.Rx
@@ -45,8 +47,8 @@ func (ds *DebugSubscriber) Run(timeout time.Duration) {
 			switch event {
 			case
 				selfTimeout,
-				GlobalShutdown,
-				QuitByClose:
+				events.GlobalShutdown,
+				events.QuitByClose:
 				break
 			}
 		}

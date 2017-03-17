@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
+	//	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestHealthCheckExecOk(t *testing.T) {
-	log.SetLevel(log.WarnLevel) // suppress test noise
 	cfg := &Config{
 		Name:    "mycheckOk",
 		Exec:    "./testdata/test.sh doStuff --debug",
@@ -25,7 +25,6 @@ func TestHealthCheckExecOk(t *testing.T) {
 }
 
 func TestHealthCheckExecFail(t *testing.T) {
-	log.SetLevel(log.WarnLevel) // suppress test noise
 	cfg := &Config{
 		Name:    "mycheckFail",
 		Exec:    "./testdata/test.sh failStuff",
@@ -45,7 +44,7 @@ func TestHealthCheckExecFail(t *testing.T) {
 
 func runHealthCheckTest(cfg *Config, count int) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, count)
+	ds := mocks.NewDebugSubscriber(bus, count)
 	ds.Run(0)
 	cfg.Validate()
 	check := NewHealthCheck(cfg)

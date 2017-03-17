@@ -8,11 +8,12 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestCommandRunAndWaitForOutputOk(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 2)
+	ds := mocks.NewDebugSubscriber(bus, 2)
 	ds.Run(0)
 	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", time.Duration(0))
 	cmd.Name = "TestRunAndWaitForOutputOk"
@@ -112,7 +113,7 @@ func TestCommandRunReuseCmd(t *testing.T) {
 
 func runtestCommandRunAndWaitForOutput(cmd *Command, count int) (string, map[events.Event]int) {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, count)
+	ds := mocks.NewDebugSubscriber(bus, count)
 	ds.Run(0)
 	out := cmd.RunAndWaitForOutput(context.Background(), bus)
 	ds.Close()
@@ -125,7 +126,7 @@ func runtestCommandRunAndWaitForOutput(cmd *Command, count int) (string, map[eve
 
 func runtestCommandRun(cmd *Command, count int) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, count)
+	ds := mocks.NewDebugSubscriber(bus, count)
 	ds.Run(200 * time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	cmd.Run(ctx, bus, log.Fields{"process": "test"})

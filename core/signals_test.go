@@ -12,6 +12,7 @@ import (
 	"github.com/joyent/containerpilot/discovery/consul"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 // ------------------------------------------
@@ -72,7 +73,7 @@ func TestTerminateSignal(t *testing.T) {
 	bus := app.Bus
 	app.Services[0].Run(bus)
 
-	ds := events.NewDebugSubscriber(bus, 4)
+	ds := mocks.NewDebugSubscriber(bus, 4)
 	ds.Run(0)
 
 	app.Terminate()

@@ -38,7 +38,8 @@ func TestSafeUnsubscribe(t *testing.T) {
 }
 
 /*
-Dummy TestSubscriber as test helpers
+Dummy TestSubscriber as test helpers; need this because we
+don't want a circular reference with the mocks package
 */
 
 type TestSubscriber struct {

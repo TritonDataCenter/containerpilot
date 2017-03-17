@@ -1,20 +1,20 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/joyent/containerpilot/discovery"
+	"github.com/joyent/containerpilot/tests"
+	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
-var noop = &NoopDiscoveryBackend{}
+var noop = &mocks.NoopDiscoveryBackend{}
 
 func TestServiceConfigHappyPath(t *testing.T) {
 
-	testCfg := decodeRaw(`[
+	testCfg := tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceA",
 		"port": 8080,
@@ -60,79 +60,79 @@ func TestServiceConfigHappyPath(t *testing.T) {
 		t.Fatalf("expected 7 services but got %v", services)
 	}
 	svc0 := services[0]
-	assertEqual(t, svc0.Name, "serviceA", "expected '%v' for svc0.Name but got '%v'")
-	assertEqual(t, svc0.Port, 8080, "expected '%v' for svc0.Port but got '%v'")
-	assertEqual(t, svc0.Exec, "/bin/serviceA", "expected '%v' for svc0.Exec but got '%v'")
-	assertEqual(t, svc0.Tags, []string{"tag1", "tag2"}, "expected '%v' for svc0.Tags but got '%v'")
-	assertEqual(t, svc0.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
+	assert.Equal(t, svc0.Name, "serviceA", "expected '%v' for svc0.Name but got '%v'")
+	assert.Equal(t, svc0.Port, 8080, "expected '%v' for svc0.Port but got '%v'")
+	assert.Equal(t, svc0.Exec, "/bin/serviceA", "expected '%v' for svc0.Exec but got '%v'")
+	assert.Equal(t, svc0.Tags, []string{"tag1", "tag2"}, "expected '%v' for svc0.Tags but got '%v'")
+	assert.Equal(t, svc0.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
 
 	svc1 := services[1]
-	assertEqual(t, svc1.Name, "serviceB", "expected '%v' for svc1.Name but got '%v'")
-	assertEqual(t, svc1.Port, 5000, "expected '%v' for svc1.Port but got '%v'")
-	assertEqual(t, len(svc1.Tags), 0, "expected '%v' for len(svc1.Tags) but got '%v'")
-	assertEqual(t, svc1.Exec, []interface{}{"/bin/serviceB", "B"}, "expected '%v' for svc1.Exec but got '%v'")
-	assertEqual(t, svc1.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
+	assert.Equal(t, svc1.Name, "serviceB", "expected '%v' for svc1.Name but got '%v'")
+	assert.Equal(t, svc1.Port, 5000, "expected '%v' for svc1.Port but got '%v'")
+	assert.Equal(t, len(svc1.Tags), 0, "expected '%v' for len(svc1.Tags) but got '%v'")
+	assert.Equal(t, svc1.Exec, []interface{}{"/bin/serviceB", "B"}, "expected '%v' for svc1.Exec but got '%v'")
+	assert.Equal(t, svc1.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
 
 	svc2 := services[2]
-	assertEqual(t, svc2.Name, "coprocessC", "expected '%v' for svc2.Name but got '%v'")
-	assertEqual(t, svc2.Port, 0, "expected '%v' for svc2.Port but got '%v'")
-	assertEqual(t, svc2.Frequency, "", "expected '%v' for svc2.Frequency but got '%v'")
-	assertEqual(t, svc2.Restarts, "unlimited", "expected '%v' for svc2.Restarts but got '%v'")
+	assert.Equal(t, svc2.Name, "coprocessC", "expected '%v' for svc2.Name but got '%v'")
+	assert.Equal(t, svc2.Port, 0, "expected '%v' for svc2.Port but got '%v'")
+	assert.Equal(t, svc2.Frequency, "", "expected '%v' for svc2.Frequency but got '%v'")
+	assert.Equal(t, svc2.Restarts, "unlimited", "expected '%v' for svc2.Restarts but got '%v'")
 
 	svc3 := services[3]
-	assertEqual(t, svc3.Name, "taskD", "expected '%v' for svc3.Name but got '%v'")
-	assertEqual(t, svc3.Port, 0, "expected '%v' for svc3.Port but got '%v'")
-	assertEqual(t, svc3.Frequency, "1s", "expected '%v' for svc3.Frequency but got '%v'")
-	assertEqual(t, svc3.Restarts, nil, "expected '%v' for svc3.Restarts but got '%v'")
+	assert.Equal(t, svc3.Name, "taskD", "expected '%v' for svc3.Name but got '%v'")
+	assert.Equal(t, svc3.Port, 0, "expected '%v' for svc3.Port but got '%v'")
+	assert.Equal(t, svc3.Frequency, "1s", "expected '%v' for svc3.Frequency but got '%v'")
+	assert.Equal(t, svc3.Restarts, nil, "expected '%v' for svc3.Restarts but got '%v'")
 
 	svc4 := services[4]
-	assertEqual(t, svc4.Name, "serviceA.preStart", "expected '%v' for svc4.Name but got '%v'")
-	assertEqual(t, svc4.Port, 0, "expected '%v' for svc4.Port but got '%v'")
-	assertEqual(t, svc4.Frequency, "", "expected '%v' for svc4.Frequency but got '%v'")
-	assertEqual(t, svc4.Restarts, nil, "expected '%v' for svc4.Restarts but got '%v'")
+	assert.Equal(t, svc4.Name, "serviceA.preStart", "expected '%v' for svc4.Name but got '%v'")
+	assert.Equal(t, svc4.Port, 0, "expected '%v' for svc4.Port but got '%v'")
+	assert.Equal(t, svc4.Frequency, "", "expected '%v' for svc4.Frequency but got '%v'")
+	assert.Equal(t, svc4.Restarts, nil, "expected '%v' for svc4.Restarts but got '%v'")
 
 	svc5 := services[5]
-	assertEqual(t, svc5.Name, "serviceA.preStop", "expected '%v' for svc5.Name but got '%v'")
-	assertEqual(t, svc5.Port, 0, "expected '%v' for svc5.Port but got '%v'")
-	assertEqual(t, svc5.Frequency, "", "expected '%v' for svc5.Frequency but got '%v'")
-	assertEqual(t, svc5.Restarts, nil, "expected '%v' for svc5.Restarts but got '%v'")
+	assert.Equal(t, svc5.Name, "serviceA.preStop", "expected '%v' for svc5.Name but got '%v'")
+	assert.Equal(t, svc5.Port, 0, "expected '%v' for svc5.Port but got '%v'")
+	assert.Equal(t, svc5.Frequency, "", "expected '%v' for svc5.Frequency but got '%v'")
+	assert.Equal(t, svc5.Restarts, nil, "expected '%v' for svc5.Restarts but got '%v'")
 
 	svc6 := services[6]
-	assertEqual(t, svc6.Name, "serviceA.postStop", "expected '%v' for svc6.Name but got '%v'")
-	assertEqual(t, svc6.Port, 0, "expected '%v' for svc6.Port but got '%v'")
-	assertEqual(t, svc6.Frequency, "", "expected '%v' for svc6.Frequency but got '%v'")
-	assertEqual(t, svc6.Restarts, nil, "expected '%v' for svc6.Restarts but got '%v'")
+	assert.Equal(t, svc6.Name, "serviceA.postStop", "expected '%v' for svc6.Name but got '%v'")
+	assert.Equal(t, svc6.Port, 0, "expected '%v' for svc6.Port but got '%v'")
+	assert.Equal(t, svc6.Frequency, "", "expected '%v' for svc6.Frequency but got '%v'")
+	assert.Equal(t, svc6.Restarts, nil, "expected '%v' for svc6.Restarts but got '%v'")
 }
 
 func TestServiceConfigValidateName(t *testing.T) {
 
-	_, err := NewConfigs(decodeRaw(`[{"name": ""}]`), noop)
-	assertError(t, err, "`name` must not be blank")
+	_, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": ""}]`), noop)
+	assert.Error(t, err, "`name` must not be blank")
 
-	cfg, err := NewConfigs(decodeRaw(`[{"name": "", "exec": "myexec"}]`), noop)
-	assertError(t, err, "`name` must not be blank")
+	cfg, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": "", "exec": "myexec"}]`), noop)
+	assert.Error(t, err, "`name` must not be blank")
 
 	// no name permitted only if no discovery backend assigned
-	cfg, err = NewConfigs(decodeRaw(`[{"name": "", "exec": "myexec"}]`), nil)
+	cfg, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "", "exec": "myexec"}]`), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, cfg[0].Name, "myexec", "expected '%v' for cfg.Name got '%v'")
+	assert.Equal(t, cfg[0].Name, "myexec", "expected '%v' for cfg.Name got '%v'")
 }
 
 func TestServiceConfigValidateDiscovery(t *testing.T) {
-	_, err := NewConfigs(decodeRaw(`[{"name": "myName", "port": 80}]`), noop)
-	assertError(t, err, "`poll` must be > 0 in service `myName` when `port` is set")
+	_, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80}]`), noop)
+	assert.Error(t, err, "`poll` must be > 0 in service `myName` when `port` is set")
 
-	_, err = NewConfigs(decodeRaw(`[{"name": "myName", "port": 80, "poll": 1}]`), noop)
-	assertError(t, err, "`ttl` must be > 0 in service `myName` when `port` is set")
+	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80, "poll": 1}]`), noop)
+	assert.Error(t, err, "`ttl` must be > 0 in service `myName` when `port` is set")
 
-	_, err = NewConfigs(decodeRaw(`[{"name": "myName", "poll": 1, "ttl": 1}]`), noop)
-	assertError(t, err,
+	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "poll": 1, "ttl": 1}]`), noop)
+	assert.Error(t, err,
 		"`heartbeat` and `ttl` may not be set in service `myName` if `port` is not set")
 
 	// no health check shouldn't return an error
-	raw := decodeRaw(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80}]`)
+	raw := tests.DecodeRawToSlice(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80}]`)
 	if _, err = NewConfigs(raw, noop); err != nil {
 		t.Fatalf("expected no error but got %v", err)
 	}
@@ -155,7 +155,7 @@ func TestServicesConsulExtrasEnableTagOverride(t *testing.T) {
 	}
 	]`
 
-	if services, err := NewConfigs(decodeRaw(testCfg), nil); err != nil {
+	if services, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
 	} else {
 		if services[0].definition.ConsulExtras.EnableTagOverride != true {
@@ -181,7 +181,7 @@ func TestInvalidServicesConsulExtrasEnableTagOverride(t *testing.T) {
 	}
 	]`
 
-	if _, err := NewConfigs(decodeRaw(testCfg), nil); err == nil {
+	if _, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err == nil {
 		t.Errorf("ConsulExtras should have thrown error about EnableTagOverride being a string.")
 	}
 }
@@ -203,7 +203,7 @@ func TestServicesConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
 	}
 	]`
 
-	if services, err := NewConfigs(decodeRaw(testCfg), nil); err != nil {
+	if services, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
 	} else {
 		if services[0].definition.ConsulExtras.DeregisterCriticalServiceAfter != "40m" {
@@ -229,16 +229,16 @@ func TestInvalidServicesConsulExtrasDeregisterCriticalServiceAfter(t *testing.T)
 	}
 	]`
 
-	if _, err := NewConfigs(decodeRaw(testCfg), nil); err == nil {
+	if _, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err == nil {
 		t.Errorf("error should have been generated for duration 'nope'.")
 	}
 }
 
 func TestServiceConfigValidateFrequency(t *testing.T) {
 	expectErr := func(test, errMsg string) {
-		testCfg := decodeRaw(test)
+		testCfg := tests.DecodeRawToSlice(test)
 		_, err := NewConfigs(testCfg, nil)
-		assertError(t, err, errMsg)
+		assert.Error(t, err, errMsg)
 	}
 	expectErr(`[{"exec": "/bin/taskA", "frequency": "-1s", "execTimeout": "1s"}]`,
 		"frequency '-1s' cannot be less than 1ms")
@@ -258,7 +258,7 @@ func TestServiceConfigValidateFrequency(t *testing.T) {
 
 func TestServiceConfigValidateExec(t *testing.T) {
 
-	testCfg := decodeRaw(`[
+	testCfg := tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceA",
 		"exec": ["/bin/serviceA", "A1", "A2"],
@@ -269,14 +269,14 @@ func TestServiceConfigValidateExec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, cfg[0].exec.Exec, "/bin/serviceA",
+	assert.Equal(t, cfg[0].exec.Exec, "/bin/serviceA",
 		"expected %v for serviceA.exec.Exec got %v")
-	assertEqual(t, cfg[0].exec.Args, []string{"A1", "A2"},
+	assert.Equal(t, cfg[0].exec.Args, []string{"A1", "A2"},
 		"expected %v for serviceA.exec.Args got %v")
-	assertEqual(t, cfg[0].execTimeout, time.Duration(time.Millisecond),
+	assert.Equal(t, cfg[0].execTimeout, time.Duration(time.Millisecond),
 		"expected %v for serviceA.execTimeout got %v")
 
-	testCfg = decodeRaw(`[
+	testCfg = tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceB",
 		"exec": "/bin/serviceB B1 B2",
@@ -287,14 +287,14 @@ func TestServiceConfigValidateExec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, cfg[0].exec.Exec, "/bin/serviceB",
+	assert.Equal(t, cfg[0].exec.Exec, "/bin/serviceB",
 		"expected %v for serviceB.exec.Exec got %v")
-	assertEqual(t, cfg[0].exec.Args, []string{"B1", "B2"},
+	assert.Equal(t, cfg[0].exec.Args, []string{"B1", "B2"},
 		"expected %v for serviceB.exec.Args got %v")
-	assertEqual(t, cfg[0].execTimeout, time.Duration(time.Millisecond),
+	assert.Equal(t, cfg[0].execTimeout, time.Duration(time.Millisecond),
 		"expected %v for serviceB.execTimeout got %v")
 
-	testCfg = decodeRaw(`[
+	testCfg = tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceC",
 		"exec": "/bin/serviceC C1 C2",
@@ -306,7 +306,7 @@ func TestServiceConfigValidateExec(t *testing.T) {
 		t.Fatalf("expected '%s', got '%v'", expected, err)
 	}
 
-	testCfg = decodeRaw(`[
+	testCfg = tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceD",
 		"exec": ""
@@ -323,15 +323,15 @@ func TestServiceConfigValidateRestarts(t *testing.T) {
 
 	expectErr := func(test, val string) {
 		errMsg := fmt.Sprintf(`invalid 'restarts' field "%v": accepts positive integers, "unlimited", or "never"`, val)
-		testCfg := decodeRaw(test)
+		testCfg := tests.DecodeRawToSlice(test)
 		_, err := NewConfigs(testCfg, nil)
-		assertError(t, err, errMsg)
+		assert.Error(t, err, errMsg)
 	}
 	expectErr(`[{"exec": "/bin/coprocessA", "restarts": "invalid"}]`, "invalid")
 	expectErr(`[{"exec": "/bin/coprocessB", "restarts": "-1"}]`, "-1")
 	expectErr(`[{"exec": "/bin/coprocessC", "restarts": -1 }]`, "-1")
 
-	testCfg := decodeRaw(`[
+	testCfg := tests.DecodeRawToSlice(`[
 	{ "exec": "/bin/coprocessD", "restarts": "unlimited" },
 	{ "exec": "/bin/coprocessE", "restarts": "never" },
 	{ "exec": "/bin/coprocessF", "restarts": 1 },
@@ -344,17 +344,17 @@ func TestServiceConfigValidateRestarts(t *testing.T) {
 	cfg, _ := NewConfigs(testCfg, nil)
 	expectMsg := "expected restarts=%v got %v"
 
-	assertEqual(t, cfg[0].restartLimit, -1, expectMsg)
-	assertEqual(t, cfg[1].restartLimit, 0, expectMsg)
-	assertEqual(t, cfg[2].restartLimit, 1, expectMsg)
-	assertEqual(t, cfg[3].restartLimit, 1, expectMsg)
-	assertEqual(t, cfg[4].restartLimit, 0, expectMsg)
-	assertEqual(t, cfg[5].restartLimit, 0, expectMsg)
-	assertEqual(t, cfg[6].restartLimit, 0, expectMsg)
+	assert.Equal(t, cfg[0].restartLimit, -1, expectMsg)
+	assert.Equal(t, cfg[1].restartLimit, 0, expectMsg)
+	assert.Equal(t, cfg[2].restartLimit, 1, expectMsg)
+	assert.Equal(t, cfg[3].restartLimit, 1, expectMsg)
+	assert.Equal(t, cfg[4].restartLimit, 0, expectMsg)
+	assert.Equal(t, cfg[5].restartLimit, 0, expectMsg)
+	assert.Equal(t, cfg[6].restartLimit, 0, expectMsg)
 }
 
 func TestServiceConfigPreStart(t *testing.T) {
-	testCfg := decodeRaw(`[
+	testCfg := tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceA",
 		"exec": "/bin/serviceA",
@@ -364,23 +364,23 @@ func TestServiceConfigPreStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, cfg[1].Name, "serviceA.preStart", "expected '%v' for preStart.Name got '%v")
-	assertEqual(t, cfg[1].exec.Exec, "/bin/to/preStart.sh",
+	assert.Equal(t, cfg[1].Name, "serviceA.preStart", "expected '%v' for preStart.Name got '%v")
+	assert.Equal(t, cfg[1].exec.Exec, "/bin/to/preStart.sh",
 		"expected '%v' for preStart.exec.Exec got '%v")
 
-	testCfg = decodeRaw(`[
+	testCfg = tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceB",
 		"exec": "/bin/serviceB",
 		"preStart": ""
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
-	assertError(t, err,
+	assert.Error(t, err,
 		"could not parse `exec` for service serviceB.preStart: received zero-length argument")
 }
 
 func TestServiceConfigPreStop(t *testing.T) {
-	testCfg := decodeRaw(`[
+	testCfg := tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceA",
 		"exec": "/bin/serviceA",
@@ -390,23 +390,23 @@ func TestServiceConfigPreStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, cfg[1].Name, "serviceA.preStop", "expected '%v' for preStop.Name got '%v")
-	assertEqual(t, cfg[1].exec.Exec, "/bin/to/preStop.sh",
+	assert.Equal(t, cfg[1].Name, "serviceA.preStop", "expected '%v' for preStop.Name got '%v")
+	assert.Equal(t, cfg[1].exec.Exec, "/bin/to/preStop.sh",
 		"expected '%v' for preStop.exec.Exec got '%v")
 
-	testCfg = decodeRaw(`[
+	testCfg = tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceB",
 		"exec": "/bin/serviceB",
 		"preStop": ""
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
-	assertError(t, err,
+	assert.Error(t, err,
 		"could not parse `exec` for service serviceB.preStop: received zero-length argument")
 }
 
 func TestServiceConfigPostStop(t *testing.T) {
-	testCfg := decodeRaw(`[
+	testCfg := tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceA",
 		"exec": "/bin/serviceA",
@@ -416,56 +416,17 @@ func TestServiceConfigPostStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEqual(t, cfg[1].Name, "serviceA.postStop", "expected '%v' for postStop.Name got '%v")
-	assertEqual(t, cfg[1].exec.Exec, "/bin/to/postStop.sh",
+	assert.Equal(t, cfg[1].Name, "serviceA.postStop", "expected '%v' for postStop.Name got '%v")
+	assert.Equal(t, cfg[1].exec.Exec, "/bin/to/postStop.sh",
 		"expected '%v' for postStop.exec.Exec got '%v")
 
-	testCfg = decodeRaw(`[
+	testCfg = tests.DecodeRawToSlice(`[
 	{
 		"name": "serviceB",
 		"exec": "/bin/serviceB",
 		"postStop": ""
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
-	assertError(t, err,
+	assert.Error(t, err,
 		"could not parse `exec` for service serviceB.postStop: received zero-length argument")
-}
-
-// ------------------------------------------
-// test helpers
-
-// Mock Discovery
-// TODO this should probably go into the discovery package for use in testing everywhere
-type NoopDiscoveryBackend struct{}
-
-func (c *NoopDiscoveryBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
-func (c *NoopDiscoveryBackend) CheckForUpstreamChanges(backend, tag string) bool        { return false }
-func (c *NoopDiscoveryBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
-func (c *NoopDiscoveryBackend) Deregister(service *discovery.ServiceDefinition)         {}
-
-// service.NewConfig never receives the raw string, but instead gets parsed
-// into []interface{} in the config package. We'll mimic this behavior here
-func decodeRaw(input string) []interface{} {
-	testCfg := []byte(input)
-	var raw []interface{}
-	if err := json.Unmarshal(testCfg, &raw); err != nil {
-		// this is an error in our test, not in the tested code
-		panic("unexpected error decoding test fixture JSON:\n" + err.Error())
-	}
-	return raw
-}
-
-func assertEqual(t *testing.T, got, expected interface{}, msg string) {
-	if !reflect.DeepEqual(expected, got) {
-		t.Fatalf(msg, expected, got)
-	}
-}
-
-func assertError(t *testing.T, err error, expected string) {
-	if err == nil {
-		t.Fatalf("expected '%s' but got nil error", expected)
-	}
-	if err.Error() != expected {
-		t.Fatalf("expected '%s' but got '%s'", expected, err.Error())
-	}
 }

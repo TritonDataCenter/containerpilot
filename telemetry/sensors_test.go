@@ -12,6 +12,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/tests/mocks"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -100,7 +101,7 @@ func TestSensorBadRecord(t *testing.T) {
 
 func runSensorTest(cfg *SensorConfig, count int) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, count)
+	ds := mocks.NewDebugSubscriber(bus, count)
 	ds.Run(0)
 	cfg.Validate()
 	sensor := NewSensor(cfg)

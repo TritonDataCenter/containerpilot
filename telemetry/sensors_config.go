@@ -47,6 +47,9 @@ func (cfg *SensorConfig) Validate() error {
 	if cfg.Timeout == "" {
 		cfg.Timeout = fmt.Sprintf("%ds", cfg.Poll)
 	}
+	if cfg.Poll <= 0 {
+		return fmt.Errorf("`poll` must be > 0 for sensor %s", cfg.Name)
+	}
 	poll, err := utils.ParseDuration(cfg.Poll)
 	if err != nil {
 		return fmt.Errorf("could not parse `poll` for sensor %s: %v", cfg.Name, err)

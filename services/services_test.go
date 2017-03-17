@@ -7,15 +7,16 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestServiceRunSafeClose(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 4)
+	ds := mocks.NewDebugSubscriber(bus, 4)
 	ds.Run(0)
 
 	cfg := &Config{Name: "myservice", Exec: "true"}
-	cfg.Validate(&NoopDiscoveryBackend{})
+	cfg.Validate(noop)
 	svc := NewService(cfg)
 	svc.Run(bus)
 	svc.Bus.Publish(events.GlobalStartup)
@@ -43,11 +44,11 @@ func TestServiceRunSafeClose(t *testing.T) {
 // A Service should timeout if not started before the startupTimeout
 func TestServiceRunStartupTimeout(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 5)
+	ds := mocks.NewDebugSubscriber(bus, 5)
 	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
 
 	cfg := &Config{Name: "myservice", Exec: "true"}
-	cfg.Validate(&NoopDiscoveryBackend{})
+	cfg.Validate(noop)
 	cfg.setStartup(
 		events.Event{events.Startup, "never"},
 		time.Duration(100*time.Millisecond),
@@ -86,7 +87,7 @@ func TestServiceRunRestarts(t *testing.T) {
 
 	runRestartsTest := func(restarts interface{}, expected int) {
 		bus := events.NewEventBus()
-		ds := events.NewDebugSubscriber(bus, expected+2) // + start and quit
+		ds := mocks.NewDebugSubscriber(bus, expected+2) // + start and quit
 		ds.Run(time.Duration(100 * time.Millisecond))
 
 		cfg := &Config{
@@ -95,7 +96,7 @@ func TestServiceRunRestarts(t *testing.T) {
 			Exec:         []string{"./testdata/test.sh", "doStuff", "runRestartsTest"},
 			Restarts:     restarts,
 		}
-		cfg.Validate(&NoopDiscoveryBackend{})
+		cfg.Validate(noop)
 		svc := NewService(cfg)
 		svc.Run(bus)
 		svc.Bus.Publish(events.GlobalStartup)
@@ -122,7 +123,7 @@ func TestServiceRunPeriodic(t *testing.T) {
 	//	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, TimestampFormat: time.RFC3339Nano})
 	log.SetLevel(log.WarnLevel) // test is noisy otherwise
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, 10)
+	ds := mocks.NewDebugSubscriber(bus, 10)
 
 	cfg := &Config{
 		Name:         "myservice",
@@ -131,7 +132,7 @@ func TestServiceRunPeriodic(t *testing.T) {
 		Frequency:    "10ms",
 		Restarts:     "unlimited",
 	}
-	cfg.Validate(&NoopDiscoveryBackend{})
+	cfg.Validate(noop)
 	svc := NewService(cfg)
 	svc.Run(bus)
 	ds.Run(time.Duration(100 * time.Millisecond))

@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
+
+var noop = &mocks.NoopDiscoveryBackend{Val: true}
 
 func TestWatchExecOk(t *testing.T) {
 	log.SetLevel(log.WarnLevel) // suppress test noise
@@ -45,9 +47,9 @@ func TestWatchExecFail(t *testing.T) {
 
 func runWatchTest(cfg *Config, count int) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := events.NewDebugSubscriber(bus, count)
+	ds := mocks.NewDebugSubscriber(bus, count)
 	ds.Run(0)
-	cfg.Validate(&NoopServiceBackend{})
+	cfg.Validate(noop)
 	watch := NewWatch(cfg)
 	watch.Run(bus)
 
@@ -63,12 +65,3 @@ func runWatchTest(cfg *Config, count int) map[events.Event]int {
 	}
 	return got
 }
-
-// Mock Discovery
-// TODO this should probably go into the discovery package for use in testing everywhere
-type NoopServiceBackend struct{}
-
-func (c *NoopServiceBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
-func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool        { return true }
-func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
-func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
