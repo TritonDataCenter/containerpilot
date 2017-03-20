@@ -73,6 +73,7 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 				check.Bus.Publish(events.Event{events.StatusUnhealthy, check.serviceName})
 			case
 				events.Event{events.Quit, check.Name},
+				events.Event{events.Stopped, check.serviceName},
 				events.QuitByClose,
 				events.GlobalShutdown:
 				check.Unsubscribe(check.Bus)
