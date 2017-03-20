@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
@@ -204,7 +205,8 @@ func (cfg *Config) validateExec() error {
 		cfg.execTimeout = execTimeout
 	}
 	if cfg.Exec != nil {
-		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout)
+		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout,
+			log.Fields{"service": cfg.Name})
 		if err != nil {
 			return fmt.Errorf("could not parse `exec` for service %s: %s", cfg.Name, err)
 		}

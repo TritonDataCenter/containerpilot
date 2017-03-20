@@ -61,7 +61,7 @@ func (cfg *SensorConfig) Validate() error {
 		return fmt.Errorf("could not parse `timeout` for sensor %s: %v", cfg.Name, err)
 	}
 	cfg.timeout = timeout
-	check, err := commands.NewCommand(cfg.Exec, cfg.timeout)
+	check, err := commands.NewCommand(cfg.Exec, cfg.timeout, nil)
 	if err != nil {
 		return fmt.Errorf("could not parse `check` in sensor %s: %s", cfg.Name, err)
 	}

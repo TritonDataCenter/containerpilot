@@ -1,11 +1,6 @@
 test:
-  image: cpfix_consul
-  environment:
-    - CONTAINERPILOT=file:///etc/containerpilot.json
+  image: cpfix_app
   volumes:
     - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
     - './containerpilot.json:/etc/containerpilot.json'
-  command: >
-    /bin/containerpilot
-    echo '{{ .CONTAINERPILOT_TESTENVVAR_IP | default "FAIL" }}'
   mem_limit: 128m

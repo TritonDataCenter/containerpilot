@@ -101,8 +101,7 @@ func (svc *Service) Deregister() {
 // StartService runs the Service's executable
 func (svc *Service) StartService(ctx context.Context) {
 	if svc.exec != nil {
-		svc.exec.Run(ctx, svc.Bus, log.Fields{
-			"process": svc.startupEvent.Code, "id": svc.Name})
+		svc.exec.Run(ctx, svc.Bus)
 	}
 }
 
@@ -226,6 +225,7 @@ func (svc *Service) cleanup(ctx context.Context, cancel context.CancelFunc) {
 	close(svc.Rx)
 	cancel()
 	svc.Bus.Publish(events.Event{Code: events.Stopped, Source: svc.Name})
+	svc.exec.CloseLogs()
 	svc.Flush <- true
 }
 

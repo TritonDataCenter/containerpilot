@@ -12,40 +12,42 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/utils"
 )
 
 const errNoChild = "wait: no child processes"
 
 // Command wraps an os/exec.Cmd with a timeout, logging, and arg parsing.
 type Command struct {
-	Name       string // this gets used only in logs, defaults to Exec
-	Cmd        *exec.Cmd
-	Exec       string
-	Args       []string
-	Timeout    time.Duration
-	logWriters []io.WriteCloser
-	lock       *sync.Mutex
+	Name      string // this gets used only in logs, defaults to Exec
+	Cmd       *exec.Cmd
+	Exec      string
+	Args      []string
+	Timeout   time.Duration
+	logger    io.WriteCloser
+	logFields log.Fields
+	lock      *sync.Mutex
 }
 
 // NewCommand parses JSON config into a Command
-func NewCommand(rawArgs interface{}, timeout time.Duration) (*Command, error) {
+func NewCommand(rawArgs interface{}, timeout time.Duration, fields log.Fields) (*Command, error) {
 	exec, args, err := ParseArgs(rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	cmd := &Command{
-		Name:    exec, // override this in caller
-		Exec:    exec,
-		Args:    args,
-		Timeout: timeout,
-		lock:    &sync.Mutex{},
-	} // cmd, logWriters all created at RunAndWait or RunWithTimeout
+		Name:      exec, // override this in caller
+		Exec:      exec,
+		Args:      args,
+		Timeout:   timeout,
+		lock:      &sync.Mutex{},
+		logger:    log.StandardLogger().Writer(),
+		logFields: fields,
+	} // cmd created at RunAndWait or RunWithTimeout
 	return cmd, nil
 }
 
 // Run ...
-func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fields) {
+func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 	if c == nil {
 		// TODO: will this ever get called like this?
 		log.Debugf("nothing to run for %s", c.Name)
@@ -55,7 +57,10 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fie
 	// realistic configuration but this ensures that's the case
 	c.lock.Lock()
 	log.Debugf("%s.Run start", c.Name)
-	c.setUpCmd(fields)
+	c.setUpCmd()
+	c.Cmd.Stdout = c.logger
+	c.Cmd.Stderr = c.logger
+
 	var (
 		ctx    context.Context
 		cancel context.CancelFunc
@@ -88,10 +93,9 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus, fields log.Fie
 	go func() {
 		select {
 		case <-ctx.Done():
-			// unlock and close logs only here because we'll receive this
+			// unlock only here because we'll receive this
 			// cancel from both a typical exit and a timeout
 			defer c.lock.Unlock()
-			defer c.closeLogs()
 			// if the context was canceled we don't want to kill the
 			// process because it's already gone
 			if ctx.Err().Error() == "context deadline exceeded" {
@@ -116,7 +120,7 @@ func (c *Command) RunAndWaitForOutput(pctx context.Context, bus *events.EventBus
 	// realistic configuration but this ensures that's the case
 	c.lock.Lock()
 	log.Debugf("%s.Run start", c.Name)
-	c.setUpCmd(nil)
+	c.setUpCmd()
 	var (
 		ctx    context.Context
 		cancel context.CancelFunc
@@ -131,10 +135,9 @@ func (c *Command) RunAndWaitForOutput(pctx context.Context, bus *events.EventBus
 	go func() {
 		select {
 		case <-ctx.Done():
-			// unlock and close logs only here because we'll receive this
+			// unlock only here because we'll receive this
 			// cancel from both a typical exit and a timeout
 			defer c.lock.Unlock()
-			defer c.closeLogs()
 			// if the context was canceled we don't want to kill the
 			// process because it's already gone
 			if ctx.Err().Error() == "context deadline exceeded" {
@@ -180,15 +183,8 @@ func (c *Command) wait() (int, error) {
 	return 0, nil
 }
 
-func (c *Command) setUpCmd(fields log.Fields) {
+func (c *Command) setUpCmd() {
 	cmd := ArgsToCmd(c.Exec, c.Args)
-	if fields != nil {
-		stdout := utils.NewLogWriter(fields, log.InfoLevel)
-		stderr := utils.NewLogWriter(fields, log.DebugLevel)
-		c.logWriters = []io.WriteCloser{stdout, stderr}
-		cmd.Stdout = stdout
-		cmd.Stderr = stderr
-	}
 
 	// assign a unique process group ID so we can kill all
 	// its children on timeout
@@ -205,13 +201,9 @@ func (c *Command) Kill() {
 	}
 }
 
-func (c *Command) closeLogs() {
-	if c.logWriters == nil {
-		return
+func (c *Command) CloseLogs() {
+	if c != nil && c.logger != nil {
+		c.logger.Close()
 	}
-	for _, w := range c.logWriters {
-		if err := w.Close(); err != nil {
-			log.Errorf("unable to close log writer : %v", err)
-		}
-	}
+	return
 }

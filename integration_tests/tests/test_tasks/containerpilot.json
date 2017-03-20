@@ -1,6 +1,5 @@
 {
   "consul": "consul:8500",
-  "preStart": "/reload-app.sh",
   "logging": {
     "level": "DEBUG",
     "format": "text"
@@ -10,9 +9,32 @@
       "name": "app",
       "port": 8000,
       "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      "preStart": "/reload-app.sh",
+      "exec": [
+        "/usr/local/bin/node",
+        "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
       "poll": 1,
       "ttl": 5,
       "tags": ["application"]
+    },
+    {
+      "name": "task1",
+      "exec": ["/task.sh","0.2","/task1.txt"],
+      "frequency": "500ms",
+      "restarts": "unlimited"
+    },
+    {
+      "name": "task2",
+      "exec": ["/task.sh","2","/task2.txt"],
+      "frequency": "1500ms",
+      "restarts": "unlimited"
+    },
+    {
+      "name": "task3",
+      "exec": ["/task.sh","2","/task3.txt"],
+      "frequency": "1500ms",
+      "execTimeout": "100ms",
+      "restarts": "unlimited"
     }
   ],
   "backends": [
@@ -41,23 +63,5 @@
         "check": ["/sensor.sh", "count"]
        }
     ]
-  },
-  "tasks": [
-    {
-      "name": "task1",
-      "command": ["/task.sh","0.2","/task1.txt"],
-      "frequency": "500ms"
-    },
-    {
-      "name": "task2",
-      "command": ["/task.sh","2","/task2.txt"],
-      "frequency": "1500ms"
-    },
-    {
-      "name": "task3",
-      "command": ["/task.sh","2","/task3.txt"],
-      "frequency": "1500ms",
-      "timeout": "100ms"
-    }
-  ]
+  }
 }

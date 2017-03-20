@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -84,7 +85,8 @@ func (cfg *Config) Validate() error {
 	}
 	cfg.timeout = timeout
 
-	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout)
+	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout,
+		log.Fields{"service": cfg.serviceName, "check": cfg.Name})
 	if err != nil {
 		// TODO: this is config syntax specific and should be updated
 		return fmt.Errorf("could not parse `health` in check %s: %s",

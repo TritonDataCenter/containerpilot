@@ -105,6 +105,7 @@ func (sensor *Sensor) Run(bus *events.EventBus) {
 				close(sensor.Rx)
 				cancel()
 				sensor.Flush <- true
+				sensor.exec.CloseLogs()
 				return
 			}
 		}

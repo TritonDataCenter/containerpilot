@@ -58,8 +58,7 @@ func (watch *Watch) CheckForUpstreamChanges() bool {
 
 // OnChange runs the Watch's executable
 func (watch *Watch) OnChange(ctx context.Context) {
-	watch.exec.Run(ctx, watch.Bus, log.Fields{
-		"process": watch.startupEvent.Code, "watch": watch.Name})
+	watch.exec.Run(ctx, watch.Bus)
 }
 
 // Run executes the event loop for the Watch
@@ -90,6 +89,7 @@ func (watch *Watch) Run(bus *events.EventBus) {
 				close(watch.Rx)
 				cancel()
 				watch.Flush <- true
+				watch.exec.CloseLogs()
 				return
 			}
 		}

@@ -5,6 +5,7 @@
       "name": "testenvvar",
       "port": 8500,
       "health": "true",
+      "exec": "env",
       "poll": 10,
       "ttl": 25
     }

@@ -12,6 +12,7 @@ services:
     links:
       - consul:consul
     volumes:
+      - './containerpilot.json:/etc/containerpilot.json'
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
   nginx:

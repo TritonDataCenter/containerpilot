@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
@@ -59,7 +60,8 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	if cfg.Poll < 1 {
 		return fmt.Errorf("`poll` must be > 0 in watch %s", cfg.Name)
 	}
-	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout)
+	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout,
+		log.Fields{"watch": cfg.Name})
 	if err != nil {
 		// TODO: this error message is tied to existing config syntax
 		return fmt.Errorf("could not parse `onChange` in watch %s: %s",

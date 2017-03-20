@@ -14,7 +14,10 @@ services:
       - consul:consul
     ports:
       - 9090:9090
+    environment:
+      - CONTAINERPILOT=file:///etc/containerpilot.json
     volumes:
+      - './containerpilot.json:/etc/containerpilot.json'
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
   test:

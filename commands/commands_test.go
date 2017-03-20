@@ -15,7 +15,7 @@ func TestCommandRunAndWaitForOutputOk(t *testing.T) {
 	bus := events.NewEventBus()
 	ds := mocks.NewDebugSubscriber(bus, 2)
 	ds.Run(0)
-	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", time.Duration(0))
+	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", time.Duration(0), nil)
 	cmd.Name = "TestRunAndWaitForOutputOk"
 	out, got := runtestCommandRunAndWaitForOutput(cmd, 2)
 	if out != "Running doStuff with args: --debug\n" {
@@ -27,7 +27,7 @@ func TestCommandRunAndWaitForOutputOk(t *testing.T) {
 }
 
 func TestCommandRunAndWaitForOutputBad(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/doesNotExist.sh", time.Duration(0))
+	cmd, _ := NewCommand("./testdata/doesNotExist.sh", time.Duration(0), nil)
 	cmd.Name = "TestRunAndWaitForOutputBad"
 	out, got := runtestCommandRunAndWaitForOutput(cmd, 2)
 	if out != "" {
@@ -42,7 +42,7 @@ func TestCommandRunAndWaitForOutputBad(t *testing.T) {
 }
 
 func TestCommandRunWithTimeoutZero(t *testing.T) {
-	cmd, _ := NewCommand("sleep 2", time.Duration(0))
+	cmd, _ := NewCommand("sleep 2", time.Duration(0), nil)
 	got := runtestCommandRun(cmd, 2)
 	timedout := events.Event{events.ExitFailed, "sleep"}
 	if got[timedout] != 1 {
@@ -52,7 +52,7 @@ func TestCommandRunWithTimeoutZero(t *testing.T) {
 
 func TestCommandRunWithTimeoutKilled(t *testing.T) {
 	log.SetLevel(log.ErrorLevel) // suppress test noise
-	cmd, _ := NewCommand("sleep 2", time.Duration(100*time.Millisecond))
+	cmd, _ := NewCommand("sleep 2", time.Duration(100*time.Millisecond), nil)
 	cmd.Name = t.Name()
 	got := runtestCommandRun(cmd, 3)
 	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
@@ -65,7 +65,7 @@ func TestCommandRunWithTimeoutKilled(t *testing.T) {
 
 func TestCommandRunChildrenKilled(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/test.sh sleepStuff",
-		time.Duration(100*time.Millisecond))
+		time.Duration(100*time.Millisecond), nil)
 	cmd.Name = t.Name()
 	got := runtestCommandRun(cmd, 3)
 	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
@@ -77,7 +77,7 @@ func TestCommandRunChildrenKilled(t *testing.T) {
 }
 
 func TestCommandRunExecFailed(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", time.Duration(0))
+	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", time.Duration(0), nil)
 	got := runtestCommandRun(cmd, 3)
 	failed := events.Event{events.ExitFailed, "./testdata/test.sh"}
 	errMsg := events.Event{events.Error, "./testdata/test.sh: exit status 255"}
@@ -87,7 +87,7 @@ func TestCommandRunExecFailed(t *testing.T) {
 }
 
 func TestCommandRunExecInvalid(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/invalidCommand", time.Duration(0))
+	cmd, _ := NewCommand("./testdata/invalidCommand", time.Duration(0), nil)
 	got := runtestCommandRun(cmd, 3)
 	failed := events.Event{events.ExitFailed, "./testdata/invalidCommand"}
 	errMsg := events.Event{events.Error,
@@ -98,13 +98,13 @@ func TestCommandRunExecInvalid(t *testing.T) {
 }
 
 func TestEmptyCommand(t *testing.T) {
-	if cmd, err := NewCommand("", time.Duration(0)); cmd != nil || err == nil {
+	if cmd, err := NewCommand("", time.Duration(0), nil); cmd != nil || err == nil {
 		t.Errorf("Expected exit (nil, err) but got %s, %s", cmd, err)
 	}
 }
 
 func TestCommandRunReuseCmd(t *testing.T) {
-	cmd, _ := NewCommand("true", time.Duration(0))
+	cmd, _ := NewCommand("true", time.Duration(0), nil)
 	runtestCommandRun(cmd, 2)
 	runtestCommandRun(cmd, 2)
 }
@@ -129,7 +129,7 @@ func runtestCommandRun(cmd *Command, count int) map[events.Event]int {
 	ds := mocks.NewDebugSubscriber(bus, count)
 	ds.Run(200 * time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	cmd.Run(ctx, bus, log.Fields{"process": "test"})
+	cmd.Run(ctx, bus)
 	defer cancel()
 	ds.Close()
 	got := map[events.Event]int{}

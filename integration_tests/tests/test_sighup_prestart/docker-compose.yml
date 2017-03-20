@@ -1,7 +1,6 @@
 version: "2.1"
 
 services:
-
   consul:
     image: "cpfix_consul"
     mem_limit: 256m
@@ -9,12 +8,12 @@ services:
 
   app:
     image: "cpfix_app"
-    environment:
-      - CONTAINERPILOT=file:///app-with-consul-prestart-sighup.json
     mem_limit: 512m
     links:
       - consul:consul
     volumes:
+      - './reload-app.sh:/reload-app.sh'
+      - './containerpilot.json:/etc/containerpilot.json'
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
   test:

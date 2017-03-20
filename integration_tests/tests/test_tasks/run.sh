@@ -34,7 +34,7 @@ if [ $TASK1_TOS -gt 0 ]; then
 fi
 
 ## TASK 2
-TASK2_TOS=$(cat ${APP_ID}.log | grep "\[task2\] timeout after 1500ms" | wc -l | tr -d '[[:space:]]')
+TASK2_TOS=$(cat ${APP_ID}.log | grep "task2 timeout after 1500ms" | wc -l | tr -d '[[:space:]]')
 TASK2_RUNS=$(cat ${APP_ID}.task2 | wc -l | tr -d '[[:space:]]')
 rm ${APP_ID}.task2
 
@@ -48,7 +48,7 @@ if [[ $TASK2_TOS -lt 1 || $TASK2_TOS -gt 2 ]]; then
 fi
 
 ## TASK 3
-TASK3_TOS=$(cat ${APP_ID}.log | grep "\[task3\] timeout after 100ms" | wc -l | tr -d '[[:space:]]')
+TASK3_TOS=$(cat ${APP_ID}.log | grep "task3 timeout after 100ms" | wc -l | tr -d '[[:space:]]')
 TASK3_RUNS=$(cat ${APP_ID}.task3 | wc -l | tr -d '[[:space:]]')
 
 if [[ $TASK3_RUNS -lt 2 || $TASK3_RUNS -gt 3 ]]; then
@@ -62,10 +62,8 @@ fi
 
 rm ${APP_ID}.task3
 
-rm ${APP_ID}.log
+#rm ${APP_ID}.log
 
 result=$PASS
 
-# cleanup
-docker-compose rm -f
 exit $result

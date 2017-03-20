@@ -1,21 +1,28 @@
 #!/bin/bash
 
-# start up consul, app, nginx and then wait
-# this can take a while to converge
+# start up consul and wait for consul to elect a leader
 docker-compose up -d consul
-
-# Wait for consul to elect a leader
-docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
+docker-compose run --no-deps test /go/bin/test_probe test_consul
 if [ ! $? -eq 0 ] ; then exit 1 ; fi
 
-docker-compose up -d app nginx > /dev/null 2>&1
-sleep 5
+# start app and nginx, then wait a bit for them to converge
+docker-compose up -d app nginx
+sleep 5 # TODO: this is awful
 
-# run the test_demo code against stack to make sure that App and Nginx
+# run the test_probe against stack to make sure that App and Nginx
 # both show in Consul and that Nginx has a working route to App
-docker-compose run --no-deps test /go/bin/test_probe test_discovery > /dev/null 2>&1
+docker-compose run --no-deps test /go/bin/test_probe test_discovery
 result=$?
 
-# cleanup
-docker-compose rm -f
+if [ ! $result -eq 0 ]; then
+    APP_ID=$(docker ps -l -f "ancestor=cpfix_app" --format="{{.ID}}")
+    CONSUL_ID=$(docker ps -l -f "ancestor=cpfix_consul" --format="{{.ID}}")
+    NGINX_ID=$(docker ps -l -f "ancestor=cpfix_consul" --format="{{.ID}}")
+    echo '----- APP LOGS ------'
+    docker logs "${CONSUL_ID}" | tee consul.log
+    docker logs "${NGINX_ID}" | tee nginx.log
+    docker logs "${APP_ID}" | tee app.log
+    echo '---------------------'
+fi
+
 exit $result

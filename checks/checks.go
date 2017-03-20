@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/events"
 )
@@ -47,9 +46,7 @@ func FromConfigs(cfgs []*Config) []*HealthCheck {
 
 // CheckHealth runs the health check
 func (check *HealthCheck) CheckHealth(ctx context.Context) {
-	// TODO: what log fields do we really want here?
-	check.exec.Run(ctx, check.Bus, log.Fields{
-		"process": check.exec.Name, "check": check.Name})
+	check.exec.Run(ctx, check.Bus)
 }
 
 // Run executes the event loop for the HealthCheck
@@ -79,6 +76,7 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 				check.Unsubscribe(check.Bus)
 				close(check.Rx)
 				cancel()
+				check.exec.CloseLogs()
 				check.Flush <- true
 				return
 			}

@@ -5,6 +5,6 @@ FILE=${2:-"/tmp/test"}
 
 trap "echo INTERRUPTED >> $FILE" SIGINT SIGTERM SIGQUIT
 
-echo $(date +%s.%N) >> "$FILE"
-sleep $SLEEP &
+date +%s.%N >> "$FILE"
+sleep "$SLEEP" &
 wait
