@@ -258,4 +258,6 @@ func (a *App) handlePolling() {
 		}
 		a.Telemetry.Serve()
 	}
+	// kick everything off
+	a.Bus.Publish(events.GlobalStartup)
 }

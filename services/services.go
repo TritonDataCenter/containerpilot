@@ -58,6 +58,12 @@ func NewService(cfg *Config) *Service {
 	}
 	service.Rx = make(chan events.Event, eventBufferSize)
 	service.Flush = make(chan bool)
+	if service.Name == "containerpilot" {
+		// TODO: right now this hardcodes the telemetry service to
+		// be always "on", but maybe we want to have it verify itself
+		// before heartbeating in the future
+		service.Status = true
+	}
 	return service
 }
 
@@ -113,11 +119,6 @@ func (svc *Service) Kill() {
 
 // Run executes the event loop for the Service
 func (svc *Service) Run(bus *events.EventBus) {
-	if svc.exec == nil {
-		// temporary: after config update having nil exec will be
-		// an error
-		return
-	}
 
 	svc.Subscribe(bus)
 	svc.Bus = bus
