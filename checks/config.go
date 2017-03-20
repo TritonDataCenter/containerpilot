@@ -25,16 +25,17 @@ type Config struct {
 	in the services package here too. this package ignores them. when we
 	move on to the v3 configuration syntax these will be dropped.
 	*/
-	serviceTTL        int         `mapstructure:"ttl"`
-	serviceInterfaces interface{} `mapstructure:"interfaces"`
-	serviceTags       []string    `mapstructure:"tags"`
-	servicePort       int         `mapstructure:"port"`
-	serviceExec       interface{} `mapstructure:"exec"`
-	servicePreStart   interface{} `mapstructure:"preStart"`
-	servicePreStop    interface{} `mapstructure:"preStop"`
-	servicePostStop   interface{} `mapstructure:"postStop"`
-	serviceRestarts   interface{} `mapstructure:"restarts"`
-	serviceFrequency  interface{} `mapstructure:"frequency"`
+	serviceTTL         int         `mapstructure:"ttl"`
+	serviceInterfaces  interface{} `mapstructure:"interfaces"`
+	serviceTags        []string    `mapstructure:"tags"`
+	servicePort        int         `mapstructure:"port"`
+	serviceExec        interface{} `mapstructure:"exec"`
+	serviceExecTimeout interface{} `mapstructure:"execTimeout"`
+	servicePreStart    interface{} `mapstructure:"preStart"`
+	servicePreStop     interface{} `mapstructure:"preStop"`
+	servicePostStop    interface{} `mapstructure:"postStop"`
+	serviceRestarts    interface{} `mapstructure:"restarts"`
+	serviceFrequency   interface{} `mapstructure:"frequency"`
 }
 
 // NewConfigs parses json config into a validated slice of Configs

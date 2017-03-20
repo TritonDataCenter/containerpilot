@@ -2,6 +2,8 @@ package events
 
 import (
 	"sync"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Event ...
@@ -79,6 +81,7 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 
 // Publish an Event to all Subscribers
 func (bus *EventBus) Publish(event Event) {
+	log.Debugf("event: %v", event)
 	bus.lock.RLock()
 	defer bus.lock.RUnlock()
 	for subscriber := range bus.registry {

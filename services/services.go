@@ -142,7 +142,6 @@ func (svc *Service) Run(bus *events.EventBus) {
 	loop: // aw yeah, goto like it's 1968!
 		for {
 			event := <-svc.Rx
-			log.Debug(event)
 			switch event {
 			case events.Event{events.TimerExpired, heartbeatSource}:
 				// non-advertised services shouldn't receive this event
@@ -157,6 +156,7 @@ func (svc *Service) Run(bus *events.EventBus) {
 				svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
 			case events.Event{events.TimerExpired, runEverySource}:
 				if !svc.restartPermitted() {
+					log.Debugf("restart not permitted: %v", svc.Name)
 					break loop
 				}
 				svc.restartsRemain--
@@ -174,6 +174,7 @@ func (svc *Service) Run(bus *events.EventBus) {
 					break // note: breaks switch only
 				}
 				if !svc.restartPermitted() {
+					log.Debugf("restart not permitted: %v", svc.Name)
 					break loop
 				}
 				svc.restartsRemain--
@@ -187,7 +188,6 @@ func (svc *Service) Run(bus *events.EventBus) {
 }
 
 func (svc *Service) restartPermitted() bool {
-	log.Debug("restartPermitted: %v", svc.Name)
 	if svc.restartLimit == unlimitedRestarts || svc.restartsRemain > 0 {
 		return true
 	}

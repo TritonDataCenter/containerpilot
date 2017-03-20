@@ -94,7 +94,6 @@ func (sensor *Sensor) Run(bus *events.EventBus) {
 	go func() {
 		for {
 			event := <-sensor.Rx
-			log.Debug(event)
 			switch event {
 			case events.Event{events.TimerExpired, pollSource}:
 				sensor.Observe(ctx)
