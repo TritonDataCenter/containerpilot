@@ -48,14 +48,14 @@ func TestHealthChecksConfigError(t *testing.T) {
 	assert.Error(t, err, "`name` must not be blank")
 
 	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "health": "/bin/true"}]`))
-	assert.Error(t, err, "`poll` must be > 0 in health check myName")
+	assert.Error(t, err, "`poll` must be > 0 in health check myName.check")
 
 	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "health": "", "poll": 1}]`))
-	assert.Error(t, err, "could not parse `health` in check myName: received zero-length argument")
+	assert.Error(t, err, "could not parse `health` in check myName.check: received zero-length argument")
 
 	_, err = NewConfigs(tests.DecodeRawToSlice(
 		`[{"name": "myName", "poll": 1, "ttl": 1,
 		"port": 80, "health": "/bin/true", "timeout": "xx"}]`))
 	assert.Error(t, err,
-		"could not parse `timeout` in check myName: time: invalid duration xx")
+		"could not parse `timeout` in check myName.check: time: invalid duration xx")
 }

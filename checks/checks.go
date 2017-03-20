@@ -14,9 +14,10 @@ const eventBufferSize = 1000
 
 // HealthCheck ...
 type HealthCheck struct {
-	Name string
-	exec *commands.Command
-	poll time.Duration
+	Name        string
+	serviceName string
+	exec        *commands.Command
+	poll        time.Duration
 
 	events.EventHandler // Event handling
 }
@@ -24,9 +25,10 @@ type HealthCheck struct {
 // NewHealthCheck ...
 func NewHealthCheck(cfg *Config) *HealthCheck {
 	check := &HealthCheck{
-		Name: cfg.Name,
-		exec: cfg.exec,
-		poll: cfg.pollInterval,
+		Name:        cfg.Name,
+		serviceName: cfg.serviceName,
+		exec:        cfg.exec,
+		poll:        cfg.pollInterval,
 	}
 	check.Rx = make(chan events.Event, eventBufferSize)
 	check.Flush = make(chan bool)
@@ -65,6 +67,10 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 			switch event {
 			case events.Event{events.TimerExpired, pollSource}:
 				check.CheckHealth(ctx)
+			case events.Event{events.ExitSuccess, check.Name}:
+				check.Bus.Publish(events.Event{events.StatusHealthy, check.serviceName})
+			case events.Event{events.ExitFailed, check.Name}:
+				check.Bus.Publish(events.Event{events.StatusUnhealthy, check.serviceName})
 			case
 				events.Event{events.Quit, check.Name},
 				events.QuitByClose,

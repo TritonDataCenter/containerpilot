@@ -102,10 +102,10 @@ func TestValidConfigHealthChecks(t *testing.T) {
 	}
 	check0 := cfg.Checks[0]
 	check1 := cfg.Checks[1]
-	assertEqual(t, check0.Name, "serviceA", "expected '%v' for check0.Name, but got '%v'")
+	assertEqual(t, check0.Name, "serviceA.check", "expected '%v' for check0.Name, but got '%v'")
 	assertEqual(t, check0.Poll, 30, "expected '%v' for check0.Poll, but got '%v'")
 	assertEqual(t, check0.Timeout, "30s", "expected '%v' for check0.Timeout, but got '%v'")
-	assertEqual(t, check1.Name, "serviceB", "expected '%v' for check1.Name, but got '%v'")
+	assertEqual(t, check1.Name, "serviceB.check", "expected '%v' for check1.Name, but got '%v'")
 	assertEqual(t, check1.Poll, 20, "expected '%v' for check1.Poll, but got '%v'")
 	assertEqual(t, check1.Timeout, "2s", "expected '%v' for check1.Timeout, but got '%v'")
 }

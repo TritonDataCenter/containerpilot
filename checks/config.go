@@ -2,7 +2,6 @@ package checks
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/joyent/containerpilot/commands"
@@ -11,7 +10,6 @@ import (
 
 // Config configures the health check
 type Config struct {
-	ID           string
 	Name         string `mapstructure:"name"`
 	Poll         int    `mapstructure:"poll"` // time in seconds
 	pollInterval time.Duration
@@ -19,6 +17,7 @@ type Config struct {
 	exec         *commands.Command
 	Timeout      string `mapstructure:"timeout"`
 	timeout      time.Duration
+	serviceName  string // for now always the same as the Name
 
 	/* TODO:
 	These fields are here *only* so we can reuse the config map we use
@@ -69,8 +68,8 @@ func (cfg *Config) Validate() error {
 	if err := utils.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}
-	hostname, _ := os.Hostname()
-	cfg.ID = fmt.Sprintf("%s-%s", cfg.Name, hostname)
+	cfg.serviceName = cfg.Name
+	cfg.Name = cfg.Name + ".check"
 
 	if cfg.Poll < 1 {
 		return fmt.Errorf("`poll` must be > 0 in health check %s", cfg.Name)

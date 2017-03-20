@@ -150,7 +150,6 @@ func (svc *Service) Run(bus *events.EventBus) {
 					svc.SendHeartbeat()
 				}
 			case events.Event{events.TimerExpired, startTimeoutSource}:
-				// TODO: we should check svc.Status here too I think
 				svc.Bus.Publish(events.Event{
 					Code: events.TimerExpired, Source: svc.Name})
 				svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
@@ -161,13 +160,17 @@ func (svc *Service) Run(bus *events.EventBus) {
 				}
 				svc.restartsRemain--
 				svc.Rx <- svc.startupEvent
+			case events.Event{events.StatusUnhealthy, svc.Name}:
+				// TODO: add a "SendFailedHeartbeat" method
+				svc.Status = false
+			case events.Event{events.StatusHealthy, svc.Name}:
+				svc.Status = true
 			case
 				events.Event{events.Quit, svc.Name},
 				events.QuitByClose,
 				events.GlobalShutdown:
 				break loop
 			case
-				// TODO: check.Name won't always match svc.Name
 				events.Event{events.ExitSuccess, svc.Name},
 				events.Event{events.ExitFailed, svc.Name}:
 				if svc.frequency > 0 {
