@@ -192,7 +192,6 @@ func (a *App) Terminate() {
 	a.signalLock.Lock()
 	defer a.signalLock.Unlock()
 	a.Bus.Shutdown()
-
 	if a.StopTimeout > 0 {
 		time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
 			for _, service := range a.Services {
@@ -222,6 +221,7 @@ func (a *App) Reload() error {
 		return err
 	}
 	a.Bus.Shutdown()
+	a.Bus.Wait()
 	a.cloneFrom(newApp)
 	a.handlePolling()
 	return nil
