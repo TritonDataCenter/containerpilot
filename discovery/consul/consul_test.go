@@ -16,7 +16,7 @@ func TestConsulObjectParse(t *testing.T) {
 	}
 	_, err := NewConsulConfig(rawCfg)
 	if err != nil {
-		t.Fatalf("Unable to parse config: %v", err)
+		t.Fatalf("unable to parse config: %v", err)
 	}
 }
 
@@ -141,7 +141,7 @@ func testConsulEnableTagOverride(t *testing.T) {
 	consul.SendHeartbeat(service) // force registration
 	catalogService, _, err := consul.Catalog().Service(id, "", nil)
 	if err != nil {
-		t.Fatalf("Error finding service: %v", err)
+		t.Fatalf("error finding service: %v", err)
 	}
 
 	for _, service := range catalogService {

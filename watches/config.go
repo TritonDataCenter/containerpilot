@@ -44,6 +44,9 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	if err := utils.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}
+	// TODO: should probably have a separate watch.Name and watch.serviceName
+	// so that logging is a little more clear
+
 	if cfg.Exec == nil {
 		// TODO: this error message is tied to existing config syntax
 		return fmt.Errorf("`onChange` is required in watch %s", cfg.Name)

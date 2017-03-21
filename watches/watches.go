@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
@@ -70,7 +69,6 @@ func (watch *Watch) Run(bus *events.EventBus) {
 	timerSource := fmt.Sprintf("%s-watch-poll", watch.Name)
 	events.NewEventTimer(ctx, watch.Rx,
 		time.Duration(watch.poll)*time.Second, timerSource)
-	log.Debug(timerSource)
 
 	go func() {
 		for {
