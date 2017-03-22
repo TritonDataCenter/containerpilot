@@ -254,6 +254,11 @@ func TestServiceConfigValidateFrequency(t *testing.T) {
 
 	expectErr(`[{"exec": "/bin/taskD", "frequency": "xx", "execTimeout": "1ns"}]`,
 		"unable to parse frequency 'xx': time: invalid duration xx")
+
+	testCfg := tests.DecodeRawToSlice(`[{"exec": "/bin/taskE", "frequency": "1ms"}]`)
+	service, _ := NewConfigs(testCfg, nil)
+	assert.Equal(t, service[0].execTimeout, service[0].freqInterval,
+		"expected execTimeout '%v' to equal frequency '%v'")
 }
 
 func TestServiceConfigValidateExec(t *testing.T) {

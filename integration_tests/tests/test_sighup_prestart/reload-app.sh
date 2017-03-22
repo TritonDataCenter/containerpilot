@@ -16,7 +16,7 @@ done
 
 if [[ ${1} == "HUP" ]]; then
     # Change our config to actually pass the healthcheck
-    sed -i s/8888/8000/ /app-with-consul-prestart-sighup.json
+    sed -i s/8888/8000/ /etc/containerpilot.json
 fi
 
 kill -${1} 1

@@ -192,6 +192,11 @@ func (cfg *Config) validateDependencies() error {
 }
 
 func (cfg *Config) validateExec() error {
+
+	if cfg.ExecTimeout == "" && cfg.freqInterval != 0 {
+		// periodic tasks require a timeout
+		cfg.execTimeout = cfg.freqInterval
+	}
 	if cfg.ExecTimeout != "" {
 		execTimeout, err := utils.GetTimeout(cfg.ExecTimeout)
 		if err != nil {

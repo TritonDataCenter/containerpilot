@@ -4,13 +4,8 @@ set -e
 function finish {
     result=$?
     if [ $result -ne 0 ]; then
-        TEST_ID=$(docker ps -l -f "ancestor=cpfix_test_probe" --format="{{.ID}}")
         APP_ID=$(docker ps -l -f "ancestor=cpfix_app" --format="{{.ID}}")
-        CONSUL_ID=$(docker ps -l -f "ancestor=cpfix_consul" --format="{{.ID}}")
-        echo '----- TEST LOGS ------'
-        docker logs "${TEST_ID}" | tee test.log
         echo '----- APP LOGS ------'
-        docker logs "${CONSUL_ID}" | tee consul.log
         docker logs "${APP_ID}" | tee app.log
         echo '---------------------'
     fi
@@ -42,7 +37,7 @@ sleep 1
 
 set +e
 docker exec -it "${ID}" ps -ef | grep coprocess && exit 1
-set +e
+set -e
 
 # update the ContainerPilot config and verify the coprocess is running
 # with the new flags (this resets the restart limit)
