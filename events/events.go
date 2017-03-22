@@ -46,9 +46,11 @@ var (
 
 // EventBus ...
 type EventBus struct {
-	registry map[Subscriber]bool
-	lock     *sync.RWMutex
-	done     chan bool
+	registry  map[Subscriber]bool
+	lock      *sync.RWMutex
+	reloading bool
+	reloaded  chan bool
+	done      chan bool
 }
 
 // NewEventBus ...
@@ -56,7 +58,8 @@ func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
 	reg := make(map[Subscriber]bool)
 	done := make(chan bool, 1)
-	bus := &EventBus{registry: reg, lock: lock, done: done}
+	reloaded := make(chan bool, 1)
+	bus := &EventBus{registry: reg, lock: lock, done: done, reloaded: reloaded}
 	return bus
 }
 
@@ -75,7 +78,11 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 		delete(bus.registry, subscriber)
 	}
 	if len(bus.registry) == 0 {
-		bus.done <- true
+		if bus.reloading {
+			bus.reloaded <- true
+		} else {
+			bus.done <- true
+		}
 	}
 }
 
@@ -89,6 +96,30 @@ func (bus *EventBus) Publish(event Event) {
 		// error, so this is in intentionally allowed to panic here
 		subscriber.Receive(event)
 	}
+}
+
+// Reload asks all Subscribers to halt by sending the GlobalShutdown
+// message but sets a flag so we don't send to the done channel,
+// which will cause us to exit entirely. Instead we'll wait until
+// the EventBus registry is unpopulated.
+func (bus *EventBus) Reload() {
+	bus.lock.Lock()
+	bus.reloading = true
+	bus.lock.Unlock()
+
+	// need this check to ensure we will finish reload even if we have
+	// no running services to receive the shutdown signal and tell us
+	// we're done
+	if len(bus.registry) > 0 {
+		bus.Publish(GlobalShutdown)
+		<-bus.reloaded
+	} else {
+		bus.Publish(GlobalShutdown)
+	}
+
+	bus.lock.Lock()
+	bus.reloading = false
+	bus.lock.Unlock()
 }
 
 // Shutdown asks all Subscribers to halt by sending the GlobalShutdown

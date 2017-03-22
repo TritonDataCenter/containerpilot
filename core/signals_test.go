@@ -99,16 +99,17 @@ func TestReloadSignal(t *testing.T) {
 	app.ConfigFlag = "invalid"
 	err := app.Reload()
 	if err == nil {
-		t.Errorf("Invalid configuration did not return error")
+		t.Errorf("invalid configuration did not return error")
 	}
+
 	app.ConfigFlag = `{ "consul": "newconsul:8500" }`
 	err = app.Reload()
 	if err != nil {
-		t.Errorf("Valid configuration returned error: %v", err)
+		t.Errorf("valid configuration returned error: %v", err)
 	}
 	discSvc := app.Discovery
 	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
-		t.Errorf("Configuration was not reloaded: %v", discSvc)
+		t.Errorf("configuration was not reloaded: %v", discSvc)
 	}
 }
 

@@ -213,15 +213,14 @@ func (a *App) Terminate() {
 func (a *App) Reload() error {
 	a.signalLock.Lock()
 	defer a.signalLock.Unlock()
-	log.Infof("Reloading configuration.")
+	log.Infof("reloading configuration.")
 
 	newApp, err := NewApp(a.ConfigFlag)
 	if err != nil {
-		log.Errorf("Error initializing config: %v", err)
+		log.Errorf("error initializing config: %v", err)
 		return err
 	}
-	a.Bus.Shutdown()
-	a.Bus.Wait()
+	a.Bus.Reload()
 	a.cloneFrom(newApp)
 	a.handlePolling()
 	return nil
