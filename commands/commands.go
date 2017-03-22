@@ -70,6 +70,23 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 	} else {
 		ctx, cancel = context.WithCancel(pctx)
 	}
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			// unlock only here because we'll receive this
+			// cancel from both a typical exit and a timeout
+			defer c.lock.Unlock()
+			if ctx.Err() == context.DeadlineExceeded {
+				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
+			}
+			// if the context was canceled we don't know if its because we
+			// canceled it in the caller or the applicaton exited gracefully,
+			// so Kill() will have to handle both cases safely
+			c.Kill()
+		}
+	}()
+
 	go func() {
 		defer cancel()
 		defer log.Debugf("%s.Run end", c.Name)
@@ -86,22 +103,8 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 			bus.Publish(events.Event{events.ExitFailed, c.Name})
 			bus.Publish(events.Event{events.Error, err.Error()})
 		} else {
+			log.Debugf("%s exited without error", c.Name)
 			bus.Publish(events.Event{events.ExitSuccess, c.Name})
-		}
-	}()
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			// unlock only here because we'll receive this
-			// cancel from both a typical exit and a timeout
-			defer c.lock.Unlock()
-			// if the context was canceled we don't want to kill the
-			// process because it's already gone
-			if ctx.Err().Error() == "context deadline exceeded" {
-				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
-				c.Kill()
-			}
 		}
 	}()
 }
@@ -138,12 +141,13 @@ func (c *Command) RunAndWaitForOutput(pctx context.Context, bus *events.EventBus
 			// unlock only here because we'll receive this
 			// cancel from both a typical exit and a timeout
 			defer c.lock.Unlock()
-			// if the context was canceled we don't want to kill the
-			// process because it's already gone
-			if ctx.Err().Error() == "context deadline exceeded" {
+			if ctx.Err() == context.DeadlineExceeded {
 				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
-				c.Kill()
 			}
+			// if the context was canceled we don't know if its because we
+			// canceled it in the caller or the applicaton exited gracefully,
+			// so Kill() will have to handle both cases safely
+			c.Kill()
 		}
 	}()
 	// we'll pass stderr to the container's stderr, but stdout must
@@ -192,11 +196,11 @@ func (c *Command) setUpCmd() {
 	c.Cmd = cmd
 }
 
-// Kill sends a kill signal to the underlying process.
+// Kill sends a kill signal to the underlying process, if it still exists
 func (c *Command) Kill() {
 	log.Debugf("%s.kill", c.Name)
 	if c.Cmd != nil && c.Cmd.Process != nil {
-		log.Warnf("killing command at pid: %d", c.Cmd.Process.Pid)
+		log.Debugf("killing command '%v' at pid: %d", c.Name, c.Cmd.Process.Pid)
 		syscall.Kill(-c.Cmd.Process.Pid, syscall.SIGKILL)
 	}
 }
