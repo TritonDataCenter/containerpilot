@@ -21,9 +21,9 @@ if [ $result -ne 0 ]; then
     echo '----- TEST LOGS ------'
     docker logs "${TEST_ID}" | tee test.log
     echo '----- APP LOGS ------'
+    docker logs "${CONSUL_ID}" tee consul.log
     docker logs "${APP_ID}" | tee app.log
     echo '---------------------'
-    docker logs "${CONSUL_ID}" | tee consul.log
     echo "test probe logs in ./test.log"
     echo "test target logs in ./app.log"
     echo "test consul logs in ./consul.log"
