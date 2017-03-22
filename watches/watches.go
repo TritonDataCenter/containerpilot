@@ -15,6 +15,7 @@ const eventBufferSize = 1000
 // Watch represents a task to execute when something changes
 type Watch struct {
 	Name             string
+	serviceName      string
 	tag              string
 	exec             *commands.Command
 	startupTimeout   int
@@ -29,6 +30,7 @@ type Watch struct {
 func NewWatch(cfg *Config) *Watch {
 	watch := &Watch{
 		Name:             cfg.Name,
+		serviceName:      cfg.serviceName,
 		poll:             cfg.Poll,
 		tag:              cfg.Tag,
 		exec:             cfg.exec,
@@ -52,7 +54,7 @@ func FromConfigs(cfgs []*Config) []*Watch {
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
 // in a dependent backend. Returns true when there has been a change.
 func (watch *Watch) CheckForUpstreamChanges() bool {
-	return watch.discoveryService.CheckForUpstreamChanges(watch.Name, watch.tag)
+	return watch.discoveryService.CheckForUpstreamChanges(watch.serviceName, watch.tag)
 }
 
 // OnChange runs the Watch's executable
@@ -66,7 +68,7 @@ func (watch *Watch) Run(bus *events.EventBus) {
 	watch.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	timerSource := fmt.Sprintf("%s-watch-poll", watch.Name)
+	timerSource := fmt.Sprintf("%s.poll", watch.Name)
 	events.NewEventTimer(ctx, watch.Rx,
 		time.Duration(watch.poll)*time.Second, timerSource)
 

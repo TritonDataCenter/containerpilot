@@ -123,17 +123,17 @@ func (svc *Service) Run(bus *events.EventBus) {
 	svc.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	runEverySource := fmt.Sprintf("%s-run-every", svc.Name)
+	runEverySource := fmt.Sprintf("%s.run-every", svc.Name)
 	if svc.frequency > 0 {
 		events.NewEventTimer(ctx, svc.Rx, svc.frequency, runEverySource)
 	}
 
-	heartbeatSource := fmt.Sprintf("%s-heartbeat", svc.Name)
+	heartbeatSource := fmt.Sprintf("%s.heartbeat", svc.Name)
 	if svc.heartbeat > 0 {
 		events.NewEventTimer(ctx, svc.Rx, svc.heartbeat, heartbeatSource)
 	}
 
-	startTimeoutSource := fmt.Sprintf("%s-wait-timeout", svc.Name)
+	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", svc.Name)
 	if svc.startupTimeout > 0 {
 		events.NewEventTimeout(ctx, svc.Rx, svc.startupTimeout, startTimeoutSource)
 	}
@@ -201,7 +201,7 @@ func (svc *Service) restartPermitted() bool {
 // if one is configured. cleans up registration to event bus and closes all
 // channels and contexts when done.
 func (svc *Service) cleanup(ctx context.Context, cancel context.CancelFunc) {
-	stoppingTimeout := fmt.Sprintf("%s-stopping-timeout", svc.Name)
+	stoppingTimeout := fmt.Sprintf("%s.stopping-timeout", svc.Name)
 	svc.Bus.Publish(events.Event{Code: events.Stopping, Source: svc.Name})
 	if svc.stoppingEvent != events.NonEvent {
 		if svc.stoppingTimeout > 0 {

@@ -199,10 +199,10 @@ func TestValidConfigWatches(t *testing.T) {
 	}
 	watch0 := cfg.Watches[0]
 	watch1 := cfg.Watches[1]
-	assertEqual(t, watch0.Name, "upstreamA", "expected '%v' for Name, but got '%v'")
+	assertEqual(t, watch0.Name, "upstreamA.watch", "expected '%v' for Name, but got '%v'")
 	assertEqual(t, watch0.Poll, 11, "expected '%v' for Poll, but got '%v'")
 	assertEqual(t, watch0.Tag, "dev", "expected '%v' for Tag, but got '%v'")
-	assertEqual(t, watch1.Name, "upstreamB", "expected '%v' for Name, but got '%v'")
+	assertEqual(t, watch1.Name, "upstreamB.watch", "expected '%v' for Name, but got '%v'")
 	assertEqual(t, watch1.Poll, 79, "expected '%v' for Poll, but got '%v'")
 	assertEqual(t, watch1.Tag, "", "expected '%v' for Tag, but got '%v'")
 

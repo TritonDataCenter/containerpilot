@@ -20,8 +20,8 @@ func TestWatchExecOk(t *testing.T) {
 		Poll:    1,
 	}
 	got := runWatchTest(cfg, 5)
-	poll := events.Event{events.TimerExpired, "mywatchOk-watch-poll"}
-	exitOk := events.Event{events.ExitSuccess, "mywatchOk"}
+	poll := events.Event{events.TimerExpired, "mywatchOk.watch.poll"}
+	exitOk := events.Event{events.ExitSuccess, "mywatchOk.watch"}
 	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
 		t.Fatalf("expected 2 successful poll events but got %v", got)
 	}
@@ -36,9 +36,9 @@ func TestWatchExecFail(t *testing.T) {
 		Poll:    1,
 	}
 	got := runWatchTest(cfg, 7)
-	poll := events.Event{events.TimerExpired, "mywatchFail-watch-poll"}
-	exitOk := events.Event{events.ExitFailed, "mywatchFail"}
-	errMsg := events.Event{events.Error, "mywatchFail: exit status 255"}
+	poll := events.Event{events.TimerExpired, "mywatchFail.watch.poll"}
+	exitOk := events.Event{events.ExitFailed, "mywatchFail.watch"}
+	errMsg := events.Event{events.Error, "mywatchFail.watch: exit status 255"}
 	if got[exitOk] != 2 || got[poll] != 2 ||
 		got[events.QuitByClose] != 1 || got[errMsg] != 2 {
 		t.Fatalf("expected 2 failed poll events but got %v", got)
@@ -53,7 +53,7 @@ func runWatchTest(cfg *Config, count int) map[events.Event]int {
 	watch := NewWatch(cfg)
 	watch.Run(bus)
 
-	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-watch-poll", cfg.Name)}
+	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s.poll", cfg.Name)}
 	bus.Publish(poll)
 	bus.Publish(poll) // Ensure we can run it more than once
 	watch.Close()

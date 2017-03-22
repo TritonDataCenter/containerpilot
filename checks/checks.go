@@ -55,7 +55,7 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 	check.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	pollSource := fmt.Sprintf("%s-poll", check.Name)
+	pollSource := fmt.Sprintf("%s.poll", check.Name)
 	events.NewEventTimer(ctx, check.Rx, check.poll, pollSource)
 
 	go func() {
