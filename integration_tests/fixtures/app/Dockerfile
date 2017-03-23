@@ -9,6 +9,7 @@ RUN npm install -g json http-server
 
 COPY build/containerpilot /bin/containerpilot
 COPY containerpilot.json /etc/containerpilot.json
+COPY containerpilot-with-coprocess.json /etc/containerpilot-with-coprocess.json
 COPY reload-app.sh /reload-app.sh
 COPY sensor.sh /sensor.sh
 COPY task.sh /task.sh
