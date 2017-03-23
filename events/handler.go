@@ -2,10 +2,10 @@ package events
 
 import "errors"
 
-// EventHandler should be embedded in all Runners so that we can reuse
-// the code for registering and unregistering handlers. This is why the
-// various fields are (unfortunately) public and we can't use struct
-// literals for constructors. All NewRunner functions will need to set
+// EventHandler should be embedded in all task runners so that we can
+// reuse the code for registering and unregistering handlers. This is why
+// the various fields are (unfortunately) public and we can't use struct
+// literals for constructors. All task runner constructors will need to set
 // these fields explicitly:
 //   runner.Rx = make(chan Event, n)
 //   runner.Flush = make(chan bool)
@@ -32,7 +32,7 @@ func (evh *EventHandler) Unsubscribe(bus *EventBus) {
 // Embedding struct should use a non-blocking buffered channel but
 // this may be blocking in tests.
 func (evh *EventHandler) Receive(e Event) {
-	// TODO: instrument receives so we can report event throughput
+	// TODO v3: instrument receives so we can report event throughput
 	// statistics via Prometheus
 	evh.Rx <- e
 }

@@ -78,7 +78,7 @@ func (cfg *Config) InitLogging() error {
 	return nil
 }
 
-// parseStopTimeout ...
+// parseStopTimeout makes sure we have a safe default
 func (cfg *rawConfig) parseStopTimeout() (int, error) {
 	if cfg.stopTimeout == 0 {
 		return defaultStopTimeout, nil

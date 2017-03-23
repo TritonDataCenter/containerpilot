@@ -1,6 +1,6 @@
 package services
 
-// NewPreStartConfig ...
+// NewPreStartConfig ... (temporary, remove by end of v3)
 func NewPreStartConfig(serviceName string, raw interface{}) (*Config, error) {
 	if raw == nil {
 		return nil, nil

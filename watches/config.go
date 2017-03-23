@@ -10,7 +10,7 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-// Config ...
+// Config configures the watch
 type Config struct {
 	Name             string `mapstructure:"name"`
 	serviceName      string
@@ -50,7 +50,7 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	cfg.Name = cfg.Name + ".watch"
 
 	if cfg.Exec == nil {
-		// TODO: this error message is tied to existing config syntax
+		// TODO v3: this error message is tied to existing config syntax
 		return fmt.Errorf("`onChange` is required in watch %s", cfg.serviceName)
 	}
 	if cfg.Timeout == "" {
@@ -68,7 +68,7 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout,
 		log.Fields{"watch": cfg.Name})
 	if err != nil {
-		// TODO: this error message is tied to existing config syntax
+		// TODO v3: this error message is tied to existing config syntax
 		return fmt.Errorf("could not parse `onChange` in watch %s: %s",
 			cfg.serviceName, err)
 	}
@@ -80,5 +80,5 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (cfg *Config) String() string {
-	return "watches.Config[" + cfg.Name + "]" // TODO: is there a better representation???
+	return "watches.Config[" + cfg.Name + "]"
 }

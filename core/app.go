@@ -36,7 +36,7 @@ type App struct {
 	Watches       []*watches.Watch
 	Telemetry     *telemetry.Telemetry
 	StopTimeout   int
-	maintModeLock *sync.RWMutex // TODO: probably want to move this to Service.Status
+	maintModeLock *sync.RWMutex // TODO v3: probably want to move this to Service.Status
 	signalLock    *sync.RWMutex
 	paused        bool
 	ConfigFlag    string

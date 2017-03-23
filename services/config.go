@@ -49,7 +49,7 @@ type Config struct {
 	stoppingEvent   events.Event
 	stoppingTimeout time.Duration
 
-	/* TODO:
+	/* TODO v3:
 	These fields are here *only* so we can reuse the config map we use
 	in the checks package here too. this package ignores them. when we
 	move on to the v3 configuration syntax these will be dropped.
@@ -182,7 +182,7 @@ func (cfg *Config) validateFrequency() error {
 }
 
 func (cfg *Config) validateDependencies() error {
-	// TODO: these will be exposed as config values when we do the
+	// TODO v3: these will be exposed as config values when we do the
 	// config update. for now we set defaults here
 	cfg.startupTimeout = 0
 	cfg.startupEvent = events.GlobalStartup
@@ -266,7 +266,8 @@ func (cfg *Config) validateRestarts() error {
 	return nil
 }
 
-// AddDiscoveryConfig ...
+// AddDiscoveryConfig validates the configuration for service discovery
+// and attaches the discovery.Backend to it
 func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 	interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
 	if ifaceErr != nil {
@@ -307,5 +308,5 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (cfg *Config) String() string {
-	return "services.Config[" + cfg.Name + "]" // TODO: is there a better representation???
+	return "services.Config[" + cfg.Name + "]"
 }

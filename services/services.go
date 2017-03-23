@@ -17,7 +17,7 @@ const (
 	eventBufferSize   = 1000
 )
 
-// Service configures the service discovery data
+// Service manages the state of a service and its start/stop conditions
 type Service struct {
 	Name             string
 	exec             *commands.Command
@@ -67,7 +67,7 @@ func NewService(cfg *Config) *Service {
 	return service
 }
 
-// FromConfigs ...
+// FromConfigs creates Services from a slice of validated Configs
 func FromConfigs(cfgs []*Config) []*Service {
 	services := []*Service{}
 	for _, cfg := range cfgs {
@@ -161,7 +161,7 @@ func (svc *Service) Run(bus *events.EventBus) {
 				svc.restartsRemain--
 				svc.Rx <- svc.startupEvent
 			case events.Event{events.StatusUnhealthy, svc.Name}:
-				// TODO: add a "SendFailedHeartbeat" method
+				// TODO v3: add a "SendFailedHeartbeat" method to fail faster
 				svc.Status = false
 			case events.Event{events.StatusHealthy, svc.Name}:
 				svc.Status = true
@@ -231,5 +231,5 @@ func (svc *Service) cleanup(ctx context.Context, cancel context.CancelFunc) {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (svc *Service) String() string {
-	return "services.Service[" + svc.Name + "]" // TODO: is there a better representation???
+	return "services.Service[" + svc.Name + "]"
 }

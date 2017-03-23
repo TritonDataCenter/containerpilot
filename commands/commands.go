@@ -42,14 +42,15 @@ func NewCommand(rawArgs interface{}, timeout time.Duration, fields log.Fields) (
 		lock:      &sync.Mutex{},
 		logger:    log.StandardLogger().Writer(),
 		logFields: fields,
-	} // cmd created at RunAndWait or RunWithTimeout
+	} // exec.Cmd created at Run or RunAndWaitForOutput
 	return cmd, nil
 }
 
-// Run ...
+// Run creates an exec.Cmd for the Command and runs it asynchronously.
+// If the parent context is closed/canceled this will terminate the
+// child process and do any cleanup we need.
 func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 	if c == nil {
-		// TODO: will this ever get called like this?
 		log.Debugf("nothing to run for %s", c.Name)
 		return
 	}
@@ -111,11 +112,10 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 
 // RunAndWaitForOutput runs the command and blocks until completed, then
 // returns a string of the stdout
-// TODO: remove this once the control plane is available for Sensors (the
+// TODO v3: remove this once the control plane is available for Sensors (the
 // only caller) to send metrics to
 func (c *Command) RunAndWaitForOutput(pctx context.Context, bus *events.EventBus) string {
 	if c == nil {
-		// TODO: will this ever get called like this?
 		log.Debugf("nothing to run for %s", c.Name)
 		return ""
 	}

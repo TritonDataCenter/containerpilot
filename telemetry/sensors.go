@@ -17,7 +17,7 @@ const eventBufferSize = 1000
 
 // go:generate stringer -type SensorType
 
-// SensorType ...
+// SensorType is an enum for Prometheus sensor types
 type SensorType int
 
 // SensorType enum
@@ -28,7 +28,7 @@ const (
 	Summary
 )
 
-// Sensor ...
+// Sensor manages state of periodic sensors.
 type Sensor struct {
 	Name      string
 	Type      SensorType
@@ -39,7 +39,7 @@ type Sensor struct {
 	events.EventHandler // Event handling
 }
 
-// NewSensor ...
+// NewSensor creates a Sensor from a validated SensorConfig
 func NewSensor(cfg *SensorConfig) *Sensor {
 	sensor := &Sensor{
 		Name:      cfg.Name,
@@ -55,7 +55,7 @@ func NewSensor(cfg *SensorConfig) *Sensor {
 
 // Observe runs the health sensor and captures its output for recording
 func (sensor *Sensor) Observe(ctx context.Context) {
-	// TODO: this should be replaced with the async Run once
+	// TODO v3: this should be replaced with the async Run once
 	// the control plane is available for Sensors to POST to
 	output := sensor.exec.RunAndWaitForOutput(ctx, sensor.Bus)
 	sensor.record(output)

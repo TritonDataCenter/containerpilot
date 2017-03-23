@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// NewEventTimeout ...
+// NewEventTimeout starts a goroutine on a timer that will send a
+// TimerExpired event when the timer expires
 func NewEventTimeout(
 	ctx context.Context,
 	rx chan Event,
@@ -30,7 +31,8 @@ func NewEventTimeout(
 	}()
 }
 
-// NewEventTimer ...
+// NewEventTimer starts a goroutine with a timer that will send a
+// TimerExpired event every time the timer expires
 func NewEventTimer(
 	ctx context.Context,
 	rx chan Event,

@@ -20,7 +20,7 @@ type Config struct {
 	timeout      time.Duration
 	serviceName  string // for now always the same as the Name
 
-	/* TODO:
+	/* TODO v3:
 	These fields are here *only* so we can reuse the config map we use
 	in the services package here too. this package ignores them. when we
 	move on to the v3 configuration syntax these will be dropped.
@@ -51,7 +51,7 @@ func NewConfigs(raw []interface{}) ([]*Config, error) {
 		return nil, fmt.Errorf("HealthCheck configuration error: %v", err)
 	}
 	for _, check := range unvalidatedChecks {
-		// TODO: we'll remove this check when we split the check
+		// TODO v3: we'll remove this check when we split the check
 		// from the service config
 		if check.Exec != nil {
 			err := check.Validate()
@@ -88,7 +88,7 @@ func (cfg *Config) Validate() error {
 	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout,
 		log.Fields{"service": cfg.serviceName, "check": cfg.Name})
 	if err != nil {
-		// TODO: this is config syntax specific and should be updated
+		// TODO v3: this is config syntax specific and should be updated
 		return fmt.Errorf("could not parse `health` in check %s: %s",
 			cfg.Name, err)
 	}
@@ -100,5 +100,5 @@ func (cfg *Config) Validate() error {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (cfg *Config) String() string {
-	return "checks.Config[" + cfg.Name + "]" // TODO: is there a better representation???
+	return "checks.Config[" + cfg.Name + "]"
 }

@@ -18,22 +18,21 @@ type Watch struct {
 	serviceName      string
 	tag              string
 	exec             *commands.Command
-	startupTimeout   int
+	startupTimeout   int // TODO v3: we don't have configuration for this yet
 	poll             int
-	startupEvent     events.Event // TODO: probably want this to be a Service name?
 	discoveryService discovery.Backend
 
 	events.EventHandler // Event handling
 }
 
-// NewWatch ...
+// NewWatch creates a Watch from a validated Config
 func NewWatch(cfg *Config) *Watch {
 	watch := &Watch{
 		Name:             cfg.Name,
 		serviceName:      cfg.serviceName,
-		poll:             cfg.Poll,
 		tag:              cfg.Tag,
 		exec:             cfg.exec,
+		poll:             cfg.Poll,
 		discoveryService: cfg.discoveryService,
 	}
 	watch.Rx = make(chan events.Event, eventBufferSize)
@@ -41,7 +40,7 @@ func NewWatch(cfg *Config) *Watch {
 	return watch
 }
 
-// FromConfigs ...
+// FromConfigs creates Watches from a slice of validated Configs
 func FromConfigs(cfgs []*Config) []*Watch {
 	watches := []*Watch{}
 	for _, cfg := range cfgs {
@@ -98,5 +97,5 @@ func (watch *Watch) Run(bus *events.EventBus) {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (watch *Watch) String() string {
-	return "watches.Watch[" + watch.Name + "]" // TODO: is there a better representation???
+	return "watches.Watch[" + watch.Name + "]"
 }

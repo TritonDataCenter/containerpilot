@@ -11,7 +11,7 @@ import (
 
 const eventBufferSize = 1000
 
-// HealthCheck ...
+// HealthCheck manages state of periodic health checks.
 type HealthCheck struct {
 	Name        string
 	serviceName string
@@ -21,7 +21,7 @@ type HealthCheck struct {
 	events.EventHandler // Event handling
 }
 
-// NewHealthCheck ...
+// NewHealthCheck creates a HealthCheck from a validated Config struct
 func NewHealthCheck(cfg *Config) *HealthCheck {
 	check := &HealthCheck{
 		Name:        cfg.Name,
@@ -34,7 +34,7 @@ func NewHealthCheck(cfg *Config) *HealthCheck {
 	return check
 }
 
-// FromConfigs ...
+// FromConfigs creates HealthChecks from a slice of validated Configs
 func FromConfigs(cfgs []*Config) []*HealthCheck {
 	checks := []*HealthCheck{}
 	for _, cfg := range cfgs {
@@ -86,5 +86,5 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (check *HealthCheck) String() string {
-	return "HealthCheck[%v]" + check.Name // TODO: is there a better representation???
+	return "HealthCheck[%v]" + check.Name
 }
