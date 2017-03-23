@@ -46,11 +46,10 @@ var (
 
 // EventBus ...
 type EventBus struct {
-	registry  map[Subscriber]bool
-	lock      *sync.RWMutex
-	reloading bool
-	reloaded  chan bool
-	done      chan bool
+	registry map[Subscriber]bool
+	lock     *sync.RWMutex
+	reload   bool
+	done     chan bool
 }
 
 // NewEventBus ...
@@ -58,8 +57,7 @@ func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
 	reg := make(map[Subscriber]bool)
 	done := make(chan bool, 1)
-	reloaded := make(chan bool, 1)
-	bus := &EventBus{registry: reg, lock: lock, done: done, reloaded: reloaded}
+	bus := &EventBus{registry: reg, lock: lock, done: done, reload: false}
 	return bus
 }
 
@@ -78,11 +76,7 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 		delete(bus.registry, subscriber)
 	}
 	if len(bus.registry) == 0 {
-		if bus.reloading {
-			bus.reloaded <- true
-		} else {
-			bus.done <- true
-		}
+		bus.done <- true
 	}
 }
 
@@ -98,27 +92,11 @@ func (bus *EventBus) Publish(event Event) {
 	}
 }
 
-// Reload asks all Subscribers to halt by sending the GlobalShutdown
-// message but sets a flag so we don't send to the done channel,
-// which will cause us to exit entirely. Instead we'll wait until
-// the EventBus registry is unpopulated.
-func (bus *EventBus) Reload() {
+// SetReloadFlag sets the flag that Wait will use to signal to the main
+// App that we want to restart rather than be shut down
+func (bus *EventBus) SetReloadFlag() {
 	bus.lock.Lock()
-	bus.reloading = true
-	bus.lock.Unlock()
-
-	// need this check to ensure we will finish reload even if we have
-	// no running services to receive the shutdown signal and tell us
-	// we're done
-	if len(bus.registry) > 0 {
-		bus.Publish(GlobalShutdown)
-		<-bus.reloaded
-	} else {
-		bus.Publish(GlobalShutdown)
-	}
-
-	bus.lock.Lock()
-	bus.reloading = false
+	bus.reload = true
 	bus.lock.Unlock()
 }
 
@@ -128,8 +106,12 @@ func (bus *EventBus) Shutdown() {
 	bus.Publish(GlobalShutdown)
 }
 
-// Wait blocks until the EventBus registry is unpopulated
-func (bus *EventBus) Wait() {
+// Wait blocks until the EventBus registry is unpopulated. Returns true
+// if the "reload" flag was set.
+func (bus *EventBus) Wait() bool {
 	<-bus.done
 	close(bus.done)
+	bus.lock.RLock()
+	defer bus.lock.RUnlock()
+	return bus.reload
 }

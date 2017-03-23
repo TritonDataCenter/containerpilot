@@ -93,17 +93,17 @@ func TestTerminateSignal(t *testing.T) {
 	}
 }
 
-// Test handler for SIGHUP
+// Test handler for SIGHUP // TODO this tests the reload method
 func TestReloadSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
 	app.ConfigFlag = "invalid"
-	err := app.Reload()
+	err := app.reload()
 	if err == nil {
 		t.Errorf("invalid configuration did not return error")
 	}
 
 	app.ConfigFlag = `{ "consul": "newconsul:8500" }`
-	err = app.Reload()
+	err = app.reload()
 	if err != nil {
 		t.Errorf("valid configuration returned error: %v", err)
 	}

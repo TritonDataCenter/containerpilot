@@ -144,10 +144,17 @@ func (a *App) Run() {
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
-	a.Bus = events.NewEventBus()
-	a.handleSignals()
-	a.handlePolling()
-	a.Bus.Wait()
+	for {
+		a.Bus = events.NewEventBus()
+		a.handleSignals()
+		a.handlePolling()
+		if !a.Bus.Wait() {
+			break
+		}
+		if err := a.reload(); err != nil {
+			break
+		}
+	}
 }
 
 // Render the command line args thru golang templating so we can
@@ -157,7 +164,7 @@ func getArgs(args []string) []string {
 	for _, arg := range args {
 		newArg, err := config.ApplyTemplate([]byte(arg))
 		if err != nil {
-			log.Errorf("Unable to render command arguments template: %v", err)
+			log.Errorf("unable to render command arguments template: %v", err)
 			renderedArgs = args // skip rendering on error
 			break
 		}
@@ -207,35 +214,37 @@ func (a *App) Terminate() {
 	}
 }
 
-// Reload will try to update the running application by
-// loading the config and applying changes to the services
-// A reload cannot change the shimmed application, or the preStart script
-func (a *App) Reload() error {
+// Reload will set the 'reload' flag on our event loop and then shut it
+// down so that the main loop can reload the configuration and restart.
+func (a *App) Reload() {
 	a.signalLock.Lock()
 	defer a.signalLock.Unlock()
 	log.Infof("reloading configuration.")
 
+	a.Bus.SetReloadFlag()
+	a.Bus.Shutdown()
+	if a.Telemetry != nil {
+		a.Telemetry.Shutdown()
+	}
+}
+
+// reload does the actual work of reloading the configuration and
+// updating the App with those changes. The EventBus should be
+// already shut down before we call this.
+func (a *App) reload() error {
 	newApp, err := NewApp(a.ConfigFlag)
 	if err != nil {
 		log.Errorf("error initializing config: %v", err)
 		return err
 	}
-	a.Bus.Reload()
-	a.cloneFrom(newApp)
-	a.handlePolling()
-	return nil
-}
-
-func (a *App) cloneFrom(newApp *App) {
 	a.Discovery = newApp.Discovery
 	a.Services = newApp.Services
 	a.Checks = newApp.Checks
 	a.Watches = newApp.Watches
 	a.StopTimeout = newApp.StopTimeout
-	if a.Telemetry != nil {
-		a.Telemetry.Shutdown()
-	}
 	a.Telemetry = newApp.Telemetry
+
+	return nil
 }
 
 // HandlePolling sets up polling functions and write their quit channels
