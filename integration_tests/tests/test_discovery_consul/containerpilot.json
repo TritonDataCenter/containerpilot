@@ -1,0 +1,34 @@
+{
+  "consul": "consul:8500",
+  "logging": {
+    "level": "DEBUG",
+    "format": "text"
+  },
+  "services": [
+    {
+      "name": "app",
+      "port": 8000,
+      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      "preStart": "/reload-app.sh",
+      "exec": [
+        "/usr/local/bin/node",
+        "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
+      "poll": 1,
+      "ttl": 5,
+      "tags": ["application"]
+    }
+  ],
+  "backends": [
+    {
+      "name": "nginx",
+      "poll": 7,
+      "onChange": "/reload-app.sh"
+    },
+    {
+      "name": "app",
+      "poll": 5,
+      "onChange": "/reload-app.sh",
+      "tag": "application"
+    }
+  ]
+}

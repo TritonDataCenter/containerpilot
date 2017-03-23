@@ -107,7 +107,6 @@ run_test() {
     export CONTAINERPILOT_BIN="$DIR/build/containerpilot"
     log "TEST: $COMPOSE_PROJECT_NAME"
     build_test_compose
-    chmod 755 "./run.sh"
     if ./run.sh; then
       log "PASS: $COMPOSE_PROJECT_NAME"
     else
@@ -156,7 +155,6 @@ case $COMMAND in
     create_test_fixtures
     run_tests "$1"
     result=$?
-    clean_tests
     if [ $result -ne 0 ]; then
       banner "Tests Failed!"
       exit 1

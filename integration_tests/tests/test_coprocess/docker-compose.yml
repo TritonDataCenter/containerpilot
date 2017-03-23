@@ -12,10 +12,12 @@ services:
     links:
       - consul:consul
     environment:
-      - CONTAINERPILOT=file:///etc/containerpilot.json
+      # needs to be in the container already or we'll potentially
+      # error when we try to rewrite it; update in the future
+      # with an env var change to the args instead
+      - CONTAINERPILOT=file:///etc/containerpilot-with-coprocess.json
     volumes:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
-      - './containerpilot.json:/etc/containerpilot.json'
       - './coprocess.sh:/bin/coprocess.sh'
 
   test:

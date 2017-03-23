@@ -37,13 +37,13 @@ func TestTemplate(t *testing.T) {
 
 func TestInvalidRenderConfigFile(t *testing.T) {
 	testRenderExpectError(t, "file:///xxxx", "-",
-		"Could not read config file: open /xxxx: no such file or directory")
+		"could not read config file: open /xxxx: no such file or directory")
 }
 
 func TestInvalidRenderFileConfig(t *testing.T) {
 	var testJSON = `{"consul": "consul:8500"}`
 	testRenderExpectError(t, testJSON, "file:///a/b/c/d/e/f.json",
-		"Could not write config file: open /a/b/c/d/e/f.json: no such file or directory")
+		"could not write config file: open /a/b/c/d/e/f.json: no such file or directory")
 }
 
 func TestRenderConfigFileStdout(t *testing.T) {
@@ -58,10 +58,10 @@ func TestRenderConfigFileStdout(t *testing.T) {
 	// Render to file
 	defer os.Remove("testJSON.json")
 	if err := RenderConfig(testJSON, "file://testJSON.json"); err != nil {
-		t.Fatalf("Expected no error from renderConfigTemplate but got: %v", err)
+		t.Fatalf("expected no error from renderConfigTemplate but got: %v", err)
 	}
 	if exists, err := fileExists("testJSON.json"); !exists || err != nil {
-		t.Errorf("Expected file testJSON.json to exist.")
+		t.Errorf("expected file testJSON.json to exist.")
 	}
 
 	// Render to stdout
@@ -70,7 +70,7 @@ func TestRenderConfigFileStdout(t *testing.T) {
 	old := os.Stdout
 	os.Stdout = temp
 	if err := RenderConfig(testJSON, "-"); err != nil {
-		t.Fatalf("Expected no error from renderConfigTemplate but got: %v", err)
+		t.Fatalf("expected no error from renderConfigTemplate but got: %v", err)
 	}
 	temp.Close()
 	os.Stdout = old
@@ -78,7 +78,7 @@ func TestRenderConfigFileStdout(t *testing.T) {
 	renderedOut, _ := ioutil.ReadFile(fname)
 	renderedFile, _ := ioutil.ReadFile("testJSON.json")
 	if string(renderedOut) != string(renderedFile) {
-		t.Fatalf("Expected the rendered file and stdout to be identical")
+		t.Fatalf("expected the rendered file and stdout to be identical")
 	}
 }
 
@@ -93,13 +93,13 @@ func TestRenderedConfigIsParseable(t *testing.T) {
 
 	os.Setenv("TESTRENDERCONFIGISPARSEABLE", "-ok")
 	template, _ := renderConfigTemplate(testJSON)
-	config, err := ParseConfig(string(template))
+	config, err := LoadConfig(string(template))
 	if err != nil {
-		t.Fatalf("Unexpected error in ParseConfig: %v", err)
+		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
-	name := config.Backends[0].Name
-	if name != "upstreamA-ok" {
-		t.Fatalf("Expected Backend[0] name to be upstreamA-ok but got %s", name)
+	name := config.Watches[0].Name
+	if name != "upstreamA-ok.watch" {
+		t.Fatalf("expected Watches[0] name to be upstreamA-ok but got %s", name)
 	}
 }
 
@@ -130,7 +130,7 @@ func validateTemplate(t *testing.T, name string, template string, env Environmen
 func testRenderExpectError(t *testing.T, testJSON, render, expected string) {
 	err := RenderConfig(testJSON, render)
 	if err == nil || !strings.Contains(err.Error(), expected) {
-		t.Errorf("Expected %s but got %s", expected, err)
+		t.Errorf("expected %s but got %s", expected, err)
 	}
 }
 

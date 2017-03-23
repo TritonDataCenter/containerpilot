@@ -23,7 +23,7 @@ type Consul struct {
 }
 
 // ConfigHook is the hook to register with the Consul backend
-func ConfigHook(raw interface{}) (discovery.ServiceBackend, error) {
+func ConfigHook(raw interface{}) (discovery.Backend, error) {
 	return NewConsulConfig(raw)
 }
 
@@ -37,7 +37,7 @@ func NewConsulConfig(config interface{}) (*Consul, error) {
 	case map[string]interface{}:
 		consulConfig, err = configFromMap(t)
 	default:
-		return nil, fmt.Errorf("Unexpected Consul config structure. Expected a string or map")
+		return nil, fmt.Errorf("unexpected Consul config structure. Expected a string or map")
 	}
 	if err != nil {
 		return nil, err
@@ -100,8 +100,9 @@ func (c *Consul) Deregister(service *discovery.ServiceDefinition) {
 
 // MarkForMaintenance removes the node from Consul.
 func (c *Consul) MarkForMaintenance(service *discovery.ServiceDefinition) {
+	log.Debugf("deregistering: %s", service.ID)
 	if err := c.Agent().ServiceDeregister(service.ID); err != nil {
-		log.Infof("Deregistering failed: %s", err)
+		log.Infof("deregistering failed: %s", err)
 	}
 }
 
@@ -111,19 +112,19 @@ func (c *Consul) MarkForMaintenance(service *discovery.ServiceDefinition) {
 func (c *Consul) SendHeartbeat(service *discovery.ServiceDefinition) {
 	if !c.wasRegistered {
 		if err := c.registerService(*service); err != nil {
-			log.Warnf("Service registration failed: %s", err)
+			log.Warnf("service registration failed: %s", err)
 			return
 		}
 		c.wasRegistered = true
 	}
 	if err := c.Agent().PassTTL(service.ID, "ok"); err != nil {
-		log.Infof("Service not registered: %v", err)
+		log.Infof("service not registered: %v", err)
 		if err = c.registerService(*service); err != nil {
-			log.Warnf("Service registration failed: %s", err)
+			log.Warnf("service registration failed: %s", err)
 			return
 		}
 		if err = c.registerCheck(*service); err != nil {
-			log.Warnf("Check registration failed: %s", err)
+			log.Warnf("check registration failed: %s", err)
 			return
 		}
 		// now that we're ensured we're registered, we can push the
@@ -177,7 +178,7 @@ var upstreams = make(map[string][]*consul.ServiceEntry)
 func (c Consul) CheckForUpstreamChanges(backendName, backendTag string) bool {
 	services, meta, err := c.Health().Service(backendName, backendTag, true, nil)
 	if err != nil {
-		log.Warnf("Failed to query %v: %s [%v]", backendName, err, meta)
+		log.Warnf("failed to query %v: %s [%v]", backendName, err, meta)
 		return false
 	}
 	didChange := compareForChange(upstreams[backendName], services)

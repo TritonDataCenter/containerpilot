@@ -30,7 +30,7 @@ END { print count }
 if [ $REPARENTED_ZOMBIES -gt 1 ] || [ $TOTAL_ZOMBIES -gt 2 ]; then
   echo "More than permitted number of zombies." >&2
   echo $PTREE >&2
-  docker logs $APP_ID
+  docker logs "${APP_ID}" | app.log
   exit 1
 fi
 exit 0

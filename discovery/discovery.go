@@ -2,9 +2,8 @@ package discovery
 
 import log "github.com/Sirupsen/logrus"
 
-// ServiceBackend is an interface
-// which all service discovery backends must implement
-type ServiceBackend interface {
+// Backend is an interface which all service discovery backends must implement
+type Backend interface {
 	SendHeartbeat(service *ServiceDefinition)
 	CheckForUpstreamChanges(backendName string, backendTag string) bool
 	MarkForMaintenance(service *ServiceDefinition)
@@ -30,7 +29,7 @@ type ConsulExtras struct {
 }
 
 // ServiceDiscoveryConfigHook parses a raw service discovery config
-type ServiceDiscoveryConfigHook func(interface{}) (ServiceBackend, error)
+type ServiceDiscoveryConfigHook func(interface{}) (Backend, error)
 
 var backends = []string{}
 var discoveryHooks = map[string]ServiceDiscoveryConfigHook{}

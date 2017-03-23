@@ -18,12 +18,12 @@ func TestParseArgs(t *testing.T) {
 	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg1"}, err, nil)
 
 	// array args ok
-	exec, args, err = ParseArgs([]string{"/testdata/test.sh", "arg1"})
-	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg1"}, err, nil)
+	exec, args, err = ParseArgs([]string{"/testdata/test.sh", "arg2"})
+	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg2"}, err, nil)
 
 	// interface args ok
-	exec, args, err = ParseArgs([]interface{}{"/testdata/test.sh", "arg1"})
-	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg1"}, err, nil)
+	exec, args, err = ParseArgs([]interface{}{"/testdata/test.sh", "arg3"})
+	validateParsing(t, exec, "/testdata/test.sh", args, []string{"arg3"}, err, nil)
 
 	// map of bools args return error
 	exec, args, err = ParseArgs([]bool{true})
@@ -34,15 +34,12 @@ func TestParseArgs(t *testing.T) {
 func validateParsing(t *testing.T, exec, expectedExec string,
 	args, expectedArgs []string, err, expectedErr error) {
 	if !reflect.DeepEqual(err, expectedErr) { //}err != expectedErr {
-		t.Errorf("expected %s but got %s", expectedErr, err)
-		return
+		t.Fatalf("expected %s but got %s", expectedErr, err)
 	}
 	if exec != expectedExec {
-		t.Errorf("executable not parsed: %s != %s", exec, expectedExec)
-		return
+		t.Fatalf("executable not parsed: %s != %s", exec, expectedExec)
 	}
 	if !reflect.DeepEqual(args, expectedArgs) {
-		t.Errorf("args not parsed: %s != %s", args, expectedArgs)
-		return
+		t.Fatalf("args not parsed: %s != %s", args, expectedArgs)
 	}
 }

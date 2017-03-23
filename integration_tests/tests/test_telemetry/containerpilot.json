@@ -1,0 +1,32 @@
+{
+  "consul": "consul:8500",
+  "logging": {
+    "level": "DEBUG",
+    "format": "text"
+  },
+  "services": [
+    {
+      "name": "app",
+      "port": 8000,
+      "exec": [
+        "/usr/local/bin/node",
+        "/usr/local/bin/http-server", "/srv", "-p", "8000"],
+      "poll": 1,
+      "ttl": 5
+    }
+  ],
+  "telemetry": {
+    "port": 9090,
+    "sensors": [
+       {
+        "namespace": "containerpilot",
+        "subsystem": "app",
+        "name": "some_counter",
+        "help": "help text",
+        "type": "counter",
+        "poll": 1,
+        "check": ["/sensor.sh", "count"]
+       }
+    ]
+  }
+}

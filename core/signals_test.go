@@ -3,15 +3,16 @@ package core
 import (
 	"os"
 	"os/signal"
-	"runtime"
+	"reflect"
 	"syscall"
 	"testing"
 	"time"
 
-	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 // ------------------------------------------
@@ -26,18 +27,21 @@ func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefini
 func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
 
 func getSignalTestConfig(t *testing.T) *App {
-	service, err := services.NewService(
-		"test-service", 1, 1, 1, []string{"inet"}, nil, nil, &NoopServiceBackend{})
-	if err != nil {
-		t.Fatal(err)
+
+	cfg := &services.Config{
+		Name:       "test-service",
+		Heartbeat:  1,
+		Port:       1,
+		TTL:        1,
+		Interfaces: []string{"inet"},
+		Exec:       []string{"./testdata/test.sh", "interruptSleep"},
 	}
+	cfg.Validate(&NoopServiceBackend{})
+	service := services.NewService(cfg)
 	app := EmptyApp()
-	cmd, _ := commands.NewCommand([]string{
-		"./testdata/test.sh",
-		"interruptSleep"}, "0")
-	app.Command = cmd
 	app.StopTimeout = 5
 	app.Services = []*services.Service{service}
+	app.Bus = events.NewEventBus()
 	return app
 }
 
@@ -65,42 +69,47 @@ func TestMaintenanceSignal(t *testing.T) {
 // by this same test, but that we don't have a separate unit test
 // because they'll interfere with each other's state.
 func TestTerminateSignal(t *testing.T) {
-
 	app := getSignalTestConfig(t)
-	startTime := time.Now()
-	go func() {
-		if exitCode, _ := commands.RunAndWait(app.Command, nil); exitCode != 2 {
-			t.Fatalf("Expected exit code 2 but got %d", exitCode)
-		}
-	}()
-	// we need time for the forked process to start up and this is async
-	runtime.Gosched()
-	time.Sleep(10 * time.Millisecond)
+	bus := app.Bus
+	app.Services[0].Run(bus)
+
+	ds := mocks.NewDebugSubscriber(bus, 4)
+	ds.Run(0)
 
 	app.Terminate()
-	elapsed := time.Since(startTime)
-	if elapsed.Seconds() > float64(app.StopTimeout) {
-		t.Fatalf("Expected elapsed time <= %d seconds, but was %.2f",
-			app.StopTimeout, elapsed.Seconds())
+	ds.Close()
+
+	got := map[events.Event]int{}
+	for _, result := range ds.Results {
+		got[result]++
+	}
+	if !reflect.DeepEqual(got, map[events.Event]int{
+		events.GlobalShutdown:                                       1,
+		events.QuitByClose:                                          1,
+		events.Event{Code: events.Stopping, Source: "test-service"}: 1,
+		events.Event{Code: events.Stopped, Source: "test-service"}:  1,
+	}) {
+		t.Fatalf("expected shutdown but got:\n%v", ds.Results)
 	}
 }
 
-// Test handler for SIGHUP
+// Test handler for SIGHUP // TODO this tests the reload method
 func TestReloadSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
 	app.ConfigFlag = "invalid"
-	err := app.Reload()
+	err := app.reload()
 	if err == nil {
-		t.Errorf("Invalid configuration did not return error")
+		t.Errorf("invalid configuration did not return error")
 	}
+
 	app.ConfigFlag = `{ "consul": "newconsul:8500" }`
-	err = app.Reload()
+	err = app.reload()
 	if err != nil {
-		t.Errorf("Valid configuration returned error: %v", err)
+		t.Errorf("valid configuration returned error: %v", err)
 	}
-	discSvc := app.ServiceBackend
+	discSvc := app.Discovery
 	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
-		t.Errorf("Configuration was not reloaded: %v", discSvc)
+		t.Errorf("configuration was not reloaded: %v", discSvc)
 	}
 }
 
@@ -108,6 +117,7 @@ func TestReloadSignal(t *testing.T) {
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
 	app := EmptyApp()
+	app.Bus = events.NewEventBus()
 	app.handleSignals()
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)

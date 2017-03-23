@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,131 +9,105 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// A Sensor is a single measurement of the application.
+const eventBufferSize = 1000
+
+// go:generate stringer -type SensorType
+
+// SensorType is an enum for Prometheus sensor types
+type SensorType int
+
+// SensorType enum
+const (
+	Counter SensorType = iota
+	Gauge
+	Histogram
+	Summary
+)
+
+// Sensor manages state of periodic sensors.
 type Sensor struct {
-	Namespace string      `mapstructure:"namespace"`
-	Subsystem string      `mapstructure:"subsystem"`
-	Name      string      `mapstructure:"name"`
-	Help      string      `mapstructure:"help"` // help string returned by API
-	Type      string      `mapstructure:"type"`
-	Poll      int         `mapstructure:"poll"` // time in seconds
-	CheckExec interface{} `mapstructure:"check"`
-	Timeout   string      `mapstructure:"timeout"`
-	checkCmd  *commands.Command
+	Name      string
+	Type      SensorType
+	exec      *commands.Command
+	poll      time.Duration
 	collector prometheus.Collector
+
+	events.EventHandler // Event handling
 }
 
-// PollTime implements Pollable for Sensor
-// It returns the sensor's poll interval.
-func (s Sensor) PollTime() time.Duration {
-	return time.Duration(s.Poll) * time.Second
-}
-
-// PollAction implements Pollable for Sensor.
-func (s *Sensor) PollAction() {
-	if metricValue, err := s.observe(); err == nil {
-		s.record(metricValue)
-	} else {
-		log.Errorln(err)
+// NewSensor creates a Sensor from a validated SensorConfig
+func NewSensor(cfg *SensorConfig) *Sensor {
+	sensor := &Sensor{
+		Name:      cfg.Name,
+		Type:      cfg.sensorType,
+		exec:      cfg.exec,
+		poll:      cfg.poll,
+		collector: cfg.collector,
 	}
+	sensor.Rx = make(chan events.Event, eventBufferSize)
+	sensor.Flush = make(chan bool)
+	return sensor
 }
 
-// PollStop does nothing in a Sensor
-func (s *Sensor) PollStop() {
-	// Nothing to do
+// Observe runs the health sensor and captures its output for recording
+func (sensor *Sensor) Observe(ctx context.Context) {
+	// TODO v3: this should be replaced with the async Run once
+	// the control plane is available for Sensors to POST to
+	output := sensor.exec.RunAndWaitForOutput(ctx, sensor.Bus)
+	sensor.record(output)
 }
 
-// wrapping this func call makes it easier to test
-func (s *Sensor) observe() (string, error) {
-	return commands.RunAndWaitForOutput(s.checkCmd)
-}
-
-func (s Sensor) record(metricValue string) {
+func (sensor *Sensor) record(metricValue string) {
 	if val, err := strconv.ParseFloat(
 		strings.TrimSpace(metricValue), 64); err != nil {
-		log.Errorln(err)
+		log.Errorf("sensor produced non-numeric value: %v", metricValue)
 	} else {
 		// we should use a type switch here but the prometheus collector
 		// implementations are themselves interfaces and not structs,
-		// so that doesn't work...
-		switch {
-		case s.Type == "counter":
-			s.collector.(prometheus.Counter).Add(val)
-		case s.Type == "gauge":
-			s.collector.(prometheus.Gauge).Set(val)
-		case s.Type == "histogram":
-			s.collector.(prometheus.Histogram).Observe(val)
-		case s.Type == "summary":
-			s.collector.(prometheus.Summary).Observe(val)
-		default:
-			// ...which is why we end up logging the fall-thru
-			log.Errorf("Invalid sensor type: %s\n", s.Type)
+		// so that doesn't work.
+		switch sensor.Type {
+		case Counter:
+			sensor.collector.(prometheus.Counter).Add(val)
+		case Gauge:
+			sensor.collector.(prometheus.Gauge).Set(val)
+		case Histogram:
+			sensor.collector.(prometheus.Histogram).Observe(val)
+		case Summary:
+			sensor.collector.(prometheus.Summary).Observe(val)
 		}
 	}
 }
 
-// NewSensors creates new sensors from a raw config
-func NewSensors(raw []interface{}) ([]*Sensor, error) {
-	var sensors []*Sensor
-	if err := utils.DecodeRaw(raw, &sensors); err != nil {
-		return nil, fmt.Errorf("Sensor configuration error: %v", err)
-	}
-	for _, s := range sensors {
-		if s.Timeout == "" {
-			s.Timeout = fmt.Sprintf("%ds", s.Poll)
-		}
-		check, err := commands.NewCommand(s.CheckExec, s.Timeout)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse check in sensor %s: %s", s.Name, err)
-		}
-		check.Name = fmt.Sprintf("%s.sensor", s.Name)
-		s.checkCmd = check
+// Run executes the event loop for the Sensor
+func (sensor *Sensor) Run(bus *events.EventBus) {
+	sensor.Subscribe(bus)
+	sensor.Bus = bus
+	ctx, cancel := context.WithCancel(context.Background())
 
-		// the prometheus client lib's API here is baffling... they don't expose
-		// an interface or embed their Opts type in each of the Opts "subtypes",
-		// so we can't share the initialization.
-		switch {
-		case s.Type == "counter":
-			s.collector = prometheus.NewCounter(prometheus.CounterOpts{
-				Namespace: s.Namespace,
-				Subsystem: s.Subsystem,
-				Name:      s.Name,
-				Help:      s.Help,
-			})
-		case s.Type == "gauge":
-			s.collector = prometheus.NewGauge(prometheus.GaugeOpts{
-				Namespace: s.Namespace,
-				Subsystem: s.Subsystem,
-				Name:      s.Name,
-				Help:      s.Help,
-			})
-		case s.Type == "histogram":
-			s.collector = prometheus.NewHistogram(prometheus.HistogramOpts{
-				Namespace: s.Namespace,
-				Subsystem: s.Subsystem,
-				Name:      s.Name,
-				Help:      s.Help,
-			})
-		case s.Type == "summary":
-			s.collector = prometheus.NewSummary(prometheus.SummaryOpts{
-				Namespace: s.Namespace,
-				Subsystem: s.Subsystem,
-				Name:      s.Name,
-				Help:      s.Help,
-			})
-		default:
-			return nil, fmt.Errorf("invalid sensor type: %s", s.Type)
+	pollSource := fmt.Sprintf("%s-sensor-poll", sensor.Name)
+	events.NewEventTimer(ctx, sensor.Rx, sensor.poll, pollSource)
+
+	go func() {
+		for {
+			event := <-sensor.Rx
+			switch event {
+			case events.Event{events.TimerExpired, pollSource}:
+				sensor.Observe(ctx)
+			case
+				events.Event{events.Quit, sensor.Name},
+				events.QuitByClose,
+				events.GlobalShutdown:
+				sensor.Unsubscribe(sensor.Bus)
+				close(sensor.Rx)
+				cancel()
+				sensor.Flush <- true
+				sensor.exec.CloseLogs()
+				return
+			}
 		}
-		// we're going to unregister before every attempt to register
-		// so that we can reload config
-		prometheus.Unregister(s.collector)
-		if err := prometheus.Register(s.collector); err != nil {
-			return nil, err
-		}
-	}
-	return sensors, nil
+	}()
 }

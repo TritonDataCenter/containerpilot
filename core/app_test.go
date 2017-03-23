@@ -2,13 +2,19 @@ package core
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/joyent/containerpilot/commands"
+	_ "github.com/joyent/containerpilot/discovery/consul"
 )
+
+/*
+TODO v3: a LOT of the these tests should be moved to the config package
+*/
 
 // ------------------------------------------
 
@@ -53,57 +59,6 @@ var testJSON = `{
 }
 `
 
-func TestValidConfigParse(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-
-	os.Setenv("TEST", "HELLO")
-	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "valid1", "--debug"}
-	app, err := LoadApp()
-	if err != nil {
-		t.Fatalf("Unexpected error in LoadApp: %v", err)
-	}
-
-	if len(app.Backends) != 2 || len(app.Services) != 2 {
-		t.Fatalf("Expected 2 backends and 2 services but got: len(backends)=%d, len(services)=%d", len(app.Backends), len(app.Services))
-	}
-	args := flag.Args()
-	if len(args) != 3 || args[0] != "/testdata/test.sh" {
-		t.Errorf("Expected 3 args but got unexpected results: %v", args)
-	}
-
-	expectedTags := []string{"tag1", "tag2"}
-	if !reflect.DeepEqual(app.Services[0].Tags, expectedTags) {
-		t.Errorf("Expected tags %s for serviceA, but got: %s", expectedTags, app.Services[0].Tags)
-	}
-
-	if app.Services[1].Tags != nil {
-		t.Errorf("Expected no tags for serviceB, but got: %s", app.Services[1].Tags)
-	}
-
-	if app.Services[0].TTL != 19 {
-		t.Errorf("Expected ttl=19 for serviceA, but got: %d", app.Services[1].TTL)
-	}
-
-	if app.Services[1].TTL != 103 {
-		t.Errorf("Expected ttl=103 for serviceB, but got: %d", app.Services[1].TTL)
-	}
-
-	if app.Backends[0].Tag != "dev" {
-		t.Errorf("Expected tag %s for upstreamA, but got: %s", "dev", app.Backends[0].Tag)
-	}
-
-	if app.Backends[1].Tag != "" {
-		t.Errorf("Expected no tag for upstreamB, but got: %s", app.Backends[1].Tag)
-	}
-
-	validateCommandParsed(t, "preStart", app.PreStartCmd,
-		"/bin/to/preStart.sh", []string{"arg1", "arg2"})
-	validateCommandParsed(t, "preStop", app.PreStopCmd,
-		"/bin/to/preStop.sh", []string{"arg1", "arg2"})
-	validateCommandParsed(t, "postStop", app.PostStopCmd,
-		"/bin/to/postStop.sh", nil) //[]string{})
-}
-
 func TestServiceConfigRequiredFields(t *testing.T) {
 	// Missing `name`
 	var testJSON = `{"consul": "consul:8500", "services": [
@@ -146,25 +101,25 @@ func TestInvalidConfigNoConfigFlag(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	os.Args = []string{"this", "/testdata/test.sh", "invalid1", "--debug"}
 	if _, err := LoadApp(); err != nil && err.Error() != "-config flag is required" {
-		t.Errorf("Expected error but got %s", err)
+		t.Errorf("expected error but got %s", err)
 	}
 }
 
 func TestInvalidConfigParseNoDiscovery(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t, "{}", "No discovery backend defined")
+	testParseExpectError(t, "{}", "no discovery backend defined")
 }
 
 func TestInvalidConfigParseFile(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t, "file:///xxxx",
-		"Could not read config file: open /xxxx: no such file or directory")
+		"could not read config file: open /xxxx: no such file or directory")
 }
 
 func TestInvalidConfigParseNotJson(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	testParseExpectError(t, "<>",
-		"Parse error at line:col [1:1]")
+		"parse error at line:col [1:1]")
 }
 
 func TestJSONTemplateParseError(t *testing.T) {
@@ -174,7 +129,7 @@ func TestJSONTemplateParseError(t *testing.T) {
     "test": {{ .NO_SUCH_KEY }},
     "test2": "hello"
 }`,
-		"Parse error at line:col [2:13]")
+		"parse error at line:col [2:13]")
 }
 
 func TestJSONTemplateParseError2(t *testing.T) {
@@ -186,7 +141,7 @@ func TestJSONTemplateParseError2(t *testing.T) {
     "test3": false,
     test2: "hello"
 }`,
-		"Parse error at line:col [5:5]")
+		"parse error at line:col [5:5]")
 }
 
 func TestParseTrailingComma(t *testing.T) {
@@ -211,14 +166,14 @@ func TestRenderArgs(t *testing.T) {
 		os.Setenv("HOSTNAME", expected)
 	}
 	if got := getArgs(flags)[1]; got != expected {
-		t.Errorf("Expected %v but got %v for rendered hostname", expected, got)
+		t.Errorf("expected %v but got %v for rendered hostname", expected, got)
 	}
 
 	// invalid template should just be returned unchanged
 	flags = []string{"-name", "{{ .HOSTNAME }"}
 	expected = "{{ .HOSTNAME }"
 	if got := getArgs(flags)[1]; got != expected {
-		t.Errorf("Expected %v but got %v for unrendered hostname", expected, got)
+		t.Errorf("expected %v but got %v for unrendered hostname", expected, got)
 	}
 }
 
@@ -232,21 +187,24 @@ func TestMetricServiceCreation(t *testing.T) {
     }
   }`
 	if app, err := NewApp(jsonFragment); err != nil {
-		t.Fatalf("Got error while initializing config: %v", err)
+		t.Fatalf("got error while initializing config: %v", err)
 	} else {
 		if len(app.Services) != 1 {
-			t.Errorf("Expected telemetry service but got %v", app.Services)
+			for _, svc := range app.Services {
+				fmt.Printf("%+v\n", svc.Name)
+			}
+			t.Errorf("expected telemetry service but got %v", app.Services)
 		} else {
 			service := app.Services[0]
 			if service.Name != "containerpilot" {
-				t.Errorf("Got incorrect service back: %v", service)
+				t.Errorf("got incorrect service back: %v", service)
 			}
 			for _, envVar := range os.Environ() {
 				if strings.HasPrefix(envVar, "CONTAINERPILOT_CONTAINERPILOT_IP") {
 					return
 				}
 			}
-			t.Errorf("Did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
+			t.Errorf("did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
 		}
 	}
 }
@@ -255,10 +213,10 @@ func TestPidEnvVar(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	os.Args = []string{"this", "-config", "{}", "/testdata/test.sh"}
 	if _, err := LoadApp(); err == nil {
-		t.Fatalf("Expected error in LoadApp but got none")
+		t.Fatalf("expected error in LoadApp but got none")
 	}
 	if pid := os.Getenv("CONTAINERPILOT_PID"); pid == "" {
-		t.Errorf("Expected CONTAINERPILOT_PID to be set even on error")
+		t.Errorf("expected CONTAINERPILOT_PID to be set even on error")
 	}
 }
 
@@ -278,17 +236,17 @@ func argTestCleanup(oldArgs []string) {
 func testParseExpectError(t *testing.T, testJSON string, expected string) {
 	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "test", "--debug"}
 	if _, err := LoadApp(); err != nil && !strings.Contains(err.Error(), expected) {
-		t.Errorf("Expected %s but got %s", expected, err)
+		t.Errorf("expected %s but got %s", expected, err)
 	}
 }
 
 func validateParseError(t *testing.T, testJSON string, matchStrings []string) {
 	if _, err := NewApp(testJSON); err == nil {
-		t.Errorf("Expected error parsing config")
+		t.Errorf("expected error parsing config")
 	} else {
 		for _, match := range matchStrings {
 			if !strings.Contains(err.Error(), match) {
-				t.Errorf("Expected message does not contain %s: %s", match, err)
+				t.Errorf("expected message does not contain %s: %s", match, err)
 			}
 		}
 	}

@@ -22,5 +22,4 @@ EXPOSE 80
 # by default use nginx-with-consul.json, allows for override in docker-compose
 ENV CONTAINERPILOT=file:///etc/nginx-with-consul.json
 
-ENTRYPOINT [ "/bin/containerpilot", \
-             "nginx", "-g", "daemon off;"]
+ENTRYPOINT [ "/bin/containerpilot" ]

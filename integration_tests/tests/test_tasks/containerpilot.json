@@ -1,0 +1,67 @@
+{
+  "consul": "consul:8500",
+  "logging": {
+    "level": "DEBUG",
+    "format": "text"
+  },
+  "services": [
+    {
+      "name": "app",
+      "port": 8000,
+      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      "preStart": "/reload-app.sh",
+      "exec": [
+        "/usr/local/bin/node",
+        "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
+      "poll": 1,
+      "ttl": 5,
+      "tags": ["application"]
+    },
+    {
+      "name": "task1",
+      "exec": ["/task.sh","0.2","/task1.txt"],
+      "frequency": "500ms",
+      "restarts": "unlimited"
+    },
+    {
+      "name": "task2",
+      "exec": ["/task.sh","2","/task2.txt"],
+      "frequency": "1500ms",
+      "restarts": "unlimited"
+    },
+    {
+      "name": "task3",
+      "exec": ["/task.sh","2","/task3.txt"],
+      "frequency": "1500ms",
+      "execTimeout": "100ms",
+      "restarts": "unlimited"
+    }
+  ],
+  "backends": [
+    {
+      "name": "nginx",
+      "poll": 7,
+      "onChange": "/reload-app.sh"
+    },
+    {
+      "name": "app",
+      "poll": 5,
+      "onChange": "/reload-app.sh",
+      "tag": "application"
+    }
+  ],
+  "telemetry": {
+    "port": 9090,
+    "sensors": [
+       {
+        "namespace": "containerpilot",
+        "subsystem": "app",
+        "name": "some_counter",
+        "help": "help text",
+        "type": "counter",
+        "poll": 1,
+        "check": ["/sensor.sh", "count"]
+       }
+    ]
+  }
+}
