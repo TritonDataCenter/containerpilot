@@ -207,3 +207,29 @@ func TestValidConfigWatches(t *testing.T) {
 	assertEqual(t, watch1.Tag, "", "expected '%v' for Tag, but got '%v'")
 
 }
+
+// checks.Config
+func TestValidConfigControl(t *testing.T) {
+	cfg, err := LoadConfig(testJSON)
+	if err != nil {
+		t.Fatalf("unexpected error in LoadConfig: %v", err)
+	}
+
+	assertEqual(t, cfg.Control.Socket, "/var/run/containerpilot.socket", "expected '%v' for control.socket, but got '%v'")
+}
+
+func TestCustomConfigControl(t *testing.T) {
+	var testJSONWithSocket = `{
+	"control": {
+		"socket": "/var/run/cp3-test.sock"
+	},
+	"consul": "consul:8500"
+}`
+
+	cfg, err := LoadConfig(testJSONWithSocket)
+	if err != nil {
+		t.Fatalf("unexpected error in LoadConfig: %v", err)
+	}
+
+	assertEqual(t, cfg.Control.Socket, "/var/run/cp3-test.sock", "expected '%v' for control.socket, but got '%v'")
+}
