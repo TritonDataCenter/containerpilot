@@ -39,7 +39,8 @@ func NewBackends(raw []interface{}, disc discovery.ServiceBackend) ([]*Backend, 
 			return nil, fmt.Errorf("`onChange` is required in backend %s",
 				b.Name)
 		}
-		cmd, err := commands.NewCommand(b.OnChangeExec, b.Timeout)
+		cmd, err := commands.NewCommand(b.OnChangeExec, b.Timeout,
+			log.Fields{"process": "onChange", "backend": b.Name})
 		if err != nil {
 			return nil, fmt.Errorf("Could not parse `onChange` in backend %s: %s",
 				b.Name, err)
@@ -72,9 +73,11 @@ func (b *Backend) PollAction() {
 	}
 }
 
-// PollStop does nothing in a Backend
+// PollStop closes the Backends logs
 func (b *Backend) PollStop() {
-	// Nothing to do
+	if b.onChangeCmd != nil {
+		b.onChangeCmd.CloseLogs()
+	}
 }
 
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
@@ -85,6 +88,5 @@ func (b *Backend) CheckForUpstreamChanges() bool {
 
 // OnChange runs the backend's onChange command, returning the results
 func (b *Backend) OnChange() error {
-	return commands.RunWithTimeout(b.onChangeCmd, log.Fields{
-		"process": "onChange", "backend": b.Name})
+	return commands.RunWithTimeout(b.onChangeCmd)
 }

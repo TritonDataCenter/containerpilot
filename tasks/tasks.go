@@ -58,7 +58,8 @@ func parseTask(task *Task) error {
 	if task.Timeout == "" {
 		task.Timeout = task.Frequency
 	}
-	cmd, err := commands.NewCommand(task.Command, task.Timeout)
+	cmd, err := commands.NewCommand(task.Command, task.Timeout,
+		log.Fields{"process": "task", "task": task.Name})
 	if cmd.TimeoutDuration < taskMinDuration {
 		return fmt.Errorf("Timeout %v cannot be less that %v", cmd.TimeoutDuration, taskMinDuration)
 	}
@@ -76,11 +77,13 @@ func (t *Task) PollTime() time.Duration {
 // PollStop kills a running task
 func (t *Task) PollStop() {
 	log.Debugf("task[%s].PollStop", t.Name)
-	t.cmd.Kill()
+	if t.cmd != nil {
+		t.cmd.Kill()
+		t.cmd.CloseLogs()
+	}
 }
 
 // PollAction runs the task
 func (t *Task) PollAction() {
-	fields := log.Fields{"process": "task", "task": t.Name}
-	commands.RunWithTimeout(t.cmd, fields)
+	commands.RunWithTimeout(t.cmd)
 }

@@ -33,7 +33,7 @@ func parseCommand(name string, args interface{}) (*commands.Command, error) {
 	if args == nil {
 		return nil, nil
 	}
-	cmd, err := commands.NewCommand(args, "0")
+	cmd, err := commands.NewCommand(args, "0", nil)
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse `%s`: %s", name, err)
 	}

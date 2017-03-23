@@ -25,11 +25,12 @@ type Command struct {
 	Timeout         string
 	TimeoutDuration time.Duration
 	ticker          *time.Ticker
-	logWriters      []io.WriteCloser
+	logger          io.WriteCloser
+	logFields       log.Fields
 }
 
 // NewCommand parses JSON config into a Command
-func NewCommand(rawArgs interface{}, timeoutFmt string) (*Command, error) {
+func NewCommand(rawArgs interface{}, timeoutFmt string, fields log.Fields) (*Command, error) {
 	exec, args, err := ParseArgs(rawArgs)
 	if err != nil {
 		return nil, err
@@ -44,7 +45,9 @@ func NewCommand(rawArgs interface{}, timeoutFmt string) (*Command, error) {
 		Args:            args,
 		Timeout:         timeoutFmt,
 		TimeoutDuration: timeout,
-	} // cmd, ticker, logWriters all created at RunAndWait or RunWithTimeout
+		logger:          log.StandardLogger().Writer(),
+		logFields:       fields,
+	} // Cmd and ticker all created at RunAndWait or RunWithTimeout
 	return cmd, nil
 }
 
@@ -62,18 +65,14 @@ func getTimeout(timeoutFmt string) (time.Duration, error) {
 }
 
 // RunAndWait runs the given command and blocks until completed
-func RunAndWait(c *Command, fields log.Fields) (int, error) {
+func RunAndWait(c *Command) (int, error) {
 	if c == nil {
 		// sometimes this will be ok but we should return an error
 		// anyway in case the caller cares
 		return 1, errors.New("Command for RunAndWait was nil")
 	}
 	log.Debugf("%s.RunAndWait start", c.Name)
-	c.setUpCmd(fields)
-	if fields == nil {
-		c.Cmd.Stdout = os.Stdout
-		c.Cmd.Stderr = os.Stderr
-	}
+	c.setUpCmd()
 	log.Debugf("%s.Cmd.Run", c.Name)
 	if err := c.Cmd.Start(); err != nil {
 		// the stdlib almost certainly won't include the underlying error
@@ -115,7 +114,7 @@ func RunAndWaitForOutput(c *Command) (string, error) {
 		return "", errors.New("Command for RunAndWaitForOutput was nil")
 	}
 	log.Debugf("%s.RunAndWaitForOutput start", c.Name)
-	c.setUpCmd(nil)
+	c.setUpCmd()
 
 	// we'll pass stderr to the container's stderr, but stdout must
 	// be "clean" and not have anything other than what we intend
@@ -132,15 +131,14 @@ func RunAndWaitForOutput(c *Command) (string, error) {
 
 // RunWithTimeout runs the given command and blocks until completed
 // or until the timeout expires
-func RunWithTimeout(c *Command, fields log.Fields) error {
+func RunWithTimeout(c *Command) error {
 	if c == nil {
 		// sometimes this will be ok but we should return an error
 		// anyway in case the caller cares
 		return errors.New("Command for RunWithTimeout was nil")
 	}
 	log.Debugf("%s.RunWithTimeout start", c.Name)
-	c.setUpCmd(fields)
-	defer c.closeLogs()
+	c.setUpCmd()
 	log.Debugf("%s.Cmd.Start", c.Name)
 	if err := c.Cmd.Start(); err != nil {
 		log.Errorf("Unable to start %s: %v", c.Name, err)
@@ -152,14 +150,13 @@ func RunWithTimeout(c *Command, fields log.Fields) error {
 	return err
 }
 
-func (c *Command) setUpCmd(fields log.Fields) {
+func (c *Command) setUpCmd() {
 	cmd := ArgsToCmd(c.Exec, c.Args)
-	if fields != nil {
-		stdout := utils.NewLogWriter(fields, log.InfoLevel)
-		stderr := utils.NewLogWriter(fields, log.DebugLevel)
-		c.logWriters = []io.WriteCloser{stdout, stderr}
-		cmd.Stdout = stdout
-		cmd.Stderr = stderr
+	if c.logFields == nil {
+		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stdout = c.logger
+		cmd.Stderr = c.logger
 	}
 	c.Cmd = cmd
 }
@@ -226,13 +223,9 @@ func (c *Command) waitForTimeout() error {
 	return nil
 }
 
-func (c *Command) closeLogs() {
-	if c.logWriters == nil {
-		return
-	}
-	for _, w := range c.logWriters {
-		if err := w.Close(); err != nil {
-			log.Errorf("unable to close log writer : %v", err)
-		}
+// CloseLogs closes logs, duh
+func (c *Command) CloseLogs() {
+	if c.logger != nil {
+		c.logger.Close()
 	}
 }
