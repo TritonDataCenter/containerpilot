@@ -46,7 +46,7 @@ fi
 ## TASK 2
 TASK2_TOS=$(grep -c "task2 timeout after 1.5s" "${APP_ID}.log")
 TASK2_RUNS=$(wc -l < "${APP_ID}.task2" | tr -d '[:space:]')
-max=$(echo $elapsed | awk '{print int($1/1.5)}')
+max=$(echo $elapsed | awk '{print int($1/1.5 + 1)}')
 min=$(echo 3.5 | awk '{print int($1/1.5 + 1)}')
 min_to=$(echo "$min" | awk '{print int($1-1)}')
 rm "${APP_ID}.task2"
@@ -56,14 +56,14 @@ if [[ $TASK2_RUNS -lt $min || $TASK2_RUNS -gt $max ]]; then
   PASS=1
 fi
 if [[ $TASK2_TOS -lt $min_to || $TASK2_TOS -gt $max ]]; then
-  echo "Expected task2 to have between $min and $max timeouts after 1500ms: got $TASK2_TOS"
+  echo "Expected task2 to have between $min_to and $max timeouts after 1500ms: got $TASK2_TOS"
   PASS=1
 fi
 
 ## TASK 3
 TASK3_TOS=$(grep -c "task3 timeout after 100ms" "${APP_ID}.log")
 TASK3_RUNS=$(wc -l < "${APP_ID}.task3" | tr -d '[:space:]')
-max=$(echo $elapsed | awk '{print int($1/1.5)}')
+max=$(echo $elapsed | awk '{print int($1/1.5 + 1)}')
 min=$(echo 3.5 | awk '{print int($1/1.5 + 1)}')
 rm "${APP_ID}.task3"
 
