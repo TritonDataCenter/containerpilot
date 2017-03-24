@@ -9,7 +9,7 @@ import (
 )
 
 func TestHealthCheck(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s", nil)
 	service := &Service{
 		healthCheckCmd: cmd1,
 	}
@@ -23,7 +23,7 @@ func TestHealthCheck(t *testing.T) {
 }
 
 func TestHealthCheckBad(t *testing.T) {
-	cmd1, _ := commands.NewCommand("./testdata/test.sh failStuff", "")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh failStuff", "", nil)
 	service := &Service{
 		healthCheckCmd: cmd1,
 	}

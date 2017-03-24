@@ -154,7 +154,7 @@ func (a *App) Run() {
 		reapChildren()
 	}
 	args := getArgs(flag.Args())
-	cmd, err := commands.NewCommand(args, "0")
+	cmd, err := commands.NewCommand(args, "0", nil)
 	if err != nil {
 		log.Errorf("Unable to parse command arguments: %v", err)
 	}
@@ -164,8 +164,7 @@ func (a *App) Run() {
 
 	if a.PreStartCmd != nil {
 		// Run the preStart handler, if any, and exit if it returns an error
-		fields := log.Fields{"process": "PreStart"}
-		if code, err := commands.RunAndWait(a.PreStartCmd, fields); err != nil {
+		if code, err := commands.RunAndWait(a.PreStartCmd); err != nil {
 			os.Exit(code)
 		}
 	}
@@ -177,14 +176,13 @@ func (a *App) Run() {
 		// Run our main application and capture its stdout/stderr.
 		// This will block until the main application exits and then os.Exit
 		// with the exit code of that application.
-		code, err := commands.RunAndWait(a.Command, nil)
+		code, err := commands.RunAndWait(a.Command)
 		if err != nil {
 			log.Println(err)
 		}
 		// Run the PostStop handler, if any, and exit if it returns an error
 		if a.PostStopCmd != nil {
-			fields := log.Fields{"process": "PostStop"}
-			if postStopCode, err := commands.RunAndWait(a.PostStopCmd, fields); err != nil {
+			if postStopCode, err := commands.RunAndWait(a.PostStopCmd); err != nil {
 				os.Exit(postStopCode)
 			}
 		}
@@ -242,7 +240,7 @@ func (a *App) Terminate() {
 
 	// Run and wait for preStop command to exit (continues
 	// unconditionally so we don't worry about returned errors here)
-	commands.RunAndWait(a.PreStopCmd, log.Fields{"process": "PreStop"})
+	commands.RunAndWait(a.PreStopCmd)
 	if a.Command == nil || a.Command.Cmd == nil ||
 		a.Command.Cmd.Process == nil {
 		// Not managing the process, so don't do anything

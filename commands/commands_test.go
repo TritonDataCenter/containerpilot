@@ -13,9 +13,9 @@ import (
 )
 
 func TestRunAndWaitSuccess(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", "0")
+	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", "0", nil)
 	cmd.Name = "APP"
-	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 0 {
+	if exitCode, _ := RunAndWait(cmd); exitCode != 0 {
 		t.Errorf("Expected exit code 0 but got %d", exitCode)
 	}
 	if pid := os.Getenv("CONTAINERPILOT_APP_PID"); pid == "" {
@@ -24,29 +24,29 @@ func TestRunAndWaitSuccess(t *testing.T) {
 }
 
 func BenchmarkRunAndWaitSuccess(b *testing.B) {
-	cmd, _ := NewCommand("./testdata/test.sh doNothing", "0")
+	cmd, _ := NewCommand("./testdata/test.sh doNothing", "0", nil)
 	for i := 0; i < b.N; i++ {
-		RunAndWait(cmd, nil)
+		RunAndWait(cmd)
 	}
 }
 
 func TestRunAndWaitFailed(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "0")
-	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 255 {
+	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "0", nil)
+	if exitCode, _ := RunAndWait(cmd); exitCode != 255 {
 		t.Errorf("Expected exit code 255 but got %d", exitCode)
 	}
 }
 
 func TestRunAndWaitInvalidCommand(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/invalidCommand", "0")
-	if exitCode, _ := RunAndWait(cmd, nil); exitCode != 127 {
+	cmd, _ := NewCommand("./testdata/invalidCommand", "0", nil)
+	if exitCode, _ := RunAndWait(cmd); exitCode != 127 {
 		t.Errorf("Expected exit code 127 but got %d", exitCode)
 	}
 }
 
 func TestRunAndWaitForOutput(t *testing.T) {
 
-	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", "0")
+	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", "0", nil)
 	if out, err := RunAndWaitForOutput(cmd); err != nil {
 		t.Fatalf("Unexpected error from 'test.sh doStuff': %s", err)
 	} else if out != "Running doStuff with args: --debug\n" {
@@ -54,7 +54,7 @@ func TestRunAndWaitForOutput(t *testing.T) {
 	}
 
 	// Ensure bad commands return error
-	cmd2, _ := NewCommand("./testdata/doesNotExist.sh", "0")
+	cmd2, _ := NewCommand("./testdata/doesNotExist.sh", "0", nil)
 	if out, err := RunAndWaitForOutput(cmd2); err == nil {
 		t.Fatalf("Expected error from 'doesNotExist.sh' but got %s", out)
 	} else if err.Error() != "fork/exec ./testdata/doesNotExist.sh: no such file or directory" {
@@ -63,9 +63,9 @@ func TestRunAndWaitForOutput(t *testing.T) {
 }
 
 func TestRunWithTimeout(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/test.sh sleepStuff", "200ms")
-	fields := log.Fields{"process": "test"}
-	RunWithTimeout(cmd, fields)
+	cmd, _ := NewCommand("./testdata/test.sh sleepStuff", "200ms",
+		log.Fields{"process": "test"})
+	RunWithTimeout(cmd)
 
 	// Ensure the task has time to start
 	runtime.Gosched()
@@ -97,9 +97,9 @@ func TestRunWithTimeoutFailed(t *testing.T) {
 	log.SetOutput(tmp)
 	defer log.SetOutput(os.Stdout)
 
-	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "100ms")
 	fields := log.Fields{"process": "test"}
-	if err := RunWithTimeout(cmd, fields); err == nil {
+	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", "100ms", fields)
+	if err := RunWithTimeout(cmd); err == nil {
 		t.Errorf("Expected error but got nil")
 	}
 	time.Sleep(200 * time.Millisecond)
@@ -113,25 +113,25 @@ func TestRunWithTimeoutFailed(t *testing.T) {
 }
 
 func TestRunWithTimeoutInvalidCommand(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/invalidCommand", "100ms")
 	fields := log.Fields{"process": "test"}
-	if err := RunWithTimeout(cmd, fields); err == nil {
+	cmd, _ := NewCommand("./testdata/invalidCommand", "100ms", fields)
+	if err := RunWithTimeout(cmd); err == nil {
 		t.Errorf("Expected error but got nil")
 	}
 }
 
 func TestEmptyCommand(t *testing.T) {
-	if cmd, err := NewCommand("", "0"); cmd != nil || err == nil {
+	if cmd, err := NewCommand("", "0", nil); cmd != nil || err == nil {
 		t.Errorf("Expected exit (nil, err) but got %s, %s", cmd, err)
 	}
 }
 
 func TestReuseCmd(t *testing.T) {
-	cmd, _ := NewCommand("true", "0")
-	if code, err := RunAndWait(cmd, nil); code != 0 || err != nil {
+	cmd, _ := NewCommand("true", "0", nil)
+	if code, err := RunAndWait(cmd); code != 0 || err != nil {
 		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
 	}
-	if code, err := RunAndWait(cmd, nil); code != 0 || err != nil {
+	if code, err := RunAndWait(cmd); code != 0 || err != nil {
 		t.Errorf("Expected exit (0,nil) but got (%d,%s)", code, err)
 	}
 }

@@ -51,7 +51,8 @@ func parseCoprocess(coprocess *Coprocess) error {
 	if coprocess.Command == nil {
 		return fmt.Errorf("Coprocess did not provide a command")
 	}
-	cmd, err := commands.NewCommand(coprocess.Command, "0")
+	cmd, err := commands.NewCommand(coprocess.Command, "0",
+		log.Fields{"process": "coprocess", "coprocess": coprocess.Name})
 	if err != nil {
 		return fmt.Errorf("Could not parse `coprocess` command %s: %s",
 			coprocess.Name, err)
@@ -115,7 +116,6 @@ func parseCoprocessRestarts(coprocess *Coprocess) error {
 // Start runs the coprocess
 func (c *Coprocess) Start() {
 	log.Debugf("coprocess[%s].Start", c.Name)
-	fields := log.Fields{"process": "coprocess", "coprocess": c.Name}
 
 	// always reset restartsRemain when we load the config
 	c.restartsRemain = c.restartLimit
@@ -124,7 +124,7 @@ func (c *Coprocess) Start() {
 			c.restartsRemain <= haltRestarts {
 			break
 		}
-		if code, err := commands.RunAndWait(c.cmd, fields); err != nil {
+		if code, err := commands.RunAndWait(c.cmd); err != nil {
 			log.Errorf("coprocess[%s] exited (%s): %s", c.Name, code, err)
 		}
 		log.Debugf("coprocess[%s] exited", c.Name)
@@ -141,5 +141,8 @@ func (c *Coprocess) Stop() {
 	c.restartsRemain = haltRestarts
 	c.restartLimit = haltRestarts
 	c.restart = false
-	c.cmd.Kill()
+	if c.cmd != nil {
+		c.cmd.Kill()
+		c.cmd.CloseLogs()
+	}
 }

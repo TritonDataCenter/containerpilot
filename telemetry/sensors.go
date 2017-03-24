@@ -41,9 +41,11 @@ func (s *Sensor) PollAction() {
 	}
 }
 
-// PollStop does nothing in a Sensor
+// PollStop closes the Sensor's logs
 func (s *Sensor) PollStop() {
-	// Nothing to do
+	if s.checkCmd != nil {
+		s.checkCmd.CloseLogs()
+	}
 }
 
 // wrapping this func call makes it easier to test
@@ -82,7 +84,7 @@ func NewSensors(raw []interface{}) ([]*Sensor, error) {
 		return nil, fmt.Errorf("Sensor configuration error: %v", err)
 	}
 	for _, s := range sensors {
-		check, err := commands.NewCommand(s.CheckExec, s.Timeout)
+		check, err := commands.NewCommand(s.CheckExec, s.Timeout, nil)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse check in sensor %s: %s", s.Name, err)
 		}

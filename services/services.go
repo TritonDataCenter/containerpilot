@@ -90,7 +90,8 @@ func parseService(s *Service, disc discovery.ServiceBackend) error {
 	// if the HealthCheckExec is nil then we'll have no health check
 	// command; this is useful for the telemetry service
 	if s.HealthCheckExec != nil {
-		cmd, err := commands.NewCommand(s.HealthCheckExec, s.Timeout)
+		cmd, err := commands.NewCommand(s.HealthCheckExec, s.Timeout,
+			log.Fields{"process": "health", "serviceName": s.Name, "serviceID": s.ID})
 		if err != nil {
 			return fmt.Errorf("Could not parse `health` in service %s: %s", s.Name, err)
 		}
@@ -151,9 +152,11 @@ func (s *Service) PollAction() {
 	}
 }
 
-// PollStop does nothing in a Service
+// PollStop closes the Service's logs
 func (s *Service) PollStop() {
-	// Nothing to do
+	if s.healthCheckCmd != nil {
+		s.healthCheckCmd.CloseLogs()
+	}
 }
 
 // SendHeartbeat sends a heartbeat for this service
@@ -179,6 +182,5 @@ func (s *Service) CheckHealth() error {
 	if s.healthCheckCmd == nil {
 		return nil
 	}
-	return commands.RunWithTimeout(s.healthCheckCmd, log.Fields{
-		"process": "health", "serviceName": s.Name, "serviceID": s.ID})
+	return commands.RunWithTimeout(s.healthCheckCmd)
 }

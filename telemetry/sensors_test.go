@@ -25,7 +25,7 @@ the prometheus handler and then check the results of a GET.
 func TestSensorPollAction(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-	cmd, _ := commands.NewCommand("./testdata/test.sh measureStuff", "0")
+	cmd, _ := commands.NewCommand("./testdata/test.sh measureStuff", "0", nil)
 	sensor := &Sensor{
 		Type:     "counter",
 		checkCmd: cmd,
@@ -44,13 +44,13 @@ func TestSensorPollAction(t *testing.T) {
 }
 
 func TestSensorBadPollAction(t *testing.T) {
-	cmd, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0")
+	cmd, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0", nil)
 	sensor := &Sensor{checkCmd: cmd}
 	sensor.PollAction() // logs but no crash
 }
 
 func TestSensorBadRecord(t *testing.T) {
-	cmd, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "0")
+	cmd, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "0", nil)
 	sensor := &Sensor{checkCmd: cmd}
 	sensor.PollAction() // logs but no crash
 }
@@ -216,7 +216,7 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 
 func TestSensorObserve(t *testing.T) {
 
-	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s")
+	cmd1, _ := commands.NewCommand("./testdata/test.sh doStuff --debug", "1s", nil)
 	sensor := &Sensor{checkCmd: cmd1}
 	if val, err := sensor.observe(); err != nil {
 		t.Fatalf("Unexpected error from sensor check: %s", err)
@@ -230,7 +230,7 @@ func TestSensorObserve(t *testing.T) {
 	}
 
 	// Ensure bad commands return error
-	cmd2, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0")
+	cmd2, _ := commands.NewCommand("./testdata/doesNotExist.sh", "0", nil)
 	sensor = &Sensor{checkCmd: cmd2}
 	if val, err := sensor.observe(); err == nil {
 		t.Fatalf("Expected error from sensor check but got %s", val)
