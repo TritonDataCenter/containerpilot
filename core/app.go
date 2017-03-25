@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/discovery"
@@ -30,6 +31,7 @@ var (
 // App encapsulates the state of ContainerPilot after the initial setup.
 // after it is run, it can be reloaded and paused with signals.
 type App struct {
+	ControlServer *control.HTTPServer
 	Discovery     discovery.Backend
 	Services      []*services.Service
 	Checks        []*checks.HealthCheck
@@ -110,6 +112,13 @@ func NewApp(configFlag string) (*App, error) {
 		}
 		log.Debugf("loaded config: %v", string(configJSON))
 	}
+
+	cs, err := control.NewHTTPServer(cfg.Control)
+	if err != nil {
+		return nil, err
+	}
+	a.ControlServer = cs
+
 	a.StopTimeout = cfg.StopTimeout
 	a.Discovery = cfg.Discovery
 	a.Checks = checks.FromConfigs(cfg.Checks)
@@ -145,6 +154,7 @@ func (a *App) Run() {
 		reapChildren()
 	}
 	for {
+		a.ControlServer.Serve()
 		a.Bus = events.NewEventBus()
 		a.handleSignals()
 		a.handlePolling()
@@ -226,6 +236,9 @@ func (a *App) Reload() {
 	if a.Telemetry != nil {
 		a.Telemetry.Shutdown()
 	}
+	if a.ControlServer != nil {
+		a.ControlServer.Shutdown()
+	}
 }
 
 // reload does the actual work of reloading the configuration and
@@ -237,6 +250,7 @@ func (a *App) reload() error {
 		log.Errorf("error initializing config: %v", err)
 		return err
 	}
+	a.ControlServer = newApp.ControlServer
 	a.Discovery = newApp.Discovery
 	a.Services = newApp.Services
 	a.Checks = newApp.Checks

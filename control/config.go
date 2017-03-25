@@ -13,13 +13,13 @@ const (
 // Config represents the location on the file system which serves the Unix
 // control socket file.
 type Config struct {
-	Socket    string      `mapstructure:"socket"`
+	SocketPath string `mapstructure:"socket"`
 }
 
 // NewConfig parses a json config into a validated Config used by control
 // Server.
 func NewConfig(raw interface{}) (*Config, error) {
-	cfg := &Config{Socket: DEFAULT_SOCKET} // defaults
+	cfg := &Config{SocketPath: DEFAULT_SOCKET} // defaults
 	if raw == nil {
 		return cfg, nil
 	}

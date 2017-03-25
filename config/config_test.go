@@ -215,7 +215,7 @@ func TestValidConfigControl(t *testing.T) {
 		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
 
-	assertEqual(t, cfg.Control.Socket, "/var/run/containerpilot.socket", "expected '%v' for control.socket, but got '%v'")
+	assertEqual(t, cfg.Control.SocketPath, "/var/run/containerpilot.socket", "expected '%v' for control.socket, but got '%v'")
 }
 
 func TestCustomConfigControl(t *testing.T) {
@@ -231,5 +231,5 @@ func TestCustomConfigControl(t *testing.T) {
 		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
 
-	assertEqual(t, cfg.Control.Socket, "/var/run/cp3-test.sock", "expected '%v' for control.socket, but got '%v'")
+	assertEqual(t, cfg.Control.SocketPath, "/var/run/cp3-test.sock", "expected '%v' for control.socket, but got '%v'")
 }
