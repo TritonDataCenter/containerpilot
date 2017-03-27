@@ -250,7 +250,6 @@ func (a *App) reload() error {
 		log.Errorf("error initializing config: %v", err)
 		return err
 	}
-	a.ControlServer = newApp.ControlServer
 	a.Discovery = newApp.Discovery
 	a.Services = newApp.Services
 	a.Checks = newApp.Checks
