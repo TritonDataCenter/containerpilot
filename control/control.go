@@ -12,11 +12,13 @@ import (
 )
 
 const (
-	SOCKET_TYPE = "unix"
+	// SocketType is the default listener type
+	SocketType = "unix"
 )
 
-// Server contains the state of the HTTP Server used by ContainerPilot's HTTP
-// transport control plane. Currently this is listening via a UNIX socket file.
+// HTTPServer contains the state of the HTTP Server used by ContainerPilot's
+// HTTP transport control plane. Currently this is listening via a UNIX socket
+// file.
 type HTTPServer struct {
 	mux        *http.ServeMux
 	addr       net.UnixAddr
@@ -24,8 +26,8 @@ type HTTPServer struct {
 	lock       sync.RWMutex
 }
 
-// NewServer initializes a new control server for manipulating ContainerPilot's
-// runtime configuration.
+// NewHTTPServer initializes a new control server for manipulating
+// ContainerPilot's runtime configuration.
 func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	if cfg == nil {
 		err := errors.New("Control server not loaded due to missing config")
@@ -35,7 +37,7 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	mux := http.NewServeMux()
 	addr := net.UnixAddr{
 		Name: cfg.SocketPath,
-		Net: SOCKET_TYPE,
+		Net: SocketType,
 	}
 
 	return &HTTPServer{

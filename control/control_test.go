@@ -13,7 +13,7 @@ import (
 )
 
 func dialSocket(proto, path string) (conn net.Conn, err error) {
-	return net.Dial(SOCKET_TYPE, DEFAULT_SOCKET)
+	return net.Dial(SocketType, DefaultSocket)
 }
 
 func SetupHTTPServer(t *testing.T, raw string) *HTTPServer {
@@ -34,8 +34,8 @@ func SetupHTTPServer(t *testing.T, raw string) *HTTPServer {
 func TestNewHTTPServer(t *testing.T) {
 	s := SetupHTTPServer(t, `{}`)
 	assert.False(t, s.listening)
-	assert.Equal(t, s.addr.Name, DEFAULT_SOCKET, "expected server addr to ref default socket")
-	assert.Equal(t, s.addr.Net, SOCKET_TYPE, "expected server addr to ref socket type")
+	assert.Equal(t, s.addr.Name, DefaultSocket, "expected server addr to ref default socket")
+	assert.Equal(t, s.addr.Net, SocketType, "expected server addr to ref socket type")
 }
 
 func TestGetEnv(t *testing.T) {

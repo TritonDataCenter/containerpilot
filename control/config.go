@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	DEFAULT_SOCKET = "/var/run/containerpilot.socket"
+	// DefaultSocket is the default location of the unix domain socket file
+	DefaultSocket = "/var/run/containerpilot.socket"
 )
 
 // Config represents the location on the file system which serves the Unix
@@ -19,7 +20,7 @@ type Config struct {
 // NewConfig parses a json config into a validated Config used by control
 // Server.
 func NewConfig(raw interface{}) (*Config, error) {
-	cfg := &Config{SocketPath: DEFAULT_SOCKET} // defaults
+	cfg := &Config{SocketPath: DefaultSocket} // defaults
 	if raw == nil {
 		return cfg, nil
 	}

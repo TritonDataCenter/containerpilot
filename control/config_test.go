@@ -13,7 +13,7 @@ func TestControlConfigDefault(t *testing.T) {
 		t.Fatalf("could not parse control config JSON: %s", err)
 	}
 
-	if strings.Compare(cfg.SocketPath, DEFAULT_SOCKET) != 0 {
+	if strings.Compare(cfg.SocketPath, DefaultSocket) {
 		t.Fatalf("test socket does not match parsed socket")
 	}
 }
