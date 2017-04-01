@@ -59,7 +59,7 @@ func (s *HTTPServer) Serve() {
 		return
 	}
 
-	s.mux.HandleFunc("/env", s.getEnvHandler)
+	s.mux.HandleFunc("/v3/env", s.getEnvHandler)
 
 	ln, err := net.Listen(s.addr.Network(), s.addr.String())
 	if err != nil {
