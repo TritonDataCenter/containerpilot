@@ -51,7 +51,7 @@ func TestServiceRunStartupTimeout(t *testing.T) {
 	cfg.Validate(noop)
 	cfg.setStartup(
 		events.Event{events.Startup, "never"},
-		time.Duration(100*time.Millisecond),
+		time.Duration(100 * time.Millisecond),
 	)
 	svc := NewService(cfg)
 	svc.Run(bus)
@@ -135,10 +135,10 @@ func TestServiceRunPeriodic(t *testing.T) {
 	cfg.Validate(noop)
 	svc := NewService(cfg)
 	svc.Run(bus)
-	ds.Run(time.Duration(100 * time.Millisecond))
+	ds.Run(time.Duration(150 * time.Millisecond))
 	svc.Bus.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myservice"}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 	svc.Close()
 	ds.Close()
 	var got = 0
