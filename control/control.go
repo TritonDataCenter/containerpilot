@@ -30,7 +30,7 @@ type HTTPServer struct {
 // ContainerPilot's runtime configuration.
 func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	if cfg == nil {
-		err := errors.New("Control server not loaded due to missing config")
+		err := errors.New("control server not loading due to missing config")
 		return nil, err
 	}
 
@@ -63,7 +63,7 @@ func (s *HTTPServer) Serve() {
 
 	ln, err := net.Listen(s.addr.Network(), s.addr.String())
 	if err != nil {
-		log.Fatalf("Error serving socket at %s: %v", s.addr.String(), err)
+		log.Fatalf("error serving socket at %s: %v", s.addr.String(), err)
 	}
 
 	listener = ln
@@ -101,6 +101,6 @@ func (s *HTTPServer) getEnvHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(failedStatus), failedStatus)
 	}
 
-	log.Debugf("Marshaled environ: %v", string(envJSON))
+	log.Debugf("marshaled environ: %v", string(envJSON))
 	w.Write(envJSON)
 }
