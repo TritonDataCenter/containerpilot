@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests/mocks"
 )
@@ -83,8 +82,6 @@ func TestServiceRunStartupTimeout(t *testing.T) {
 }
 
 func TestServiceRunRestarts(t *testing.T) {
-	log.SetLevel(log.WarnLevel) // test is noisy otherwise
-
 	runRestartsTest := func(restarts interface{}, expected int) {
 		bus := events.NewEventBus()
 		ds := mocks.NewDebugSubscriber(bus, expected+2) // + start and quit
@@ -120,8 +117,6 @@ func TestServiceRunRestarts(t *testing.T) {
 }
 
 func TestServiceRunPeriodic(t *testing.T) {
-	//	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, TimestampFormat: time.RFC3339Nano})
-	log.SetLevel(log.WarnLevel) // test is noisy otherwise
 	bus := events.NewEventBus()
 	ds := mocks.NewDebugSubscriber(bus, 10)
 
@@ -138,6 +133,7 @@ func TestServiceRunPeriodic(t *testing.T) {
 	ds.Run(time.Duration(100 * time.Millisecond))
 	svc.Bus.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myservice"}
+	exitFail := events.Event{Code: events.ExitFailed, Source: "myservice"}
 	time.Sleep(100 * time.Millisecond)
 	svc.Close()
 	ds.Close()
@@ -145,48 +141,13 @@ func TestServiceRunPeriodic(t *testing.T) {
 	for _, result := range ds.Results {
 		if result == exitOk {
 			got++
+		} else {
+			if result == exitFail {
+				t.Fatalf("no events should have timed-out but got %v", ds.Results)
+			}
 		}
 	}
-	if 9 > got || got > 10 {
-		t.Fatalf("expected 9 or 10 task fires but got %d\n%v", got, ds.Results)
+	if got > 10 {
+		t.Fatalf("expected no more than 10 task fires but got %d\n%v", got, ds.Results)
 	}
 }
-
-// func TestScheduledTaskTimeoutConfig(t *testing.T) {
-// 	tmpf, err := ioutil.TempFile("", "gotest")
-// 	defer func() {
-// 		tmpf.Close()
-// 		os.Remove(tmpf.Name())
-// 	}()
-// 	if err != nil {
-// 		t.Fatalf("Unexpeced error: %v", err)
-// 	}
-// 	task := &TaskConfig{
-// 		Exec:      []string{"testdata/test.sh", "printDots", tmpf.Name()},
-// 		Frequency: "400ms",
-// 		Timeout:   "200ms",
-// 	}
-// 	err = task.Validate()
-// 	if err != nil {
-// 		t.Fatalf("Unexpeced error: %v", err)
-// 	}
-// 	// Should print 2 dots (timeout 250ms after printing 1 dot every 100ms)
-// 	expected := []byte("..")
-// 	quit := poll(task)
-// 	// Ensure the task has time to start
-// 	runtime.Gosched()
-// 	// Wait for task to start + 250ms
-// 	ticker := time.NewTicker(650 * time.Millisecond)
-// 	select {
-// 	case <-ticker.C:
-// 		ticker.Stop()
-// 		quit <- true
-// 	}
-// 	content, err := ioutil.ReadAll(tmpf)
-// 	if err != nil {
-// 		t.Fatalf("Unexpected error: %v", err)
-// 	}
-// 	if !reflect.DeepEqual(expected, content) {
-// 		t.Errorf("Expected %s but got %s", expected, content)
-// 	}
-// }
