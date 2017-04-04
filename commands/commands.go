@@ -73,6 +73,10 @@ func RunAndWait(c *Command) (int, error) {
 	}
 	log.Debugf("%s.RunAndWait start", c.Name)
 	c.setUpCmd()
+	if c.logFields == nil {
+		c.Cmd.Stdout = os.Stdout
+		c.Cmd.Stderr = os.Stderr
+	}
 	log.Debugf("%s.Cmd.Run", c.Name)
 	if err := c.Cmd.Start(); err != nil {
 		// the stdlib almost certainly won't include the underlying error
