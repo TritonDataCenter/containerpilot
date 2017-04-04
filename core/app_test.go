@@ -177,6 +177,22 @@ func TestRenderArgs(t *testing.T) {
 	}
 }
 
+func TestControlServerCreation(t *testing.T) {
+
+        jsonFragment := `{
+    "consul": "consul:8500"
+  }`
+
+        app, err := NewApp(jsonFragment)
+        if err != nil {
+            t.Fatalf("got error while initializing config: %v", err)
+        }
+
+        if app.ControlServer == nil {
+            t.Error("expected control server to not be nil")
+        }
+}
+
 func TestMetricServiceCreation(t *testing.T) {
 
 	jsonFragment := `{

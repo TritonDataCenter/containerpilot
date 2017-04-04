@@ -21,3 +21,13 @@ func Error(t *testing.T, err error, expected string) {
 		t.Fatalf("expected '%s' but got '%s'", expected, err.Error())
 	}
 }
+
+// True asserts that an interface is equal to boolean "true"
+func True(t *testing.T, expected interface{}, msg string) {
+	Equal(t, true, expected, msg)
+}
+
+// False asserts that an interface is equal to boolean "false"
+func False(t *testing.T, expected interface{}, msg string) {
+	Equal(t, false, expected, msg)
+}
