@@ -33,7 +33,7 @@ func SetupHTTPServer(t *testing.T, raw string) *HTTPServer {
 
 func TestNewHTTPServer(t *testing.T) {
 	s := SetupHTTPServer(t, `{}`)
-	assert.False(t, s.listening)
+	assert.False(t, s.listening, "expected listening to be false")
 	assert.Equal(t, s.addr.Name, DefaultSocket, "expected server addr to ref default socket")
 	assert.Equal(t, s.addr.Net, SocketType, "expected server addr to ref socket type")
 }

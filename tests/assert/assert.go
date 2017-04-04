@@ -23,11 +23,11 @@ func Error(t *testing.T, err error, expected string) {
 }
 
 // True asserts that an interface is equal to boolean "true"
-func True(t *testing.T, expected interface{}) {
-	Equal(t, true, expected, "expected %+v to be true")
+func True(t *testing.T, expected interface{}, msg string) {
+	Equal(t, true, expected, msg)
 }
 
 // False asserts that an interface is equal to boolean "false"
-func False(t *testing.T, expected interface{}) {
-	Equal(t, false, expected, "expected %+v to be false")
+func False(t *testing.T, expected interface{}, msg string) {
+	Equal(t, false, expected, msg)
 }
