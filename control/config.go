@@ -29,15 +29,5 @@ func NewConfig(raw interface{}) (*Config, error) {
 		return nil, fmt.Errorf("control config parsing error: %v", err)
 	}
 
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("control config validation error: %v", err)
-	}
-
 	return cfg, nil
-}
-
-// Validate parsed control configuration and the values contained within.
-func (cfg *Config) Validate() error {
-	// TODO: Validate NestedConfig and socket's file system location ...
-	return nil
 }
