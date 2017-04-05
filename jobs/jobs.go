@@ -22,7 +22,7 @@ type Job struct {
 	Name             string
 	exec             *commands.Command
 	Status           bool // TODO: we'll need this to carry more info than bool
-	discoveryService discovery.Backend
+	discoveryCatalog discovery.Backend
 	Definition       *discovery.ServiceDefinition
 
 	// related events
@@ -42,11 +42,11 @@ type Job struct {
 
 // NewJob creates a new Job from a Config
 func NewJob(cfg *Config) *Job {
-	service := &Job{
+	job := &Job{
 		Name:             cfg.Name,
 		exec:             cfg.exec,
 		heartbeat:        cfg.heartbeatInterval,
-		discoveryService: cfg.discoveryService,
+		discoveryCatalog: cfg.discoveryCatalog,
 		Definition:       cfg.definition,
 		startupEvent:     cfg.startupEvent,
 		startupTimeout:   cfg.startupTimeout,
@@ -56,45 +56,45 @@ func NewJob(cfg *Config) *Job {
 		restartsRemain:   cfg.restartLimit,
 		frequency:        cfg.freqInterval,
 	}
-	service.Rx = make(chan events.Event, eventBufferSize)
-	service.Flush = make(chan bool)
-	if service.Name == "containerpilot" {
+	job.Rx = make(chan events.Event, eventBufferSize)
+	job.Flush = make(chan bool)
+	if job.Name == "containerpilot" {
 		// TODO: right now this hardcodes the telemetry service to
 		// be always "on", but maybe we want to have it verify itself
 		// before heartbeating in the future
-		service.Status = true
+		job.Status = true
 	}
-	return service
+	return job
 }
 
 // FromConfigs creates Jobs from a slice of validated Configs
 func FromConfigs(cfgs []*Config) []*Job {
-	services := []*Job{}
+	jobs := []*Job{}
 	for _, cfg := range cfgs {
-		service := NewJob(cfg)
-		services = append(services, service)
+		job := NewJob(cfg)
+		jobs = append(jobs, job)
 	}
-	return services
+	return jobs
 }
 
 // SendHeartbeat sends a heartbeat for this service
 func (job *Job) SendHeartbeat() {
-	if job.discoveryService != nil || job.Definition != nil {
-		job.discoveryService.SendHeartbeat(job.Definition)
+	if job.discoveryCatalog != nil || job.Definition != nil {
+		job.discoveryCatalog.SendHeartbeat(job.Definition)
 	}
 }
 
 // MarkForMaintenance marks this service for maintenance
 func (job *Job) MarkForMaintenance() {
-	if job.discoveryService != nil || job.Definition != nil {
-		job.discoveryService.MarkForMaintenance(job.Definition)
+	if job.discoveryCatalog != nil || job.Definition != nil {
+		job.discoveryCatalog.MarkForMaintenance(job.Definition)
 	}
 }
 
 // Deregister will deregister this instance of the service
 func (job *Job) Deregister() {
-	if job.discoveryService != nil || job.Definition != nil {
-		job.discoveryService.Deregister(job.Definition)
+	if job.discoveryCatalog != nil || job.Definition != nil {
+		job.discoveryCatalog.Deregister(job.Definition)
 	}
 }
 
@@ -144,7 +144,7 @@ func (job *Job) Run(bus *events.EventBus) {
 			event := <-job.Rx
 			switch event {
 			case events.Event{events.TimerExpired, heartbeatSource}:
-				// non-advertised services shouldn't receive this event
+				// non-advertised jobs shouldn't receive this event
 				// but we'll hit a null-pointer if we screw it up
 				if job.Status == true && job.Definition != nil {
 					job.SendHeartbeat()

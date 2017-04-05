@@ -306,7 +306,7 @@ func TestServiceConfigValidateExec(t *testing.T) {
 		"execTimeout": "xx"
 	}]`)
 	_, err = NewConfigs(testCfg, noop)
-	expected := "could not parse `timeout` for service serviceC: time: invalid duration xx"
+	expected := "could not parse `timeout` for job serviceC: time: invalid duration xx"
 	if err == nil || err.Error() != expected {
 		t.Fatalf("expected '%s', got '%v'", expected, err)
 	}
@@ -317,7 +317,7 @@ func TestServiceConfigValidateExec(t *testing.T) {
 		"exec": ""
 	}]`)
 	_, err = NewConfigs(testCfg, noop)
-	expected = "could not parse `exec` for service serviceD: received zero-length argument"
+	expected = "could not parse `exec` for job serviceD: received zero-length argument"
 	if err == nil || err.Error() != expected {
 		t.Fatalf("expected '%s', got '%v'", expected, err)
 	}
@@ -381,7 +381,7 @@ func TestServiceConfigPreStart(t *testing.T) {
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
 	assert.Error(t, err,
-		"could not parse `exec` for service serviceB.preStart: received zero-length argument")
+		"could not parse `exec` for job serviceB.preStart: received zero-length argument")
 }
 
 func TestServiceConfigPreStop(t *testing.T) {
@@ -407,7 +407,7 @@ func TestServiceConfigPreStop(t *testing.T) {
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
 	assert.Error(t, err,
-		"could not parse `exec` for service serviceB.preStop: received zero-length argument")
+		"could not parse `exec` for job serviceB.preStop: received zero-length argument")
 }
 
 func TestServiceConfigPostStop(t *testing.T) {
@@ -433,5 +433,5 @@ func TestServiceConfigPostStop(t *testing.T) {
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
 	assert.Error(t, err,
-		"could not parse `exec` for service serviceB.postStop: received zero-length argument")
+		"could not parse `exec` for job serviceB.postStop: received zero-length argument")
 }
