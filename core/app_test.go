@@ -132,30 +132,6 @@ func TestJSONTemplateParseError(t *testing.T) {
 		"parse error at line:col [2:13]")
 }
 
-func TestJSONTemplateParseError2(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t,
-		`{
-    "test1": "1",
-    "test2": 2,
-    "test3": false,
-    test2: "hello"
-}`,
-		"parse error at line:col [5:5]")
-}
-
-func TestParseTrailingComma(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t,
-		`{
-			"consul": "consul:8500",
-			"tasks": [{
-				"command": ["echo","hi"]
-			},
-		]
-	}`, "Do you have an extra comma somewhere?")
-}
-
 func TestRenderArgs(t *testing.T) {
 	flags := []string{"-name", "{{ .HOSTNAME }}"}
 	expected := os.Getenv("HOSTNAME")
@@ -179,18 +155,18 @@ func TestRenderArgs(t *testing.T) {
 
 func TestControlServerCreation(t *testing.T) {
 
-        jsonFragment := `{
+	jsonFragment := `{
     "consul": "consul:8500"
   }`
 
-        app, err := NewApp(jsonFragment)
-        if err != nil {
-            t.Fatalf("got error while initializing config: %v", err)
-        }
+	app, err := NewApp(jsonFragment)
+	if err != nil {
+		t.Fatalf("got error while initializing config: %v", err)
+	}
 
-        if app.ControlServer == nil {
-            t.Error("expected control server to not be nil")
-        }
+	if app.ControlServer == nil {
+		t.Error("expected control server to not be nil")
+	}
 }
 
 func TestMetricServiceCreation(t *testing.T) {
