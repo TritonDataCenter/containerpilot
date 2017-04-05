@@ -132,30 +132,6 @@ func TestJSONTemplateParseError(t *testing.T) {
 		"parse error at line:col [2:13]")
 }
 
-func TestJSONTemplateParseError2(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t,
-		`{
-    "test1": "1",
-    "test2": 2,
-    "test3": false,
-    test2: "hello"
-}`,
-		"parse error at line:col [5:5]")
-}
-
-func TestParseTrailingComma(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t,
-		`{
-			"consul": "consul:8500",
-			"tasks": [{
-				"command": ["echo","hi"]
-			},
-		]
-	}`, "Do you have an extra comma somewhere?")
-}
-
 func TestRenderArgs(t *testing.T) {
 	flags := []string{"-name", "{{ .HOSTNAME }}"}
 	expected := os.Getenv("HOSTNAME")

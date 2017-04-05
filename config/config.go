@@ -3,7 +3,6 @@ package config
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +10,8 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/flynn/json5"
+
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
@@ -206,8 +207,8 @@ func renderConfigTemplate(configFlag string) ([]byte, error) {
 
 func unmarshalConfig(data []byte) (map[string]interface{}, error) {
 	var config map[string]interface{}
-	if err := json.Unmarshal(data, &config); err != nil {
-		syntax, ok := err.(*json.SyntaxError)
+	if err := json5.Unmarshal(data, &config); err != nil {
+		syntax, ok := err.(*json5.SyntaxError)
 		if !ok {
 			return nil, fmt.Errorf(
 				"could not parse configuration: %s",
@@ -218,7 +219,7 @@ func unmarshalConfig(data []byte) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func newJSONparseError(js []byte, syntax *json.SyntaxError) error {
+func newJSONparseError(js []byte, syntax *json5.SyntaxError) error {
 	line, col, err := highlightError(js, syntax.Offset)
 	return fmt.Errorf("parse error at line:col [%d:%d]: %s\n%s", line, col, syntax, err)
 }

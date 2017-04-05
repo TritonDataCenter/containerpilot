@@ -1,5 +1,5 @@
-hash: da4c6759d51ce929aaf1e9959b9deed743e0b0e0aeed601024b5cf0b2385a5a6
-updated: 2017-02-10T18:26:54.577375574Z
+hash: 7a72ba93b39a5a461759ab476bfaabbf4e105deb67f93adc1bfda8e10b2e0fd7
+updated: 2017-04-05T15:10:03.856365456-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -7,18 +7,20 @@ imports:
   - quantile
 - name: github.com/docker/go-units
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
+- name: github.com/flynn/json5
+  version: 7620272ed63390e979cf5882d2fa0506fe2a8db5
 - name: github.com/golang/protobuf
-  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
+  version: 2bba0603135d7d7f5cb73b2125beeda19c09f4ef
   subpackages:
   - proto
 - name: github.com/hashicorp/consul
-  version: 1c442cb5704841704c1ba88daf1156245d0b311e
+  version: 21f2d5ad0c02af6c4b32d8fd04f7c81e9b002d41
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
-  version: ad28ea4487f05916463e2423a55166280e8254b5
+  version: 3573b8b52aa7b37b9358d966a898feb387f62437
 - name: github.com/hashicorp/serf
-  version: cb45b412ee4f9d6cc2eeb2b2b7dd0f6cfd7545c1
+  version: 19f2c401e122352c047a84d6584dd51e2fb8fcc4
   subpackages:
   - coordinate
 - name: github.com/matttproud/golang_protobuf_extensions
@@ -55,4 +57,4 @@ imports:
   version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
   subpackages:
   - unix
-testImports: []
+devImports: []
