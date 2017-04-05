@@ -1,4 +1,4 @@
-package services
+package jobs
 
 // NewPreStopConfig ... (temporary, remove by end of v3)
 func NewPreStopConfig(serviceName string, raw interface{}) (*Config, error) {

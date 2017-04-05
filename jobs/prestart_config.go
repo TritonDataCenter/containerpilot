@@ -1,4 +1,4 @@
-package services
+package jobs
 
 // NewPreStartConfig ... (temporary, remove by end of v3)
 func NewPreStartConfig(serviceName string, raw interface{}) (*Config, error) {

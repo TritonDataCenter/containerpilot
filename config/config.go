@@ -14,7 +14,7 @@ import (
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/utils"
 	"github.com/joyent/containerpilot/watches"
@@ -34,7 +34,7 @@ type Config struct {
 	Discovery   discovery.Backend
 	LogConfig   *LogConfig
 	StopTimeout int
-	Services    []*services.Config
+	Services    []*jobs.Config
 	Checks      []*checks.Config
 	Watches     []*watches.Config
 	Telemetry   *telemetry.Config
@@ -153,7 +153,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 	}
 	cfg.Control = controlConfig
 
-	serviceConfigs, err := services.NewConfigs(raw.services, disc)
+	serviceConfigs, err := jobs.NewConfigs(raw.services, disc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse services: %v", err)
 	}

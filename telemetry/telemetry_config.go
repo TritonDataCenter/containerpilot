@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/utils"
 )
 
@@ -19,7 +19,7 @@ type Config struct {
 
 	// derived in Validate
 	SensorConfigs []*SensorConfig
-	ServiceConfig *services.Config
+	ServiceConfig *jobs.Config
 	addr          net.TCPAddr
 }
 
@@ -66,8 +66,8 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 }
 
 // ToServiceConfig ...
-func (cfg *Config) ToServiceConfig() *services.Config {
-	service := &services.Config{
+func (cfg *Config) ToServiceConfig() *jobs.Config {
+	service := &jobs.Config{
 		Name:       "containerpilot", // TODO: hard-coded?
 		TTL:        15,               // TODO: hard-coded?
 		Heartbeat:  5,                // TODO hard-coded?

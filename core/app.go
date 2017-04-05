@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/config"
+	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/watches"
 
@@ -33,7 +33,7 @@ var (
 type App struct {
 	ControlServer *control.HTTPServer
 	Discovery     discovery.Backend
-	Services      []*services.Service
+	Services      []*jobs.Service
 	Checks        []*checks.HealthCheck
 	Watches       []*watches.Watch
 	Telemetry     *telemetry.Telemetry
@@ -122,7 +122,7 @@ func NewApp(configFlag string) (*App, error) {
 	a.StopTimeout = cfg.StopTimeout
 	a.Discovery = cfg.Discovery
 	a.Checks = checks.FromConfigs(cfg.Checks)
-	a.Services = services.FromConfigs(cfg.Services)
+	a.Services = jobs.FromConfigs(cfg.Services)
 	a.Watches = watches.FromConfigs(cfg.Watches)
 	a.Telemetry = telemetry.NewTelemetry(cfg.Telemetry)
 	a.ConfigFlag = configFlag // stash the old config
