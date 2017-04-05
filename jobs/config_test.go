@@ -1,4 +1,4 @@
-package services
+package jobs
 
 import (
 	"fmt"
@@ -51,57 +51,57 @@ func TestServiceConfigHappyPath(t *testing.T) {
 ]
 `)
 
-	services, err := NewConfigs(testCfg, noop)
+	jobs, err := NewConfigs(testCfg, noop)
 	if err != nil {
 		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
 
-	if len(services) != 7 {
-		t.Fatalf("expected 7 services but got %v", services)
+	if len(jobs) != 7 {
+		t.Fatalf("expected 7 jobs but got %v", jobs)
 	}
-	svc0 := services[0]
-	assert.Equal(t, svc0.Name, "serviceA", "expected '%v' for svc0.Name but got '%v'")
-	assert.Equal(t, svc0.Port, 8080, "expected '%v' for svc0.Port but got '%v'")
-	assert.Equal(t, svc0.Exec, "/bin/serviceA", "expected '%v' for svc0.Exec but got '%v'")
-	assert.Equal(t, svc0.Tags, []string{"tag1", "tag2"}, "expected '%v' for svc0.Tags but got '%v'")
-	assert.Equal(t, svc0.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
+	job0 := jobs[0]
+	assert.Equal(t, job0.Name, "serviceA", "expected '%v' for job0.Name but got '%v'")
+	assert.Equal(t, job0.Port, 8080, "expected '%v' for job0.Port but got '%v'")
+	assert.Equal(t, job0.Exec, "/bin/serviceA", "expected '%v' for job0.Exec but got '%v'")
+	assert.Equal(t, job0.Tags, []string{"tag1", "tag2"}, "expected '%v' for job0.Tags but got '%v'")
+	assert.Equal(t, job0.Restarts, nil, "expected '%v' for job1.Restarts but got '%v'")
 
-	svc1 := services[1]
-	assert.Equal(t, svc1.Name, "serviceB", "expected '%v' for svc1.Name but got '%v'")
-	assert.Equal(t, svc1.Port, 5000, "expected '%v' for svc1.Port but got '%v'")
-	assert.Equal(t, len(svc1.Tags), 0, "expected '%v' for len(svc1.Tags) but got '%v'")
-	assert.Equal(t, svc1.Exec, []interface{}{"/bin/serviceB", "B"}, "expected '%v' for svc1.Exec but got '%v'")
-	assert.Equal(t, svc1.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
+	job1 := jobs[1]
+	assert.Equal(t, job1.Name, "serviceB", "expected '%v' for job1.Name but got '%v'")
+	assert.Equal(t, job1.Port, 5000, "expected '%v' for job1.Port but got '%v'")
+	assert.Equal(t, len(job1.Tags), 0, "expected '%v' for len(job1.Tags) but got '%v'")
+	assert.Equal(t, job1.Exec, []interface{}{"/bin/serviceB", "B"}, "expected '%v' for job1.Exec but got '%v'")
+	assert.Equal(t, job1.Restarts, nil, "expected '%v' for job1.Restarts but got '%v'")
 
-	svc2 := services[2]
-	assert.Equal(t, svc2.Name, "coprocessC", "expected '%v' for svc2.Name but got '%v'")
-	assert.Equal(t, svc2.Port, 0, "expected '%v' for svc2.Port but got '%v'")
-	assert.Equal(t, svc2.Frequency, "", "expected '%v' for svc2.Frequency but got '%v'")
-	assert.Equal(t, svc2.Restarts, "unlimited", "expected '%v' for svc2.Restarts but got '%v'")
+	job2 := jobs[2]
+	assert.Equal(t, job2.Name, "coprocessC", "expected '%v' for job2.Name but got '%v'")
+	assert.Equal(t, job2.Port, 0, "expected '%v' for job2.Port but got '%v'")
+	assert.Equal(t, job2.Frequency, "", "expected '%v' for job2.Frequency but got '%v'")
+	assert.Equal(t, job2.Restarts, "unlimited", "expected '%v' for job2.Restarts but got '%v'")
 
-	svc3 := services[3]
-	assert.Equal(t, svc3.Name, "taskD", "expected '%v' for svc3.Name but got '%v'")
-	assert.Equal(t, svc3.Port, 0, "expected '%v' for svc3.Port but got '%v'")
-	assert.Equal(t, svc3.Frequency, "1s", "expected '%v' for svc3.Frequency but got '%v'")
-	assert.Equal(t, svc3.Restarts, nil, "expected '%v' for svc3.Restarts but got '%v'")
+	job3 := jobs[3]
+	assert.Equal(t, job3.Name, "taskD", "expected '%v' for job3.Name but got '%v'")
+	assert.Equal(t, job3.Port, 0, "expected '%v' for job3.Port but got '%v'")
+	assert.Equal(t, job3.Frequency, "1s", "expected '%v' for job3.Frequency but got '%v'")
+	assert.Equal(t, job3.Restarts, nil, "expected '%v' for job3.Restarts but got '%v'")
 
-	svc4 := services[4]
-	assert.Equal(t, svc4.Name, "serviceA.preStart", "expected '%v' for svc4.Name but got '%v'")
-	assert.Equal(t, svc4.Port, 0, "expected '%v' for svc4.Port but got '%v'")
-	assert.Equal(t, svc4.Frequency, "", "expected '%v' for svc4.Frequency but got '%v'")
-	assert.Equal(t, svc4.Restarts, nil, "expected '%v' for svc4.Restarts but got '%v'")
+	job4 := jobs[4]
+	assert.Equal(t, job4.Name, "serviceA.preStart", "expected '%v' for job4.Name but got '%v'")
+	assert.Equal(t, job4.Port, 0, "expected '%v' for job4.Port but got '%v'")
+	assert.Equal(t, job4.Frequency, "", "expected '%v' for job4.Frequency but got '%v'")
+	assert.Equal(t, job4.Restarts, nil, "expected '%v' for job4.Restarts but got '%v'")
 
-	svc5 := services[5]
-	assert.Equal(t, svc5.Name, "serviceA.preStop", "expected '%v' for svc5.Name but got '%v'")
-	assert.Equal(t, svc5.Port, 0, "expected '%v' for svc5.Port but got '%v'")
-	assert.Equal(t, svc5.Frequency, "", "expected '%v' for svc5.Frequency but got '%v'")
-	assert.Equal(t, svc5.Restarts, nil, "expected '%v' for svc5.Restarts but got '%v'")
+	job5 := jobs[5]
+	assert.Equal(t, job5.Name, "serviceA.preStop", "expected '%v' for job5.Name but got '%v'")
+	assert.Equal(t, job5.Port, 0, "expected '%v' for job5.Port but got '%v'")
+	assert.Equal(t, job5.Frequency, "", "expected '%v' for job5.Frequency but got '%v'")
+	assert.Equal(t, job5.Restarts, nil, "expected '%v' for job5.Restarts but got '%v'")
 
-	svc6 := services[6]
-	assert.Equal(t, svc6.Name, "serviceA.postStop", "expected '%v' for svc6.Name but got '%v'")
-	assert.Equal(t, svc6.Port, 0, "expected '%v' for svc6.Port but got '%v'")
-	assert.Equal(t, svc6.Frequency, "", "expected '%v' for svc6.Frequency but got '%v'")
-	assert.Equal(t, svc6.Restarts, nil, "expected '%v' for svc6.Restarts but got '%v'")
+	job6 := jobs[6]
+	assert.Equal(t, job6.Name, "serviceA.postStop", "expected '%v' for job6.Name but got '%v'")
+	assert.Equal(t, job6.Port, 0, "expected '%v' for job6.Port but got '%v'")
+	assert.Equal(t, job6.Frequency, "", "expected '%v' for job6.Frequency but got '%v'")
+	assert.Equal(t, job6.Restarts, nil, "expected '%v' for job6.Restarts but got '%v'")
 }
 
 func TestServiceConfigValidateName(t *testing.T) {
@@ -138,7 +138,7 @@ func TestServiceConfigValidateDiscovery(t *testing.T) {
 	}
 }
 
-func TestServicesConsulExtrasEnableTagOverride(t *testing.T) {
+func TestJobsConsulExtrasEnableTagOverride(t *testing.T) {
 	testCfg := `[
 	{
 	  "name": "serviceA",
@@ -155,16 +155,16 @@ func TestServicesConsulExtrasEnableTagOverride(t *testing.T) {
 	}
 	]`
 
-	if services, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
+	if jobs, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
 	} else {
-		if services[0].definition.ConsulExtras.EnableTagOverride != true {
+		if jobs[0].definition.ConsulExtras.EnableTagOverride != true {
 			t.Errorf("ConsulExtras should have had EnableTagOverride set to true.")
 		}
 	}
 }
 
-func TestInvalidServicesConsulExtrasEnableTagOverride(t *testing.T) {
+func TestInvalidJobsConsulExtrasEnableTagOverride(t *testing.T) {
 	testCfg := `[
 	{
 	  "name": "serviceA",
@@ -186,7 +186,7 @@ func TestInvalidServicesConsulExtrasEnableTagOverride(t *testing.T) {
 	}
 }
 
-func TestServicesConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
+func TestJobsConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
 	testCfg := `[
 	{
 	  "name": "serviceA",
@@ -203,16 +203,16 @@ func TestServicesConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
 	}
 	]`
 
-	if services, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
+	if jobs, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
 	} else {
-		if services[0].definition.ConsulExtras.DeregisterCriticalServiceAfter != "40m" {
+		if jobs[0].definition.ConsulExtras.DeregisterCriticalServiceAfter != "40m" {
 			t.Errorf("ConsulExtras should have had DeregisterCriticalServiceAfter set to '40m'.")
 		}
 	}
 }
 
-func TestInvalidServicesConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
+func TestInvalidJobsConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
 	testCfg := `[
 	{
 	  "name": "serviceA",
@@ -306,7 +306,7 @@ func TestServiceConfigValidateExec(t *testing.T) {
 		"execTimeout": "xx"
 	}]`)
 	_, err = NewConfigs(testCfg, noop)
-	expected := "could not parse `timeout` for service serviceC: time: invalid duration xx"
+	expected := "could not parse `timeout` for job serviceC: time: invalid duration xx"
 	if err == nil || err.Error() != expected {
 		t.Fatalf("expected '%s', got '%v'", expected, err)
 	}
@@ -317,7 +317,7 @@ func TestServiceConfigValidateExec(t *testing.T) {
 		"exec": ""
 	}]`)
 	_, err = NewConfigs(testCfg, noop)
-	expected = "could not parse `exec` for service serviceD: received zero-length argument"
+	expected = "could not parse `exec` for job serviceD: received zero-length argument"
 	if err == nil || err.Error() != expected {
 		t.Fatalf("expected '%s', got '%v'", expected, err)
 	}
@@ -381,7 +381,7 @@ func TestServiceConfigPreStart(t *testing.T) {
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
 	assert.Error(t, err,
-		"could not parse `exec` for service serviceB.preStart: received zero-length argument")
+		"could not parse `exec` for job serviceB.preStart: received zero-length argument")
 }
 
 func TestServiceConfigPreStop(t *testing.T) {
@@ -407,7 +407,7 @@ func TestServiceConfigPreStop(t *testing.T) {
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
 	assert.Error(t, err,
-		"could not parse `exec` for service serviceB.preStop: received zero-length argument")
+		"could not parse `exec` for job serviceB.preStop: received zero-length argument")
 }
 
 func TestServiceConfigPostStop(t *testing.T) {
@@ -433,5 +433,5 @@ func TestServiceConfigPostStop(t *testing.T) {
 	}]`)
 	_, err = NewConfigs(testCfg, nil)
 	assert.Error(t, err,
-		"could not parse `exec` for service serviceB.postStop: received zero-length argument")
+		"could not parse `exec` for job serviceB.postStop: received zero-length argument")
 }

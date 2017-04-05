@@ -11,7 +11,7 @@ import (
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/discovery/consul"
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 
@@ -28,7 +28,7 @@ func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)   
 
 func getSignalTestConfig(t *testing.T) *App {
 
-	cfg := &services.Config{
+	cfg := &jobs.Config{
 		Name:       "test-service",
 		Heartbeat:  1,
 		Port:       1,
@@ -37,10 +37,10 @@ func getSignalTestConfig(t *testing.T) *App {
 		Exec:       []string{"./testdata/test.sh", "interruptSleep"},
 	}
 	cfg.Validate(&NoopServiceBackend{})
-	service := services.NewService(cfg)
+	job := jobs.NewJob(cfg)
 	app := EmptyApp()
 	app.StopTimeout = 5
-	app.Services = []*services.Service{service}
+	app.Jobs = []*jobs.Job{job}
 	app.Bus = events.NewEventBus()
 	return app
 }
@@ -71,7 +71,7 @@ func TestMaintenanceSignal(t *testing.T) {
 func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
 	bus := app.Bus
-	app.Services[0].Run(bus)
+	app.Jobs[0].Run(bus)
 
 	ds := mocks.NewDebugSubscriber(bus, 4)
 	ds.Run(0)

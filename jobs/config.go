@@ -1,4 +1,4 @@
-package services
+package jobs
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ type Config struct {
 	Tags              []string      `mapstructure:"tags"`
 	ConsulConfig      *ConsulConfig `mapstructure:"consul"`
 	heartbeatInterval time.Duration
-	discoveryService  discovery.Backend
+	discoveryCatalog  discovery.Backend
 	definition        *discovery.ServiceDefinition
 
 	// timeouts and restarts
@@ -40,7 +40,7 @@ type Config struct {
 	restartLimit int
 	freqInterval time.Duration
 
-	// related services
+	// related jobs
 	PreStartExec    interface{} `mapstructure:"preStart"`
 	PreStopExec     interface{} `mapstructure:"preStop"`
 	PostStopExec    interface{} `mapstructure:"postStop"`
@@ -66,52 +66,52 @@ type ConsulConfig struct {
 
 // NewConfigs parses json config into a validated slice of Configs
 func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
-	var services []*Config
+	var jobs []*Config
 	if raw == nil {
-		return services, nil
+		return jobs, nil
 	}
-	if err := utils.DecodeRaw(raw, &services); err != nil {
+	if err := utils.DecodeRaw(raw, &jobs); err != nil {
 		return nil, fmt.Errorf("service configuration error: %v", err)
 	}
-	for _, service := range services {
-		if err := service.Validate(disc); err != nil {
+	for _, job := range jobs {
+		if err := job.Validate(disc); err != nil {
 			return nil, err
 		}
 	}
-	for _, service := range services {
-		if service.PreStartExec != nil {
-			preStart, err := NewPreStartConfig(service.Name, service.PreStartExec)
+	for _, job := range jobs {
+		if job.PreStartExec != nil {
+			preStart, err := NewPreStartConfig(job.Name, job.PreStartExec)
 			if err != nil {
 				return nil, err
 			}
-			service.setStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
-			services = append(services, preStart)
+			job.setStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
+			jobs = append(jobs, preStart)
 		}
-		if service.PreStopExec != nil {
-			preStop, err := NewPreStopConfig(service.Name, service.PreStopExec)
+		if job.PreStopExec != nil {
+			preStop, err := NewPreStopConfig(job.Name, job.PreStopExec)
 			if err != nil {
 				return nil, err
 			}
-			preStop.setStartup(events.Event{events.Stopping, service.Name}, 0)
-			service.setStopping(events.Event{events.Stopped, preStop.Name}, 0)
-			services = append(services, preStop)
+			preStop.setStartup(events.Event{events.Stopping, job.Name}, 0)
+			job.setStopping(events.Event{events.Stopped, preStop.Name}, 0)
+			jobs = append(jobs, preStop)
 		}
-		if service.PostStopExec != nil {
-			postStop, err := NewPostStopConfig(service.Name, service.PostStopExec)
+		if job.PostStopExec != nil {
+			postStop, err := NewPostStopConfig(job.Name, job.PostStopExec)
 			if err != nil {
 				return nil, err
 			}
-			postStop.setStartup(events.Event{events.Stopped, service.Name}, 0)
-			services = append(services, postStop)
+			postStop.setStartup(events.Event{events.Stopped, job.Name}, 0)
+			jobs = append(jobs, postStop)
 		}
 	}
-	return services, nil
+	return jobs, nil
 }
 
 // Validate ensures that a Config meets all constraints
 func (cfg *Config) Validate(disc discovery.Backend) error {
 	if disc != nil {
-		// non-advertised services don't need to have their names validated
+		// non-advertised jobs don't need to have their names validated
 		if err := utils.ValidateServiceName(cfg.Name); err != nil {
 			return err
 		}
@@ -145,7 +145,7 @@ func (cfg *Config) setStopping(evt events.Event, timeout time.Duration) {
 }
 
 func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
-	// if port isn't set then we won't do any discovery for this service
+	// if port isn't set then we won't do any discovery for this job
 	if cfg.Port == 0 {
 		if cfg.Heartbeat > 0 || cfg.TTL > 0 {
 			return fmt.Errorf("`heartbeat` and `ttl` may not be set in service `%s` if `port` is not set", cfg.Name)
@@ -200,7 +200,7 @@ func (cfg *Config) validateExec() error {
 	if cfg.ExecTimeout != "" {
 		execTimeout, err := utils.GetTimeout(cfg.ExecTimeout)
 		if err != nil {
-			return fmt.Errorf("could not parse `timeout` for service %s: %v", cfg.Name, err)
+			return fmt.Errorf("could not parse `timeout` for job %s: %v", cfg.Name, err)
 		}
 		if execTimeout < time.Duration(1*time.Millisecond) {
 			// if there's no timeout set, that's ok, but if we have a timeout
@@ -211,9 +211,9 @@ func (cfg *Config) validateExec() error {
 	}
 	if cfg.Exec != nil {
 		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout,
-			log.Fields{"service": cfg.Name})
+			log.Fields{"job": cfg.Name})
 		if err != nil {
-			return fmt.Errorf("could not parse `exec` for service %s: %s", cfg.Name, err)
+			return fmt.Errorf("could not parse `exec` for job %s: %s", cfg.Name, err)
 		}
 		if cfg.Name == "" {
 			cfg.Name = cmd.Exec
@@ -280,7 +280,7 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 	hostname, _ := os.Hostname()
 	id := fmt.Sprintf("%s-%s", cfg.Name, hostname)
 
-	cfg.discoveryService = disc
+	cfg.discoveryCatalog = disc
 
 	var consulExtras *discovery.ConsulExtras
 	if cfg.ConsulConfig != nil {
@@ -308,5 +308,5 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (cfg *Config) String() string {
-	return "services.Config[" + cfg.Name + "]"
+	return "jobs.Config[" + cfg.Name + "]"
 }

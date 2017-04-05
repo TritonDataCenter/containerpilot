@@ -111,63 +111,63 @@ func TestValidConfigHealthChecks(t *testing.T) {
 }
 
 // services.Config
-func TestValidConfigServices(t *testing.T) {
+func TestValidConfigJobs(t *testing.T) {
 	os.Setenv("TEST", "HELLO")
 	cfg, err := LoadConfig(testJSON)
 	if err != nil {
 		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
 
-	if len(cfg.Services) != 8 {
-		t.Fatalf("expected 8 services but got %v", cfg.Services)
+	if len(cfg.Jobs) != 8 {
+		t.Fatalf("expected 8 services but got %v", cfg.Jobs)
 	}
-	svc0 := cfg.Services[0]
-	assertEqual(t, svc0.Name, "serviceA", "expected '%v' for svc0.Name but got '%v'")
-	assertEqual(t, svc0.Port, 8080, "expected '%v' for svc0.Port but got '%v'")
-	assertEqual(t, svc0.Exec, "/bin/serviceA", "expected '%v' for svc0.Exec but got '%v'")
-	assertEqual(t, svc0.Tags, []string{"tag1", "tag2"}, "expected '%v' for svc0.Tags but got '%v'")
-	assertEqual(t, svc0.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
+	job0 := cfg.Jobs[0]
+	assertEqual(t, job0.Name, "serviceA", "expected '%v' for job0.Name but got '%v'")
+	assertEqual(t, job0.Port, 8080, "expected '%v' for job0.Port but got '%v'")
+	assertEqual(t, job0.Exec, "/bin/serviceA", "expected '%v' for job0.Exec but got '%v'")
+	assertEqual(t, job0.Tags, []string{"tag1", "tag2"}, "expected '%v' for job0.Tags but got '%v'")
+	assertEqual(t, job0.Restarts, nil, "expected '%v' for job1.Restarts but got '%v'")
 
-	svc1 := cfg.Services[1]
-	assertEqual(t, svc1.Name, "serviceB", "expected '%v' for svc1.Name but got '%v'")
-	assertEqual(t, svc1.Port, 5000, "expected '%v' for svc1.Port but got '%v'")
-	assertEqual(t, len(svc1.Tags), 0, "expected '%v' for len(svc1.Tags) but got '%v'")
-	assertEqual(t, svc1.Exec, []interface{}{"/bin/serviceB", "B"}, "expected '%v' for svc1.Exec but got '%v'")
-	assertEqual(t, svc1.Restarts, nil, "expected '%v' for svc1.Restarts but got '%v'")
+	job1 := cfg.Jobs[1]
+	assertEqual(t, job1.Name, "serviceB", "expected '%v' for job1.Name but got '%v'")
+	assertEqual(t, job1.Port, 5000, "expected '%v' for job1.Port but got '%v'")
+	assertEqual(t, len(job1.Tags), 0, "expected '%v' for len(job1.Tags) but got '%v'")
+	assertEqual(t, job1.Exec, []interface{}{"/bin/serviceB", "B"}, "expected '%v' for job1.Exec but got '%v'")
+	assertEqual(t, job1.Restarts, nil, "expected '%v' for job1.Restarts but got '%v'")
 
-	svc2 := cfg.Services[2]
-	assertEqual(t, svc2.Name, "coprocessC", "expected '%v' for svc2.Name but got '%v'")
-	assertEqual(t, svc2.Port, 0, "expected '%v' for svc2.Port but got '%v'")
-	assertEqual(t, svc2.Frequency, "", "expected '%v' for svc2.Frequency but got '%v'")
-	assertEqual(t, svc2.Restarts, "unlimited", "expected '%v' for svc2.Restarts but got '%v'")
+	job2 := cfg.Jobs[2]
+	assertEqual(t, job2.Name, "coprocessC", "expected '%v' for job2.Name but got '%v'")
+	assertEqual(t, job2.Port, 0, "expected '%v' for job2.Port but got '%v'")
+	assertEqual(t, job2.Frequency, "", "expected '%v' for job2.Frequency but got '%v'")
+	assertEqual(t, job2.Restarts, "unlimited", "expected '%v' for job2.Restarts but got '%v'")
 
-	svc3 := cfg.Services[3]
-	assertEqual(t, svc3.Name, "taskD", "expected '%v' for svc3.Name but got '%v'")
-	assertEqual(t, svc3.Port, 0, "expected '%v' for svc3.Port but got '%v'")
-	assertEqual(t, svc3.Frequency, "1s", "expected '%v' for svc3.Frequency but got '%v'")
-	assertEqual(t, svc3.Restarts, nil, "expected '%v' for svc3.Restarts but got '%v'")
+	job3 := cfg.Jobs[3]
+	assertEqual(t, job3.Name, "taskD", "expected '%v' for job3.Name but got '%v'")
+	assertEqual(t, job3.Port, 0, "expected '%v' for job3.Port but got '%v'")
+	assertEqual(t, job3.Frequency, "1s", "expected '%v' for job3.Frequency but got '%v'")
+	assertEqual(t, job3.Restarts, nil, "expected '%v' for job3.Restarts but got '%v'")
 
-	svc4 := cfg.Services[4]
-	assertEqual(t, svc4.Name, "serviceA.preStart", "expected '%v' for svc4.Name but got '%v'")
-	assertEqual(t, svc4.Port, 0, "expected '%v' for svc4.Port but got '%v'")
-	assertEqual(t, svc4.Frequency, "", "expected '%v' for svc4.Frequency but got '%v'")
-	assertEqual(t, svc4.Restarts, nil, "expected '%v' for svc4.Restarts but got '%v'")
+	job4 := cfg.Jobs[4]
+	assertEqual(t, job4.Name, "serviceA.preStart", "expected '%v' for job4.Name but got '%v'")
+	assertEqual(t, job4.Port, 0, "expected '%v' for job4.Port but got '%v'")
+	assertEqual(t, job4.Frequency, "", "expected '%v' for job4.Frequency but got '%v'")
+	assertEqual(t, job4.Restarts, nil, "expected '%v' for job4.Restarts but got '%v'")
 
-	svc5 := cfg.Services[5]
-	assertEqual(t, svc5.Name, "serviceA.preStop", "expected '%v' for svc5.Name but got '%v'")
-	assertEqual(t, svc5.Port, 0, "expected '%v' for svc5.Port but got '%v'")
-	assertEqual(t, svc5.Frequency, "", "expected '%v' for svc5.Frequency but got '%v'")
-	assertEqual(t, svc5.Restarts, nil, "expected '%v' for svc5.Restarts but got '%v'")
+	job5 := cfg.Jobs[5]
+	assertEqual(t, job5.Name, "serviceA.preStop", "expected '%v' for job5.Name but got '%v'")
+	assertEqual(t, job5.Port, 0, "expected '%v' for job5.Port but got '%v'")
+	assertEqual(t, job5.Frequency, "", "expected '%v' for job5.Frequency but got '%v'")
+	assertEqual(t, job5.Restarts, nil, "expected '%v' for job5.Restarts but got '%v'")
 
-	svc6 := cfg.Services[6]
-	assertEqual(t, svc6.Name, "serviceA.postStop", "expected '%v' for svc6.Name but got '%v'")
-	assertEqual(t, svc6.Port, 0, "expected '%v' for svc6.Port but got '%v'")
-	assertEqual(t, svc6.Frequency, "", "expected '%v' for svc6.Frequency but got '%v'")
-	assertEqual(t, svc6.Restarts, nil, "expected '%v' for svc6.Restarts but got '%v'")
+	job6 := cfg.Jobs[6]
+	assertEqual(t, job6.Name, "serviceA.postStop", "expected '%v' for job6.Name but got '%v'")
+	assertEqual(t, job6.Port, 0, "expected '%v' for job6.Port but got '%v'")
+	assertEqual(t, job6.Frequency, "", "expected '%v' for job6.Frequency but got '%v'")
+	assertEqual(t, job6.Restarts, nil, "expected '%v' for job6.Restarts but got '%v'")
 
-	svc7 := cfg.Services[7]
-	assertEqual(t, svc7.Name, "containerpilot", "expected '%v' for svc7.Name but got '%v'")
-	assertEqual(t, svc7.Port, 9000, "expected '%v' for svc7.Port but got '%v'")
+	job7 := cfg.Jobs[7]
+	assertEqual(t, job7.Name, "containerpilot", "expected '%v' for job7.Name but got '%v'")
+	assertEqual(t, job7.Port, 9000, "expected '%v' for job7.Port but got '%v'")
 }
 
 // telemetry.Config

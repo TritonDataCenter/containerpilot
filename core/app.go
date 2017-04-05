@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/config"
+	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/services"
+	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/watches"
 
@@ -33,7 +33,7 @@ var (
 type App struct {
 	ControlServer *control.HTTPServer
 	Discovery     discovery.Backend
-	Services      []*services.Service
+	Jobs          []*jobs.Job
 	Checks        []*checks.HealthCheck
 	Watches       []*watches.Watch
 	Telemetry     *telemetry.Telemetry
@@ -122,17 +122,17 @@ func NewApp(configFlag string) (*App, error) {
 	a.StopTimeout = cfg.StopTimeout
 	a.Discovery = cfg.Discovery
 	a.Checks = checks.FromConfigs(cfg.Checks)
-	a.Services = services.FromConfigs(cfg.Services)
+	a.Jobs = jobs.FromConfigs(cfg.Jobs)
 	a.Watches = watches.FromConfigs(cfg.Watches)
 	a.Telemetry = telemetry.NewTelemetry(cfg.Telemetry)
 	a.ConfigFlag = configFlag // stash the old config
 
-	// set an environment variable for each service IP address so that
+	// set an environment variable for each job IP address so that
 	// forked processes have access to this information
-	for _, service := range a.Services {
-		if service.Definition != nil {
-			envKey := getEnvVarNameFromService(service.Name)
-			os.Setenv(envKey, service.Definition.IPAddress)
+	for _, job := range a.Jobs {
+		if job.Definition != nil {
+			envKey := getEnvVarNameFromService(job.Name)
+			os.Setenv(envKey, job.Definition.IPAddress)
 		}
 	}
 
@@ -211,14 +211,14 @@ func (a *App) Terminate() {
 	a.Bus.Shutdown()
 	if a.StopTimeout > 0 {
 		time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
-			for _, service := range a.Services {
+			for _, service := range a.Jobs {
 				log.Infof("killing processes for service %#v", service.Name)
 				service.Kill()
 			}
 		})
 		return
 	}
-	for _, service := range a.Services {
+	for _, service := range a.Jobs {
 		log.Infof("killing processes for service %#v", service.Name)
 		service.Kill()
 	}
@@ -251,7 +251,7 @@ func (a *App) reload() error {
 		return err
 	}
 	a.Discovery = newApp.Discovery
-	a.Services = newApp.Services
+	a.Jobs = newApp.Jobs
 	a.Checks = newApp.Checks
 	a.Watches = newApp.Watches
 	a.StopTimeout = newApp.StopTimeout
@@ -264,7 +264,7 @@ func (a *App) reload() error {
 // back to our config
 func (a *App) handlePolling() {
 
-	for _, service := range a.Services {
+	for _, service := range a.Jobs {
 		service.Run(a.Bus)
 	}
 	for _, check := range a.Checks {
