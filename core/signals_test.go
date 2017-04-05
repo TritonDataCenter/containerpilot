@@ -37,10 +37,10 @@ func getSignalTestConfig(t *testing.T) *App {
 		Exec:       []string{"./testdata/test.sh", "interruptSleep"},
 	}
 	cfg.Validate(&NoopServiceBackend{})
-	service := jobs.NewService(cfg)
+	job := jobs.NewJob(cfg)
 	app := EmptyApp()
 	app.StopTimeout = 5
-	app.Services = []*jobs.Service{service}
+	app.Jobs = []*jobs.Job{job}
 	app.Bus = events.NewEventBus()
 	return app
 }
@@ -71,7 +71,7 @@ func TestMaintenanceSignal(t *testing.T) {
 func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
 	bus := app.Bus
-	app.Services[0].Run(bus)
+	app.Jobs[0].Run(bus)
 
 	ds := mocks.NewDebugSubscriber(bus, 4)
 	ds.Run(0)

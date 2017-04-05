@@ -13,10 +13,10 @@ const eventBufferSize = 1000
 
 // HealthCheck manages state of periodic health checks.
 type HealthCheck struct {
-	Name        string
-	serviceName string
-	exec        *commands.Command
-	poll        time.Duration
+	Name    string
+	jobName string
+	exec    *commands.Command
+	poll    time.Duration
 
 	events.EventHandler // Event handling
 }
@@ -24,10 +24,10 @@ type HealthCheck struct {
 // NewHealthCheck creates a HealthCheck from a validated Config struct
 func NewHealthCheck(cfg *Config) *HealthCheck {
 	check := &HealthCheck{
-		Name:        cfg.Name,
-		serviceName: cfg.serviceName,
-		exec:        cfg.exec,
-		poll:        cfg.pollInterval,
+		Name:    cfg.Name,
+		jobName: cfg.jobName,
+		exec:    cfg.exec,
+		poll:    cfg.pollInterval,
 	}
 	check.Rx = make(chan events.Event, eventBufferSize)
 	check.Flush = make(chan bool)
@@ -65,12 +65,12 @@ func (check *HealthCheck) Run(bus *events.EventBus) {
 			case events.Event{events.TimerExpired, pollSource}:
 				check.CheckHealth(ctx)
 			case events.Event{events.ExitSuccess, check.Name}:
-				check.Bus.Publish(events.Event{events.StatusHealthy, check.serviceName})
+				check.Bus.Publish(events.Event{events.StatusHealthy, check.jobName})
 			case events.Event{events.ExitFailed, check.Name}:
-				check.Bus.Publish(events.Event{events.StatusUnhealthy, check.serviceName})
+				check.Bus.Publish(events.Event{events.StatusUnhealthy, check.jobName})
 			case
 				events.Event{events.Quit, check.Name},
-				events.Event{events.Stopped, check.serviceName},
+				events.Event{events.Stopped, check.jobName},
 				events.QuitByClose,
 				events.GlobalShutdown:
 				check.Unsubscribe(check.Bus)

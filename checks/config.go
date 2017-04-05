@@ -18,7 +18,7 @@ type Config struct {
 	exec         *commands.Command
 	Timeout      string `mapstructure:"timeout"`
 	timeout      time.Duration
-	serviceName  string // for now always the same as the Name
+	jobName      string // for now always the same as the Name
 
 	/* TODO v3:
 	These fields are here *only* so we can reuse the config map we use
@@ -69,7 +69,7 @@ func (cfg *Config) Validate() error {
 	if err := utils.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}
-	cfg.serviceName = cfg.Name
+	cfg.jobName = cfg.Name
 	cfg.Name = cfg.Name + ".check"
 
 	if cfg.Poll < 1 {
@@ -86,7 +86,7 @@ func (cfg *Config) Validate() error {
 	cfg.timeout = timeout
 
 	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout,
-		log.Fields{"service": cfg.serviceName, "check": cfg.Name})
+		log.Fields{"job": cfg.jobName, "check": cfg.Name})
 	if err != nil {
 		// TODO v3: this is config syntax specific and should be updated
 		return fmt.Errorf("could not parse `health` in check %s: %s",

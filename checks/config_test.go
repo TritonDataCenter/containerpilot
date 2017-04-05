@@ -30,7 +30,7 @@ func TestCheckParse(t *testing.T) {
 ]`)
 	checks, err := NewConfigs(testCfg)
 	if err != nil {
-		t.Fatalf("could not parse service JSON: %s", err)
+		t.Fatalf("could not parse config JSON: %s", err)
 	}
 	assert.Equal(t, checks[0].exec.Exec, "/bin/checkA.sh",
 		"expected %v for exec.Exec got %v")

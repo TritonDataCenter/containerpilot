@@ -9,17 +9,17 @@ import (
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 
-func TestServiceRunSafeClose(t *testing.T) {
+func TestJobRunSafeClose(t *testing.T) {
 	bus := events.NewEventBus()
 	ds := mocks.NewDebugSubscriber(bus, 4)
 	ds.Run(0)
 
-	cfg := &Config{Name: "myservice", Exec: "true"}
+	cfg := &Config{Name: "myjob", Exec: "true"}
 	cfg.Validate(noop)
-	svc := NewService(cfg)
-	svc.Run(bus)
-	svc.Bus.Publish(events.GlobalStartup)
-	svc.Close()
+	job := NewJob(cfg)
+	job.Run(bus)
+	job.Bus.Publish(events.GlobalStartup)
+	job.Close()
 	ds.Close()
 
 	defer func() {
@@ -27,12 +27,12 @@ func TestServiceRunSafeClose(t *testing.T) {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	svc.Bus.Publish(events.GlobalStartup)
+	job.Bus.Publish(events.GlobalStartup)
 
 	expected := []events.Event{
 		events.GlobalStartup,
-		events.Event{events.Stopping, "myservice"},
-		events.Event{events.Stopped, "myservice"},
+		events.Event{events.Stopping, "myjob"},
+		events.Event{events.Stopped, "myjob"},
 		events.QuitByClose,
 	}
 	if !reflect.DeepEqual(expected, ds.Results) {
@@ -40,21 +40,21 @@ func TestServiceRunSafeClose(t *testing.T) {
 	}
 }
 
-// A Service should timeout if not started before the startupTimeout
-func TestServiceRunStartupTimeout(t *testing.T) {
+// A Job should timeout if not started before the startupTimeout
+func TestJobRunStartupTimeout(t *testing.T) {
 	bus := events.NewEventBus()
 	ds := mocks.NewDebugSubscriber(bus, 5)
 	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
 
-	cfg := &Config{Name: "myservice", Exec: "true"}
+	cfg := &Config{Name: "myjob", Exec: "true"}
 	cfg.Validate(noop)
 	cfg.setStartup(
 		events.Event{events.Startup, "never"},
 		time.Duration(100*time.Millisecond),
 	)
-	svc := NewService(cfg)
-	svc.Run(bus)
-	svc.Bus.Publish(events.GlobalStartup)
+	job := NewJob(cfg)
+	job.Run(bus)
+	job.Bus.Publish(events.GlobalStartup)
 
 	// note that we can't send a .Close() after this b/c we've timed out
 	// and we'll end up blocking forever
@@ -71,33 +71,33 @@ func TestServiceRunStartupTimeout(t *testing.T) {
 		got[result]++
 	}
 	if !reflect.DeepEqual(got, map[events.Event]int{
-		events.Event{Code: events.TimerExpired, Source: "myservice"}: 1,
-		events.GlobalStartup:                                         1,
-		events.QuitByClose:                                           1,
-		events.Event{Code: events.Stopping, Source: "myservice"}:     1,
-		events.Event{Code: events.Stopped, Source: "myservice"}:      1,
+		events.Event{Code: events.TimerExpired, Source: "myjob"}: 1,
+		events.GlobalStartup:                                     1,
+		events.QuitByClose:                                       1,
+		events.Event{Code: events.Stopping, Source: "myjob"}:     1,
+		events.Event{Code: events.Stopped, Source: "myjob"}:      1,
 	}) {
 		t.Fatalf("expected timeout after startup but got:\n%v", ds.Results)
 	}
 }
 
-func TestServiceRunRestarts(t *testing.T) {
+func TestJobRunRestarts(t *testing.T) {
 	runRestartsTest := func(restarts interface{}, expected int) {
 		bus := events.NewEventBus()
 		ds := mocks.NewDebugSubscriber(bus, expected+2) // + start and quit
 		ds.Run(time.Duration(100 * time.Millisecond))
 
 		cfg := &Config{
-			Name:         "myservice",
+			Name:         "myjob",
 			startupEvent: events.GlobalStartup,
 			Exec:         []string{"./testdata/test.sh", "doStuff", "runRestartsTest"},
 			Restarts:     restarts,
 		}
 		cfg.Validate(noop)
-		svc := NewService(cfg)
-		svc.Run(bus)
-		svc.Bus.Publish(events.GlobalStartup)
-		exitOk := events.Event{Code: events.ExitSuccess, Source: "myservice"}
+		job := NewJob(cfg)
+		job.Run(bus)
+		job.Bus.Publish(events.GlobalStartup)
+		exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 		var got = 0
 		ds.Close()
 		for _, result := range ds.Results {
@@ -116,26 +116,26 @@ func TestServiceRunRestarts(t *testing.T) {
 	runRestartsTest(nil, 1)
 }
 
-func TestServiceRunPeriodic(t *testing.T) {
+func TestJobRunPeriodic(t *testing.T) {
 	bus := events.NewEventBus()
 	ds := mocks.NewDebugSubscriber(bus, 10)
 
 	cfg := &Config{
-		Name:         "myservice",
+		Name:         "myjob",
 		startupEvent: events.GlobalStartup,
 		Exec:         []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
 		Frequency:    "10ms",
 		Restarts:     "unlimited",
 	}
 	cfg.Validate(noop)
-	svc := NewService(cfg)
-	svc.Run(bus)
+	job := NewJob(cfg)
+	job.Run(bus)
 	ds.Run(time.Duration(100 * time.Millisecond))
-	svc.Bus.Publish(events.GlobalStartup)
-	exitOk := events.Event{Code: events.ExitSuccess, Source: "myservice"}
-	exitFail := events.Event{Code: events.ExitFailed, Source: "myservice"}
+	job.Bus.Publish(events.GlobalStartup)
+	exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
+	exitFail := events.Event{Code: events.ExitFailed, Source: "myjob"}
 	time.Sleep(100 * time.Millisecond)
-	svc.Close()
+	job.Close()
 	ds.Close()
 	var got = 0
 	for _, result := range ds.Results {

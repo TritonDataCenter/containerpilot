@@ -23,7 +23,7 @@ import (
 type rawConfig struct {
 	logConfig   *LogConfig
 	stopTimeout int
-	services    []interface{}
+	jobs        []interface{}
 	watches     []interface{}
 	telemetry   interface{}
 	control     interface{}
@@ -34,7 +34,7 @@ type Config struct {
 	Discovery   discovery.Backend
 	LogConfig   *LogConfig
 	StopTimeout int
-	Services    []*jobs.Config
+	Jobs        []*jobs.Config
 	Checks      []*checks.Config
 	Watches     []*watches.Config
 	Telemetry   *telemetry.Config
@@ -153,13 +153,13 @@ func LoadConfig(configFlag string) (*Config, error) {
 	}
 	cfg.Control = controlConfig
 
-	serviceConfigs, err := jobs.NewConfigs(raw.services, disc)
+	jobConfigs, err := jobs.NewConfigs(raw.jobs, disc)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse services: %v", err)
+		return nil, fmt.Errorf("unable to parse jobs: %v", err)
 	}
-	cfg.Services = serviceConfigs
+	cfg.Jobs = jobConfigs
 
-	checks, err := checks.NewConfigs(raw.services)
+	checks, err := checks.NewConfigs(raw.jobs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse checks: %v", err)
 	}
@@ -177,7 +177,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 	}
 	if telemetry != nil {
 		cfg.Telemetry = telemetry
-		cfg.Services = append(cfg.Services, telemetry.ServiceConfig)
+		cfg.Jobs = append(cfg.Jobs, telemetry.JobConfig)
 	}
 
 	return cfg, nil
@@ -288,7 +288,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.stopTimeout = stopTimeout
 	result.logConfig = &logConfig
 	result.control = configMap["control"]
-	result.services = decodeArray(configMap["services"])
+	result.jobs = decodeArray(configMap["services"])
 	result.watches = decodeArray(configMap["backends"])
 	result.telemetry = configMap["telemetry"]
 

@@ -17,8 +17,8 @@ const (
 	eventBufferSize   = 1000
 )
 
-// Service manages the state of a service and its start/stop conditions
-type Service struct {
+// Job manages the state of a job and its start/stop conditions
+type Job struct {
 	Name             string
 	exec             *commands.Command
 	Status           bool // TODO: we'll need this to carry more info than bool
@@ -40,9 +40,9 @@ type Service struct {
 	events.EventHandler // Event handling
 }
 
-// NewService creates a new Service from a Config
-func NewService(cfg *Config) *Service {
-	service := &Service{
+// NewJob creates a new Job from a Config
+func NewJob(cfg *Config) *Job {
+	service := &Job{
 		Name:             cfg.Name,
 		exec:             cfg.exec,
 		heartbeat:        cfg.heartbeatInterval,
@@ -67,131 +67,131 @@ func NewService(cfg *Config) *Service {
 	return service
 }
 
-// FromConfigs creates Services from a slice of validated Configs
-func FromConfigs(cfgs []*Config) []*Service {
-	services := []*Service{}
+// FromConfigs creates Jobs from a slice of validated Configs
+func FromConfigs(cfgs []*Config) []*Job {
+	services := []*Job{}
 	for _, cfg := range cfgs {
-		service := NewService(cfg)
+		service := NewJob(cfg)
 		services = append(services, service)
 	}
 	return services
 }
 
 // SendHeartbeat sends a heartbeat for this service
-func (svc *Service) SendHeartbeat() {
-	if svc.discoveryService != nil || svc.Definition != nil {
-		svc.discoveryService.SendHeartbeat(svc.Definition)
+func (job *Job) SendHeartbeat() {
+	if job.discoveryService != nil || job.Definition != nil {
+		job.discoveryService.SendHeartbeat(job.Definition)
 	}
 }
 
 // MarkForMaintenance marks this service for maintenance
-func (svc *Service) MarkForMaintenance() {
-	if svc.discoveryService != nil || svc.Definition != nil {
-		svc.discoveryService.MarkForMaintenance(svc.Definition)
+func (job *Job) MarkForMaintenance() {
+	if job.discoveryService != nil || job.Definition != nil {
+		job.discoveryService.MarkForMaintenance(job.Definition)
 	}
 }
 
 // Deregister will deregister this instance of the service
-func (svc *Service) Deregister() {
-	if svc.discoveryService != nil || svc.Definition != nil {
-		svc.discoveryService.Deregister(svc.Definition)
+func (job *Job) Deregister() {
+	if job.discoveryService != nil || job.Definition != nil {
+		job.discoveryService.Deregister(job.Definition)
 	}
 }
 
-// StartService runs the Service's executable
-func (svc *Service) StartService(ctx context.Context) {
-	if svc.exec != nil {
-		svc.exec.Run(ctx, svc.Bus)
+// StartJob runs the Job's executable
+func (job *Job) StartJob(ctx context.Context) {
+	if job.exec != nil {
+		job.exec.Run(ctx, job.Bus)
 	}
 }
 
-// Kill sends SIGTERM to the Service's executable, if any
-func (svc *Service) Kill() {
-	if svc.exec != nil {
-		if svc.exec.Cmd != nil {
-			if svc.exec.Cmd.Process != nil {
-				svc.exec.Cmd.Process.Kill()
+// Kill sends SIGTERM to the Job's executable, if any
+func (job *Job) Kill() {
+	if job.exec != nil {
+		if job.exec.Cmd != nil {
+			if job.exec.Cmd.Process != nil {
+				job.exec.Cmd.Process.Kill()
 			}
 		}
 	}
 }
 
-// Run executes the event loop for the Service
-func (svc *Service) Run(bus *events.EventBus) {
+// Run executes the event loop for the Job
+func (job *Job) Run(bus *events.EventBus) {
 
-	svc.Subscribe(bus)
-	svc.Bus = bus
+	job.Subscribe(bus)
+	job.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	runEverySource := fmt.Sprintf("%s.run-every", svc.Name)
-	if svc.frequency > 0 {
-		events.NewEventTimer(ctx, svc.Rx, svc.frequency, runEverySource)
+	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
+	if job.frequency > 0 {
+		events.NewEventTimer(ctx, job.Rx, job.frequency, runEverySource)
 	}
 
-	heartbeatSource := fmt.Sprintf("%s.heartbeat", svc.Name)
-	if svc.heartbeat > 0 {
-		events.NewEventTimer(ctx, svc.Rx, svc.heartbeat, heartbeatSource)
+	heartbeatSource := fmt.Sprintf("%s.heartbeat", job.Name)
+	if job.heartbeat > 0 {
+		events.NewEventTimer(ctx, job.Rx, job.heartbeat, heartbeatSource)
 	}
 
-	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", svc.Name)
-	if svc.startupTimeout > 0 {
-		events.NewEventTimeout(ctx, svc.Rx, svc.startupTimeout, startTimeoutSource)
+	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
+	if job.startupTimeout > 0 {
+		events.NewEventTimeout(ctx, job.Rx, job.startupTimeout, startTimeoutSource)
 	}
 
 	go func() {
 	loop: // aw yeah, goto like it's 1968!
 		for {
-			event := <-svc.Rx
+			event := <-job.Rx
 			switch event {
 			case events.Event{events.TimerExpired, heartbeatSource}:
 				// non-advertised services shouldn't receive this event
 				// but we'll hit a null-pointer if we screw it up
-				if svc.Status == true && svc.Definition != nil {
-					svc.SendHeartbeat()
+				if job.Status == true && job.Definition != nil {
+					job.SendHeartbeat()
 				}
 			case events.Event{events.TimerExpired, startTimeoutSource}:
-				svc.Bus.Publish(events.Event{
-					Code: events.TimerExpired, Source: svc.Name})
-				svc.Rx <- events.Event{Code: events.Quit, Source: svc.Name}
+				job.Bus.Publish(events.Event{
+					Code: events.TimerExpired, Source: job.Name})
+				job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
 			case events.Event{events.TimerExpired, runEverySource}:
-				if !svc.restartPermitted() {
-					log.Debugf("restart not permitted: %v", svc.Name)
+				if !job.restartPermitted() {
+					log.Debugf("restart not permitted: %v", job.Name)
 					break loop
 				}
-				svc.restartsRemain--
-				svc.Rx <- svc.startupEvent
-			case events.Event{events.StatusUnhealthy, svc.Name}:
+				job.restartsRemain--
+				job.Rx <- job.startupEvent
+			case events.Event{events.StatusUnhealthy, job.Name}:
 				// TODO v3: add a "SendFailedHeartbeat" method to fail faster
-				svc.Status = false
-			case events.Event{events.StatusHealthy, svc.Name}:
-				svc.Status = true
+				job.Status = false
+			case events.Event{events.StatusHealthy, job.Name}:
+				job.Status = true
 			case
-				events.Event{events.Quit, svc.Name},
+				events.Event{events.Quit, job.Name},
 				events.QuitByClose,
 				events.GlobalShutdown:
 				break loop
 			case
-				events.Event{events.ExitSuccess, svc.Name},
-				events.Event{events.ExitFailed, svc.Name}:
-				if svc.frequency > 0 {
+				events.Event{events.ExitSuccess, job.Name},
+				events.Event{events.ExitFailed, job.Name}:
+				if job.frequency > 0 {
 					break // note: breaks switch only
 				}
-				if !svc.restartPermitted() {
-					log.Debugf("restart not permitted: %v", svc.Name)
+				if !job.restartPermitted() {
+					log.Debugf("restart not permitted: %v", job.Name)
 					break loop
 				}
-				svc.restartsRemain--
-				svc.Rx <- svc.startupEvent
-			case svc.startupEvent:
-				svc.StartService(ctx)
+				job.restartsRemain--
+				job.Rx <- job.startupEvent
+			case job.startupEvent:
+				job.StartJob(ctx)
 			}
 		}
-		svc.cleanup(ctx, cancel)
+		job.cleanup(ctx, cancel)
 	}()
 }
 
-func (svc *Service) restartPermitted() bool {
-	if svc.restartLimit == unlimitedRestarts || svc.restartsRemain > 0 {
+func (job *Job) restartPermitted() bool {
+	if job.restartLimit == unlimitedRestarts || job.restartsRemain > 0 {
 		return true
 	}
 	return false
@@ -200,36 +200,36 @@ func (svc *Service) restartPermitted() bool {
 // cleanup fires the Stopping event and will wait to receive a stoppingEvent
 // if one is configured. cleans up registration to event bus and closes all
 // channels and contexts when done.
-func (svc *Service) cleanup(ctx context.Context, cancel context.CancelFunc) {
-	stoppingTimeout := fmt.Sprintf("%s.stopping-timeout", svc.Name)
-	svc.Bus.Publish(events.Event{Code: events.Stopping, Source: svc.Name})
-	if svc.stoppingEvent != events.NonEvent {
-		if svc.stoppingTimeout > 0 {
+func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
+	stoppingTimeout := fmt.Sprintf("%s.stopping-timeout", job.Name)
+	job.Bus.Publish(events.Event{Code: events.Stopping, Source: job.Name})
+	if job.stoppingEvent != events.NonEvent {
+		if job.stoppingTimeout > 0 {
 			// not having this set is a programmer error not a runtime error
-			events.NewEventTimeout(ctx, svc.Rx,
-				svc.stoppingTimeout, stoppingTimeout)
+			events.NewEventTimeout(ctx, job.Rx,
+				job.stoppingTimeout, stoppingTimeout)
 		}
 	loop:
 		for {
-			event := <-svc.Rx
+			event := <-job.Rx
 			switch event {
-			case svc.stoppingEvent:
+			case job.stoppingEvent:
 				break loop
 			case events.Event{events.Stopping, stoppingTimeout}:
 				break loop
 			}
 		}
 	}
-	svc.Unsubscribe(svc.Bus)
-	svc.Deregister()
-	close(svc.Rx)
+	job.Unsubscribe(job.Bus)
+	job.Deregister()
+	close(job.Rx)
 	cancel()
-	svc.Bus.Publish(events.Event{Code: events.Stopped, Source: svc.Name})
-	svc.exec.CloseLogs()
-	svc.Flush <- true
+	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
+	job.exec.CloseLogs()
+	job.Flush <- true
 }
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
-func (svc *Service) String() string {
-	return "services.Service[" + svc.Name + "]"
+func (job *Job) String() string {
+	return "jobs.Job[" + job.Name + "]"
 }

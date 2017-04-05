@@ -19,7 +19,7 @@ type Config struct {
 
 	// derived in Validate
 	SensorConfigs []*SensorConfig
-	ServiceConfig *jobs.Config
+	JobConfig     *jobs.Config
 	addr          net.TCPAddr
 }
 
@@ -57,16 +57,16 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	}
 	ip := net.ParseIP(ipAddress)
 	cfg.addr = net.TCPAddr{IP: ip, Port: cfg.Port}
-	serviceCfg := cfg.ToServiceConfig()
-	if err := serviceCfg.Validate(disc); err != nil {
+	jobConfig := cfg.ToJobConfig()
+	if err := jobConfig.Validate(disc); err != nil {
 		return fmt.Errorf("could not validate telemetry service: %v", err)
 	}
-	cfg.ServiceConfig = serviceCfg
+	cfg.JobConfig = jobConfig
 	return nil
 }
 
-// ToServiceConfig ...
-func (cfg *Config) ToServiceConfig() *jobs.Config {
+// ToJobConfig ...
+func (cfg *Config) ToJobConfig() *jobs.Config {
 	service := &jobs.Config{
 		Name:       "containerpilot", // TODO: hard-coded?
 		TTL:        15,               // TODO: hard-coded?

@@ -111,7 +111,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 // Validate ensures that a Config meets all constraints
 func (cfg *Config) Validate(disc discovery.Backend) error {
 	if disc != nil {
-		// non-advertised services don't need to have their names validated
+		// non-advertised jobs don't need to have their names validated
 		if err := utils.ValidateServiceName(cfg.Name); err != nil {
 			return err
 		}
@@ -308,5 +308,5 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
 func (cfg *Config) String() string {
-	return "services.Config[" + cfg.Name + "]"
+	return "jobs.Config[" + cfg.Name + "]"
 }

@@ -179,18 +179,18 @@ func TestRenderArgs(t *testing.T) {
 
 func TestControlServerCreation(t *testing.T) {
 
-        jsonFragment := `{
+	jsonFragment := `{
     "consul": "consul:8500"
   }`
 
-        app, err := NewApp(jsonFragment)
-        if err != nil {
-            t.Fatalf("got error while initializing config: %v", err)
-        }
+	app, err := NewApp(jsonFragment)
+	if err != nil {
+		t.Fatalf("got error while initializing config: %v", err)
+	}
 
-        if app.ControlServer == nil {
-            t.Error("expected control server to not be nil")
-        }
+	if app.ControlServer == nil {
+		t.Error("expected control server to not be nil")
+	}
 }
 
 func TestMetricServiceCreation(t *testing.T) {
@@ -205,13 +205,13 @@ func TestMetricServiceCreation(t *testing.T) {
 	if app, err := NewApp(jsonFragment); err != nil {
 		t.Fatalf("got error while initializing config: %v", err)
 	} else {
-		if len(app.Services) != 1 {
-			for _, svc := range app.Services {
-				fmt.Printf("%+v\n", svc.Name)
+		if len(app.Jobs) != 1 {
+			for _, job := range app.Jobs {
+				fmt.Printf("%+v\n", job.Name)
 			}
-			t.Errorf("expected telemetry service but got %v", app.Services)
+			t.Errorf("expected telemetry service but got %v", app.Jobs)
 		} else {
-			service := app.Services[0]
+			service := app.Jobs[0]
 			if service.Name != "containerpilot" {
 				t.Errorf("got incorrect service back: %v", service)
 			}
