@@ -16,49 +16,6 @@ import (
 TODO v3: a LOT of the these tests should be moved to the config package
 */
 
-// ------------------------------------------
-
-var testJSON = `{
-	"consul": "consul:8500",
-	"preStart": "/bin/to/preStart.sh arg1 arg2",
-	"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
-	"postStop": ["/bin/to/postStop.sh"],
-	"stopTimeout": 5,
-	"services": [
-			{
-					"name": "serviceA",
-					"port": 8080,
-					"interfaces": "inet",
-					"health": "/bin/to/healthcheck/for/service/A.sh",
-					"poll": 30,
-					"ttl": "19",
-					"tags": ["tag1","tag2"]
-			},
-			{
-					"name": "serviceB",
-					"port": 5000,
-					"interfaces": ["ethwe","eth0", "inet"],
-					"health": "/bin/to/healthcheck/for/service/B.sh",
-					"poll": 30,
-					"ttl": 103
-			}
-	],
-	"backends": [
-			{
-					"name": "upstreamA",
-					"poll": 11,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}",
-					"tag": "dev"
-			},
-			{
-					"name": "upstreamB",
-					"poll": 79,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
-			}
-	]
-}
-`
-
 func TestServiceConfigRequiredFields(t *testing.T) {
 	// Missing `name`
 	var testJSON = `{"consul": "consul:8500", "services": [

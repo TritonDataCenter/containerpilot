@@ -1,6 +1,8 @@
 package telemetry
 
 import (
+	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -10,22 +12,8 @@ import (
 )
 
 func TestTelemetryConfigParse(t *testing.T) {
-	testCfg := tests.DecodeRaw(`{
-	"port": 8000,
-	"interfaces": ["inet"],
-	"sensors": [
-       {
-		"namespace": "telemetry",
-		"subsystem": "telemetry",
-		"name": "TestTelemetryParse",
-		"help": "help",
-		"type": "counter",
-		"poll": 5,
-		"check": ["/bin/sensor.sh"]
-	  }
-	]
- }`)
-
+	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg := tests.DecodeRaw(string(data))
 	telem, err := NewConfig(testCfg, &NoopServiceBackend{})
 	if err != nil {
 		t.Fatalf("could not parse telemetry JSON: %s", err)
