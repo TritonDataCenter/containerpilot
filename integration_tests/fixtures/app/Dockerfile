@@ -8,13 +8,13 @@ RUN apt-get update && \
 RUN npm install -g json http-server
 
 COPY build/containerpilot /bin/containerpilot
-COPY containerpilot.json /etc/containerpilot.json
-COPY containerpilot-with-coprocess.json /etc/containerpilot-with-coprocess.json
+COPY containerpilot.json5 /etc/containerpilot.json5
+COPY containerpilot-with-coprocess.json5 /etc/containerpilot-with-coprocess.json5
 COPY reload-app.sh /reload-app.sh
 COPY sensor.sh /sensor.sh
 COPY task.sh /task.sh
 
-ENV CONTAINERPILOT=file:///etc/containerpilot.json
+ENV CONTAINERPILOT=file:///etc/containerpilot.json5
 
 # default port, allows us to override in docker-compose and also test
 # env var interpolation in the command args

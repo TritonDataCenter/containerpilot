@@ -39,7 +39,7 @@ set -e
 
 # update the ContainerPilot config and verify the coprocess is running
 # with the new flags (this resets the restart limit)
-docker exec -it "${ID}" sed -i 's/arg1/arg2/' /etc/containerpilot-with-coprocess.json
+docker exec -it "${ID}" sed -i 's/arg1/arg2/' /etc/containerpilot-with-coprocess.json5
 docker exec -it "${ID}" kill -SIGHUP 1
 sleep 1
 docker exec -it "${ID}" ps -ef | grep coprocess | grep arg2
