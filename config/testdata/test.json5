@@ -55,14 +55,6 @@
         source: "serviceA",
         event: "stopped"
       }
-    },
-    {
-      name: "onChange-upstreamA",
-      exec: "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}",
-    },
-    {
-      name: "onChange-upstreamB",
-      exec: "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
     }
   ],
   "backends": [
