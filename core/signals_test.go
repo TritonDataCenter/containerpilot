@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/discovery/consul"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
@@ -16,15 +15,7 @@ import (
 )
 
 // ------------------------------------------
-// Test setup with mock services
-
-// Mock Discovery
-type NoopServiceBackend struct{}
-
-func (c *NoopServiceBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
-func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool        { return false }
-func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
-func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
+// Test setup
 
 func getSignalTestConfig(t *testing.T) *App {
 
@@ -36,7 +27,7 @@ func getSignalTestConfig(t *testing.T) *App {
 		Interfaces: []string{"inet"},
 		Exec:       []string{"./testdata/test.sh", "interruptSleep"},
 	}
-	cfg.Validate(&NoopServiceBackend{})
+	cfg.Validate(&mocks.NoopDiscoveryBackend{})
 	job := jobs.NewJob(cfg)
 	app := EmptyApp()
 	app.StopTimeout = 5

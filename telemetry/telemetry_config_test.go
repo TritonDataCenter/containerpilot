@@ -8,13 +8,14 @@ import (
 
 	"github.com/joyent/containerpilot/tests"
 	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/joyent/containerpilot/tests/mocks"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 func TestTelemetryConfigParse(t *testing.T) {
 	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRaw(string(data))
-	telem, err := NewConfig(testCfg, &NoopServiceBackend{})
+	telem, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	if err != nil {
 		t.Fatalf("could not parse telemetry JSON: %s", err)
 	}
@@ -27,7 +28,7 @@ func TestTelemetryConfigParse(t *testing.T) {
 
 func TestTelemetryConfigBadSensor(t *testing.T) {
 	testCfg := tests.DecodeRaw(`{"sensors": [{"check": "true", "poll": 1}], "interfaces": ["inet"]}`)
-	_, err := NewConfig(testCfg, &NoopServiceBackend{})
+	_, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	expected := "invalid sensor type"
 	if err == nil || !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected '%v' in error from bad sensor type but got %v", expected, err)
@@ -36,7 +37,7 @@ func TestTelemetryConfigBadSensor(t *testing.T) {
 
 func TestTelemetryConfigBadInterface(t *testing.T) {
 	testCfg := tests.DecodeRaw(`{"interfaces": ["xxxx"]}`)
-	_, err := NewConfig(testCfg, &NoopServiceBackend{})
+	_, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	expected := "none of the interface specifications were able to match"
 	if err == nil || !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected '%v' in error from bad sensor type but got %v", expected, err)
