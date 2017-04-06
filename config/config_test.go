@@ -85,19 +85,19 @@ func TestValidConfigJobs(t *testing.T) {
 	assertEqual(t, job3.Restarts, nil, "expected '%v' for job3.Restarts but got '%v'")
 
 	job4 := cfg.Jobs[4]
-	assertEqual(t, job4.Name, "serviceA.preStart", "expected '%v' for job4.Name but got '%v'")
+	assertEqual(t, job4.Name, "preStart", "expected '%v' for job4.Name but got '%v'")
 	assertEqual(t, job4.Port, 0, "expected '%v' for job4.Port but got '%v'")
 	assertEqual(t, job4.Frequency, "", "expected '%v' for job4.Frequency but got '%v'")
 	assertEqual(t, job4.Restarts, nil, "expected '%v' for job4.Restarts but got '%v'")
 
 	job5 := cfg.Jobs[5]
-	assertEqual(t, job5.Name, "serviceA.preStop", "expected '%v' for job5.Name but got '%v'")
+	assertEqual(t, job5.Name, "preStop", "expected '%v' for job5.Name but got '%v'")
 	assertEqual(t, job5.Port, 0, "expected '%v' for job5.Port but got '%v'")
 	assertEqual(t, job5.Frequency, "", "expected '%v' for job5.Frequency but got '%v'")
 	assertEqual(t, job5.Restarts, nil, "expected '%v' for job5.Restarts but got '%v'")
 
 	job6 := cfg.Jobs[6]
-	assertEqual(t, job6.Name, "serviceA.postStop", "expected '%v' for job6.Name but got '%v'")
+	assertEqual(t, job6.Name, "postStop", "expected '%v' for job6.Name but got '%v'")
 	assertEqual(t, job6.Port, 0, "expected '%v' for job6.Port but got '%v'")
 	assertEqual(t, job6.Frequency, "", "expected '%v' for job6.Frequency but got '%v'")
 	assertEqual(t, job6.Restarts, nil, "expected '%v' for job6.Restarts but got '%v'")

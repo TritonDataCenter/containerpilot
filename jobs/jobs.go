@@ -26,10 +26,10 @@ type Job struct {
 	Definition       *discovery.ServiceDefinition
 
 	// related events
-	startupEvent    events.Event
-	startupTimeout  time.Duration
-	stoppingEvent   events.Event
-	stoppingTimeout time.Duration
+	whenEvent         events.Event
+	whenTimeout       time.Duration
+	stoppingWaitEvent events.Event
+	stoppingTimeout   time.Duration
 
 	// timing and restarts
 	heartbeat      time.Duration
@@ -43,18 +43,18 @@ type Job struct {
 // NewJob creates a new Job from a Config
 func NewJob(cfg *Config) *Job {
 	job := &Job{
-		Name:             cfg.Name,
-		exec:             cfg.exec,
-		heartbeat:        cfg.heartbeatInterval,
-		discoveryCatalog: cfg.discoveryCatalog,
-		Definition:       cfg.definition,
-		startupEvent:     cfg.startupEvent,
-		startupTimeout:   cfg.startupTimeout,
-		stoppingEvent:    cfg.stoppingEvent,
-		stoppingTimeout:  cfg.stoppingTimeout,
-		restartLimit:     cfg.restartLimit,
-		restartsRemain:   cfg.restartLimit,
-		frequency:        cfg.freqInterval,
+		Name:              cfg.Name,
+		exec:              cfg.exec,
+		heartbeat:         cfg.heartbeatInterval,
+		discoveryCatalog:  cfg.discoveryCatalog,
+		Definition:        cfg.definition,
+		whenEvent:         cfg.whenEvent,
+		whenTimeout:       cfg.whenTimeout,
+		stoppingWaitEvent: cfg.stoppingWaitEvent,
+		stoppingTimeout:   cfg.stoppingTimeout,
+		restartLimit:      cfg.restartLimit,
+		restartsRemain:    cfg.restartLimit,
+		frequency:         cfg.freqInterval,
 	}
 	job.Rx = make(chan events.Event, eventBufferSize)
 	job.Flush = make(chan bool)
@@ -134,8 +134,8 @@ func (job *Job) Run(bus *events.EventBus) {
 	}
 
 	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
-	if job.startupTimeout > 0 {
-		events.NewEventTimeout(ctx, job.Rx, job.startupTimeout, startTimeoutSource)
+	if job.whenTimeout > 0 {
+		events.NewEventTimeout(ctx, job.Rx, job.whenTimeout, startTimeoutSource)
 	}
 
 	go func() {
@@ -159,7 +159,7 @@ func (job *Job) Run(bus *events.EventBus) {
 					break loop
 				}
 				job.restartsRemain--
-				job.Rx <- job.startupEvent
+				job.Rx <- job.whenEvent
 			case events.Event{events.StatusUnhealthy, job.Name}:
 				// TODO v3: add a "SendFailedHeartbeat" method to fail faster
 				job.Status = false
@@ -181,8 +181,8 @@ func (job *Job) Run(bus *events.EventBus) {
 					break loop
 				}
 				job.restartsRemain--
-				job.Rx <- job.startupEvent
-			case job.startupEvent:
+				job.Rx <- job.whenEvent
+			case job.whenEvent:
 				job.StartJob(ctx)
 			}
 		}
@@ -197,13 +197,13 @@ func (job *Job) restartPermitted() bool {
 	return false
 }
 
-// cleanup fires the Stopping event and will wait to receive a stoppingEvent
+// cleanup fires the Stopping event and will wait to receive a stoppingWaitEvent
 // if one is configured. cleans up registration to event bus and closes all
 // channels and contexts when done.
 func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 	stoppingTimeout := fmt.Sprintf("%s.stopping-timeout", job.Name)
 	job.Bus.Publish(events.Event{Code: events.Stopping, Source: job.Name})
-	if job.stoppingEvent != events.NonEvent {
+	if job.stoppingWaitEvent != events.NonEvent {
 		if job.stoppingTimeout > 0 {
 			// not having this set is a programmer error not a runtime error
 			events.NewEventTimeout(ctx, job.Rx,
@@ -213,7 +213,7 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 		for {
 			event := <-job.Rx
 			switch event {
-			case job.stoppingEvent:
+			case job.stoppingWaitEvent:
 				break loop
 			case events.Event{events.Stopping, stoppingTimeout}:
 				break loop

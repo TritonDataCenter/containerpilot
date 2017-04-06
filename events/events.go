@@ -1,5 +1,9 @@
 package events
 
+import (
+	"fmt"
+)
+
 // Event represents a single message in the EventBus
 type Event struct {
 	Code   EventCode
@@ -37,3 +41,38 @@ var (
 	QuitByClose    = Event{Code: Quit, Source: "closed"}
 	NonEvent       = Event{Code: None, Source: ""}
 )
+
+// FromString parses a string as an EventCode enum
+func FromString(codeName string) (EventCode, error) {
+	switch codeName {
+	case "exitSuccess":
+		return ExitSuccess, nil
+	case "exitFailed":
+		return ExitFailed, nil
+	case "stopping":
+		return Stopping, nil
+	case "stopped":
+		return Stopped, nil
+	case "healthy":
+		return StatusHealthy, nil
+	case "unhealthy":
+		return StatusUnhealthy, nil
+	case "changed":
+		return StatusChanged, nil
+	case "timerExpired":
+		return TimerExpired, nil // end-users shouldn't use this in configs
+	case "enterMaintenance":
+		return EnterMaintenance, nil
+	case "exitMaintenance":
+		return ExitMaintenance, nil
+	case "error":
+		return Error, nil // end-users shouldn't use this in configs
+	case "quit":
+		return Quit, nil // end-users shouldn't use this in configs
+	case "startup":
+		return Startup, nil
+	case "shutdown":
+		return Shutdown, nil
+	}
+	return None, fmt.Errorf("%s is not a valid event code", codeName)
+}
