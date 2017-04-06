@@ -5,7 +5,7 @@ import log "github.com/Sirupsen/logrus"
 // Backend is an interface which all service discovery backends must implement
 type Backend interface {
 	SendHeartbeat(service *ServiceDefinition)
-	CheckForUpstreamChanges(backendName string, backendTag string) bool
+	CheckForUpstreamChanges(backendName string, backendTag string) (bool, bool)
 	MarkForMaintenance(service *ServiceDefinition)
 	Deregister(service *ServiceDefinition)
 }

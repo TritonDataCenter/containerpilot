@@ -55,7 +55,7 @@ func TestValidConfigJobs(t *testing.T) {
 		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
 
-	if len(cfg.Jobs) != 8 {
+	if len(cfg.Jobs) != 10 {
 		t.Fatalf("expected 8 services but got %v", cfg.Jobs)
 	}
 	job0 := cfg.Jobs[0]
@@ -103,8 +103,20 @@ func TestValidConfigJobs(t *testing.T) {
 	assertEqual(t, job6.Restarts, nil, "expected '%v' for job6.Restarts but got '%v'")
 
 	job7 := cfg.Jobs[7]
-	assertEqual(t, job7.Name, "containerpilot", "expected '%v' for job7.Name but got '%v'")
-	assertEqual(t, job7.Port, 9000, "expected '%v' for job7.Port but got '%v'")
+	assertEqual(t, job7.Name, "onChange-upstreamA", "expected '%v' for job7.Name but got '%v'")
+	assertEqual(t, job7.Port, 0, "expected '%v' for job7.Port but got '%v'")
+	assertEqual(t, job7.Frequency, "", "expected '%v' for job7.Frequency but got '%v'")
+	assertEqual(t, job7.Restarts, nil, "expected '%v' for job7.Restarts but got '%v'")
+
+	job8 := cfg.Jobs[8]
+	assertEqual(t, job8.Name, "onChange-upstreamB", "expected '%v' for job8.Name but got '%v'")
+	assertEqual(t, job8.Port, 0, "expected '%v' for job8.Port but got '%v'")
+	assertEqual(t, job8.Frequency, "", "expected '%v' for job8.Frequency but got '%v'")
+	assertEqual(t, job8.Restarts, nil, "expected '%v' for job8.Restarts but got '%v'")
+
+	job9 := cfg.Jobs[9]
+	assertEqual(t, job9.Name, "containerpilot", "expected '%v' for job9.Name but got '%v'")
+	assertEqual(t, job9.Port, 9000, "expected '%v' for job9.Port but got '%v'")
 }
 
 // telemetry.Config
@@ -136,10 +148,10 @@ func TestValidConfigWatches(t *testing.T) {
 	}
 	watch0 := cfg.Watches[0]
 	watch1 := cfg.Watches[1]
-	assertEqual(t, watch0.Name, "upstreamA.watch", "expected '%v' for Name, but got '%v'")
+	assertEqual(t, watch0.Name, "watch.upstreamA", "expected '%v' for Name, but got '%v'")
 	assertEqual(t, watch0.Poll, 11, "expected '%v' for Poll, but got '%v'")
 	assertEqual(t, watch0.Tag, "dev", "expected '%v' for Tag, but got '%v'")
-	assertEqual(t, watch1.Name, "upstreamB.watch", "expected '%v' for Name, but got '%v'")
+	assertEqual(t, watch1.Name, "watch.upstreamB", "expected '%v' for Name, but got '%v'")
 	assertEqual(t, watch1.Poll, 79, "expected '%v' for Poll, but got '%v'")
 	assertEqual(t, watch1.Tag, "", "expected '%v' for Tag, but got '%v'")
 
