@@ -14,7 +14,10 @@ import (
 	"github.com/joyent/containerpilot/events"
 )
 
-const errNoChild = "wait: no child processes"
+const (
+	errWaitNoChild   = "wait: no child processes"
+	errWaitIDNoChild = "waitid: no child processes"
+)
 
 // Command wraps an os/exec.Cmd with a timeout, logging, and arg parsing.
 type Command struct {
@@ -178,7 +181,7 @@ func (c *Command) wait() (int, error) {
 		}
 		return returnStatus, fmt.Errorf("%s: %s", c.Name, waitStatus)
 	} else if err != nil {
-		if err.Error() == errNoChild {
+		if err.Error() == errWaitNoChild || err.Error() == errWaitIDNoChild {
 			log.Debugf(err.Error())
 			return 0, nil // process exited cleanly before we hit wait4
 		}
