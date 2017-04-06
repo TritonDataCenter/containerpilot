@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/joyent/containerpilot/discovery"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestTelemetryServerRestart(t *testing.T) {
 
 	cfg := &Config{Port: 9090, Interfaces: []interface{}{"lo", "lo0", "inet"}}
-	cfg.Validate(&NoopServiceBackend{})
+	cfg.Validate(&mocks.NoopDiscoveryBackend{})
 
 	telem := NewTelemetry(cfg)
 	// initial server
@@ -43,12 +43,3 @@ func verifyMetricsEndpointOk(t *testing.T, telem *Telemetry) {
 	}
 
 }
-
-// Mock Discovery
-// TODO this should probably go into the discovery package for use in testing everywhere
-type NoopServiceBackend struct{}
-
-func (c *NoopServiceBackend) SendHeartbeat(service *discovery.ServiceDefinition)      { return }
-func (c *NoopServiceBackend) CheckForUpstreamChanges(backend, tag string) bool        { return false }
-func (c *NoopServiceBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
-func (c *NoopServiceBackend) Deregister(service *discovery.ServiceDefinition)         {}
