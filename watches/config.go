@@ -2,10 +2,7 @@ package watches
 
 import (
 	"fmt"
-	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/utils"
 )
@@ -14,12 +11,8 @@ import (
 type Config struct {
 	Name             string `mapstructure:"name"`
 	serviceName      string
-	Poll             int         `mapstructure:"poll"` // time in seconds
-	Exec             interface{} `mapstructure:"onChange"`
-	exec             *commands.Command
+	Poll             int    `mapstructure:"poll"` // time in seconds
 	Tag              string `mapstructure:"tag"`
-	Timeout          string `mapstructure:"timeout"`
-	timeout          time.Duration
 	discoveryService discovery.Backend
 }
 
@@ -47,33 +40,11 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	}
 
 	cfg.serviceName = cfg.Name
-	cfg.Name = cfg.Name + ".watch"
-
-	if cfg.Exec == nil {
-		// TODO v3: this error message is tied to existing config syntax
-		return fmt.Errorf("`onChange` is required in watch %s", cfg.serviceName)
-	}
-	if cfg.Timeout == "" {
-		cfg.Timeout = fmt.Sprintf("%ds", cfg.Poll)
-	}
-	timeout, err := utils.GetTimeout(cfg.Timeout)
-	if err != nil {
-		return fmt.Errorf("could not parse `timeout` in watch %s: %v", cfg.serviceName, err)
-	}
-	cfg.timeout = timeout
+	cfg.Name = "watch." + cfg.Name
 
 	if cfg.Poll < 1 {
 		return fmt.Errorf("`poll` must be > 0 in watch %s", cfg.serviceName)
 	}
-	cmd, err := commands.NewCommand(cfg.Exec, cfg.timeout,
-		log.Fields{"watch": cfg.Name})
-	if err != nil {
-		// TODO v3: this error message is tied to existing config syntax
-		return fmt.Errorf("could not parse `onChange` in watch %s: %s",
-			cfg.serviceName, err)
-	}
-	cmd.Name = cfg.Name
-	cfg.exec = cmd
 	cfg.discoveryService = disc
 	return nil
 }

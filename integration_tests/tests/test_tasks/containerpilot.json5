@@ -42,19 +42,32 @@
     {
       name: "preStart",
       exec: "/reload-app.sh"
+    },
+    {
+      name: "reload-for-nginx",
+      when: {
+        source: "watch.nginx",
+        event: "changed"
+      },
+      exec: "/reload-app.sh"
+    },
+    {
+      name: "reload-for-app",
+      when: {
+        source: "watch.app",
+        event: "changed"
+      },
+      exec: "/reload-app.sh"
     }
   ],
   "backends": [
     {
       "name": "nginx",
       "poll": 7,
-      "onChange": "/reload-app.sh"
     },
     {
       "name": "app",
-      "poll": 5,
-      "onChange": "/reload-app.sh",
-      "tag": "application"
+      "poll": 5
     }
   ],
   "telemetry": {

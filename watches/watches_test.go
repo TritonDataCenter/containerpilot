@@ -4,52 +4,46 @@ import (
 	"fmt"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 
-var noop = &mocks.NoopDiscoveryBackend{Val: true}
-
-func TestWatchExecOk(t *testing.T) {
-	log.SetLevel(log.WarnLevel) // suppress test noise
+func TestWatchPollOk(t *testing.T) {
 	cfg := &Config{
-		Name:    "mywatchOk",
-		Exec:    "./testdata/test.sh doStuff --debug",
-		Timeout: "100ms",
-		Poll:    1,
+		Name: "mywatchOk",
+		Poll: 1,
 	}
-	got := runWatchTest(cfg, 5)
-	poll := events.Event{events.TimerExpired, "mywatchOk.watch.poll"}
-	exitOk := events.Event{events.ExitSuccess, "mywatchOk.watch"}
-	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
-		t.Fatalf("expected 2 successful poll events but got %v", got)
+	// this discovery backend will always return true when we check
+	// it for changed
+	got := runWatchTest(cfg, 5, &mocks.NoopDiscoveryBackend{Val: true})
+	poll := events.Event{events.TimerExpired, "watch.mywatchOk.poll"}
+	changed := events.Event{events.StatusChanged, "watch.mywatchOk"}
+	healthy := events.Event{events.StatusHealthy, "watch.mywatchOk"}
+	if got[changed] != 1 || got[poll] != 2 || got[healthy] != 1 {
+		t.Fatalf("expected 2 successful StatusHealthy events but got %v", got)
 	}
 }
 
-func TestWatchExecFail(t *testing.T) {
-	log.SetLevel(log.WarnLevel) // suppress test noise
+func TestWatchPollFail(t *testing.T) {
 	cfg := &Config{
-		Name:    "mywatchFail",
-		Exec:    "./testdata/test.sh failStuff",
-		Timeout: "100ms",
-		Poll:    1,
+		Name: "mywatchFail",
+		Poll: 1,
 	}
-	got := runWatchTest(cfg, 7)
-	poll := events.Event{events.TimerExpired, "mywatchFail.watch.poll"}
-	exitOk := events.Event{events.ExitFailed, "mywatchFail.watch"}
-	errMsg := events.Event{events.Error, "mywatchFail.watch: exit status 255"}
-	if got[exitOk] != 2 || got[poll] != 2 ||
-		got[events.QuitByClose] != 1 || got[errMsg] != 2 {
-		t.Fatalf("expected 2 failed poll events but got %v", got)
+	got := runWatchTest(cfg, 3, &mocks.NoopDiscoveryBackend{Val: false})
+	poll := events.Event{events.TimerExpired, "watch.mywatchFail.poll"}
+	changed := events.Event{events.StatusChanged, "watch.mywatchFail"}
+	unhealthy := events.Event{events.StatusUnhealthy, "watch.mywatchFail"}
+	if got[changed] != 0 || got[poll] != 2 || got[unhealthy] != 0 {
+		t.Fatalf("expected 2 failed poll events without changes, but got %v", got)
 	}
 }
 
-func runWatchTest(cfg *Config, count int) map[events.Event]int {
+func runWatchTest(cfg *Config, count int, disc discovery.Backend) map[events.Event]int {
 	bus := events.NewEventBus()
 	ds := mocks.NewDebugSubscriber(bus, count)
 	ds.Run(0)
-	cfg.Validate(noop)
+	cfg.Validate(disc)
 	watch := NewWatch(cfg)
 	watch.Run(bus)
 

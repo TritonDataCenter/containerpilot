@@ -39,19 +39,12 @@ func TestServiceConfigRequiredFields(t *testing.T) {
 
 func TestBackendConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = `{"consul": "consul:8500", "backends": [
-                           {"name": "", "poll": 30, "onChange": "true"}]}`
+	var testJSON = `{"consul": "consul:8500", "backends": [{"name": "", "poll": 30}]}`
 	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJSON = `{"consul": "consul:8500", "backends": [
-                       {"name": "name", "onChange": "true"}]}`
+	testJSON = `{"consul": "consul:8500", "backends": [{"name": "name"}]}`
 	validateParseError(t, testJSON, []string{"`poll`"})
-
-	// Missing `onChange`
-	testJSON = `{"consul": "consul:8500", "backends": [
-                       {"name": "name", "poll": 19 }]}`
-	validateParseError(t, testJSON, []string{"`onChange`"})
 }
 
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
