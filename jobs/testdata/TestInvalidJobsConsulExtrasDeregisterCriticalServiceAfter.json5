@@ -1,0 +1,15 @@
+[
+  {
+    "name": "serviceA",
+    "port": 8080,
+    "interfaces": "inet",
+    "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
+    "poll": 30,
+    "ttl": 19,
+    "timeout": "1ms",
+    "tags": ["tag1","tag2"],
+    "consul": {
+      "deregisterCriticalServiceAfter": "nope"
+    }
+  }
+]

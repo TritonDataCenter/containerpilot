@@ -1,6 +1,8 @@
 package watches
 
 import (
+	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"github.com/joyent/containerpilot/tests"
@@ -8,19 +10,8 @@ import (
 )
 
 func TestWatchesParse(t *testing.T) {
-	testCfg := tests.DecodeRawToSlice(`[
-{
-  "name": "upstreamA",
-  "poll": 11,
-  "onChange": ["/bin/upstreamA.sh", "A1", "A2"],
-  "tag": "dev"
-},
-{
-  "name": "upstreamB",
-  "poll": 79,
-  "onChange": "/bin/upstreamB.sh B1 B2"
-}
-]`)
+	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg := tests.DecodeRawToSlice(string(data))
 	watches, err := NewConfigs(testCfg, nil)
 	if err != nil {
 		t.Fatal(err)

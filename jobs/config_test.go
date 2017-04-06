@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -12,44 +13,9 @@ import (
 
 var noop = &mocks.NoopDiscoveryBackend{}
 
-func TestServiceConfigHappyPath(t *testing.T) {
-
-	testCfg := tests.DecodeRawToSlice(`[
-	{
-		"name": "serviceA",
-		"port": 8080,
-		"interfaces": "inet",
-		"exec": "/bin/serviceA",
-		"preStart": "/bin/to/preStart.sh arg1 arg2",
-		"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
-		"postStop": ["/bin/to/postStop.sh"],
-		"health": "/bin/to/healthcheck/for/service/A.sh",
-		"poll": 30,
-		"ttl": "19",
-		"tags": ["tag1","tag2"]
-	},
-	{
-		"name": "serviceB",
-		"port": 5000,
-		"interfaces": ["ethwe","eth0", "inet"],
-		"exec": ["/bin/serviceB", "B"],
-		"health": ["/bin/to/healthcheck/for/service/B.sh", "B"],
-		"timeout": "2s",
-		"poll": 20,
-		"ttl": "103"
-	},
-	{
-		"name": "coprocessC",
-		"exec": "/bin/coprocessC",
-		"restarts": "unlimited"
-	},
-		{
-		"name": "taskD",
-		"exec": "/bin/taskD",
-		"frequency": "1s"
-	}
-]
-`)
+func TestJobConfigHappyPath(t *testing.T) {
+	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg := tests.DecodeRawToSlice(string(data))
 
 	jobs, err := NewConfigs(testCfg, noop)
 	if err != nil {
@@ -139,97 +105,39 @@ func TestServiceConfigValidateDiscovery(t *testing.T) {
 }
 
 func TestJobsConsulExtrasEnableTagOverride(t *testing.T) {
-	testCfg := `[
-	{
-	  "name": "serviceA",
-	  "port": 8080,
-	  "interfaces": "inet",
-	  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-	  "poll": 30,
-	  "ttl": 19,
-	  "timeout": "1ms",
-	  "tags": ["tag1","tag2"],
-	  "consul": {
-		  "enableTagOverride": true
-	  }
-	}
-	]`
-
-	if jobs, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
+	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	jobs, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), nil)
+	if err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
-	} else {
-		if jobs[0].definition.ConsulExtras.EnableTagOverride != true {
-			t.Errorf("ConsulExtras should have had EnableTagOverride set to true.")
-		}
+	}
+	if jobs[0].definition.ConsulExtras.EnableTagOverride != true {
+		t.Errorf("ConsulExtras should have had EnableTagOverride set to true.")
 	}
 }
 
 func TestInvalidJobsConsulExtrasEnableTagOverride(t *testing.T) {
-	testCfg := `[
-	{
-	  "name": "serviceA",
-	  "port": 8080,
-	  "interfaces": "inet",
-	  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-	  "poll": 30,
-	  "ttl": 19,
-	  "timeout": "1ms",
-	  "tags": ["tag1","tag2"],
-	  "consul": {
-		  "enableTagOverride": "nope"
-	  }
-	}
-	]`
-
-	if _, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err == nil {
+	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	_, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), nil)
+	if err == nil {
 		t.Errorf("ConsulExtras should have thrown error about EnableTagOverride being a string.")
 	}
 }
 
 func TestJobsConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
-	testCfg := `[
-	{
-	  "name": "serviceA",
-	  "port": 8080,
-	  "interfaces": "inet",
-	  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-	  "poll": 30,
-	  "ttl": 19,
-	  "timeout": "1ms",
-	  "tags": ["tag1","tag2"],
-	  "consul": {
-		  "deregisterCriticalServiceAfter": "40m"
-	  }
-	}
-	]`
-
-	if jobs, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err != nil {
+	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	jobs, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), nil)
+	if err != nil {
 		t.Fatalf("could not parse service JSON: %s", err)
-	} else {
-		if jobs[0].definition.ConsulExtras.DeregisterCriticalServiceAfter != "40m" {
-			t.Errorf("ConsulExtras should have had DeregisterCriticalServiceAfter set to '40m'.")
-		}
+	}
+	if jobs[0].definition.ConsulExtras.DeregisterCriticalServiceAfter != "40m" {
+		t.Errorf("ConsulExtras should have had DeregisterCriticalServiceAfter set to '40m'.")
 	}
 }
 
 func TestInvalidJobsConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
-	testCfg := `[
-	{
-	  "name": "serviceA",
-	  "port": 8080,
-	  "interfaces": "inet",
-	  "health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
-	  "poll": 30,
-	  "ttl": 19,
-	  "timeout": "1ms",
-	  "tags": ["tag1","tag2"],
-	  "consul": {
-		  "deregisterCriticalServiceAfter": "nope"
-	  }
-	}
-	]`
-
-	if _, err := NewConfigs(tests.DecodeRawToSlice(testCfg), nil); err == nil {
+	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	_, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), nil)
+	if err == nil {
 		t.Errorf("error should have been generated for duration 'nope'.")
 	}
 }

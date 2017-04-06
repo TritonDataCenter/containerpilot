@@ -1,0 +1,15 @@
+{
+  "port": 8000,
+  "interfaces": ["inet"],
+  "sensors": [
+       {
+    "namespace": "telemetry",
+    "subsystem": "telemetry",
+    "name": "TestTelemetryParse",
+    "help": "help",
+    "type": "counter",
+    "poll": 5,
+    "check": ["/bin/sensor.sh"]
+    }
+  ]
+}

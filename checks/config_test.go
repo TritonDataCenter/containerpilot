@@ -1,6 +1,8 @@
 package checks
 
 import (
+	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"github.com/joyent/containerpilot/tests"
@@ -8,26 +10,8 @@ import (
 )
 
 func TestCheckParse(t *testing.T) {
-	testCfg := tests.DecodeRawToSlice(`[
-{
-  "name": "serviceA",
-  "port": 8080,
-  "interfaces": "inet",
-  "health": ["/bin/checkA.sh", "A1", "A2"],
-  "poll": 30,
-  "ttl": 19,
-  "timeout": "1ms",
-  "tags": ["tag1","tag2"]
-},
-{
-  "name": "serviceB",
-  "port": 5000,
-  "interfaces": ["ethwe","eth0", "inet"],
-  "health": "/bin/checkB.sh B1 B2",
-  "poll": 30,
-  "ttl": 103
-}
-]`)
+	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg := tests.DecodeRawToSlice(string(data))
 	checks, err := NewConfigs(testCfg)
 	if err != nil {
 		t.Fatalf("could not parse config JSON: %s", err)

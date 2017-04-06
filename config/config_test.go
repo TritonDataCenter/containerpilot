@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -12,76 +13,12 @@ are all in the individual package tests. Here we'll make sure all components
 come together as we expect and also check things like env var interpolation.
 */
 
-var testJSON = `{
-	"consul": "consul:8500",
-	"stopTimeout": 5,
-	"services": [
-			{
-					"name": "serviceA",
-					"port": 8080,
-					"interfaces": "inet",
-					"exec": "/bin/serviceA",
-					"preStart": "/bin/to/preStart.sh arg1 arg2",
-					"preStop": ["/bin/to/preStop.sh","arg1","arg2"],
-					"postStop": ["/bin/to/postStop.sh"],
-					"health": "/bin/to/healthcheck/for/service/A.sh",
-					"poll": 30,
-					"ttl": "19",
-					"tags": ["tag1","tag2"]
-			},
-			{
-					"name": "serviceB",
-					"port": 5000,
-					"interfaces": ["ethwe","eth0", "inet"],
-					"exec": ["/bin/serviceB", "B"],
-					"health": ["/bin/to/healthcheck/for/service/B.sh", "B"],
-					"timeout": "2s",
-					"poll": 20,
-					"ttl": "103"
-			},
-			{
-					"name": "coprocessC",
-					"exec": "/bin/coprocessC",
-					"restarts": "unlimited"
-			},
-			{
-					"name": "taskD",
-					"exec": "/bin/taskD",
-					"frequency": "1s"
-			}
-	],
-	"backends": [
-			{
-					"name": "upstreamA",
-					"poll": 11,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}",
-					"tag": "dev"
-			},
-			{
-					"name": "upstreamB",
-					"poll": 79,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
-			}
-	],
-	"telemetry": {
-		"port": 9000,
-		"interfaces": ["inet"],
-		"tags": ["dev"],
-		"sensors": [
-			{
-				"namespace": "org",
-				"subsystem": "app",
-				"name": "zed",
-				"help": "gauge of zeds in org app",
-				"type": "gauge",
-				"poll": 10,
-				"check": "/bin/sensorZ",
-				"timeout": "5s"
-			}
-		]
-	}
+var testJSON string
+
+func init() {
+	data, _ := ioutil.ReadFile("./testdata/test.json5")
+	testJSON = string(data)
 }
-`
 
 func assertEqual(t *testing.T, got, expected interface{}, msg string) {
 	if !reflect.DeepEqual(expected, got) {
