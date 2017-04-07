@@ -89,20 +89,14 @@ func TestJobConfigValidateName(t *testing.T) {
 
 func TestJobConfigValidateDiscovery(t *testing.T) {
 	_, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80}]`), noop)
-	assert.Error(t, err, "`poll` must be > 0 in job `myName` when `port` is set")
+	assert.Error(t, err, "`heartbeat` must be > 0 in job `myName` when `port` is set")
 
-	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80, "poll": 1}]`), noop)
+	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80, "heartbeat": 1}]`), noop)
 	assert.Error(t, err, "`ttl` must be > 0 in job `myName` when `port` is set")
 
-	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "poll": 1, "ttl": 1}]`), noop)
+	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "heartbeat": 1, "ttl": 1}]`), noop)
 	assert.Error(t, err,
 		"`heartbeat` and `ttl` may not be set in job `myName` if `port` is not set")
-
-	// no health check shouldn't return an error
-	raw := tests.DecodeRawToSlice(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80}]`)
-	if _, err = NewConfigs(raw, noop); err != nil {
-		t.Fatalf("expected no error but got %v", err)
-	}
 }
 
 func TestJobsConsulExtrasEnableTagOverride(t *testing.T) {
@@ -176,7 +170,6 @@ func TestJobConfigValidateExec(t *testing.T) {
 	{
 		"name": "serviceA",
 		"exec": ["/bin/serviceA", "A1", "A2"],
-		"health": ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
 		"execTimeout": "1ms"
 	}]`)
 	cfg, err := NewConfigs(testCfg, noop)
@@ -194,7 +187,6 @@ func TestJobConfigValidateExec(t *testing.T) {
 	{
 		"name": "serviceB",
 		"exec": "/bin/serviceB B1 B2",
-		"health": "/bin/to/healthcheck/for/service/B.sh B1 B2",
 		"execTimeout": "1ms"
 	}]`)
 	cfg, err = NewConfigs(testCfg, noop)

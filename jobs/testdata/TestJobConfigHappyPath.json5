@@ -8,8 +8,7 @@
       source: "preStart",
       event: "exitSuccess",
     },
-    "health": "/bin/to/healthcheck/for/service/A.sh",
-    "poll": 30,
+    "heartbeat": 30,
     "ttl": "19",
     "tags": ["tag1","tag2"]
   },
@@ -18,9 +17,7 @@
     "port": 5000,
     "interfaces": ["ethwe","eth0", "inet"],
     "exec": ["/bin/serviceB", "B"],
-    "health": ["/bin/to/healthcheck/for/service/B.sh", "B"],
-    "timeout": "2s",
-    "poll": 20,
+    "heartbeat": 20,
     "ttl": "103"
   },
   {

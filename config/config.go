@@ -25,6 +25,7 @@ type rawConfig struct {
 	logConfig   *LogConfig
 	stopTimeout int
 	jobs        []interface{}
+	checks      []interface{}
 	watches     []interface{}
 	telemetry   interface{}
 	control     interface{}
@@ -160,7 +161,7 @@ func LoadConfig(configFlag string) (*Config, error) {
 	}
 	cfg.Jobs = jobConfigs
 
-	checks, err := checks.NewConfigs(raw.jobs)
+	checks, err := checks.NewConfigs(raw.checks)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse checks: %v", err)
 	}
@@ -290,6 +291,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.logConfig = &logConfig
 	result.control = configMap["control"]
 	result.jobs = decodeArray(configMap["jobs"])
+	result.checks = decodeArray(configMap["health"])
 	result.watches = decodeArray(configMap["watches"])
 	result.telemetry = configMap["telemetry"]
 
@@ -297,6 +299,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	delete(configMap, "control")
 	delete(configMap, "stopTimeout")
 	delete(configMap, "jobs")
+	delete(configMap, "health")
 	delete(configMap, "watches")
 	delete(configMap, "telemetry")
 	var unused []string

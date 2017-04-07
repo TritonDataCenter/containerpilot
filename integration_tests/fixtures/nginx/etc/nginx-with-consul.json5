@@ -9,13 +9,12 @@
       "name": "nginx",
       "port": 80,
       "interfaces": ["eth0"],
-      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost/health.txt",
       when: {
         source: "preStart",
         event: "exitSuccess",
       },
       "exec": "nginx",
-      "poll": 1,
+      heartbeat: 1,
       "ttl": 5
     },
     {
@@ -34,6 +33,13 @@
           "consul-template", "-once", "-consul", "consul:8500", "-template",
           "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf:nginx -s reload"
       ]
+    }
+  ],
+  health: [
+    {
+      name: "nginx",
+      exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost/health.txt",
+      poll: 1,
     }
   ],
   watches: [

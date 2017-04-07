@@ -21,7 +21,7 @@ type Config struct {
 	Exec interface{} `mapstructure:"exec"`
 
 	// heartbeat and service discovery config
-	Heartbeat         int           `mapstructure:"poll"` // time in seconds
+	Heartbeat         int           `mapstructure:"heartbeat"` // time in seconds
 	TTL               int           `mapstructure:"ttl"`
 	Port              int           `mapstructure:"port"`
 	Interfaces        interface{}   `mapstructure:"interfaces"`
@@ -47,14 +47,6 @@ type Config struct {
 	whenEvent         events.Event
 	whenTimeout       time.Duration
 	stoppingWaitEvent events.Event
-
-	/* TODO v3:
-	These fields are here *only* so we can reuse the config map we use
-	in the checks package here too. this package ignores them. when we
-	move on to the v3 configuration syntax these will be dropped.
-	*/
-	checkExec    interface{} `mapstructure:"health"`
-	checkTimeout string      `mapstructure:"timeout"`
 }
 
 // WhenConfig determines when a Job runs (dependencies on other Jobs
@@ -140,7 +132,7 @@ func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
 		return nil
 	}
 	if cfg.Heartbeat < 1 {
-		return fmt.Errorf("`poll` must be > 0 in job `%s` when `port` is set", cfg.Name)
+		return fmt.Errorf("`heartbeat` must be > 0 in job `%s` when `port` is set", cfg.Name)
 	}
 	if cfg.TTL < 1 {
 		return fmt.Errorf("`ttl` must be > 0 in job `%s` when `port` is set", cfg.Name)

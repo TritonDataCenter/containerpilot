@@ -11,7 +11,7 @@
       "exec": [
         "/usr/local/bin/node",
         "/usr/local/bin/http-server", "/srv", "-p", "8000"],
-      "poll": 1,
+      heartbeat: 1,
       "ttl": 5
     }
   ],

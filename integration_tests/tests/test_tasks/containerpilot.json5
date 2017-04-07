@@ -8,7 +8,6 @@
     {
       "name": "app",
       "port": 8000,
-      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
       when: {
         source: "preStart",
         event: "exitSuccess"
@@ -16,7 +15,7 @@
       "exec": [
         "/usr/local/bin/node",
         "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
-      "poll": 1,
+      heartbeat: 1,
       "ttl": 5,
       "tags": ["application"]
     },
@@ -58,6 +57,13 @@
         event: "changed"
       },
       exec: "/reload-app.sh"
+    }
+  ],
+  health: [
+    {
+      name: "app",
+      exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      poll: 1
     }
   ],
   watches: [

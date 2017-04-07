@@ -16,8 +16,8 @@ func TestHealthCheckExecOk(t *testing.T) {
 		Poll:    1,
 	}
 	got := runHealthCheckTest(cfg, 5)
-	poll := events.Event{events.TimerExpired, "mycheckOk.check.poll"}
-	exitOk := events.Event{events.ExitSuccess, "mycheckOk.check"}
+	poll := events.Event{events.TimerExpired, "check.mycheckOk.poll"}
+	exitOk := events.Event{events.ExitSuccess, "check.mycheckOk"}
 	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
 		t.Fatalf("expected 2 successful poll events but got %v", got)
 	}
@@ -31,9 +31,9 @@ func TestHealthCheckExecFail(t *testing.T) {
 		Poll:    1,
 	}
 	got := runHealthCheckTest(cfg, 7)
-	poll := events.Event{events.TimerExpired, "mycheckFail.check.poll"}
-	exitOk := events.Event{events.ExitFailed, "mycheckFail.check"}
-	errMsg := events.Event{events.Error, "mycheckFail.check: exit status 255"}
+	poll := events.Event{events.TimerExpired, "check.mycheckFail.poll"}
+	exitOk := events.Event{events.ExitFailed, "check.mycheckFail"}
+	errMsg := events.Event{events.Error, "check.mycheckFail: exit status 255"}
 
 	if got[exitOk] != 2 || got[poll] != 2 ||
 		got[events.QuitByClose] != 1 || got[errMsg] != 2 {

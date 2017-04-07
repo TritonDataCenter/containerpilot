@@ -25,7 +25,7 @@ type HealthCheck struct {
 func NewHealthCheck(cfg *Config) *HealthCheck {
 	check := &HealthCheck{
 		Name:    cfg.Name,
-		jobName: cfg.jobName,
+		jobName: cfg.Job,
 		exec:    cfg.exec,
 		poll:    cfg.pollInterval,
 	}
