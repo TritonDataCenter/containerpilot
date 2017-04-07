@@ -18,32 +18,32 @@ TODO v3: a LOT of the these tests should be moved to the config package
 
 func TestServiceConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = `{"consul": "consul:8500", "services": [
+	var testJSON = `{"consul": "consul:8500", jobs: [
                            {"name": "", "port": 8080, "poll": 30, "ttl": 19 }]}`
 	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJSON = `{"consul": "consul:8500", "services": [
+	testJSON = `{"consul": "consul:8500", jobs: [
                        {"name": "name", "port": 8080, "ttl": 19}]}`
 	validateParseError(t, testJSON, []string{"`poll`"})
 
 	// Missing `ttl`
-	testJSON = `{"consul": "consul:8500", "services": [
+	testJSON = `{"consul": "consul:8500", jobs: [
                        {"name": "name", "port": 8080, "poll": 19}]}`
 	validateParseError(t, testJSON, []string{"`ttl`"})
 
-	testJSON = `{"consul": "consul:8500", "services": [
+	testJSON = `{"consul": "consul:8500", jobs: [
                        {"name": "name", "poll": 19, "ttl": 19}]}`
 	validateParseError(t, testJSON, []string{"`port`"})
 }
 
 func TestBackendConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = `{"consul": "consul:8500", "backends": [{"name": "", "poll": 30}]}`
+	var testJSON = `{"consul": "consul:8500", watches: [{"name": "", "poll": 30}]}`
 	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJSON = `{"consul": "consul:8500", "backends": [{"name": "name"}]}`
+	testJSON = `{"consul": "consul:8500", watches: [{"name": "name"}]}`
 	validateParseError(t, testJSON, []string{"`poll`"})
 }
 

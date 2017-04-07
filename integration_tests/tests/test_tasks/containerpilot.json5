@@ -4,7 +4,7 @@
     "level": "DEBUG",
     "format": "text"
   },
-  "services": [
+  jobs: [
     {
       "name": "app",
       "port": 8000,
@@ -60,7 +60,7 @@
       exec: "/reload-app.sh"
     }
   ],
-  "backends": [
+  watches: [
     {
       "name": "nginx",
       "poll": 7,

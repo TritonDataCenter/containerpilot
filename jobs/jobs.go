@@ -77,21 +77,21 @@ func FromConfigs(cfgs []*Config) []*Job {
 	return jobs
 }
 
-// SendHeartbeat sends a heartbeat for this service
+// SendHeartbeat sends a heartbeat for this Job's service
 func (job *Job) SendHeartbeat() {
 	if job.discoveryCatalog != nil || job.Definition != nil {
 		job.discoveryCatalog.SendHeartbeat(job.Definition)
 	}
 }
 
-// MarkForMaintenance marks this service for maintenance
+// MarkForMaintenance marks this Job's service for maintenance
 func (job *Job) MarkForMaintenance() {
 	if job.discoveryCatalog != nil || job.Definition != nil {
 		job.discoveryCatalog.MarkForMaintenance(job.Definition)
 	}
 }
 
-// Deregister will deregister this instance of the service
+// Deregister will deregister this instance of Job's service
 func (job *Job) Deregister() {
 	if job.discoveryCatalog != nil || job.Definition != nil {
 		job.discoveryCatalog.Deregister(job.Definition)

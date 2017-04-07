@@ -50,7 +50,7 @@ func TestRenderConfigFileStdout(t *testing.T) {
 
 	var testJSON = `{
 	"consul": "consul:8500",
-	"backends": [{"name": "upstreamA", "poll": 11}]}`
+	watches: [{"name": "upstreamA", "poll": 11}]}`
 
 	// Render to file
 	defer os.Remove("testJSON.json")
@@ -83,7 +83,7 @@ func TestRenderedConfigIsParseable(t *testing.T) {
 
 	var testJSON = `{
 	"consul": "consul:8500",
-	"backends": [{"name": "upstreamA{{.TESTRENDERCONFIGISPARSEABLE}}", "poll": 11}]}`
+	watches: [{"name": "upstreamA{{.TESTRENDERCONFIGISPARSEABLE}}", "poll": 11}]}`
 
 	os.Setenv("TESTRENDERCONFIGISPARSEABLE", "-ok")
 	template, _ := renderConfigTemplate(testJSON)
