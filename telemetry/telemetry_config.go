@@ -68,9 +68,11 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 // ToJobConfig ...
 func (cfg *Config) ToJobConfig() *jobs.Config {
 	service := &jobs.Config{
-		Name:       "containerpilot", // TODO: hard-coded?
-		TTL:        15,               // TODO: hard-coded?
-		Heartbeat:  5,                // TODO hard-coded?
+		Name: "containerpilot", // TODO: hard-coded?
+		Health: &jobs.HealthConfig{
+			TTL:       15, // TODO: hard-coded?
+			Heartbeat: 5,  // TODO hard-coded?
+		},
 		Interfaces: cfg.Interfaces,
 		Port:       cfg.Port,
 		Tags:       cfg.Tags,

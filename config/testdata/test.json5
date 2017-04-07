@@ -1,42 +1,48 @@
 {
-  "consul": "consul:8500",
-  "stopTimeout": 5,
-  "jobs": [
+  consul: "consul:8500",
+  stopTimeout: 5,
+  jobs: [
     {
-      // although these are all jobs, we're naming these jobs "service",
+      // although these are all jobs, we're naming these jobs "services",
       // "coprocess", "task", "prestart", etc. to make their role clear
-      "name": "serviceA",
-      "port": 8080,
-      "interfaces": "inet",
-      "exec": "/bin/serviceA",
+      name: "serviceA",
+      port: 8080,
+      interfaces: "inet",
+      exec: "/bin/serviceA",
       when: {
         source: "preStart",
         event: "exitSuccess"
       },
-      "health": "/bin/to/healthcheck/for/service/A.sh",
-      "poll": 30,
-      "ttl": "19",
-      "tags": ["tag1","tag2"]
+      health: {
+        exec: "/bin/to/healthcheck/for/service/A.sh",
+        interval: 19,
+        ttl: 30,
+      },
+      tags: ["tag1","tag2"]
     },
     {
-      "name": "serviceB",
-      "port": 5000,
-      "interfaces": ["ethwe","eth0", "inet"],
-      "exec": ["/bin/serviceB", "B"],
-      "health": ["/bin/to/healthcheck/for/service/B.sh", "B"],
-      "timeout": "2s",
-      "poll": 20,
-      "ttl": "103"
+      name: "serviceB",
+      port: 5000,
+      interfaces: ["ethwe","eth0", "inet"],
+      exec: ["/bin/serviceB", "B"],
+      health:{
+        exec: ["/bin/to/healthcheck/for/service/B.sh", "B"],
+        timeout: "2s",
+        interval: 20,
+        ttl: "103"
+      }
     },
     {
-      "name": "coprocessC",
-      "exec": "/bin/coprocessC",
-      "restarts": "unlimited"
+      name: "coprocessC",
+      exec: "/bin/coprocessC",
+      restarts: "unlimited"
     },
     {
-      "name": "periodicTaskD",
-      "exec": "/bin/taskD",
-      "frequency": "1s"
+      name: "periodicTaskD",
+      exec: "/bin/taskD",
+      when: {
+        interval: "1s"
+      }
     },
     {
       name: "preStart",
@@ -76,30 +82,30 @@
     }
   ],
   watches: [
-      {
-          "name": "upstreamA",
-          "poll": 11,
-          "tag": "dev"
-      },
-      {
-          "name": "upstreamB",
-          "poll": 79
-      }
+    {
+      name: "upstreamA",
+      interval: 11,
+      tag: "dev"
+    },
+    {
+      name: "upstreamB",
+      interval: 79
+    }
   ],
-  "telemetry": {
-    "port": 9000,
-    "interfaces": ["inet"],
-    "tags": ["dev"],
-    "sensors": [
+  telemetry: {
+    port: 9000,
+    interfaces: ["inet"],
+    tags: ["dev"],
+    sensors: [
       {
-        "namespace": "org",
-        "subsystem": "app",
-        "name": "zed",
-        "help": "gauge of zeds in org app",
-        "type": "gauge",
-        "poll": 10,
-        "check": "/bin/sensorZ",
-        "timeout": "5s"
+        namespace: "org",
+        subsystem: "app",
+        name: "zed",
+        help: "gauge of zeds in org app",
+        type: "gauge",
+        interval: 10,
+        exec: "/bin/sensorZ",
+        timeout: "5s"
       }
     ]
   }

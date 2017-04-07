@@ -11,7 +11,7 @@ import (
 type Config struct {
 	Name             string `mapstructure:"name"`
 	serviceName      string
-	Poll             int    `mapstructure:"poll"` // time in seconds
+	Poll             int    `mapstructure:"interval"` // time in seconds
 	Tag              string `mapstructure:"tag"`
 	discoveryService discovery.Backend
 }
@@ -43,7 +43,7 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	cfg.Name = "watch." + cfg.Name
 
 	if cfg.Poll < 1 {
-		return fmt.Errorf("`poll` must be > 0 in watch %s", cfg.serviceName)
+		return fmt.Errorf("watch[%s].interval must be > 0", cfg.serviceName)
 	}
 	cfg.discoveryService = disc
 	return nil

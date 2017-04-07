@@ -1,13 +1,15 @@
 {
-  "consul": "127.0.0.1:8500",
+  consul: "127.0.0.1:8500",
   jobs: [
     {
-      "name": "testenvvar",
-      "port": 8500,
-      "health": "true",
-      "exec": "env",
-      "poll": 10,
-      "ttl": 25
+      name: "testenvvar",
+      port: 8500,
+      exec: "env",
+      health: {
+        exec: "true",
+        interval: 10,
+        ttl: 25
+      }
     }
   ]
 }

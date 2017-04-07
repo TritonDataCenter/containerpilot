@@ -12,7 +12,7 @@ var validName = regexp.MustCompile(`^[a-z][a-zA-Z0-9\-]+$`)
 // and discovery backends.
 func ValidateServiceName(name string) error {
 	if name == "" {
-		return fmt.Errorf("`name` must not be blank")
+		return fmt.Errorf("'name' must not be blank")
 	}
 	if ok := validName.MatchString(name); !ok {
 		return fmt.Errorf("service names must be alphanumeric with dashes to comply with service discovery")

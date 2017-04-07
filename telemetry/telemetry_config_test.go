@@ -27,7 +27,7 @@ func TestTelemetryConfigParse(t *testing.T) {
 }
 
 func TestTelemetryConfigBadSensor(t *testing.T) {
-	testCfg := tests.DecodeRaw(`{"sensors": [{"check": "true", "poll": 1}], "interfaces": ["inet"]}`)
+	testCfg := tests.DecodeRaw(`{"sensors": [{"exec": "true", interval: 1}], "interfaces": ["inet"]}`)
 	_, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	expected := "invalid sensor type"
 	if err == nil || !strings.Contains(err.Error(), expected) {

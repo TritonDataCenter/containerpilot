@@ -13,13 +13,13 @@ func TestSensorConfigParse(t *testing.T) {
 
 	errMsg := "incorrect collector; expected %v but got %v"
 	fragment := `[{
-	"namespace": "telemetry",
-	"subsystem": "sensors",
-	"name": "TestSensorConfigParse",
-	"help": "help",
-	"type": "%s",
-	"poll": 10,
-	"check": ["/bin/sensor.sh"]
+	namespace: "telemetry",
+	subsystem: "sensors",
+	name: "TestSensorConfigParse",
+	help: "help",
+	type: "%s",
+	interval: 10,
+	exec: ["/bin/sensor.sh"]
 }]`
 
 	testCfg := tests.DecodeRawToSlice(fmt.Sprintf(fragment, "counter"))
@@ -54,12 +54,12 @@ func TestSensorConfigParse(t *testing.T) {
 // invalid collector type
 func TestSensorConfigBadType(t *testing.T) {
 	testCfg := tests.DecodeRawToSlice(`[{
-	"namespace": "telemetry",
-	"subsystem": "sensors",
-	"name": "TestSensorBadType",
-	"type": "nonsense",
-	"check": "true",
-	"poll": 1}]`)
+	namespace: "telemetry",
+	subsystem: "sensors",
+	name: "TestSensorBadType",
+	type: "nonsense",
+	exec: "true",
+	interval: 1}]`)
 
 	if sensors, err := NewSensorConfigs(testCfg); err == nil {
 		t.Fatalf("did not get expected error from parsing sensors: %v", sensors)
@@ -73,8 +73,8 @@ func TestSensorConfigBadName(t *testing.T) {
 	"subsystem": "sensors",
 	"name": "Test.Sensor.Bad.Name",
 	"type": "counter",
-	"check": "true",
-	"poll": 1}]`)
+	"exec": "true",
+	interval: 1}]`)
 
 	if sensors, err := NewSensorConfigs(testCfg); err == nil {
 		t.Fatalf("did not get expected error from parsing sensors: %v", sensors)
@@ -87,8 +87,8 @@ func TestSensorConfigPartialName(t *testing.T) {
 	"name": "telemetry_sensors_partial_name",
 	"help": "help text",
 	"type": "counter",
-	"check": "true",
-	"poll": 1}]`)
+	"exec": "true",
+	interval: 1}]`)
 
 	sensors, _ := NewSensorConfigs(testCfg)
 	if _, ok := sensors[0].collector.(prometheus.Counter); !ok {
@@ -97,14 +97,14 @@ func TestSensorConfigPartialName(t *testing.T) {
 }
 
 func TestSensorConfigError(t *testing.T) {
-	_, err := NewSensorConfigs(tests.DecodeRawToSlice(`[{"name": "test", "check": "", "poll": 1}]`))
-	assert.Error(t, err, "could not parse `check` in sensor test: received zero-length argument")
+	_, err := NewSensorConfigs(tests.DecodeRawToSlice(`[{"name": "test", "exec": "", interval: 1}]`))
+	assert.Error(t, err, "unable to create sensor[test].exec: received zero-length argument")
 
-	_, err = NewSensorConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "check": "true", "poll": "-1", "type": "counter", "help": "test"}]`))
-	assert.Error(t, err, "`poll` must be > 0 for sensor myName")
+	_, err = NewSensorConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "exec": "true", interval: "-1", "type": "counter", "help": "test"}]`))
+	assert.Error(t, err, "sensor[myName].interval must be > 0")
 
 	_, err = NewSensorConfigs(tests.DecodeRawToSlice(
-		`[{"name": "myName", "poll": 1, "check": "true", "timeout": "xx", "type": "counter", "help": "test"}]`))
+		`[{"name": "myName", interval: 1, "exec": "true", "timeout": "xx", "type": "counter", "help": "test"}]`))
 	assert.Error(t, err,
-		"could not parse `timeout` for sensor myName: time: invalid duration xx")
+		"unable to parse sensor[myName].timeout: time: invalid duration xx")
 }

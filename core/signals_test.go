@@ -21,11 +21,13 @@ func getSignalTestConfig(t *testing.T) *App {
 
 	cfg := &jobs.Config{
 		Name:       "test-service",
-		Heartbeat:  1,
 		Port:       1,
-		TTL:        1,
 		Interfaces: []string{"inet"},
 		Exec:       []string{"./testdata/test.sh", "interruptSleep"},
+		Health: &jobs.HealthConfig{
+			Heartbeat: 1,
+			TTL:       1,
+		},
 	}
 	cfg.Validate(&mocks.NoopDiscoveryBackend{})
 	job := jobs.NewJob(cfg)
