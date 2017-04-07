@@ -4,14 +4,14 @@
     "level": "DEBUG",
     "format": "text"
   },
-  "services": [
+  jobs: [
     {
       "name": "app",
       "port": 8000,
       "exec": [
         "/usr/local/bin/node",
         "/usr/local/bin/http-server", "/srv", "-p", "8000"],
-      "poll": 1,
+      heartbeat: 1,
       "ttl": 5
     }
   ],

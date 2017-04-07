@@ -104,19 +104,19 @@ func testConsulCheckForChanges(t *testing.T) {
 	consul, _ := NewConsulConfig(testServer.HTTPAddr)
 	service := generateServiceDefinition(backend)
 	id := service.ID
-	if consul.CheckForUpstreamChanges(backend, "") {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
 	consul.SendHeartbeat(service) // force registration and 1st heartbeat
 
-	if !consul.CheckForUpstreamChanges(backend, "") {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); !changed {
 		t.Errorf("%v should have changed after first health check TTL", id)
 	}
-	if consul.CheckForUpstreamChanges(backend, "") {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
 		t.Errorf("%v should not have changed without TTL expiring", id)
 	}
 	consul.Agent().UpdateTTL(id, "expired", "critical")
-	if !consul.CheckForUpstreamChanges(backend, "") {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); !changed {
 		t.Errorf("%v should have changed after TTL expired.", id)
 	}
 }
@@ -135,7 +135,7 @@ func testConsulEnableTagOverride(t *testing.T) {
 		},
 	}
 	id := service.ID
-	if consul.CheckForUpstreamChanges(backend, "") {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
 	consul.SendHeartbeat(service) // force registration

@@ -1,52 +1,93 @@
 {
   "consul": "consul:8500",
   "stopTimeout": 5,
-  "services": [
-      {
-          "name": "serviceA",
-          "port": 8080,
-          "interfaces": "inet",
-          "exec": "/bin/serviceA",
-          "preStart": "/bin/to/preStart.sh arg1 arg2",
-          "preStop": ["/bin/to/preStop.sh","arg1","arg2"],
-          "postStop": ["/bin/to/postStop.sh"],
-          "health": "/bin/to/healthcheck/for/service/A.sh",
-          "poll": 30,
-          "ttl": "19",
-          "tags": ["tag1","tag2"]
+  "jobs": [
+    {
+      // although these are all jobs, we're naming these jobs "service",
+      // "coprocess", "task", "prestart", etc. to make their role clear
+      "name": "serviceA",
+      "port": 8080,
+      "interfaces": "inet",
+      "exec": "/bin/serviceA",
+      when: {
+        source: "preStart",
+        event: "exitSuccess"
       },
-      {
-          "name": "serviceB",
-          "port": 5000,
-          "interfaces": ["ethwe","eth0", "inet"],
-          "exec": ["/bin/serviceB", "B"],
-          "health": ["/bin/to/healthcheck/for/service/B.sh", "B"],
-          "timeout": "2s",
-          "poll": 20,
-          "ttl": "103"
-      },
-      {
-          "name": "coprocessC",
-          "exec": "/bin/coprocessC",
-          "restarts": "unlimited"
-      },
-      {
-          "name": "taskD",
-          "exec": "/bin/taskD",
-          "frequency": "1s"
+      heartbeat: 30,
+      "ttl": "19",
+      "tags": ["tag1","tag2"]
+    },
+    {
+      "name": "serviceB",
+      "port": 5000,
+      "interfaces": ["ethwe","eth0", "inet"],
+      "exec": ["/bin/serviceB", "B"],
+      heartbeat: 20,
+      "ttl": "103"
+    },
+    {
+      "name": "coprocessC",
+      "exec": "/bin/coprocessC",
+      "restarts": "unlimited"
+    },
+    {
+      "name": "periodicTaskD",
+      "exec": "/bin/taskD",
+      "frequency": "1s"
+    },
+    {
+      name: "preStart",
+      exec: "/bin/to/preStart.sh arg1 arg2"
+    },
+    {
+      name: "preStop",
+      exec: ["/bin/to/preStop.sh","arg1","arg2"],
+      when: {
+        source: "serviceA",
+        event: "stopping"
       }
+    },
+    {
+      name: "postStop",
+      exec: ["/bin/to/postStop.sh"],
+      when: {
+        source: "serviceA",
+        event: "stopped"
+      }
+    },
+    {
+      name: "onChange-upstreamA",
+      exec: "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}",
+    },
+    {
+      name: "onChange-upstreamB",
+      exec: "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
+    }
   ],
-  "backends": [
+  health: [
+    {
+      name: "checkA",
+      job: "serviceA",
+      exec: "/bin/to/healthcheck/for/service/A.sh",
+      poll: 30
+    },
+    {
+      name: "checkB",
+      job: "serviceB",
+      exec: ["/bin/to/healthcheck/for/service/B.sh", "B"],
+      timeout: "2s",
+      poll: 20
+    }
+  ],
+  watches: [
       {
           "name": "upstreamA",
           "poll": 11,
-          "onChange": "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}",
           "tag": "dev"
       },
       {
           "name": "upstreamB",
-          "poll": 79,
-          "onChange": "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
+          "poll": 79
       }
   ],
   "telemetry": {

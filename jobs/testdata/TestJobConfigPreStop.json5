@@ -1,0 +1,14 @@
+[
+  {
+    name: "serviceA",
+    exec: "/bin/serviceA",
+  },
+  {
+    name: "preStop",
+    exec: "/bin/to/preStop.sh arg1 arg2",
+    when: {
+      source: "serviceA",
+      event: "stopping"
+    }
+  }
+]

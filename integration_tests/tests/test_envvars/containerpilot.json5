@@ -1,13 +1,19 @@
 {
   "consul": "127.0.0.1:8500",
-  "services": [
+  jobs: [
     {
       "name": "testenvvar",
       "port": 8500,
-      "health": "true",
       "exec": "env",
-      "poll": 10,
+      "heartbeat": 10,
       "ttl": 25
+    }
+  ],
+  health: [
+    {
+      name: "testenvvar",
+      exec: "true",
+      poll: 10
     }
   ]
 }

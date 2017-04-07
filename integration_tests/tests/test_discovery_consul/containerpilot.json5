@@ -1,0 +1,60 @@
+{
+  "consul": "consul:8500",
+  "logging": {
+    "level": "DEBUG",
+    "format": "text"
+  },
+  jobs: [
+    {
+      "name": "app",
+      "port": 8000,
+      when: {
+        source: "preStart",
+        event: "exitSuccess"
+      },
+      "exec": [
+        "/usr/local/bin/node",
+        "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
+      heartbeat: 1,
+      "ttl": 5,
+      "tags": ["application"]
+    },
+    {
+      name: "preStart",
+      exec: "/reload-app.sh"
+    },
+    {
+      name: "reload-for-nginx",
+      when: {
+        source: "watch.nginx",
+        event: "changed"
+      },
+      exec: "/reload-app.sh"
+    },
+    {
+      name: "reload-for-app",
+      when: {
+        source: "watch.app",
+        event: "changed"
+      },
+      exec: "/reload-app.sh"
+    }
+  ],
+  health: [
+    {
+      name: "app",
+      exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      poll: 1
+    }
+  ],
+  watches: [
+    {
+      "name": "nginx",
+      "poll": 7,
+    },
+    {
+      "name": "app",
+      "poll": 5
+    }
+  ]
+}

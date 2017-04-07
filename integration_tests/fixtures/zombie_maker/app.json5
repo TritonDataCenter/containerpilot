@@ -1,14 +1,20 @@
 {
   "consul": "consul:8500",
-  "services": [
+  jobs: [
     {
       "name": "zombies",
       "port": 8000,
-      "health": "/bin/sh /zombie.sh",
       "exec": ["tail", "-f"],
-      "poll": 1,
+      heartbeat: 1,
       "ttl": 5,
       "tags": ["application"]
+    }
+  ],
+  health: [
+    {
+      name: "zombies",
+      exec: "/bin/sh /zombie.sh",
+      poll: 1
     }
   ]
 }

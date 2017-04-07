@@ -16,42 +16,35 @@ import (
 TODO v3: a LOT of the these tests should be moved to the config package
 */
 
-func TestServiceConfigRequiredFields(t *testing.T) {
+func TestJobConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = `{"consul": "consul:8500", "services": [
-                           {"name": "", "port": 8080, "poll": 30, "ttl": 19 }]}`
+	var testJSON = `{"consul": "consul:8500", jobs: [
+                    {"name": "", "port": 8080, "heartbeat": 30, "ttl": 19 }]}`
 	validateParseError(t, testJSON, []string{"`name`"})
 
-	// Missing `poll`
-	testJSON = `{"consul": "consul:8500", "services": [
-                       {"name": "name", "port": 8080, "ttl": 19}]}`
-	validateParseError(t, testJSON, []string{"`poll`"})
+	// Missing `heartbeat`
+	testJSON = `{"consul": "consul:8500", jobs: [
+                {"name": "name", "port": 8080, "ttl": 19}]}`
+	validateParseError(t, testJSON, []string{"`heartbeat`"})
 
 	// Missing `ttl`
-	testJSON = `{"consul": "consul:8500", "services": [
-                       {"name": "name", "port": 8080, "poll": 19}]}`
+	testJSON = `{"consul": "consul:8500", jobs: [
+                {"name": "name", "port": 8080, "heartbeat": 19}]}`
 	validateParseError(t, testJSON, []string{"`ttl`"})
 
-	testJSON = `{"consul": "consul:8500", "services": [
-                       {"name": "name", "poll": 19, "ttl": 19}]}`
+	testJSON = `{"consul": "consul:8500", jobs: [
+                {"name": "name", "heartbeat": 19, "ttl": 19}]}`
 	validateParseError(t, testJSON, []string{"`port`"})
 }
 
-func TestBackendConfigRequiredFields(t *testing.T) {
+func TestWatchConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = `{"consul": "consul:8500", "backends": [
-                           {"name": "", "poll": 30, "onChange": "true"}]}`
+	var testJSON = `{"consul": "consul:8500", watches: [{"name": "", "poll": 30}]}`
 	validateParseError(t, testJSON, []string{"`name`"})
 
 	// Missing `poll`
-	testJSON = `{"consul": "consul:8500", "backends": [
-                       {"name": "name", "onChange": "true"}]}`
+	testJSON = `{"consul": "consul:8500", watches: [{"name": "name"}]}`
 	validateParseError(t, testJSON, []string{"`poll`"})
-
-	// Missing `onChange`
-	testJSON = `{"consul": "consul:8500", "backends": [
-                       {"name": "name", "poll": 19 }]}`
-	validateParseError(t, testJSON, []string{"`onChange`"})
 }
 
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
