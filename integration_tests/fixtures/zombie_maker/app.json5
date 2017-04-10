@@ -1,6 +1,6 @@
 {
   "consul": "consul:8500",
-  "services": [
+  jobs: [
     {
       "name": "zombies",
       "port": 8000,

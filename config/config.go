@@ -289,15 +289,15 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.stopTimeout = stopTimeout
 	result.logConfig = &logConfig
 	result.control = configMap["control"]
-	result.jobs = decodeArray(configMap["services"])
-	result.watches = decodeArray(configMap["backends"])
+	result.jobs = decodeArray(configMap["jobs"])
+	result.watches = decodeArray(configMap["watches"])
 	result.telemetry = configMap["telemetry"]
 
 	delete(configMap, "logging")
 	delete(configMap, "control")
 	delete(configMap, "stopTimeout")
-	delete(configMap, "services")
-	delete(configMap, "backends")
+	delete(configMap, "jobs")
+	delete(configMap, "watches")
 	delete(configMap, "telemetry")
 	var unused []string
 	for key := range configMap {

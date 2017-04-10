@@ -4,7 +4,7 @@
     "level": "DEBUG",
     "format": "text"
   },
-  "services": [
+  jobs: [
     {
       "name": "nginx",
       "port": 80,
@@ -36,7 +36,7 @@
       ]
     }
   ],
-  "backends": [
+  watches: [
     {
       "name": "app",
       "poll": 1

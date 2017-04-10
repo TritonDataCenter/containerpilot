@@ -78,7 +78,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 		return jobs, nil
 	}
 	if err := utils.DecodeRaw(raw, &jobs); err != nil {
-		return nil, fmt.Errorf("service configuration error: %v", err)
+		return nil, fmt.Errorf("job configuration error: %v", err)
 	}
 	stopDependencies := make(map[string]string)
 	for _, job := range jobs {
@@ -135,15 +135,15 @@ func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
 	// if port isn't set then we won't do any discovery for this job
 	if cfg.Port == 0 {
 		if cfg.Heartbeat > 0 || cfg.TTL > 0 {
-			return fmt.Errorf("`heartbeat` and `ttl` may not be set in service `%s` if `port` is not set", cfg.Name)
+			return fmt.Errorf("`heartbeat` and `ttl` may not be set in job `%s` if `port` is not set", cfg.Name)
 		}
 		return nil
 	}
 	if cfg.Heartbeat < 1 {
-		return fmt.Errorf("`poll` must be > 0 in service `%s` when `port` is set", cfg.Name)
+		return fmt.Errorf("`poll` must be > 0 in job `%s` when `port` is set", cfg.Name)
 	}
 	if cfg.TTL < 1 {
-		return fmt.Errorf("`ttl` must be > 0 in service `%s` when `port` is set", cfg.Name)
+		return fmt.Errorf("`ttl` must be > 0 in job `%s` when `port` is set", cfg.Name)
 	}
 	cfg.heartbeatInterval = time.Duration(cfg.Heartbeat) * time.Second
 	if err := cfg.AddDiscoveryConfig(disc); err != nil {

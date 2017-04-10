@@ -47,7 +47,7 @@ func TestValidConfigHealthChecks(t *testing.T) {
 	assertEqual(t, check1.Timeout, "2s", "expected '%v' for check1.Timeout, but got '%v'")
 }
 
-// services.Config
+// jobs.Config
 func TestValidConfigJobs(t *testing.T) {
 	os.Setenv("TEST", "HELLO")
 	cfg, err := LoadConfig(testJSON)
@@ -56,7 +56,7 @@ func TestValidConfigJobs(t *testing.T) {
 	}
 
 	if len(cfg.Jobs) != 10 {
-		t.Fatalf("expected 8 services but got %v", cfg.Jobs)
+		t.Fatalf("expected 8 jobs but got %v", cfg.Jobs)
 	}
 	job0 := cfg.Jobs[0]
 	assertEqual(t, job0.Name, "serviceA", "expected '%v' for job0.Name but got '%v'")
@@ -79,7 +79,7 @@ func TestValidConfigJobs(t *testing.T) {
 	assertEqual(t, job2.Restarts, "unlimited", "expected '%v' for job2.Restarts but got '%v'")
 
 	job3 := cfg.Jobs[3]
-	assertEqual(t, job3.Name, "taskD", "expected '%v' for job3.Name but got '%v'")
+	assertEqual(t, job3.Name, "periodicTaskD", "expected '%v' for job3.Name but got '%v'")
 	assertEqual(t, job3.Port, 0, "expected '%v' for job3.Port but got '%v'")
 	assertEqual(t, job3.Frequency, "1s", "expected '%v' for job3.Frequency but got '%v'")
 	assertEqual(t, job3.Restarts, nil, "expected '%v' for job3.Restarts but got '%v'")

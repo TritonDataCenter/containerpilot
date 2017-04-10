@@ -1,8 +1,10 @@
 {
   "consul": "consul:8500",
   "stopTimeout": 5,
-  "services": [
+  "jobs": [
     {
+      // although these are all jobs, we're naming these jobs "service",
+      // "coprocess", "task", "prestart", etc. to make their role clear
       "name": "serviceA",
       "port": 8080,
       "interfaces": "inet",
@@ -32,7 +34,7 @@
       "restarts": "unlimited"
     },
     {
-      "name": "taskD",
+      "name": "periodicTaskD",
       "exec": "/bin/taskD",
       "frequency": "1s"
     },
@@ -55,17 +57,9 @@
         source: "serviceA",
         event: "stopped"
       }
-    },
-    {
-      name: "onChange-upstreamA",
-      exec: "/bin/to/onChangeEvent/for/upstream/A.sh {{.TEST}}",
-    },
-    {
-      name: "onChange-upstreamB",
-      exec: "/bin/to/onChangeEvent/for/upstream/B.sh {{.ENV_NOT_FOUND}}"
     }
   ],
-  "backends": [
+  watches: [
       {
           "name": "upstreamA",
           "poll": 11,

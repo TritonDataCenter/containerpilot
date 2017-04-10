@@ -89,14 +89,14 @@ func TestJobConfigValidateName(t *testing.T) {
 
 func TestJobConfigValidateDiscovery(t *testing.T) {
 	_, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80}]`), noop)
-	assert.Error(t, err, "`poll` must be > 0 in service `myName` when `port` is set")
+	assert.Error(t, err, "`poll` must be > 0 in job `myName` when `port` is set")
 
 	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80, "poll": 1}]`), noop)
-	assert.Error(t, err, "`ttl` must be > 0 in service `myName` when `port` is set")
+	assert.Error(t, err, "`ttl` must be > 0 in job `myName` when `port` is set")
 
 	_, err = NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "poll": 1, "ttl": 1}]`), noop)
 	assert.Error(t, err,
-		"`heartbeat` and `ttl` may not be set in service `myName` if `port` is not set")
+		"`heartbeat` and `ttl` may not be set in job `myName` if `port` is not set")
 
 	// no health check shouldn't return an error
 	raw := tests.DecodeRawToSlice(`[{"name": "myName", "poll": 1, "ttl": 1, "port": 80}]`)
@@ -109,7 +109,7 @@ func TestJobsConsulExtrasEnableTagOverride(t *testing.T) {
 	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	jobs, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), nil)
 	if err != nil {
-		t.Fatalf("could not parse service JSON: %s", err)
+		t.Fatalf("could not parse job JSON: %s", err)
 	}
 	if jobs[0].definition.ConsulExtras.EnableTagOverride != true {
 		t.Errorf("ConsulExtras should have had EnableTagOverride set to true.")
@@ -128,7 +128,7 @@ func TestJobsConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
 	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	jobs, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), nil)
 	if err != nil {
-		t.Fatalf("could not parse service JSON: %s", err)
+		t.Fatalf("could not parse job JSON: %s", err)
 	}
 	if jobs[0].definition.ConsulExtras.DeregisterCriticalServiceAfter != "40m" {
 		t.Errorf("ConsulExtras should have had DeregisterCriticalServiceAfter set to '40m'.")
@@ -165,8 +165,8 @@ func TestJobConfigValidateFrequency(t *testing.T) {
 		"unable to parse frequency 'xx': time: invalid duration xx")
 
 	testCfg := tests.DecodeRawToSlice(`[{"exec": "/bin/taskE", "frequency": "1ms"}]`)
-	service, _ := NewConfigs(testCfg, nil)
-	assert.Equal(t, service[0].execTimeout, service[0].freqInterval,
+	job, _ := NewConfigs(testCfg, nil)
+	assert.Equal(t, job[0].execTimeout, job[0].freqInterval,
 		"expected execTimeout '%v' to equal frequency '%v'")
 }
 
