@@ -15,7 +15,7 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - './containerpilot.json:/etc/containerpilot.json'
+      - './containerpilot.json5:/etc/containerpilot.json5'
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
   test:

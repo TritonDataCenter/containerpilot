@@ -46,12 +46,9 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	ds := mocks.NewDebugSubscriber(bus, 5)
 	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
 
-	cfg := &Config{Name: "myjob", Exec: "true"}
+	cfg := &Config{Name: "myjob", Exec: "true",
+		When: &WhenConfig{Source: "never", Event: "startup", Timeout: "100ms"}}
 	cfg.Validate(noop)
-	cfg.setStartup(
-		events.Event{events.Startup, "never"},
-		time.Duration(100*time.Millisecond),
-	)
 	job := NewJob(cfg)
 	job.Run(bus)
 	job.Bus.Publish(events.GlobalStartup)
@@ -88,10 +85,10 @@ func TestJobRunRestarts(t *testing.T) {
 		ds.Run(time.Duration(100 * time.Millisecond))
 
 		cfg := &Config{
-			Name:         "myjob",
-			startupEvent: events.GlobalStartup,
-			Exec:         []string{"./testdata/test.sh", "doStuff", "runRestartsTest"},
-			Restarts:     restarts,
+			Name:      "myjob",
+			whenEvent: events.GlobalStartup,
+			Exec:      []string{"./testdata/test.sh", "doStuff", "runRestartsTest"},
+			Restarts:  restarts,
 		}
 		cfg.Validate(noop)
 		job := NewJob(cfg)
@@ -121,11 +118,11 @@ func TestJobRunPeriodic(t *testing.T) {
 	ds := mocks.NewDebugSubscriber(bus, 10)
 
 	cfg := &Config{
-		Name:         "myjob",
-		startupEvent: events.GlobalStartup,
-		Exec:         []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
-		Frequency:    "10ms",
-		Restarts:     "unlimited",
+		Name:      "myjob",
+		whenEvent: events.GlobalStartup,
+		Exec:      []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
+		Frequency: "10ms",
+		Restarts:  "unlimited",
 	}
 	cfg.Validate(noop)
 	job := NewJob(cfg)

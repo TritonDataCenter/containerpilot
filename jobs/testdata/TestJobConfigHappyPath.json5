@@ -4,9 +4,10 @@
     "port": 8080,
     "interfaces": "inet",
     "exec": "/bin/serviceA",
-    "preStart": "/bin/to/preStart.sh arg1 arg2",
-    "preStop": ["/bin/to/preStop.sh","arg1","arg2"],
-    "postStop": ["/bin/to/postStop.sh"],
+    when: {
+      source: "preStart",
+      event: "exitSuccess",
+    },
     "health": "/bin/to/healthcheck/for/service/A.sh",
     "poll": 30,
     "ttl": "19",
@@ -31,5 +32,25 @@
     "name": "taskD",
     "exec": "/bin/taskD",
     "frequency": "1s"
+  },
+  {
+    name: "preStart",
+    exec: "/bin/to/preStart.sh arg1 arg2"
+  },
+  {
+    name: "preStop",
+    when: {
+      source: "serviceA",
+      event: "stopping"
+    },
+    exec: ["/bin/to/preStop.sh","arg1","arg2"]
+  },
+  {
+    name: "postStop",
+    when: {
+      source: "serviceA",
+      event: "stopped"
+    },
+    exec: ["/bin/to/postStop.sh"]
   }
 ]

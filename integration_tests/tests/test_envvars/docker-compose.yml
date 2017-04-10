@@ -2,5 +2,5 @@ test:
   image: cpfix_app
   volumes:
     - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
-    - './containerpilot.json:/etc/containerpilot.json'
+    - './containerpilot.json5:/etc/containerpilot.json5'
   mem_limit: 128m

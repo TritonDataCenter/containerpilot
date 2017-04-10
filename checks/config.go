@@ -31,9 +31,8 @@ type Config struct {
 	servicePort        int         `mapstructure:"port"`
 	serviceExec        interface{} `mapstructure:"exec"`
 	serviceExecTimeout interface{} `mapstructure:"execTimeout"`
-	servicePreStart    interface{} `mapstructure:"preStart"`
-	servicePreStop     interface{} `mapstructure:"preStop"`
-	servicePostStop    interface{} `mapstructure:"postStop"`
+	serviceStopTimeout interface{} `mapstructure:"stopTimeout"`
+	serviceWhen        interface{} `mapstructure:"when"`
 	serviceRestarts    interface{} `mapstructure:"restarts"`
 	serviceFrequency   interface{} `mapstructure:"frequency"`
 }

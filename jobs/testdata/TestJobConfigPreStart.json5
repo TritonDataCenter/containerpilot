@@ -1,0 +1,14 @@
+[
+  {
+    name: "serviceA",
+    exec: "/bin/serviceA",
+    when: {
+      source: "preStart",
+      event: "exitSuccess"
+    },
+  },
+  {
+    name: "preStart",
+    exec: "/bin/to/preStart.sh arg1 arg2"
+  }
+]

@@ -20,6 +20,6 @@ COPY etc /etc
 EXPOSE 80
 
 # by default use nginx-with-consul.json, allows for override in docker-compose
-ENV CONTAINERPILOT=file:///etc/nginx-with-consul.json
+ENV CONTAINERPILOT=file:///etc/nginx-with-consul.json5
 
 ENTRYPOINT [ "/bin/containerpilot" ]

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests"
 	"github.com/joyent/containerpilot/tests/assert"
 	"github.com/joyent/containerpilot/tests/mocks"
@@ -52,25 +53,25 @@ func TestJobConfigHappyPath(t *testing.T) {
 	assert.Equal(t, job3.Restarts, nil, "expected '%v' for job3.Restarts but got '%v'")
 
 	job4 := jobs[4]
-	assert.Equal(t, job4.Name, "serviceA.preStart", "expected '%v' for job4.Name but got '%v'")
+	assert.Equal(t, job4.Name, "preStart", "expected '%v' for job4.Name but got '%v'")
 	assert.Equal(t, job4.Port, 0, "expected '%v' for job4.Port but got '%v'")
 	assert.Equal(t, job4.Frequency, "", "expected '%v' for job4.Frequency but got '%v'")
 	assert.Equal(t, job4.Restarts, nil, "expected '%v' for job4.Restarts but got '%v'")
 
 	job5 := jobs[5]
-	assert.Equal(t, job5.Name, "serviceA.preStop", "expected '%v' for job5.Name but got '%v'")
+	assert.Equal(t, job5.Name, "preStop", "expected '%v' for job5.Name but got '%v'")
 	assert.Equal(t, job5.Port, 0, "expected '%v' for job5.Port but got '%v'")
 	assert.Equal(t, job5.Frequency, "", "expected '%v' for job5.Frequency but got '%v'")
 	assert.Equal(t, job5.Restarts, nil, "expected '%v' for job5.Restarts but got '%v'")
 
 	job6 := jobs[6]
-	assert.Equal(t, job6.Name, "serviceA.postStop", "expected '%v' for job6.Name but got '%v'")
+	assert.Equal(t, job6.Name, "postStop", "expected '%v' for job6.Name but got '%v'")
 	assert.Equal(t, job6.Port, 0, "expected '%v' for job6.Port but got '%v'")
 	assert.Equal(t, job6.Frequency, "", "expected '%v' for job6.Frequency but got '%v'")
 	assert.Equal(t, job6.Restarts, nil, "expected '%v' for job6.Restarts but got '%v'")
 }
 
-func TestServiceConfigValidateName(t *testing.T) {
+func TestJobConfigValidateName(t *testing.T) {
 
 	_, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": ""}]`), noop)
 	assert.Error(t, err, "`name` must not be blank")
@@ -86,7 +87,7 @@ func TestServiceConfigValidateName(t *testing.T) {
 	assert.Equal(t, cfg[0].Name, "myexec", "expected '%v' for cfg.Name got '%v'")
 }
 
-func TestServiceConfigValidateDiscovery(t *testing.T) {
+func TestJobConfigValidateDiscovery(t *testing.T) {
 	_, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": "myName", "port": 80}]`), noop)
 	assert.Error(t, err, "`poll` must be > 0 in service `myName` when `port` is set")
 
@@ -142,7 +143,7 @@ func TestInvalidJobsConsulExtrasDeregisterCriticalServiceAfter(t *testing.T) {
 	}
 }
 
-func TestServiceConfigValidateFrequency(t *testing.T) {
+func TestJobConfigValidateFrequency(t *testing.T) {
 	expectErr := func(test, errMsg string) {
 		testCfg := tests.DecodeRawToSlice(test)
 		_, err := NewConfigs(testCfg, nil)
@@ -169,7 +170,7 @@ func TestServiceConfigValidateFrequency(t *testing.T) {
 		"expected execTimeout '%v' to equal frequency '%v'")
 }
 
-func TestServiceConfigValidateExec(t *testing.T) {
+func TestJobConfigValidateExec(t *testing.T) {
 
 	testCfg := tests.DecodeRawToSlice(`[
 	{
@@ -232,7 +233,7 @@ func TestServiceConfigValidateExec(t *testing.T) {
 
 }
 
-func TestServiceConfigValidateRestarts(t *testing.T) {
+func TestJobConfigValidateRestarts(t *testing.T) {
 
 	expectErr := func(test, val string) {
 		errMsg := fmt.Sprintf(`invalid 'restarts' field "%v": accepts positive integers, "unlimited", or "never"`, val)
@@ -266,80 +267,53 @@ func TestServiceConfigValidateRestarts(t *testing.T) {
 	assert.Equal(t, cfg[6].restartLimit, 0, expectMsg)
 }
 
-func TestServiceConfigPreStart(t *testing.T) {
-	testCfg := tests.DecodeRawToSlice(`[
-	{
-		"name": "serviceA",
-		"exec": "/bin/serviceA",
-		"preStart": "/bin/to/preStart.sh arg1 arg2"
-	}]`)
+func TestJobConfigPreStart(t *testing.T) {
+	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg := tests.DecodeRawToSlice(string(data))
 	cfg, err := NewConfigs(testCfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, cfg[1].Name, "serviceA.preStart", "expected '%v' for preStart.Name got '%v")
+	assert.Equal(t, cfg[0].Name, "serviceA", "expected '%v' for serviceA.Name got '%v'")
+	assert.Equal(t, cfg[0].stoppingWaitEvent, events.NonEvent,
+		"expected '%v' stopping event for serviceA got '%v'")
+	assert.Equal(t, cfg[0].whenEvent, events.Event{events.ExitSuccess, "preStart"},
+		"expected '%v' for serviceA.whenEvent got '%v'")
+	assert.Equal(t, cfg[1].Name, "preStart", "expected '%v' for preStart.Name got '%v'")
 	assert.Equal(t, cfg[1].exec.Exec, "/bin/to/preStart.sh",
 		"expected '%v' for preStart.exec.Exec got '%v")
-
-	testCfg = tests.DecodeRawToSlice(`[
-	{
-		"name": "serviceB",
-		"exec": "/bin/serviceB",
-		"preStart": ""
-	}]`)
-	_, err = NewConfigs(testCfg, nil)
-	assert.Error(t, err,
-		"could not parse `exec` for job serviceB.preStart: received zero-length argument")
 }
 
-func TestServiceConfigPreStop(t *testing.T) {
-	testCfg := tests.DecodeRawToSlice(`[
-	{
-		"name": "serviceA",
-		"exec": "/bin/serviceA",
-		"preStop": "/bin/to/preStop.sh arg1 arg2"
-	}]`)
+func TestJobConfigPreStop(t *testing.T) {
+	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg := tests.DecodeRawToSlice(string(data))
 	cfg, err := NewConfigs(testCfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, cfg[1].Name, "serviceA.preStop", "expected '%v' for preStop.Name got '%v")
+	assert.Equal(t, cfg[0].Name, "serviceA", "expected '%v' for serviceA.Name got '%v'")
+	assert.Equal(t, cfg[0].stoppingWaitEvent, events.Event{events.Stopped, "preStop"},
+		"expected no stopping event for serviceA got '%v'")
+	assert.Equal(t, cfg[1].Name, "preStop", "expected '%v' for preStop.Name got '%v'")
 	assert.Equal(t, cfg[1].exec.Exec, "/bin/to/preStop.sh",
 		"expected '%v' for preStop.exec.Exec got '%v")
-
-	testCfg = tests.DecodeRawToSlice(`[
-	{
-		"name": "serviceB",
-		"exec": "/bin/serviceB",
-		"preStop": ""
-	}]`)
-	_, err = NewConfigs(testCfg, nil)
-	assert.Error(t, err,
-		"could not parse `exec` for job serviceB.preStop: received zero-length argument")
+	assert.Equal(t, cfg[1].whenEvent, events.Event{events.Stopping, "serviceA"},
+		"expected '%v' for preStop.whenEvent got '%v")
 }
 
-func TestServiceConfigPostStop(t *testing.T) {
-	testCfg := tests.DecodeRawToSlice(`[
-	{
-		"name": "serviceA",
-		"exec": "/bin/serviceA",
-		"postStop": "/bin/to/postStop.sh arg1 arg2"
-	}]`)
+func TestJobConfigPostStop(t *testing.T) {
+	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg := tests.DecodeRawToSlice(string(data))
 	cfg, err := NewConfigs(testCfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, cfg[1].Name, "serviceA.postStop", "expected '%v' for postStop.Name got '%v")
+	assert.Equal(t, cfg[0].Name, "serviceA", "expected '%v' for serviceA.Name got '%v'")
+	assert.Equal(t, cfg[0].stoppingWaitEvent, events.NonEvent,
+		"expected no stopping event for serviceA got '%v'")
+	assert.Equal(t, cfg[1].Name, "postStop", "expected '%v' for postStop.Name got '%v'")
 	assert.Equal(t, cfg[1].exec.Exec, "/bin/to/postStop.sh",
 		"expected '%v' for postStop.exec.Exec got '%v")
-
-	testCfg = tests.DecodeRawToSlice(`[
-	{
-		"name": "serviceB",
-		"exec": "/bin/serviceB",
-		"postStop": ""
-	}]`)
-	_, err = NewConfigs(testCfg, nil)
-	assert.Error(t, err,
-		"could not parse `exec` for job serviceB.postStop: received zero-length argument")
+	assert.Equal(t, cfg[1].whenEvent, events.Event{events.Stopped, "serviceA"},
+		"expected '%v' for postStop.whenEvent got '%v")
 }

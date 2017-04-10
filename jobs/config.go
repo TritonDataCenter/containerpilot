@@ -32,22 +32,21 @@ type Config struct {
 	definition        *discovery.ServiceDefinition
 
 	// timeouts and restarts
-	ExecTimeout  string      `mapstructure:"execTimeout"`
-	Restarts     interface{} `mapstructure:"restarts"`
-	Frequency    string      `mapstructure:"frequency"`
-	execTimeout  time.Duration
-	exec         *commands.Command
-	restartLimit int
-	freqInterval time.Duration
+	ExecTimeout     string      `mapstructure:"execTimeout"`
+	Restarts        interface{} `mapstructure:"restarts"`
+	Frequency       string      `mapstructure:"frequency"`
+	StopTimeout     string      `mapstructure:"stopTimeout"`
+	execTimeout     time.Duration
+	exec            *commands.Command
+	stoppingTimeout time.Duration
+	restartLimit    int
+	freqInterval    time.Duration
 
 	// related jobs
-	PreStartExec    interface{} `mapstructure:"preStart"`
-	PreStopExec     interface{} `mapstructure:"preStop"`
-	PostStopExec    interface{} `mapstructure:"postStop"`
-	startupEvent    events.Event
-	startupTimeout  time.Duration
-	stoppingEvent   events.Event
-	stoppingTimeout time.Duration
+	When              *WhenConfig `mapstructure:"when"`
+	whenEvent         events.Event
+	whenTimeout       time.Duration
+	stoppingWaitEvent events.Event
 
 	/* TODO v3:
 	These fields are here *only* so we can reuse the config map we use
@@ -56,6 +55,14 @@ type Config struct {
 	*/
 	checkExec    interface{} `mapstructure:"health"`
 	checkTimeout string      `mapstructure:"timeout"`
+}
+
+// WhenConfig determines when a Job runs (dependencies on other Jobs
+// or on Watches)
+type WhenConfig struct {
+	Source  string `mapstructure:"source"`
+	Event   string `mapstructure:"event"`
+	Timeout string `mapstructure:"timeout"`
 }
 
 // ConsulConfig handles additional Consul configuration.
@@ -73,36 +80,19 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 	if err := utils.DecodeRaw(raw, &jobs); err != nil {
 		return nil, fmt.Errorf("service configuration error: %v", err)
 	}
+	stopDependencies := make(map[string]string)
 	for _, job := range jobs {
 		if err := job.Validate(disc); err != nil {
 			return nil, err
 		}
+		if job.whenEvent.Code == events.Stopping {
+			stopDependencies[job.whenEvent.Source] = job.Name
+		}
 	}
+	// set up any dependencies on "stopping" events
 	for _, job := range jobs {
-		if job.PreStartExec != nil {
-			preStart, err := NewPreStartConfig(job.Name, job.PreStartExec)
-			if err != nil {
-				return nil, err
-			}
-			job.setStartup(events.Event{events.ExitSuccess, preStart.Name}, 0)
-			jobs = append(jobs, preStart)
-		}
-		if job.PreStopExec != nil {
-			preStop, err := NewPreStopConfig(job.Name, job.PreStopExec)
-			if err != nil {
-				return nil, err
-			}
-			preStop.setStartup(events.Event{events.Stopping, job.Name}, 0)
-			job.setStopping(events.Event{events.Stopped, preStop.Name}, 0)
-			jobs = append(jobs, preStop)
-		}
-		if job.PostStopExec != nil {
-			postStop, err := NewPostStopConfig(job.Name, job.PostStopExec)
-			if err != nil {
-				return nil, err
-			}
-			postStop.setStartup(events.Event{events.Stopped, job.Name}, 0)
-			jobs = append(jobs, postStop)
+		if dependent, ok := stopDependencies[job.Name]; ok {
+			job.setStopping(dependent)
 		}
 	}
 	return jobs, nil
@@ -125,6 +115,9 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	if err := cfg.validateDependencies(); err != nil {
 		return err
 	}
+	if err := cfg.validateStoppingTimeout(); err != nil {
+		return err
+	}
 	if err := cfg.validateRestarts(); err != nil {
 		return err
 	}
@@ -134,14 +127,8 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	return nil
 }
 
-func (cfg *Config) setStartup(evt events.Event, timeout time.Duration) {
-	cfg.startupEvent = evt
-	cfg.startupTimeout = timeout
-}
-
-func (cfg *Config) setStopping(evt events.Event, timeout time.Duration) {
-	cfg.stoppingEvent = evt
-	cfg.stoppingTimeout = timeout
+func (cfg *Config) setStopping(name string) {
+	cfg.stoppingWaitEvent = events.Event{events.Stopped, name}
 }
 
 func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
@@ -182,12 +169,34 @@ func (cfg *Config) validateFrequency() error {
 }
 
 func (cfg *Config) validateDependencies() error {
-	// TODO v3: these will be exposed as config values when we do the
-	// config update. for now we set defaults here
-	cfg.startupTimeout = 0
-	cfg.startupEvent = events.GlobalStartup
-	cfg.stoppingTimeout = 0
-	cfg.stoppingEvent = events.NonEvent
+	if cfg.When != nil {
+		whenTimeout, err := utils.GetTimeout(cfg.When.Timeout)
+		if err != nil {
+			return fmt.Errorf("could not parse `when` timeout for job %s: %v",
+				cfg.Name, err)
+		}
+		cfg.whenTimeout = whenTimeout
+		eventCode, err := events.FromString(cfg.When.Event)
+		if err != nil {
+			return fmt.Errorf("could not parse `when` event for job %s: %v",
+				cfg.Name, err)
+		}
+		cfg.whenEvent = events.Event{eventCode, cfg.When.Source}
+	} else {
+		cfg.whenTimeout = time.Duration(0)
+		cfg.whenEvent = events.GlobalStartup
+	}
+	return nil
+}
+
+func (cfg *Config) validateStoppingTimeout() error {
+	stoppingTimeout, err := utils.GetTimeout(cfg.StopTimeout)
+	if err != nil {
+		return fmt.Errorf("could not parse `stopTimeout` for job %s: %v",
+			cfg.Name, err)
+	}
+	cfg.stoppingTimeout = stoppingTimeout
+	cfg.stoppingWaitEvent = events.NonEvent
 	return nil
 }
 
