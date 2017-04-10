@@ -57,6 +57,22 @@
         source: "serviceA",
         event: "stopped"
       }
+    },
+    {
+      name: "onChange-upstreamA",
+      exec: ["/bin/onChangeA.sh"],
+      when: {
+        source: "watch.upstreamA",
+        event: "changed"
+      }
+    },
+    {
+      name: "onChange-upstreamB",
+      exec: ["/bin/onChangeB.sh"],
+      when: {
+        source: "watch.upstreamB",
+        event: "healthy"
+      }
     }
   ],
   watches: [
