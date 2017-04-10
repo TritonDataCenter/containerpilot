@@ -175,19 +175,22 @@ func (c *Consul) registerCheck(service discovery.ServiceDefinition) error {
 var upstreams = make(map[string][]*consul.ServiceEntry)
 
 // CheckForUpstreamChanges runs the health check
-func (c Consul) CheckForUpstreamChanges(backendName, backendTag string) bool {
+func (c Consul) CheckForUpstreamChanges(backendName, backendTag string) (didChange, isHealthy bool) {
 	services, meta, err := c.Health().Service(backendName, backendTag, true, nil)
 	if err != nil {
 		log.Warnf("failed to query %v: %s [%v]", backendName, err, meta)
-		return false
+		return false, false
 	}
-	didChange := compareForChange(upstreams[backendName], services)
+	if len(services) > 0 {
+		isHealthy = true
+	}
+	didChange = compareForChange(upstreams[backendName], services)
 	if didChange || len(services) == 0 {
 		// We don't want to cause an onChange event the first time we read-in
 		// but we do want to make sure we've written the key for this map
 		upstreams[backendName] = services
 	}
-	return didChange
+	return didChange, isHealthy
 }
 
 // Compare the two arrays to see if the address or port has changed

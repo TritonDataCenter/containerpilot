@@ -50,10 +50,7 @@ func TestRenderConfigFileStdout(t *testing.T) {
 
 	var testJSON = `{
 	"consul": "consul:8500",
-	"backends": [{
-					"name": "upstreamA",
-					"poll": 11,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh"}]}`
+	"backends": [{"name": "upstreamA", "poll": 11}]}`
 
 	// Render to file
 	defer os.Remove("testJSON.json")
@@ -86,10 +83,7 @@ func TestRenderedConfigIsParseable(t *testing.T) {
 
 	var testJSON = `{
 	"consul": "consul:8500",
-	"backends": [{
-					"name": "upstreamA{{.TESTRENDERCONFIGISPARSEABLE}}",
-					"poll": 11,
-					"onChange": "/bin/to/onChangeEvent/for/upstream/A.sh"}]}`
+	"backends": [{"name": "upstreamA{{.TESTRENDERCONFIGISPARSEABLE}}", "poll": 11}]}`
 
 	os.Setenv("TESTRENDERCONFIGISPARSEABLE", "-ok")
 	template, _ := renderConfigTemplate(testJSON)
@@ -98,7 +92,7 @@ func TestRenderedConfigIsParseable(t *testing.T) {
 		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
 	name := config.Watches[0].Name
-	if name != "upstreamA-ok.watch" {
+	if name != "watch.upstreamA-ok" {
 		t.Fatalf("expected Watches[0] name to be upstreamA-ok but got %s", name)
 	}
 }

@@ -23,16 +23,23 @@
       "exec": ["consul-template", "-once", "-retry", "3s",
                "-consul", "consul:8500", "-template",
                "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf"],
+    },
+    {
+      name: "onChange",
+      when: {
+        source: "watch.app",
+        event: "changed"
+      },
+      exec: [
+          "consul-template", "-once", "-consul", "consul:8500", "-template",
+          "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf:nginx -s reload"
+      ]
     }
   ],
   "backends": [
     {
       "name": "app",
-      "poll": 1,
-      "onChange": [
-          "consul-template", "-once", "-consul", "consul:8500", "-template",
-          "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf:nginx -s reload"
-      ]
+      "poll": 1
     }
   ]
 }
