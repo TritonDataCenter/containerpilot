@@ -14,7 +14,7 @@ COPY reload-app.sh /reload-app.sh
 COPY sensor.sh /sensor.sh
 COPY task.sh /task.sh
 
-ENV CONTAINERPILOT=file:///etc/containerpilot.json5
+ENV CONTAINERPILOT=/etc/containerpilot.json5
 
 # default port, allows us to override in docker-compose and also test
 # env var interpolation in the command args
