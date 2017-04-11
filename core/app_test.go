@@ -4,47 +4,47 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/joyent/containerpilot/commands"
 	_ "github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/tests/assert"
 )
 
 /*
 TODO v3: a LOT of the these tests should be moved to the config package
 */
 
-func TestServiceConfigRequiredFields(t *testing.T) {
+func TestJobConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = `{"consul": "consul:8500", jobs: [
-                           {"name": "", "port": 8080, "poll": 30, "ttl": 19 }]}`
-	validateParseError(t, testJSON, []string{"`name`"})
+	var testCfg = `{"consul": "consul:8500", jobs: [
+                    {"name": "", "port": 8080, health: {interval: 30, "ttl": 19 }}]}`
+	_, err := NewApp(testCfg)
+	assert.Error(t, err, "unable to parse jobs: 'name' must not be blank")
 
-	// Missing `poll`
-	testJSON = `{"consul": "consul:8500", jobs: [
-                       {"name": "name", "port": 8080, "ttl": 19}]}`
-	validateParseError(t, testJSON, []string{"`poll`"})
+	// Missing `interval`
+	testCfg = `{"consul": "consul:8500", jobs: [
+                {"name": "name", "port": 8080, health: {ttl: 19}}]}`
+	_, err = NewApp(testCfg)
+	assert.Error(t, err, "unable to parse jobs: job[name].health.interval must be > 0")
 
 	// Missing `ttl`
-	testJSON = `{"consul": "consul:8500", jobs: [
-                       {"name": "name", "port": 8080, "poll": 19}]}`
-	validateParseError(t, testJSON, []string{"`ttl`"})
-
-	testJSON = `{"consul": "consul:8500", jobs: [
-                       {"name": "name", "poll": 19, "ttl": 19}]}`
-	validateParseError(t, testJSON, []string{"`port`"})
+	testCfg = `{"consul": "consul:8500", jobs: [
+                {"name": "name", "port": 8080, health: {interval: 19}}]}`
+	_, err = NewApp(testCfg)
+	assert.Error(t, err, "unable to parse jobs: job[name].health.ttl must be > 0")
 }
 
 func TestBackendConfigRequiredFields(t *testing.T) {
 	// Missing `name`
-	var testJSON = `{"consul": "consul:8500", watches: [{"name": "", "poll": 30}]}`
-	validateParseError(t, testJSON, []string{"`name`"})
+	var testCfg = `{"consul": "consul:8500", watches: [{"name": "", "interval": 30}]}`
+	_, err := NewApp(testCfg)
+	assert.Error(t, err, "unable to parse watches: 'name' must not be blank")
 
-	// Missing `poll`
-	testJSON = `{"consul": "consul:8500", watches: [{"name": "name"}]}`
-	validateParseError(t, testJSON, []string{"`poll`"})
+	// Missing `interval`
+	testCfg = `{"consul": "consul:8500", watches: [{"name": "name"}]}`
+	_, err = NewApp(testCfg)
+	assert.Error(t, err, "unable to parse watches: watch[name].interval must be > 0")
 }
 
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
@@ -57,29 +57,35 @@ func TestInvalidConfigNoConfigFlag(t *testing.T) {
 
 func TestInvalidConfigParseNoDiscovery(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t, "{}", "no discovery backend defined")
+	os.Args = []string{"this", "-config", "{}"}
+	_, err := LoadApp()
+	assert.Error(t, err, "no discovery backend defined")
 }
 
-func TestInvalidConfigParseFile(t *testing.T) {
+func TestInvalidConfigMissingFile(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t, "file:///xxxx",
+	os.Args = []string{"this", "-config", "file:///xxxx"}
+	_, err := LoadApp()
+	assert.Error(t, err,
 		"could not read config file: open /xxxx: no such file or directory")
 }
 
 func TestInvalidConfigParseNotJson(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t, "<>",
+	os.Args = []string{"this", "-config", "<>"}
+	_, err := LoadApp()
+	assert.Error(t, fmt.Errorf("%s", err.Error()[:29]),
 		"parse error at line:col [1:1]")
 }
 
-func TestJSONTemplateParseError(t *testing.T) {
+func TestInvalidConfigParseTemplateError(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	testParseExpectError(t,
-		`{
-    "test": {{ .NO_SUCH_KEY }},
-    "test2": "hello"
-}`,
-		"parse error at line:col [2:13]")
+	// this config is missing quotes around the template
+	badCfg := `{"test": {{ .NO_SUCH_KEY }}, "test2": "hello"}`
+	os.Args = []string{"this", "-config", badCfg}
+	_, err := LoadApp()
+	assert.Error(t, fmt.Errorf("%s", err.Error()[:30]),
+		"parse error at line:col [1:10]")
 }
 
 func TestRenderArgs(t *testing.T) {
@@ -173,36 +179,4 @@ func argTestSetup() []string {
 
 func argTestCleanup(oldArgs []string) {
 	os.Args = oldArgs
-}
-
-func testParseExpectError(t *testing.T, testJSON string, expected string) {
-	os.Args = []string{"this", "-config", testJSON, "/testdata/test.sh", "test", "--debug"}
-	if _, err := LoadApp(); err != nil && !strings.Contains(err.Error(), expected) {
-		t.Errorf("expected %s but got %s", expected, err)
-	}
-}
-
-func validateParseError(t *testing.T, testJSON string, matchStrings []string) {
-	if _, err := NewApp(testJSON); err == nil {
-		t.Errorf("expected error parsing config")
-	} else {
-		for _, match := range matchStrings {
-			if !strings.Contains(err.Error(), match) {
-				t.Errorf("expected message does not contain %s: %s", match, err)
-			}
-		}
-	}
-}
-
-func validateCommandParsed(t *testing.T, name string, parsed *commands.Command,
-	expectedExec string, expectedArgs []string) {
-	if parsed == nil {
-		t.Errorf("%s not configured", name)
-	}
-	if !reflect.DeepEqual(parsed.Exec, expectedExec) {
-		t.Errorf("%s executable not configured: %s != %s", name, parsed.Exec, expectedExec)
-	}
-	if !reflect.DeepEqual(parsed.Args, expectedArgs) {
-		t.Errorf("%s arguments not configured: %s != %s", name, parsed.Args, expectedArgs)
-	}
 }

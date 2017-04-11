@@ -1,0 +1,9 @@
+[
+  {
+    name: "taskD",
+    exec: "/bin/taskD",
+    when: {
+      interval: "1s"
+    }
+  }
+]

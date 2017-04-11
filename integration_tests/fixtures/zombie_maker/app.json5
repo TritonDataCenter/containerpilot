@@ -1,14 +1,16 @@
 {
-  "consul": "consul:8500",
+  consul: "consul:8500",
   jobs: [
     {
-      "name": "zombies",
-      "port": 8000,
-      "health": "/bin/sh /zombie.sh",
-      "exec": ["tail", "-f"],
-      "poll": 1,
-      "ttl": 5,
-      "tags": ["application"]
+      name: "zombies",
+      port: 8000,
+      exec: ["tail", "-f"],
+      health: {
+        exec: "/bin/sh /zombie.sh",
+        interval: 1,
+        ttl: 5
+      },
+      tags: ["application"]
     }
   ]
 }

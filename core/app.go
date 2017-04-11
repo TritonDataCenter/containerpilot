@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/config"
 	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
@@ -34,7 +33,6 @@ type App struct {
 	ControlServer *control.HTTPServer
 	Discovery     discovery.Backend
 	Jobs          []*jobs.Job
-	Checks        []*checks.HealthCheck
 	Watches       []*watches.Watch
 	Telemetry     *telemetry.Telemetry
 	StopTimeout   int
@@ -121,7 +119,6 @@ func NewApp(configFlag string) (*App, error) {
 
 	a.StopTimeout = cfg.StopTimeout
 	a.Discovery = cfg.Discovery
-	a.Checks = checks.FromConfigs(cfg.Checks)
 	a.Jobs = jobs.FromConfigs(cfg.Jobs)
 	a.Watches = watches.FromConfigs(cfg.Watches)
 	a.Telemetry = telemetry.NewTelemetry(cfg.Telemetry)
@@ -130,9 +127,9 @@ func NewApp(configFlag string) (*App, error) {
 	// set an environment variable for each job IP address so that
 	// forked processes have access to this information
 	for _, job := range a.Jobs {
-		if job.Definition != nil {
+		if job.Service != nil {
 			envKey := getEnvVarNameFromService(job.Name)
-			os.Setenv(envKey, job.Definition.IPAddress)
+			os.Setenv(envKey, job.Service.IPAddress)
 		}
 	}
 
@@ -252,7 +249,6 @@ func (a *App) reload() error {
 	}
 	a.Discovery = newApp.Discovery
 	a.Jobs = newApp.Jobs
-	a.Checks = newApp.Checks
 	a.Watches = newApp.Watches
 	a.StopTimeout = newApp.StopTimeout
 	a.Telemetry = newApp.Telemetry
@@ -264,11 +260,8 @@ func (a *App) reload() error {
 // back to our config
 func (a *App) handlePolling() {
 
-	for _, service := range a.Jobs {
-		service.Run(a.Bus)
-	}
-	for _, check := range a.Checks {
-		check.Run(a.Bus)
+	for _, job := range a.Jobs {
+		job.Run(a.Bus)
 	}
 	for _, watch := range a.Watches {
 		watch.Run(a.Bus)

@@ -21,9 +21,11 @@ const (
 type Job struct {
 	Name             string
 	exec             *commands.Command
-	Status           bool // TODO: we'll need this to carry more info than bool
+	Status           bool
 	discoveryCatalog discovery.Backend
-	Definition       *discovery.ServiceDefinition
+	Service          *discovery.ServiceDefinition
+	healthCheckExec  *commands.Command
+	healthCheckName  string
 
 	// related events
 	whenEvent         events.Event
@@ -47,7 +49,8 @@ func NewJob(cfg *Config) *Job {
 		exec:              cfg.exec,
 		heartbeat:         cfg.heartbeatInterval,
 		discoveryCatalog:  cfg.discoveryCatalog,
-		Definition:        cfg.definition,
+		Service:           cfg.definition,
+		healthCheckExec:   cfg.healthCheckExec,
 		whenEvent:         cfg.whenEvent,
 		whenTimeout:       cfg.whenTimeout,
 		stoppingWaitEvent: cfg.stoppingWaitEvent,
@@ -59,9 +62,9 @@ func NewJob(cfg *Config) *Job {
 	job.Rx = make(chan events.Event, eventBufferSize)
 	job.Flush = make(chan bool)
 	if job.Name == "containerpilot" {
-		// TODO: right now this hardcodes the telemetry service to
+		// right now this hardcodes the telemetry service to
 		// be always "on", but maybe we want to have it verify itself
-		// before heartbeating in the future
+		// before heartbeating in the future?
 		job.Status = true
 	}
 	return job
@@ -79,22 +82,29 @@ func FromConfigs(cfgs []*Config) []*Job {
 
 // SendHeartbeat sends a heartbeat for this Job's service
 func (job *Job) SendHeartbeat() {
-	if job.discoveryCatalog != nil || job.Definition != nil {
-		job.discoveryCatalog.SendHeartbeat(job.Definition)
+	if job.discoveryCatalog != nil || job.Service != nil {
+		job.discoveryCatalog.SendHeartbeat(job.Service)
 	}
 }
 
 // MarkForMaintenance marks this Job's service for maintenance
 func (job *Job) MarkForMaintenance() {
-	if job.discoveryCatalog != nil || job.Definition != nil {
-		job.discoveryCatalog.MarkForMaintenance(job.Definition)
+	if job.discoveryCatalog != nil || job.Service != nil {
+		job.discoveryCatalog.MarkForMaintenance(job.Service)
 	}
 }
 
 // Deregister will deregister this instance of Job's service
 func (job *Job) Deregister() {
-	if job.discoveryCatalog != nil || job.Definition != nil {
-		job.discoveryCatalog.Deregister(job.Definition)
+	if job.discoveryCatalog != nil || job.Service != nil {
+		job.discoveryCatalog.Deregister(job.Service)
+	}
+}
+
+// HealthCheck runs the Job's health check executable
+func (job *Job) HealthCheck(ctx context.Context) {
+	if job.healthCheckExec != nil {
+		job.healthCheckExec.Run(ctx, job.Bus)
 	}
 }
 
@@ -138,15 +148,22 @@ func (job *Job) Run(bus *events.EventBus) {
 		events.NewEventTimeout(ctx, job.Rx, job.whenTimeout, startTimeoutSource)
 	}
 
+	var healthCheckName string
+	if job.healthCheckExec != nil {
+		healthCheckName = job.healthCheckExec.Name
+	}
+
 	go func() {
 	loop: // aw yeah, goto like it's 1968!
 		for {
 			event := <-job.Rx
 			switch event {
 			case events.Event{events.TimerExpired, heartbeatSource}:
-				// non-advertised jobs shouldn't receive this event
-				// but we'll hit a null-pointer if we screw it up
-				if job.Status == true && job.Definition != nil {
+				if job.healthCheckExec != nil {
+					job.HealthCheck(ctx)
+				} else if job.Service != nil {
+					// this is the case for non-checked but advertised
+					// services like the telemetry endpoint
 					job.SendHeartbeat()
 				}
 			case events.Event{events.TimerExpired, startTimeoutSource}:
@@ -155,16 +172,20 @@ func (job *Job) Run(bus *events.EventBus) {
 				job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
 			case events.Event{events.TimerExpired, runEverySource}:
 				if !job.restartPermitted() {
-					log.Debugf("restart not permitted: %v", job.Name)
+					log.Debugf("interval expired but restart not permitted: %v",
+						job.Name)
 					break loop
 				}
 				job.restartsRemain--
 				job.Rx <- job.whenEvent
-			case events.Event{events.StatusUnhealthy, job.Name}:
-				// TODO v3: add a "SendFailedHeartbeat" method to fail faster
+			case events.Event{events.ExitFailed, healthCheckName}:
 				job.Status = false
-			case events.Event{events.StatusHealthy, job.Name}:
+				job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
+				// do we want a "SendFailedHeartbeat" method to fail faster?
+			case events.Event{events.ExitSuccess, healthCheckName}:
 				job.Status = true
+				job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
+				job.SendHeartbeat()
 			case
 				events.Event{events.Quit, job.Name},
 				events.QuitByClose,
@@ -177,7 +198,8 @@ func (job *Job) Run(bus *events.EventBus) {
 					break // note: breaks switch only
 				}
 				if !job.restartPermitted() {
-					log.Debugf("restart not permitted: %v", job.Name)
+					log.Debugf("job exited but restart not permitted: %v",
+						job.Name)
 					break loop
 				}
 				job.restartsRemain--

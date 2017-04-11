@@ -1,24 +1,26 @@
 {
-  "consul": "consul:8500",
-  "logging": {
-    "level": "DEBUG",
-    "format": "text"
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text"
   },
   jobs: [
     {
-      "name": "app",
-      "port": 8000,
-      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
-      "exec": [
+      name: "app",
+      port: 8000,
+      exec: [
         "/usr/local/bin/node",
         "/usr/local/bin/http-server", "/srv", "-p", "8000"],
-      "poll": 1,
-      "ttl": 5
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+        interval: 1,
+        ttl: 5
+      }
     },
     {
-      "name": "coprocess",
-      "exec": ["/bin/coprocess.sh", "arg1"],
-      "restarts": 1
+      name: "coprocess",
+      exec: ["/bin/coprocess.sh", "arg1"],
+      restarts: 1
     }
   ]
 }

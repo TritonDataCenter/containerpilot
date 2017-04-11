@@ -1,0 +1,17 @@
+[
+  {
+    name: "serviceA",
+    port: 8080,
+    interfaces: "inet",
+    health: {
+      exec: ["/bin/to/healthcheck/for/service/A.sh", "A1", "A2"],
+      interval: 30,
+      ttl: 19,
+      timeout: "100ms"
+    },
+    tags: ["tag1","tag2"],
+    consul: {
+      enableTagOverride: "nope"
+    }
+  }
+]

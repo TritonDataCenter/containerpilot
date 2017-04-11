@@ -1,0 +1,62 @@
+[
+  {
+    name: "serviceA",
+    port: 8080,
+    interfaces: "inet",
+    exec: "/bin/serviceA",
+    when: {
+      source: "preStart",
+      event: "exitSuccess",
+    },
+    health: {
+      exec: "/bin/to/healthcheck/for/service/A.sh",
+      interval: 10,
+      ttl: 30,
+    },
+    tags: ["tag1","tag2"]
+  },
+  {
+    name: "serviceB",
+    port: 5000,
+    interfaces: ["ethwe","eth0", "inet"],
+    exec: ["/bin/serviceB", "B"],
+    health: {
+      exec: ["/bin/to/healthcheck/for/service/B.sh", "B"],
+      interval: 20,
+      ttl: 103,
+      timeout: "2s"
+    }
+  },
+  {
+    name: "coprocessC",
+    exec: "/bin/coprocessC",
+    restarts: "unlimited"
+  },
+  {
+    name: "taskD",
+    exec: "/bin/taskD",
+    when: {
+      interval: "1s"
+    }
+  },
+  {
+    name: "preStart",
+    exec: "/bin/to/preStart.sh arg1 arg2"
+  },
+  {
+    name: "preStop",
+    when: {
+      source: "serviceA",
+      event: "stopping"
+    },
+    exec: ["/bin/to/preStop.sh","arg1","arg2"]
+  },
+  {
+    name: "postStop",
+    when: {
+      source: "serviceA",
+      event: "stopped"
+    },
+    exec: ["/bin/to/postStop.sh"]
+  }
+]

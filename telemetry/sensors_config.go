@@ -16,8 +16,8 @@ type SensorConfig struct {
 	Name      string      `mapstructure:"name"`
 	Help      string      `mapstructure:"help"` // help string returned by API
 	Type      string      `mapstructure:"type"`
-	Poll      int         `mapstructure:"poll"` // time in seconds
-	Exec      interface{} `mapstructure:"check"`
+	Poll      int         `mapstructure:"interval"` // time in seconds
+	Exec      interface{} `mapstructure:"exec"`
 	Timeout   string      `mapstructure:"timeout"`
 
 	sensorType SensorType
@@ -48,22 +48,22 @@ func (cfg *SensorConfig) Validate() error {
 		cfg.Timeout = fmt.Sprintf("%ds", cfg.Poll)
 	}
 	if cfg.Poll <= 0 {
-		return fmt.Errorf("`poll` must be > 0 for sensor %s", cfg.Name)
+		return fmt.Errorf("sensor[%s].interval must be > 0", cfg.Name)
 	}
 	poll, err := utils.ParseDuration(cfg.Poll)
 	if err != nil {
-		return fmt.Errorf("could not parse `poll` for sensor %s: %v", cfg.Name, err)
+		return fmt.Errorf("unable to parse sensor[%s].interval: %v", cfg.Name, err)
 	}
 	cfg.poll = poll
 
 	timeout, err := utils.GetTimeout(cfg.Timeout)
 	if err != nil {
-		return fmt.Errorf("could not parse `timeout` for sensor %s: %v", cfg.Name, err)
+		return fmt.Errorf("unable to parse sensor[%s].timeout: %v", cfg.Name, err)
 	}
 	cfg.timeout = timeout
 	check, err := commands.NewCommand(cfg.Exec, cfg.timeout, nil)
 	if err != nil {
-		return fmt.Errorf("could not parse `check` in sensor %s: %s", cfg.Name, err)
+		return fmt.Errorf("unable to create sensor[%s].exec: %v", cfg.Name, err)
 	}
 	check.Name = fmt.Sprintf("%s.sensor", cfg.Name)
 	cfg.exec = check

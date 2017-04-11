@@ -1,87 +1,64 @@
 {
-  "consul": "consul:8500",
-  "logging": {
-    "level": "DEBUG",
-    "format": "text"
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text"
   },
+  // shutdown of ContainerPilot and its tasks happens asynchronously, so we
+  // can't rely on precise counts of task executions unless we constrain the
+  // number of tasks we run and give it plenty of wall-clock time to finish
   jobs: [
     {
-      "name": "app",
-      "port": 8000,
-      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      // run a 200ms-long task every 500ms, without a timeout
+      name: "task1",
+      exec: ["/task.sh","0.2","/task1.txt"],
+      when: {
+        interval: "500ms",
+      },
+      restarts: "5"
+    },
+    {
+      // run a 200ms-long task every 500ms, with 500ms timeout
+      // (i.e. no tasks should timeout)
+      name: "task2",
+      exec: ["/task.sh","0.2","/task2.txt"],
+      timeout: "500ms",
+      when: {
+        interval: "500ms",
+      },
+      restarts: "5"
+    },
+    {
+      // run a 2000ms-long task every 1000ms, with 100ms timeout
+      // (i.e. all tasks will timeout)
+      name: "task3",
+      exec: ["/task.sh","2","/task3.txt"],
+      timeout: "100ms",
+      when: {
+        interval: "500ms",
+      },
+      restarts: "5",
+    },
+    {
+      name: "app",
+      port: 8000,
       when: {
         source: "preStart",
         event: "exitSuccess"
       },
-      "exec": [
+      exec: [
         "/usr/local/bin/node",
         "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
-      "poll": 1,
-      "ttl": 5,
-      "tags": ["application"]
-    },
-    {
-      "name": "task1",
-      "exec": ["/task.sh","0.2","/task1.txt"],
-      "frequency": "500ms",
-      "restarts": "unlimited"
-    },
-    {
-      "name": "task2",
-      "exec": ["/task.sh","2","/task2.txt"],
-      "frequency": "1500ms",
-      "restarts": "unlimited"
-    },
-    {
-      "name": "task3",
-      "exec": ["/task.sh","2","/task3.txt"],
-      "frequency": "1500ms",
-      "execTimeout": "100ms",
-      "restarts": "unlimited"
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+        interval: 1,
+        ttl: 5,
+      },
+      tags: ["application"]
     },
     {
       name: "preStart",
       exec: "/reload-app.sh"
     },
-    {
-      name: "reload-for-nginx",
-      when: {
-        source: "watch.nginx",
-        event: "changed"
-      },
-      exec: "/reload-app.sh"
-    },
-    {
-      name: "reload-for-app",
-      when: {
-        source: "watch.app",
-        event: "changed"
-      },
-      exec: "/reload-app.sh"
-    }
-  ],
-  watches: [
-    {
-      "name": "nginx",
-      "poll": 7,
-    },
-    {
-      "name": "app",
-      "poll": 5
-    }
-  ],
-  "telemetry": {
-    "port": 9090,
-    "sensors": [
-       {
-        "namespace": "containerpilot",
-        "subsystem": "app",
-        "name": "some_counter",
-        "help": "help text",
-        "type": "counter",
-        "poll": 1,
-        "check": ["/sensor.sh", "count"]
-       }
-    ]
-  }
+  ]
 }

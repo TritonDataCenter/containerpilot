@@ -11,14 +11,8 @@ docker-compose up -d app
 APP_ID="$(docker-compose ps -q app)"
 
 
-# shutdown of ContainerPilot and its tasks happens asynchronously, so we can't
-# rely on precise counts of task executions. instead we're going to calculate
-# a generous permitted range based on the elapsed clock time
-start=$(date +%s)
 sleep 3.5
 docker-compose stop app
-end=$(date +%s)
-elapsed=$(($end-$start+1)) # round up to the full second
 
 docker logs "${APP_ID}" > "${APP_ID}.log"
 docker cp "${APP_ID}:/task1.txt" "${APP_ID}.task1"
@@ -27,55 +21,27 @@ docker cp "${APP_ID}:/task3.txt" "${APP_ID}.task3"
 
 PASS=0
 
-## TASK 1
-TASK1_TOS=$(grep -c "task1 timeout" "${APP_ID}.log")
-TASK1_RUNS=$(wc -l < "${APP_ID}.task1" | tr -d '[:space:]')
-max=$(echo $elapsed | awk '{print int($1/.5)}')
-min=$(echo 3.5 | awk '{print int($1/.5 + 1)}')
-rm "${APP_ID}.task1"
+check() {
+    local taskname=$1
+    local expect_runs=$2
+    local expect_timeouts=$3
+    local timeouts=$(grep -c "$taskname timeout" "$APP_ID.log")
+    local runs=$(wc -l < "$APP_ID.$taskname" | tr -d '[:space:]')
+    rm "$APP_ID.$taskname"
 
-if [[ $TASK1_RUNS -lt $min || $TASK1_RUNS -gt $max ]]; then
-  echo "Expected task1 to have between $min and $max executions: got $TASK1_RUNS"
-  PASS=1
-fi
-if [ "$TASK1_TOS" -gt 0 ]; then
-  echo "Expected task1 to never time out: got $TASK1_TOS"
-  PASS=1
-fi
+    if [[ "$runs" -ne "$expect_runs" ]]; then
+        echo "expected $taskname to have $expect_runs executions: got $runs"
+        PASS=1
+    fi
+    if [[ "$timeouts" -ne "$expect_timeouts" ]]; then
+        echo "expected $taskname to have $expect_timeouts time outs: got $timeouts"
+        PASS=1
+    fi
+}
 
-## TASK 2
-TASK2_TOS=$(grep -c "task2 timeout after 1.5s" "${APP_ID}.log")
-TASK2_RUNS=$(wc -l < "${APP_ID}.task2" | tr -d '[:space:]')
-max=$(echo $elapsed | awk '{print int($1/1.5 + 1)}')
-min=$(echo 3.5 | awk '{print int($1/1.5 + 1)}')
-min_to=$(echo "$min" | awk '{print int($1-1)}')
-rm "${APP_ID}.task2"
-
-if [[ $TASK2_RUNS -lt $min || $TASK2_RUNS -gt $max ]]; then
-  echo "Expected task2 to have between $min and $max executions: got $TASK2_RUNS"
-  PASS=1
-fi
-if [[ $TASK2_TOS -lt $min_to || $TASK2_TOS -gt $max ]]; then
-  echo "Expected task2 to have between $min_to and $max timeouts after 1500ms: got $TASK2_TOS"
-  PASS=1
-fi
-
-## TASK 3
-TASK3_TOS=$(grep -c "task3 timeout after 100ms" "${APP_ID}.log")
-TASK3_RUNS=$(wc -l < "${APP_ID}.task3" | tr -d '[:space:]')
-max=$(echo $elapsed | awk '{print int($1/1.5 + 1)}')
-min=$(echo 3.5 | awk '{print int($1/1.5 + 1)}')
-rm "${APP_ID}.task3"
-
-if [[ $TASK3_RUNS -lt $min || $TASK3_RUNS -gt $max ]]; then
-  echo "Expected task3 to have between $min and $max executions: got $TASK3_RUNS"
-  PASS=1
-fi
-if [ "$TASK3_TOS" -ne "$TASK3_RUNS" ]; then
-  echo "Expected task3 to have $TASK3_RUNS timeouts after 100ms: got $TASK3_TOS"
-  PASS=1
-fi
-
+check "task1" 6 0
+check "task2" 6 0
+check "task3" 6 6
 result=$PASS
 
 if [ $result -ne 0 ]; then

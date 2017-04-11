@@ -34,9 +34,9 @@ func TestWatchesParse(t *testing.T) {
 func TestWatchesConfigError(t *testing.T) {
 
 	_, err := NewConfigs(tests.DecodeRawToSlice(`[{"name": ""}]`), nil)
-	assert.Error(t, err, "`name` must not be blank")
+	assert.Error(t, err, "'name' must not be blank")
 
 	_, err = NewConfigs(tests.DecodeRawToSlice(
 		`[{"name": "myName"}]`), nil)
-	assert.Error(t, err, "`poll` must be > 0 in watch myName")
+	assert.Error(t, err, "watch[myName].interval must be > 0")
 }

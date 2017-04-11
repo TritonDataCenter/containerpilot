@@ -1,0 +1,16 @@
+[
+  {
+    // fields describing this job are arrays wherever permitted,
+    // so that we exercise the parsing for arrays
+    name: "serviceB",
+    port: 5000,
+    interfaces: ["ethwe","eth0", "inet"],
+    exec: ["/bin/serviceB", "B"],
+    health: {
+      exec: ["/bin/healthCheckB.sh", "B1", "B2"],
+      interval: 20,
+      ttl: 103,
+      timeout: "2s"
+    }
+  }
+]

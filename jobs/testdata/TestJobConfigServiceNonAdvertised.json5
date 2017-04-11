@@ -1,0 +1,8 @@
+[
+  {
+    // this job is a non-advertised persistent job
+    name: "coprocessC",
+    exec: "/bin/coprocessC",
+    restarts: "unlimited"
+  }
+]

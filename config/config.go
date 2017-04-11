@@ -12,7 +12,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/flynn/json5"
 
-	"github.com/joyent/containerpilot/checks"
 	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/jobs"
@@ -36,7 +35,6 @@ type Config struct {
 	LogConfig   *LogConfig
 	StopTimeout int
 	Jobs        []*jobs.Config
-	Checks      []*checks.Config
 	Watches     []*watches.Config
 	Telemetry   *telemetry.Config
 	Control     *control.Config
@@ -159,12 +157,6 @@ func LoadConfig(configFlag string) (*Config, error) {
 		return nil, fmt.Errorf("unable to parse jobs: %v", err)
 	}
 	cfg.Jobs = jobConfigs
-
-	checks, err := checks.NewConfigs(raw.jobs)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse checks: %v", err)
-	}
-	cfg.Checks = checks
 
 	watches, err := watches.NewConfigs(raw.watches, disc)
 	if err != nil {

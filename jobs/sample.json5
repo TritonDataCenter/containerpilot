@@ -1,0 +1,59 @@
+{
+  jobs: [
+    {
+      // this is an advertised job
+      name: "serviceA",
+      port: 8080,
+      interfaces: "inet",
+      exec: "/bin/serviceA",
+      restart: "always",
+      when: {
+        // don't start until the preStart is good
+        source: "preStartB",
+        event: "exitSuccess",
+        timeout: "5m" // but give up after 5 min
+      },
+      health: {
+        exec: "/bin/to/healthcheck/for/service/A.sh",
+        poll: 10,
+        ttl: 30
+        timeout: "1s",
+      }
+      tags: ["tag1","tag2"]
+    },
+    {
+      // one-shot job
+      name: "preStartB",
+      exec: "/bin/preStart",
+      timeout: "60s",
+      restart: "never" // default but doesn't hurt to call out
+      when: {
+        source: "coprocessD",
+        event: "healthy"
+      }
+    },
+    {
+      // non-advertised periodic task
+      name: "taskC",
+      exec: "/bin/taskC",
+      timeout: "30s",
+      when: {
+        frequency: "60s"
+      }
+    },
+    {
+      // non-advertised persistent coprocess
+      name: "coprocessD",
+      exec: "/bin/coprocessD",
+      restart: "always" // implied "when" == "global startup"
+      health: {
+        // without advertisement we only get local "healthy" events
+        // but other jobs in this container can respond to this job's
+        // health, which is useful for e.g. Consul Agent
+        exec: "/bin/healthcheck",
+        poll: 5
+        ttl: 10
+      }
+    }
+  ]
+}

@@ -20,21 +20,23 @@ type Config struct {
 	Name string      `mapstructure:"name"`
 	Exec interface{} `mapstructure:"exec"`
 
-	// heartbeat and service discovery config
-	Heartbeat         int           `mapstructure:"poll"` // time in seconds
-	TTL               int           `mapstructure:"ttl"`
-	Port              int           `mapstructure:"port"`
-	Interfaces        interface{}   `mapstructure:"interfaces"`
-	Tags              []string      `mapstructure:"tags"`
-	ConsulConfig      *ConsulConfig `mapstructure:"consul"`
+	// service discovery
+	Port             int           `mapstructure:"port"`
+	Interfaces       interface{}   `mapstructure:"interfaces"`
+	Tags             []string      `mapstructure:"tags"`
+	ConsulConfig     *ConsulConfig `mapstructure:"consul"`
+	discoveryCatalog discovery.Backend
+	definition       *discovery.ServiceDefinition
+
+	// health checking
+	Health            *HealthConfig `mapstructure:"health"`
+	healthCheckExec   *commands.Command
 	heartbeatInterval time.Duration
-	discoveryCatalog  discovery.Backend
-	definition        *discovery.ServiceDefinition
+	ttl               int
 
 	// timeouts and restarts
-	ExecTimeout     string      `mapstructure:"execTimeout"`
+	ExecTimeout     string      `mapstructure:"timeout"`
 	Restarts        interface{} `mapstructure:"restarts"`
-	Frequency       string      `mapstructure:"frequency"`
 	StopTimeout     string      `mapstructure:"stopTimeout"`
 	execTimeout     time.Duration
 	exec            *commands.Command
@@ -42,27 +44,28 @@ type Config struct {
 	restartLimit    int
 	freqInterval    time.Duration
 
-	// related jobs
+	// related jobs and frequency
 	When              *WhenConfig `mapstructure:"when"`
 	whenEvent         events.Event
 	whenTimeout       time.Duration
 	stoppingWaitEvent events.Event
-
-	/* TODO v3:
-	These fields are here *only* so we can reuse the config map we use
-	in the checks package here too. this package ignores them. when we
-	move on to the v3 configuration syntax these will be dropped.
-	*/
-	checkExec    interface{} `mapstructure:"health"`
-	checkTimeout string      `mapstructure:"timeout"`
 }
 
-// WhenConfig determines when a Job runs (dependencies on other Jobs
-// or on Watches)
+// WhenConfig determines when a Job runs (dependencies on other Jobs,
+// Watches, or frequency timers)
 type WhenConfig struct {
-	Source  string `mapstructure:"source"`
-	Event   string `mapstructure:"event"`
-	Timeout string `mapstructure:"timeout"`
+	Frequency string `mapstructure:"interval"`
+	Source    string `mapstructure:"source"`
+	Event     string `mapstructure:"event"`
+	Timeout   string `mapstructure:"timeout"`
+}
+
+// HealthConfig configures the Job's health checks
+type HealthConfig struct {
+	CheckExec    interface{} `mapstructure:"exec"`
+	CheckTimeout string      `mapstructure:"timeout"`
+	Heartbeat    int         `mapstructure:"interval"` // time in seconds
+	TTL          int         `mapstructure:"ttl"`      // time in seconds
 }
 
 // ConsulConfig handles additional Consul configuration.
@@ -109,10 +112,7 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	if err := cfg.validateDiscovery(disc); err != nil {
 		return err
 	}
-	if err := cfg.validateFrequency(); err != nil {
-		return err
-	}
-	if err := cfg.validateDependencies(); err != nil {
+	if err := cfg.validateWhen(); err != nil {
 		return err
 	}
 	if err := cfg.validateStoppingTimeout(); err != nil {
@@ -132,68 +132,74 @@ func (cfg *Config) setStopping(name string) {
 }
 
 func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
-	// if port isn't set then we won't do any discovery for this job
-	if cfg.Port == 0 {
-		if cfg.Heartbeat > 0 || cfg.TTL > 0 {
-			return fmt.Errorf("`heartbeat` and `ttl` may not be set in job `%s` if `port` is not set", cfg.Name)
-		}
-		return nil
-	}
-	if cfg.Heartbeat < 1 {
-		return fmt.Errorf("`poll` must be > 0 in job `%s` when `port` is set", cfg.Name)
-	}
-	if cfg.TTL < 1 {
-		return fmt.Errorf("`ttl` must be > 0 in job `%s` when `port` is set", cfg.Name)
-	}
-	cfg.heartbeatInterval = time.Duration(cfg.Heartbeat) * time.Second
-	if err := cfg.AddDiscoveryConfig(disc); err != nil {
+
+	// setting up discovery requires the TTL from the health check first
+	if err := cfg.validateHealthCheck(); err != nil {
 		return err
 	}
-	return nil
+	// if port isn't set then we won't do any discovery for this job
+	if cfg.Port == 0 || disc == nil {
+		return nil
+	}
+	return cfg.addDiscoveryConfig(disc)
+}
+
+func (cfg *Config) validateWhen() error {
+	if cfg.When == nil {
+		// set defaults (frequencyInterval will be zero-value)
+		cfg.When = &WhenConfig{} // give us a safe zero-value
+		cfg.whenTimeout = time.Duration(0)
+		cfg.whenEvent = events.GlobalStartup
+		return nil
+	}
+	if cfg.When.Frequency != "" && cfg.When.Event != "" {
+		return fmt.Errorf("job[%s].when can have an 'interval' or an 'event' but not both",
+			cfg.Name)
+	}
+	if cfg.When.Frequency != "" {
+		return cfg.validateFrequency()
+	}
+	return cfg.validateWhenEvent()
 }
 
 func (cfg *Config) validateFrequency() error {
-	if cfg.Frequency == "" {
-		// defaults if omitted
-		return nil
-	}
-	freq, err := utils.ParseDuration(cfg.Frequency)
+	freq, err := utils.ParseDuration(cfg.When.Frequency)
 	if err != nil {
-		return fmt.Errorf("unable to parse frequency '%s': %v", cfg.Frequency, err)
+		return fmt.Errorf("unable to parse job[%s].when.interval '%s': %v",
+			cfg.Name, cfg.When.Frequency, err)
 	}
 	if freq < taskMinDuration {
-		return fmt.Errorf("frequency '%s' cannot be less than %v", cfg.Frequency, taskMinDuration)
+		return fmt.Errorf("job[%s].when.interval '%s' cannot be less than %v",
+			cfg.Name, cfg.When.Frequency, taskMinDuration)
 	}
 	cfg.freqInterval = freq
+	cfg.whenTimeout = time.Duration(0)
+	cfg.whenEvent = events.GlobalStartup
 	return nil
 }
 
-func (cfg *Config) validateDependencies() error {
-	if cfg.When != nil {
-		whenTimeout, err := utils.GetTimeout(cfg.When.Timeout)
-		if err != nil {
-			return fmt.Errorf("could not parse `when` timeout for job %s: %v",
-				cfg.Name, err)
-		}
-		cfg.whenTimeout = whenTimeout
-		eventCode, err := events.FromString(cfg.When.Event)
-		if err != nil {
-			return fmt.Errorf("could not parse `when` event for job %s: %v",
-				cfg.Name, err)
-		}
-		cfg.whenEvent = events.Event{eventCode, cfg.When.Source}
-	} else {
-		cfg.whenTimeout = time.Duration(0)
-		cfg.whenEvent = events.GlobalStartup
+func (cfg *Config) validateWhenEvent() error {
+
+	whenTimeout, err := utils.GetTimeout(cfg.When.Timeout)
+	if err != nil {
+		return fmt.Errorf("unable to parse job[%s].when.timeout: %v",
+			cfg.Name, err)
 	}
+	cfg.whenTimeout = whenTimeout
+	eventCode, err := events.FromString(cfg.When.Event)
+	if err != nil {
+		return fmt.Errorf("unable to parse job[%s].when.event: %v",
+			cfg.Name, err)
+	}
+	cfg.whenEvent = events.Event{eventCode, cfg.When.Source}
 	return nil
 }
 
 func (cfg *Config) validateStoppingTimeout() error {
 	stoppingTimeout, err := utils.GetTimeout(cfg.StopTimeout)
 	if err != nil {
-		return fmt.Errorf("could not parse `stopTimeout` for job %s: %v",
-			cfg.Name, err)
+		return fmt.Errorf("unable to parse job[%s].stopTimeout '%s': %v",
+			cfg.Name, cfg.StopTimeout, err)
 	}
 	cfg.stoppingTimeout = stoppingTimeout
 	cfg.stoppingWaitEvent = events.NonEvent
@@ -209,12 +215,14 @@ func (cfg *Config) validateExec() error {
 	if cfg.ExecTimeout != "" {
 		execTimeout, err := utils.GetTimeout(cfg.ExecTimeout)
 		if err != nil {
-			return fmt.Errorf("could not parse `timeout` for job %s: %v", cfg.Name, err)
+			return fmt.Errorf("unable to parse job[%s].timeout '%s': %v",
+				cfg.Name, cfg.ExecTimeout, err)
 		}
 		if execTimeout < time.Duration(1*time.Millisecond) {
 			// if there's no timeout set, that's ok, but if we have a timeout
 			// set we need to make sure it's functional
-			return fmt.Errorf("timeout '%v' cannot be less than 1ms", cfg.ExecTimeout)
+			return fmt.Errorf("job[%s].timeout '%v' cannot be less than 1ms",
+				cfg.Name, cfg.ExecTimeout)
 		}
 		cfg.execTimeout = execTimeout
 	}
@@ -222,13 +230,57 @@ func (cfg *Config) validateExec() error {
 		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout,
 			log.Fields{"job": cfg.Name})
 		if err != nil {
-			return fmt.Errorf("could not parse `exec` for job %s: %s", cfg.Name, err)
+			return fmt.Errorf("unable to create job[%s].exec: %v", cfg.Name, err)
 		}
 		if cfg.Name == "" {
 			cfg.Name = cmd.Exec
 		}
 		cmd.Name = cfg.Name
 		cfg.exec = cmd
+	}
+	return nil
+}
+
+func (cfg *Config) validateHealthCheck() error {
+	if cfg.Port != 0 && cfg.Health == nil && cfg.Name != "containerpilot" {
+		return fmt.Errorf("job[%s].health must be set if 'port' is set", cfg.Name)
+	}
+	if cfg.Health == nil {
+		return nil // non-advertised jobs don't need health checks
+	}
+	if cfg.Health.Heartbeat < 1 {
+		return fmt.Errorf("job[%s].health.interval must be > 0", cfg.Name)
+	}
+	if cfg.Health.TTL < 1 {
+		return fmt.Errorf("job[%s].health.ttl must be > 0", cfg.Name)
+	}
+
+	cfg.ttl = cfg.Health.TTL
+	cfg.heartbeatInterval = time.Duration(cfg.Health.Heartbeat) * time.Second
+
+	var checkTimeout time.Duration
+	if cfg.Health.CheckTimeout != "" {
+		parsedTimeout, err := utils.GetTimeout(cfg.Health.CheckTimeout)
+		if err != nil {
+			return fmt.Errorf("could not parse job[%s].health.timeout '%s': %v",
+				cfg.Name, cfg.Health.CheckTimeout, err)
+		}
+		checkTimeout = parsedTimeout
+	} else {
+		checkTimeout = cfg.execTimeout
+	}
+
+	if cfg.Health.CheckExec != nil {
+		// the telemetry service won't have a health check
+		checkName := "check." + cfg.Name
+		cmd, err := commands.NewCommand(cfg.Health.CheckExec, checkTimeout,
+			log.Fields{"check": checkName})
+		if err != nil {
+			return fmt.Errorf("unable to create job[%s].health.exec: %v",
+				cfg.Name, err)
+		}
+		cmd.Name = checkName
+		cfg.healthCheckExec = cmd
 	}
 	return nil
 }
@@ -241,7 +293,7 @@ func (cfg *Config) validateRestarts() error {
 		return nil
 	}
 
-	const msg = `invalid 'restarts' field "%v": accepts positive integers, "unlimited", or "never"`
+	const msg = `job[%s].restarts field '%v' invalid: accepts positive integers, "unlimited", or "never"`
 
 	switch t := cfg.Restarts.(type) {
 	case string:
@@ -252,7 +304,7 @@ func (cfg *Config) validateRestarts() error {
 		} else if i, err := strconv.Atoi(t); err == nil && i >= 0 {
 			cfg.restartLimit = i
 		} else {
-			return fmt.Errorf(msg, cfg.Restarts)
+			return fmt.Errorf(msg, cfg.Name, cfg.Restarts)
 		}
 	case float64, int:
 		// mapstructure can figure out how to decode strings into int fields
@@ -266,18 +318,18 @@ func (cfg *Config) validateRestarts() error {
 		} else if i, ok := t.(float64); ok && i >= 0 {
 			cfg.restartLimit = int(i)
 		} else {
-			return fmt.Errorf(msg, cfg.Restarts)
+			return fmt.Errorf(msg, cfg.Name, cfg.Restarts)
 		}
 	default:
-		return fmt.Errorf(msg, cfg.Restarts)
+		return fmt.Errorf(msg, cfg.Name, cfg.Restarts)
 	}
 
 	return nil
 }
 
-// AddDiscoveryConfig validates the configuration for service discovery
-// and attaches the discovery.Backend to it
-func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
+// addDiscoveryConfig validates the configuration for service discovery
+// and attaches the discovery.Backend to the Config
+func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
 	interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
 	if ifaceErr != nil {
 		return ifaceErr
@@ -295,7 +347,9 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 	if cfg.ConsulConfig != nil {
 		if cfg.ConsulConfig.DeregisterCriticalServiceAfter != "" {
 			if _, err := time.ParseDuration(cfg.ConsulConfig.DeregisterCriticalServiceAfter); err != nil {
-				return fmt.Errorf("could not parse consul `deregisterCriticalServiceAfter` in service %s: %s", cfg.Name, err)
+				return fmt.Errorf(
+					"unable to parse job[%s].consul.deregisterCriticalServiceAfter: %s",
+					cfg.Name, err)
 			}
 		}
 		consulExtras = &discovery.ConsulExtras{
@@ -307,7 +361,7 @@ func (cfg *Config) AddDiscoveryConfig(disc discovery.Backend) error {
 		ID:           id,
 		Name:         cfg.Name,
 		Port:         cfg.Port,
-		TTL:          cfg.TTL,
+		TTL:          cfg.ttl,
 		Tags:         cfg.Tags,
 		IPAddress:    ipAddress,
 		ConsulExtras: consulExtras,

@@ -1,28 +1,30 @@
 {
-  "consul": "consul:8500",
-  "logging": {
-    "level": "DEBUG",
-    "format": "text"
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text"
   },
   jobs: [
     {
-      "name": "nginx",
-      "port": 80,
-      "interfaces": ["eth0"],
-      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost/health.txt",
+      name: "nginx",
+      port: 80,
+      interfaces: ["eth0"],
       when: {
         source: "preStart",
         event: "exitSuccess",
       },
-      "exec": "nginx",
-      "poll": 1,
-      "ttl": 5
+      exec: "nginx",
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost/health.txt",
+        interval: 1,
+        ttl: 5
+      }
     },
     {
-      "name": "preStart",
-      "exec": ["consul-template", "-once", "-retry", "3s",
-               "-consul", "consul:8500", "-template",
-               "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf"],
+      name: "preStart",
+      exec: ["consul-template", "-once", "-retry", "3s",
+             "-consul", "consul:8500", "-template",
+             "/etc/nginx-consul.ctmpl:/etc/nginx/nginx.conf"],
     },
     {
       name: "onChange",
@@ -38,8 +40,8 @@
   ],
   watches: [
     {
-      "name": "app",
-      "poll": 1
+      name: "app",
+      interval: 1
     }
   ]
 }

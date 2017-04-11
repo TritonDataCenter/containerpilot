@@ -1,0 +1,36 @@
+[
+  {
+    name: "serviceA",
+    port: 8080,
+    exec: "/bin/serviceA.sh",
+    when: {
+      source: "preStart",
+      event: "exitSuccess",
+    },
+    health: {
+      interval: 1,
+      ttl: 5,
+      exec: "/bin/checkA.sh"
+    }
+  },
+  {
+    name: "preStart",
+    exec: "/bin/to/preStart.sh arg1 arg2"
+  },
+  {
+    name: "preStop",
+    when: {
+      source: "serviceA",
+      event: "stopping"
+    },
+    exec: ["/bin/to/preStop.sh","arg1","arg2"]
+  },
+  {
+    name: "postStop",
+    when: {
+      source: "serviceA",
+      event: "stopped"
+    },
+    exec: ["/bin/to/postStop.sh"]
+  }
+]

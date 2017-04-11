@@ -1,24 +1,26 @@
 {
-  "consul": "consul:8500",
-  "logging": {
-    "level": "DEBUG",
-    "format": "text"
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text"
   },
   jobs: [
     {
-      "name": "app",
-      "port": 8000,
-      "health": "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+      name: "app",
+      port: 8000,
       when: {
         source: "preStart",
         event: "exitSuccess"
       },
-      "exec": [
+      exec: [
         "/usr/local/bin/node",
         "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
-      "poll": 1,
-      "ttl": 5,
-      "tags": ["application"]
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+        interval: 1,
+        ttl: 5
+      },
+      tags: ["application"]
     },
     {
       name: "preStart",
@@ -43,12 +45,12 @@
   ],
   watches: [
     {
-      "name": "nginx",
-      "poll": 7,
+      name: "nginx",
+      interval: 7,
     },
     {
-      "name": "app",
-      "poll": 5
+      name: "app",
+      interval: 5
     }
   ]
 }

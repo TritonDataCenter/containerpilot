@@ -121,8 +121,11 @@ func TestJobRunPeriodic(t *testing.T) {
 		Name:      "myjob",
 		whenEvent: events.GlobalStartup,
 		Exec:      []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
-		Frequency: "10ms",
-		Restarts:  "unlimited",
+		When:      &WhenConfig{Frequency: "10ms"},
+		// we need to make sure we don't have any events getting cut off
+		// by the test run of 100ms (which would result in flaky tests),
+		// so this should ensure we get a predictable number within the window
+		Restarts: "5",
 	}
 	cfg.Validate(noop)
 	job := NewJob(cfg)
@@ -144,7 +147,7 @@ func TestJobRunPeriodic(t *testing.T) {
 			}
 		}
 	}
-	if got > 10 {
-		t.Fatalf("expected no more than 10 task fires but got %d\n%v", got, ds.Results)
+	if got != 6 {
+		t.Fatalf("expected exactly 6 task executions but got %d\n%v", got, ds.Results)
 	}
 }

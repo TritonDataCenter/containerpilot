@@ -1,11 +1,11 @@
 [
   {
-    "name": "upstreamA",
-    "poll": 11,
-    "tag": "dev"
+    name: "upstreamA",
+    interval: 11,
+    tag: "dev"
   },
   {
     name: "upstreamB",
-    poll: 79
+    interval: 79
   }
 ]

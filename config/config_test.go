@@ -26,27 +26,6 @@ func assertEqual(t *testing.T, got, expected interface{}, msg string) {
 	}
 }
 
-// checks.Config
-func TestValidConfigHealthChecks(t *testing.T) {
-	os.Setenv("TEST", "HELLO")
-	cfg, err := LoadConfig(testJSON)
-	if err != nil {
-		t.Fatalf("unexpected error in LoadConfig: %v", err)
-	}
-
-	if len(cfg.Checks) != 2 {
-		t.Fatalf("expected 2 checks but got %+v", cfg.Checks)
-	}
-	check0 := cfg.Checks[0]
-	check1 := cfg.Checks[1]
-	assertEqual(t, check0.Name, "serviceA.check", "expected '%v' for check0.Name, but got '%v'")
-	assertEqual(t, check0.Poll, 30, "expected '%v' for check0.Poll, but got '%v'")
-	assertEqual(t, check0.Timeout, "30s", "expected '%v' for check0.Timeout, but got '%v'")
-	assertEqual(t, check1.Name, "serviceB.check", "expected '%v' for check1.Name, but got '%v'")
-	assertEqual(t, check1.Poll, 20, "expected '%v' for check1.Poll, but got '%v'")
-	assertEqual(t, check1.Timeout, "2s", "expected '%v' for check1.Timeout, but got '%v'")
-}
-
 // jobs.Config
 func TestValidConfigJobs(t *testing.T) {
 	os.Setenv("TEST", "HELLO")
@@ -75,43 +54,43 @@ func TestValidConfigJobs(t *testing.T) {
 	job2 := cfg.Jobs[2]
 	assertEqual(t, job2.Name, "coprocessC", "expected '%v' for job2.Name but got '%v'")
 	assertEqual(t, job2.Port, 0, "expected '%v' for job2.Port but got '%v'")
-	assertEqual(t, job2.Frequency, "", "expected '%v' for job2.Frequency but got '%v'")
+	assertEqual(t, job2.When.Frequency, "", "expected '%v' for job2.When.Frequency but got '%v'")
 	assertEqual(t, job2.Restarts, "unlimited", "expected '%v' for job2.Restarts but got '%v'")
 
 	job3 := cfg.Jobs[3]
 	assertEqual(t, job3.Name, "periodicTaskD", "expected '%v' for job3.Name but got '%v'")
 	assertEqual(t, job3.Port, 0, "expected '%v' for job3.Port but got '%v'")
-	assertEqual(t, job3.Frequency, "1s", "expected '%v' for job3.Frequency but got '%v'")
+	assertEqual(t, job3.When.Frequency, "1s", "expected '%v' for job3.When.Frequency but got '%v'")
 	assertEqual(t, job3.Restarts, nil, "expected '%v' for job3.Restarts but got '%v'")
 
 	job4 := cfg.Jobs[4]
 	assertEqual(t, job4.Name, "preStart", "expected '%v' for job4.Name but got '%v'")
 	assertEqual(t, job4.Port, 0, "expected '%v' for job4.Port but got '%v'")
-	assertEqual(t, job4.Frequency, "", "expected '%v' for job4.Frequency but got '%v'")
+	assertEqual(t, job4.When.Frequency, "", "expected '%v' for job4.When.Frequency but got '%v'")
 	assertEqual(t, job4.Restarts, nil, "expected '%v' for job4.Restarts but got '%v'")
 
 	job5 := cfg.Jobs[5]
 	assertEqual(t, job5.Name, "preStop", "expected '%v' for job5.Name but got '%v'")
 	assertEqual(t, job5.Port, 0, "expected '%v' for job5.Port but got '%v'")
-	assertEqual(t, job5.Frequency, "", "expected '%v' for job5.Frequency but got '%v'")
+	assertEqual(t, job5.When.Frequency, "", "expected '%v' for job5.When.Frequency but got '%v'")
 	assertEqual(t, job5.Restarts, nil, "expected '%v' for job5.Restarts but got '%v'")
 
 	job6 := cfg.Jobs[6]
 	assertEqual(t, job6.Name, "postStop", "expected '%v' for job6.Name but got '%v'")
 	assertEqual(t, job6.Port, 0, "expected '%v' for job6.Port but got '%v'")
-	assertEqual(t, job6.Frequency, "", "expected '%v' for job6.Frequency but got '%v'")
+	assertEqual(t, job6.When.Frequency, "", "expected '%v' for job6.When.Frequency but got '%v'")
 	assertEqual(t, job6.Restarts, nil, "expected '%v' for job6.Restarts but got '%v'")
 
 	job7 := cfg.Jobs[7]
 	assertEqual(t, job7.Name, "onChange-upstreamA", "expected '%v' for job7.Name but got '%v'")
 	assertEqual(t, job7.Port, 0, "expected '%v' for job7.Port but got '%v'")
-	assertEqual(t, job7.Frequency, "", "expected '%v' for job7.Frequency but got '%v'")
+	assertEqual(t, job7.When.Frequency, "", "expected '%v' for job7.When.Frequency but got '%v'")
 	assertEqual(t, job7.Restarts, nil, "expected '%v' for job7.Restarts but got '%v'")
 
 	job8 := cfg.Jobs[8]
 	assertEqual(t, job8.Name, "onChange-upstreamB", "expected '%v' for job8.Name but got '%v'")
 	assertEqual(t, job8.Port, 0, "expected '%v' for job8.Port but got '%v'")
-	assertEqual(t, job8.Frequency, "", "expected '%v' for job8.Frequency but got '%v'")
+	assertEqual(t, job8.When.Frequency, "", "expected '%v' for job8.When.Frequency but got '%v'")
 	assertEqual(t, job8.Restarts, nil, "expected '%v' for job8.Restarts but got '%v'")
 
 	job9 := cfg.Jobs[9]
