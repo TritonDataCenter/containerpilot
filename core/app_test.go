@@ -3,6 +3,7 @@ package core
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -12,38 +13,49 @@ import (
 )
 
 /*
-TODO v3: a LOT of the these tests should be moved to the config package
+Many of these tests are effectively smoke tests for making sure
+the core and config packages are working together
 */
 
 func TestJobConfigRequiredFields(t *testing.T) {
 	// Missing `name`
 	var testCfg = `{"consul": "consul:8500", jobs: [
                     {"name": "", "port": 8080, health: {interval: 30, "ttl": 19 }}]}`
-	_, err := NewApp(testCfg)
+	f1 := testCfgToTempFile(t, testCfg)
+	defer os.Remove(f1.Name())
+	_, err := NewApp(f1.Name())
 	assert.Error(t, err, "unable to parse jobs: 'name' must not be blank")
 
 	// Missing `interval`
 	testCfg = `{"consul": "consul:8500", jobs: [
                 {"name": "name", "port": 8080, health: {ttl: 19}}]}`
-	_, err = NewApp(testCfg)
+	f2 := testCfgToTempFile(t, testCfg)
+	defer os.Remove(f2.Name())
+	_, err = NewApp(f2.Name())
 	assert.Error(t, err, "unable to parse jobs: job[name].health.interval must be > 0")
 
 	// Missing `ttl`
 	testCfg = `{"consul": "consul:8500", jobs: [
                 {"name": "name", "port": 8080, health: {interval: 19}}]}`
-	_, err = NewApp(testCfg)
+	f3 := testCfgToTempFile(t, testCfg)
+	defer os.Remove(f3.Name())
+	_, err = NewApp(f3.Name())
 	assert.Error(t, err, "unable to parse jobs: job[name].health.ttl must be > 0")
 }
 
-func TestBackendConfigRequiredFields(t *testing.T) {
+func TestWatchConfigRequiredFields(t *testing.T) {
 	// Missing `name`
 	var testCfg = `{"consul": "consul:8500", watches: [{"name": "", "interval": 30}]}`
-	_, err := NewApp(testCfg)
+	f1 := testCfgToTempFile(t, testCfg)
+	defer os.Remove(f1.Name())
+	_, err := NewApp(f1.Name())
 	assert.Error(t, err, "unable to parse watches: 'name' must not be blank")
 
 	// Missing `interval`
 	testCfg = `{"consul": "consul:8500", watches: [{"name": "name"}]}`
-	_, err = NewApp(testCfg)
+	f2 := testCfgToTempFile(t, testCfg)
+	defer os.Remove(f2.Name())
+	_, err = NewApp(f2.Name())
 	assert.Error(t, err, "unable to parse watches: watch[name].interval must be > 0")
 }
 
@@ -57,14 +69,16 @@ func TestInvalidConfigNoConfigFlag(t *testing.T) {
 
 func TestInvalidConfigParseNoDiscovery(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	os.Args = []string{"this", "-config", "{}"}
+	f1 := testCfgToTempFile(t, "{}")
+	defer os.Remove(f1.Name())
+	os.Args = []string{"this", "-config", f1.Name()}
 	_, err := LoadApp()
 	assert.Error(t, err, "no discovery backend defined")
 }
 
 func TestInvalidConfigMissingFile(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	os.Args = []string{"this", "-config", "file:///xxxx"}
+	os.Args = []string{"this", "-config", "/xxxx"}
 	_, err := LoadApp()
 	assert.Error(t, err,
 		"could not read config file: open /xxxx: no such file or directory")
@@ -72,7 +86,9 @@ func TestInvalidConfigMissingFile(t *testing.T) {
 
 func TestInvalidConfigParseNotJson(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
-	os.Args = []string{"this", "-config", "<>"}
+	f1 := testCfgToTempFile(t, "<>")
+	defer os.Remove(f1.Name())
+	os.Args = []string{"this", "-config", f1.Name()}
 	_, err := LoadApp()
 	assert.Error(t, fmt.Errorf("%s", err.Error()[:29]),
 		"parse error at line:col [1:1]")
@@ -81,8 +97,9 @@ func TestInvalidConfigParseNotJson(t *testing.T) {
 func TestInvalidConfigParseTemplateError(t *testing.T) {
 	defer argTestCleanup(argTestSetup())
 	// this config is missing quotes around the template
-	badCfg := `{"test": {{ .NO_SUCH_KEY }}, "test2": "hello"}`
-	os.Args = []string{"this", "-config", badCfg}
+	f1 := testCfgToTempFile(t, `{"test": {{ .NO_SUCH_KEY }}, "test2": "hello"}`)
+	defer os.Remove(f1.Name())
+	os.Args = []string{"this", "-config", f1.Name()}
 	_, err := LoadApp()
 	assert.Error(t, fmt.Errorf("%s", err.Error()[:30]),
 		"parse error at line:col [1:10]")
@@ -110,16 +127,12 @@ func TestRenderArgs(t *testing.T) {
 }
 
 func TestControlServerCreation(t *testing.T) {
-
-	jsonFragment := `{
-    "consul": "consul:8500"
-  }`
-
-	app, err := NewApp(jsonFragment)
+	f1 := testCfgToTempFile(t, `{"consul": "consul:8500"}`)
+	defer os.Remove(f1.Name())
+	app, err := NewApp(f1.Name())
 	if err != nil {
 		t.Fatalf("got error while initializing config: %v", err)
 	}
-
 	if app.ControlServer == nil {
 		t.Error("expected control server to not be nil")
 	}
@@ -127,33 +140,34 @@ func TestControlServerCreation(t *testing.T) {
 
 func TestMetricServiceCreation(t *testing.T) {
 
-	jsonFragment := `{
+	f := testCfgToTempFile(t, `{
     "consul": "consul:8500",
     "telemetry": {
       "interfaces": ["inet"],
       "port": 9090
     }
-  }`
-	if app, err := NewApp(jsonFragment); err != nil {
+  }`)
+	defer os.Remove(f.Name())
+	app, err := NewApp(f.Name())
+	if err != nil {
 		t.Fatalf("got error while initializing config: %v", err)
-	} else {
-		if len(app.Jobs) != 1 {
-			for _, job := range app.Jobs {
-				fmt.Printf("%+v\n", job.Name)
-			}
-			t.Errorf("expected telemetry service but got %v", app.Jobs)
-		} else {
-			service := app.Jobs[0]
-			if service.Name != "containerpilot" {
-				t.Errorf("got incorrect service back: %v", service)
-			}
-			for _, envVar := range os.Environ() {
-				if strings.HasPrefix(envVar, "CONTAINERPILOT_CONTAINERPILOT_IP") {
-					return
-				}
-			}
-			t.Errorf("did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
+	}
+	if len(app.Jobs) != 1 {
+		for _, job := range app.Jobs {
+			fmt.Printf("%+v\n", job.Name)
 		}
+		t.Errorf("expected telemetry service but got %v", app.Jobs)
+	} else {
+		service := app.Jobs[0]
+		if service.Name != "containerpilot" {
+			t.Errorf("got incorrect service back: %v", service)
+		}
+		for _, envVar := range os.Environ() {
+			if strings.HasPrefix(envVar, "CONTAINERPILOT_CONTAINERPILOT_IP") {
+				return
+			}
+		}
+		t.Errorf("did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
 	}
 }
 
@@ -170,6 +184,22 @@ func TestPidEnvVar(t *testing.T) {
 
 // ----------------------------------------------------
 // test helpers
+
+// write the configuration to a tempfile. caller is responsible
+// for calling 'defer os.Remove(f.Name())' when done
+func testCfgToTempFile(t *testing.T, text string) *os.File {
+	f, err := ioutil.TempFile(".", "test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte(text)); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
 
 func argTestSetup() []string {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)

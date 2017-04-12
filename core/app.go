@@ -36,7 +36,7 @@ type App struct {
 	Watches       []*watches.Watch
 	Telemetry     *telemetry.Telemetry
 	StopTimeout   int
-	maintModeLock *sync.RWMutex // TODO v3: probably want to move this to Service.Status
+	maintModeLock *sync.RWMutex
 	signalLock    *sync.RWMutex
 	paused        bool
 	ConfigFlag    string
@@ -61,11 +61,11 @@ func LoadApp() (*App, error) {
 
 	if !flag.Parsed() {
 		flag.StringVar(&configFlag, "config", "",
-			"JSON config or file:// path to JSON config file.")
+			"file path to JSON5 configuration file.")
 		flag.BoolVar(&templateFlag, "template", false,
 			"Render template and quit. (default: false)")
 		flag.StringVar(&renderFlag, "out", "-",
-			"-(default) for stdout or file:// path where to save rendered JSON config file.")
+			"-(default) for stdout or file path where to save rendered JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 		flag.Parse()
 	}

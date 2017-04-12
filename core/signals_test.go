@@ -86,16 +86,32 @@ func TestTerminateSignal(t *testing.T) {
 	}
 }
 
-// Test handler for SIGHUP // TODO this tests the reload method
+// Test handler for SIGHUP // TODO this only tests the reload method
 func TestReloadSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
-	app.ConfigFlag = "invalid"
+
+	// write invalid config to temp file and assign it as app config
+	f := testCfgToTempFile(t, `invalid`)
+	defer os.Remove(f.Name())
+	app.ConfigFlag = f.Name()
+
 	err := app.reload()
 	if err == nil {
 		t.Errorf("invalid configuration did not return error")
 	}
 
-	app.ConfigFlag = `{ "consul": "newconsul:8500" }`
+	// write new valid configuration
+	validConfig := []byte(`{ "consul": "newconsul:8500" }`)
+	f2, err := os.Create(f.Name()) // we'll just blow away the old file
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f2.Write(validConfig); err != nil {
+		t.Fatal(err)
+	}
+	if err := f2.Close(); err != nil {
+		t.Fatal(err)
+	}
 	err = app.reload()
 	if err != nil {
 		t.Errorf("valid configuration returned error: %v", err)
