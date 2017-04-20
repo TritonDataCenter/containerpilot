@@ -5,7 +5,7 @@
     exec: "/bin/serviceA.sh",
     when: {
       source: "preStart",
-      event: "exitSuccess",
+      once: "exitSuccess",
     },
     health: {
       interval: 1,
@@ -21,7 +21,7 @@
     name: "preStop",
     when: {
       source: "serviceA",
-      event: "stopping"
+      once: "stopping"
     },
     exec: ["/bin/to/preStop.sh","arg1","arg2"]
   },
@@ -29,7 +29,7 @@
     name: "postStop",
     when: {
       source: "serviceA",
-      event: "stopped"
+      once: "stopped"
     },
     exec: ["/bin/to/postStop.sh"]
   }

@@ -44,7 +44,7 @@
       port: 8000,
       when: {
         source: "preStart",
-        event: "exitSuccess"
+        once: "exitSuccess"
       },
       exec: [
         "/usr/local/bin/node",

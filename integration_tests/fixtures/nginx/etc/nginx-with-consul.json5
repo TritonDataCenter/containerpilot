@@ -11,7 +11,7 @@
       interfaces: ["eth0"],
       when: {
         source: "preStart",
-        event: "exitSuccess",
+        once: "exitSuccess",
       },
       exec: "nginx",
       health: {
@@ -30,7 +30,7 @@
       name: "onChange",
       when: {
         source: "watch.app",
-        event: "changed"
+        each: "changed"
       },
       exec: [
           "consul-template", "-once", "-consul", "consul:8500", "-template",

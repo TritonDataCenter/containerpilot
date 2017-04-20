@@ -191,14 +191,14 @@ func TestJobConfigSmokeTest(t *testing.T) {
 	job5 := jobs[5]
 	assert.Equal(t, job5.Name, "preStop", "expected '%v' for job5.Name but got '%v'")
 	assert.Equal(t, job5.Port, 0, "expected '%v' for job5.Port but got '%v'")
-	assert.Equal(t, job5.When, &WhenConfig{Source: "serviceA", Event: "stopping"},
+	assert.Equal(t, job5.When, &WhenConfig{Source: "serviceA", Once: "stopping"},
 		"expected '%v' for job5.When but got '%v'")
 	assert.Equal(t, job5.Restarts, nil, "expected '%v' for job5.Restarts but got '%v'")
 
 	job6 := jobs[6]
 	assert.Equal(t, job6.Name, "postStop", "expected '%v' for job6.Name but got '%v'")
 	assert.Equal(t, job6.Port, 0, "expected '%v' for job6.Port but got '%v'")
-	assert.Equal(t, job6.When, &WhenConfig{Source: "serviceA", Event: "stopped"},
+	assert.Equal(t, job6.When, &WhenConfig{Source: "serviceA", Once: "stopped"},
 		"expected '%v' for job6.When but got '%v'")
 	assert.Equal(t, job6.Restarts, nil, "expected '%v' for job6.Restarts but got '%v'")
 }
