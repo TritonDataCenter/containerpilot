@@ -14,7 +14,7 @@ func TestControlConfigDefault(t *testing.T) {
 	}
 
 	if strings.Compare(cfg.SocketPath, DefaultSocket) != 0 {
-		t.Fatalf("parsed socket does not match default socket")
+		t.Fatal("parsed socket does not match default socket")
 	}
 }
 
@@ -22,7 +22,7 @@ func TestControlConfigParse(t *testing.T) {
 	testSocket := "/var/run/cp3.sock"
 	testRaw := tests.DecodeRaw(`{ "socket": "/var/run/cp3.sock" }`)
 	if testRaw == nil {
-		t.Fatalf("parsed empty control config JSON")
+		t.Fatal("parsed empty control config JSON")
 	}
 
 	cfg, err := NewConfig(testRaw)
@@ -31,7 +31,7 @@ func TestControlConfigParse(t *testing.T) {
 	}
 
 	if strings.Compare(cfg.SocketPath, testSocket) != 0 {
-		t.Fatalf("parsed socket does not match custom socket")
+		t.Fatal("parsed socket does not match custom socket")
 	}
 }
 
