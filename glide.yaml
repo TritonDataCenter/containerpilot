@@ -40,3 +40,5 @@ import:
   - unix
 - package: github.com/flynn/json5
   version: 7620272ed63390e979cf5882d2fa0506fe2a8db5
+testImport:
+- package: github.com/sean-/seed
