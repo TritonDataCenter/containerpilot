@@ -1,26 +1,41 @@
 package control
 
 import (
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/joyent/containerpilot/tests"
 	"github.com/joyent/containerpilot/tests/assert"
 )
 
-func dialSocket(proto, path string) (conn net.Conn, err error) {
-	return net.Dial(SocketType, DefaultSocket)
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func socketDialer(tempSocketPath string) func(string, string) (net.Conn, error) {
+	return func(_, _ string) (net.Conn, error) {
+		return net.Dial(SocketType, tempSocketPath)
+	}
+}
+
+func tempSocketPath() string {
+	filename := fmt.Sprintf("containerpilot-test-socket-%d", rand.Int())
+	return filepath.Join(os.TempDir(), filename)
 }
 
 func SetupHTTPServer(t *testing.T, raw string) *HTTPServer {
 	testRaw := tests.DecodeRaw(raw)
 	cfg, err := NewConfig(testRaw)
 	if err != nil {
-		t.Fatalf("parsed empty control config JSON")
+		t.Fatal("parsed empty control config JSON")
 	}
 
 	s, err := NewHTTPServer(cfg)
@@ -43,68 +58,59 @@ func TestGetEnv(t *testing.T) {
 	defer os.Unsetenv("FLIP_MODE")
 	testBody := "FLIP_MODE=dangerous"
 
-	s := SetupHTTPServer(t, `{}`)
+	tempSocketPath := tempSocketPath()
+	defer os.Remove(tempSocketPath)
+
+	s := SetupHTTPServer(t, fmt.Sprintf(`{ "socket": %q}`, tempSocketPath))
 	defer s.Shutdown()
 	s.Serve()
 
 	client := &http.Client{
 		Transport: &http.Transport{
-			Dial: dialSocket,
+			Dial: socketDialer(tempSocketPath),
 		},
 	}
 
-	// NOTE: 'control' means nothing here, connection string must use
-	// protocol/url format.
-	resp, err := client.Get("http://control/v3/env")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	t.Run("GET", func(t *testing.T) {
+		// NOTE: 'control' means nothing here, connection string must use
+		// protocol/url format.
+		resp, err := client.Get("http://control/v3/env")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("HTTP response should not return status %v\n%+v", resp.StatusCode, resp)
-	}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("HTTP response should not return status %v\n%+v", resp.StatusCode, resp)
+		}
 
-	output, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
+		output, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if !strings.Contains(string(output), testBody)  {
-		t.Fatalf("HTTP response should include %v", testBody)
-	}
-}
+		if !strings.Contains(string(output), testBody) {
+			t.Fatalf("HTTP response should include %v", testBody)
+		}
+	})
 
-func TestGetEnvAsPost(t *testing.T) {
-	os.Setenv("FLIP_MODE", "dangerous")
-	defer os.Unsetenv("FLIP_MODE")
-	testBody := "FLIP_MODE=dangerous"
+	t.Run("POST", func(t *testing.T) {
+		r := strings.NewReader("{}\n")
+		// NOTE: 'control' means nothing here, connection string must use
+		// protocol/url format.
+		resp, err := client.Post("http://control/v3/env", "application/json", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
 
-	s := SetupHTTPServer(t, `{}`)
-	defer s.Shutdown()
-	s.Serve()
+		if resp.StatusCode != http.StatusNotImplemented {
+			t.Fatalf("HTTP response should not return status %v\n%+v", resp.StatusCode, resp)
+		}
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			Dial: dialSocket,
-		},
-	}
-
-	r := strings.NewReader("{}\n")
-	// NOTE: 'control' means nothing here, connection string must use
-	// protocol/url format.
-	resp, err := client.Post("http://control/v3/env", "application/json", r)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusNotImplemented {
-		t.Fatalf("HTTP response should not return status %v\n%+v", resp.StatusCode, resp)
-	}
-
-	output, err := ioutil.ReadAll(resp.Body)
-	if strings.Contains(string(output), testBody) {
-		t.Fatalf("HTTP response should not include %v", testBody)
-	}
+		output, err := ioutil.ReadAll(resp.Body)
+		if strings.Contains(string(output), testBody) {
+			t.Fatalf("HTTP response should not include %v", testBody)
+		}
+	})
 }

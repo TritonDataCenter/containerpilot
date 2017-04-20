@@ -6,10 +6,8 @@ import (
 	"github.com/joyent/containerpilot/utils"
 )
 
-const (
-	// DefaultSocket is the default location of the unix domain socket file
-	DefaultSocket = "/var/run/containerpilot.socket"
-)
+// DefaultSocket is the default location of the unix domain socket file
+var DefaultSocket = "/var/run/containerpilot.socket"
 
 // Config represents the location on the file system which serves the Unix
 // control socket file.

@@ -35,3 +35,7 @@ vendor/
 
 # fake paths from overlaying volumes in Docker
 /src
+
+# IDE files
+.idea
+*.iml
