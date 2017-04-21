@@ -13,8 +13,8 @@ import (
 
 // Some magic numbers used internally by restart limits
 const (
-	unlimitedRestarts = -1
-	eventBufferSize   = 1000
+	unlimited       = -1
+	eventBufferSize = 1000
 )
 
 // Job manages the state of a job and its start/stop conditions
@@ -27,9 +27,12 @@ type Job struct {
 	healthCheckExec  *commands.Command
 	healthCheckName  string
 
-	// related events
-	whenEvent         events.Event
-	whenTimeout       time.Duration
+	// starting events
+	startEvent   events.Event
+	startTimeout time.Duration
+	startsRemain int
+
+	// stopping events
 	stoppingWaitEvent events.Event
 	stoppingTimeout   time.Duration
 
@@ -51,8 +54,9 @@ func NewJob(cfg *Config) *Job {
 		discoveryCatalog:  cfg.discoveryCatalog,
 		Service:           cfg.definition,
 		healthCheckExec:   cfg.healthCheckExec,
-		whenEvent:         cfg.whenEvent,
-		whenTimeout:       cfg.whenTimeout,
+		startEvent:        cfg.whenEvent,
+		startTimeout:      cfg.whenTimeout,
+		startsRemain:      cfg.whenStartsLimit,
 		stoppingWaitEvent: cfg.stoppingWaitEvent,
 		stoppingTimeout:   cfg.stoppingTimeout,
 		restartLimit:      cfg.restartLimit,
@@ -144,8 +148,8 @@ func (job *Job) Run(bus *events.EventBus) {
 	}
 
 	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
-	if job.whenTimeout > 0 {
-		events.NewEventTimeout(ctx, job.Rx, job.whenTimeout, startTimeoutSource)
+	if job.startTimeout > 0 {
+		events.NewEventTimeout(ctx, job.Rx, job.startTimeout, startTimeoutSource)
 	}
 
 	var healthCheckName string
@@ -177,7 +181,7 @@ func (job *Job) Run(bus *events.EventBus) {
 					break loop
 				}
 				job.restartsRemain--
-				job.Rx <- job.whenEvent
+				job.StartJob(ctx)
 			case events.Event{events.ExitFailed, healthCheckName}:
 				job.Status = false
 				job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
@@ -203,9 +207,14 @@ func (job *Job) Run(bus *events.EventBus) {
 					break loop
 				}
 				job.restartsRemain--
-				job.Rx <- job.whenEvent
-			case job.whenEvent:
 				job.StartJob(ctx)
+			case job.startEvent:
+				if job.startsRemain == unlimited || job.startsRemain > 0 {
+					job.startsRemain--
+					job.StartJob(ctx)
+				} else {
+					break loop
+				}
 			}
 		}
 		job.cleanup(ctx, cancel)
@@ -213,7 +222,7 @@ func (job *Job) Run(bus *events.EventBus) {
 }
 
 func (job *Job) restartPermitted() bool {
-	if job.restartLimit == unlimitedRestarts || job.restartsRemain > 0 {
+	if job.restartLimit == unlimited || job.restartsRemain > 0 {
 		return true
 	}
 	return false

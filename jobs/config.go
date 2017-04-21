@@ -48,6 +48,7 @@ type Config struct {
 	When              *WhenConfig `mapstructure:"when"`
 	whenEvent         events.Event
 	whenTimeout       time.Duration
+	whenStartsLimit   int
 	stoppingWaitEvent events.Event
 }
 
@@ -56,7 +57,8 @@ type Config struct {
 type WhenConfig struct {
 	Frequency string `mapstructure:"interval"`
 	Source    string `mapstructure:"source"`
-	Event     string `mapstructure:"event"`
+	Once      string `mapstructure:"once"`
+	Each      string `mapstructure:"each"`
 	Timeout   string `mapstructure:"timeout"`
 }
 
@@ -150,10 +152,14 @@ func (cfg *Config) validateWhen() error {
 		cfg.When = &WhenConfig{} // give us a safe zero-value
 		cfg.whenTimeout = time.Duration(0)
 		cfg.whenEvent = events.GlobalStartup
+		cfg.whenStartsLimit = 1
 		return nil
 	}
-	if cfg.When.Frequency != "" && cfg.When.Event != "" {
-		return fmt.Errorf("job[%s].when can have an 'interval' or an 'event' but not both",
+
+	if (cfg.When.Frequency != "" && cfg.When.Once != "") ||
+		(cfg.When.Frequency != "" && cfg.When.Each != "") ||
+		(cfg.When.Once != "" && cfg.When.Each != "") {
+		return fmt.Errorf("job[%s].when can have only one of 'interval', 'once', or 'each'",
 			cfg.Name)
 	}
 	if cfg.When.Frequency != "" {
@@ -175,6 +181,7 @@ func (cfg *Config) validateFrequency() error {
 	cfg.freqInterval = freq
 	cfg.whenTimeout = time.Duration(0)
 	cfg.whenEvent = events.GlobalStartup
+	cfg.whenStartsLimit = 1
 	return nil
 }
 
@@ -186,7 +193,15 @@ func (cfg *Config) validateWhenEvent() error {
 			cfg.Name, err)
 	}
 	cfg.whenTimeout = whenTimeout
-	eventCode, err := events.FromString(cfg.When.Event)
+
+	var eventCode events.EventCode
+	if cfg.When.Once != "" {
+		eventCode, err = events.FromString(cfg.When.Once)
+		cfg.whenStartsLimit = 1
+	} else {
+		eventCode, err = events.FromString(cfg.When.Each)
+		cfg.whenStartsLimit = unlimited
+	}
 	if err != nil {
 		return fmt.Errorf("unable to parse job[%s].when.event: %v",
 			cfg.Name, err)
@@ -298,7 +313,7 @@ func (cfg *Config) validateRestarts() error {
 	switch t := cfg.Restarts.(type) {
 	case string:
 		if t == "unlimited" {
-			cfg.restartLimit = unlimitedRestarts
+			cfg.restartLimit = unlimited
 		} else if t == "never" {
 			cfg.restartLimit = 0
 		} else if i, err := strconv.Atoi(t); err == nil && i >= 0 {

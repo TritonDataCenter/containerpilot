@@ -47,7 +47,7 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
 
 	cfg := &Config{Name: "myjob", Exec: "true",
-		When: &WhenConfig{Source: "never", Event: "startup", Timeout: "100ms"}}
+		When: &WhenConfig{Source: "never", Once: "startup", Timeout: "100ms"}}
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Run(bus)
@@ -85,13 +85,15 @@ func TestJobRunRestarts(t *testing.T) {
 		ds.Run(time.Duration(100 * time.Millisecond))
 
 		cfg := &Config{
-			Name:      "myjob",
-			whenEvent: events.GlobalStartup,
-			Exec:      []string{"./testdata/test.sh", "doStuff", "runRestartsTest"},
-			Restarts:  restarts,
+			Name:            "myjob",
+			whenEvent:       events.GlobalStartup,
+			whenStartsLimit: 1,
+			Exec:            []string{"./testdata/test.sh", "doStuff", "runRestartsTest"},
+			Restarts:        restarts,
 		}
 		cfg.Validate(noop)
 		job := NewJob(cfg)
+
 		job.Run(bus)
 		job.Bus.Publish(events.GlobalStartup)
 		exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
@@ -118,10 +120,9 @@ func TestJobRunPeriodic(t *testing.T) {
 	ds := mocks.NewDebugSubscriber(bus, 10)
 
 	cfg := &Config{
-		Name:      "myjob",
-		whenEvent: events.GlobalStartup,
-		Exec:      []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
-		When:      &WhenConfig{Frequency: "10ms"},
+		Name: "myjob",
+		Exec: []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
+		When: &WhenConfig{Frequency: "10ms"},
 		// we need to make sure we don't have any events getting cut off
 		// by the test run of 100ms (which would result in flaky tests),
 		// so this should ensure we get a predictable number within the window
