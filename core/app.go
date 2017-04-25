@@ -147,8 +147,8 @@ func getEnvVarNameFromService(service string) string {
 // Run starts the application and blocks until finished
 func (a *App) Run() {
 	// Set up handlers for polling and to accept signal interrupts
+	a.ControlServer.Start(a)
 	for {
-		a.ControlServer.Serve()
 		a.Bus = events.NewEventBus()
 		a.handleSignals()
 		a.handlePolling()
@@ -231,7 +231,9 @@ func (a *App) Reload() {
 		a.Telemetry.Shutdown()
 	}
 	if a.ControlServer != nil {
-		a.ControlServer.Shutdown()
+		if err := a.ControlServer.Stop(); err != nil {
+			log.Error("could not gracefully reload control server")
+		}
 	}
 }
 
@@ -244,6 +246,7 @@ func (a *App) reload() error {
 		log.Errorf("error initializing config: %v", err)
 		return err
 	}
+	// a.ControlServer = newApp.ControlServer
 	a.Discovery = newApp.Discovery
 	a.Jobs = newApp.Jobs
 	a.Watches = newApp.Watches
