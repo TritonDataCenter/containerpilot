@@ -13,7 +13,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-var SocketType string = "unix"
+// SocketType is the default listener type
+var SocketType = "unix"
 
 // HTTPServer contains the state of the HTTP Server used by ContainerPilot's
 // HTTP transport control plane. Currently this is listening via a UNIX socket
@@ -41,14 +42,13 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	}, nil
 }
 
-// Serve starts serving the control server
+// Start starts serving HTTP over the control server
 func (s *HTTPServer) Start(app interface{}) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.mux.HandleFunc("/v3/env", s.getEnvHandler)
 	s.mux.HandleFunc("/v3/reload", s.postReloadHandler)
-
 	s.Handler = s.mux
 
 	ln, err := net.Listen(SocketType, s.Addr)
