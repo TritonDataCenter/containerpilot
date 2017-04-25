@@ -151,7 +151,7 @@ func (a *App) Run() {
 		reapChildren()
 	}
 	for {
-		a.ControlServer.Serve()
+		a.ControlServer.Start(a)
 		a.Bus = events.NewEventBus()
 		a.handleSignals()
 		a.handlePolling()
@@ -234,7 +234,7 @@ func (a *App) Reload() {
 		a.Telemetry.Shutdown()
 	}
 	if a.ControlServer != nil {
-		a.ControlServer.Shutdown()
+		a.ControlServer.Stop()
 	}
 }
 
