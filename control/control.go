@@ -1,12 +1,14 @@
 package control
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net"
 	"net/http"
 	"os"
-//	"sync"
+	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -18,9 +20,9 @@ var SocketType string = "unix"
 // file.
 type HTTPServer struct {
 	http.Server
-	mux  *http.ServeMux
-	Addr string
-	// lock       sync.RWMutex
+	mux         *http.ServeMux
+	Addr        string
+	lock        sync.RWMutex
 }
 
 // NewHTTPServer initializes a new control server for manipulating
@@ -41,8 +43,8 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 
 // Serve starts serving the control server
 func (s *HTTPServer) Start(app interface{}) {
-	// s.lock.Lock()
-	// defer s.lock.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	s.mux.HandleFunc("/v3/env", s.getEnvHandler)
 	s.mux.HandleFunc("/v3/reload", s.postReloadHandler)
@@ -62,12 +64,16 @@ func (s *HTTPServer) Start(app interface{}) {
 }
 
 // Stop shuts down the control server gracefully
-func (s *HTTPServer) Stop() {
-	if err := s.Shutdown(nil); err != nil {
-		log.Fatal("control: failed to shutdown HTTP control plane")
-	} else {
-		log.Debug("control: shutdown HTTP control plane")
+func (s *HTTPServer) Stop() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	if err := s.Shutdown(ctx); err != nil {
+		log.Warn("control: failed to shutdown HTTP control plane")
+		return err
 	}
+
+	log.Debug("control: shutdown HTTP control plane")
+	return nil
 }
 
 // getEnvHandler generates HTTP response as a test endpoint
