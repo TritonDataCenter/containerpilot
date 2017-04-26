@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
+	// "time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -21,7 +21,6 @@ var SocketType = "unix"
 // file.
 type HTTPServer struct {
 	http.Server
-	mux         *http.ServeMux
 	Addr        string
 	lock        sync.RWMutex
 }
@@ -41,41 +40,50 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 		return nil, err
 	}
 
-	mux := http.NewServeMux()
-
 	return &HTTPServer{
 		Addr: cfg.SocketPath,
-		mux: mux,
 	}, nil
 }
+
+var listener net.Listener
 
 // Start starts serving HTTP over the control server
 func (s *HTTPServer) Start(app App) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.mux.HandleFunc("/v3/env", s.getEnvHandler)
-	s.mux.HandleFunc("/v3/reload", s.postReloadHandler)
-	s.Handler = s.mux
+	if listener != nil {
+		return
+	}
+
+	router := http.NewServeMux()
+	router.HandleFunc("/v3/env", s.getEnvHandler)
+	router.HandleFunc("/v3/reload", s.postReloadHandler)
+	s.Handler = router
+	log.Debug("control: Initialized routes for control server")
 
 	ln, err := net.Listen(SocketType, s.Addr)
 	if err != nil {
-		log.Fatalf("error serving socket at %s: %v", s.Addr, err)
+		log.Fatalf("error listening to socket at %s: %v", s.Addr, err)
 	}
+
+	listener = ln
 
 	go func() {
 		log.Infof("control: Serving at %s", s.Addr)
-		log.Fatal(s.Serve(ln))
+		// log.Fatal(s.Serve(ln))
+		s.Serve(ln)
 		log.Debugf("control: Stopped serving at %s", s.Addr)
 	}()
 }
 
 // Stop shuts down the control server gracefully
 func (s *HTTPServer) Stop() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx := context.Background()
+	// defer cancel()
 	if err := s.Shutdown(ctx); err != nil {
-		log.Warn("control: failed to shutdown HTTP control plane")
+		log.Error("control: failed to shutdown HTTP control plane")
 		return err
 	}
 

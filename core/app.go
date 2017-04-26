@@ -234,7 +234,9 @@ func (a *App) Reload() {
 		a.Telemetry.Shutdown()
 	}
 	if a.ControlServer != nil {
-		a.ControlServer.Stop()
+		if err := a.ControlServer.Stop(); err != nil {
+			log.Error("could not gracefully reload control server")
+		}
 	}
 }
 
@@ -247,7 +249,7 @@ func (a *App) reload() error {
 		log.Errorf("error initializing config: %v", err)
 		return err
 	}
-	a.ControlServer = newApp.ControlServer
+	// a.ControlServer = newApp.ControlServer
 	a.Discovery = newApp.Discovery
 	a.Jobs = newApp.Jobs
 	a.Watches = newApp.Watches
