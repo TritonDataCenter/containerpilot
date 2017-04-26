@@ -25,6 +25,13 @@ type HTTPServer struct {
 	lock        sync.RWMutex
 }
 
+// App interface ensures App object passed into Start contains appropriate
+// methods for use by control endpoint handlers.
+type App interface {
+	Reload()
+	ToggleMaintenanceMode()
+}
+
 // NewHTTPServer initializes a new control server for manipulating
 // ContainerPilot's runtime configuration.
 func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
@@ -39,7 +46,7 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 }
 
 // Start starts serving HTTP over the control server
-func (s *HTTPServer) Start(app interface{}) {
+func (s *HTTPServer) Start(app App) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
