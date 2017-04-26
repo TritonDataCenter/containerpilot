@@ -150,8 +150,10 @@ func (a *App) Run() {
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
+
+	a.ControlServer.Start(a)
+
 	for {
-		a.ControlServer.Start(a)
 		a.Bus = events.NewEventBus()
 		a.handleSignals()
 		a.handlePolling()

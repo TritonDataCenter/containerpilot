@@ -1,7 +1,7 @@
 package control
 
 import (
-	"context"
+	// "context"
 	"encoding/json"
 	"errors"
 	"net"
@@ -45,16 +45,10 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	}, nil
 }
 
-// var listener net.Listener
-
 // Start starts serving HTTP over the control server
 func (s *HTTPServer) Start(app App) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
-	// if listener != nil {
-	// 	return
-	// }
 
 	router := http.NewServeMux()
 	router.HandleFunc("/v3/env", s.getEnvHandler)
@@ -67,8 +61,6 @@ func (s *HTTPServer) Start(app App) {
 		log.Fatalf("error listening to socket at %s: %v", s.Addr, err)
 	}
 
-	// listener = ln
-
 	go func() {
 		log.Infof("control: Serving at %s", s.Addr)
 		// log.Fatal(s.Serve(ln))
@@ -80,9 +72,8 @@ func (s *HTTPServer) Start(app App) {
 // Stop shuts down the control server gracefully
 func (s *HTTPServer) Stop() error {
 	// ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	ctx := context.Background()
 	// defer cancel()
-	if err := s.Shutdown(ctx); err != nil {
+	if err := s.Close(); err != nil {
 		log.Error("control: failed to shutdown HTTP control plane")
 		return err
 	}
