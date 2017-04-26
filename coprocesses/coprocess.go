@@ -125,7 +125,7 @@ func (c *Coprocess) Start() {
 			break
 		}
 		if code, err := commands.RunAndWait(c.cmd); err != nil {
-			log.Errorf("coprocess[%s] exited (%s): %s", c.Name, code, err)
+			log.Errorf("coprocess[%s] exited (%v): %s", c.Name, code, err)
 		}
 		log.Debugf("coprocess[%s] exited", c.Name)
 		if !c.restart {

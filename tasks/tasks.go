@@ -85,5 +85,5 @@ func (t *Task) PollStop() {
 
 // PollAction runs the task
 func (t *Task) PollAction() {
-	commands.RunWithTimeout(t.cmd)
+	commands.RunWithTimeout(t.cmd) // DEBUG
 }
