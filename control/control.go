@@ -45,16 +45,16 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	}, nil
 }
 
-var listener net.Listener
+// var listener net.Listener
 
 // Start starts serving HTTP over the control server
 func (s *HTTPServer) Start(app App) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if listener != nil {
-		return
-	}
+	// if listener != nil {
+	// 	return
+	// }
 
 	router := http.NewServeMux()
 	router.HandleFunc("/v3/env", s.getEnvHandler)
@@ -67,7 +67,7 @@ func (s *HTTPServer) Start(app App) {
 		log.Fatalf("error listening to socket at %s: %v", s.Addr, err)
 	}
 
-	listener = ln
+	// listener = ln
 
 	go func() {
 		log.Infof("control: Serving at %s", s.Addr)
