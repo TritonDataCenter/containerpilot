@@ -90,7 +90,7 @@ func (s *HTTPServer) Stop() error {
 func (s *HTTPServer) getEnvHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		failedStatus := http.StatusNotImplemented
-		log.Errorf("'GET %v' not responding to request method '%v'", r.URL, r.Method)
+		log.Errorf("%s requires GET, not %s", r.URL, r.Method)
 		http.Error(w, http.StatusText(failedStatus), failedStatus)
 		return
 	}
@@ -113,21 +113,11 @@ func (s *HTTPServer) getEnvHandler(w http.ResponseWriter, r *http.Request) {
 func (s *HTTPServer) postReloadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		failedStatus := http.StatusNotImplemented
-		log.Errorf("'POST %v' not responding to request method '%v'", r.URL, r.Method)
+		log.Errorf("%s requires POST, not %s", r.URL, r.Method)
 		http.Error(w, http.StatusText(failedStatus), failedStatus)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-
-	envJSON, err := json.Marshal(os.Environ())
-	if err != nil {
-		failedStatus := http.StatusUnprocessableEntity
-		log.Errorf("'GET %v' JSON response unprocessable due to error: %v", r.URL, err)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-	}
-
-	log.Debugf("marshaled environ: %v", string(envJSON))
-	w.Write(envJSON)
 }
