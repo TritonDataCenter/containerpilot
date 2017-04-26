@@ -221,6 +221,12 @@ func (a *App) Terminate() {
 		log.Infof("killing processes for service %#v", service.Name)
 		service.Kill()
 	}
+
+	if a.ControlServer != nil {
+		if err := a.ControlServer.Stop(); err != nil {
+			log.Error("could not gracefully terminate control server")
+		}
+	}
 }
 
 // Reload will set the 'reload' flag on our event loop and then shut it

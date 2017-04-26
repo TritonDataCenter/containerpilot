@@ -1,14 +1,14 @@
 package control
 
 import (
-	// "context"
+	"context"
 	"encoding/json"
 	"errors"
 	"net"
 	"net/http"
 	"os"
 	"sync"
-	// "time"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -71,9 +71,13 @@ func (s *HTTPServer) Start(app App) {
 
 // Stop shuts down the control server gracefully
 func (s *HTTPServer) Stop() error {
-	// ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	// defer cancel()
-	if err := s.Close(); err != nil {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	// if err := s.Close(); err != nil {
+	if err := s.Shutdown(ctx); err != nil {
 		log.Error("control: failed to shutdown HTTP control plane")
 		return err
 	}
