@@ -62,8 +62,7 @@ func (s *HTTPServer) Start(app App) {
 
 	go func() {
 		log.Infof("control: Serving at %s", s.Addr)
-		log.Fatal(s.Serve(ln))
-		// s.Serve(ln)
+		s.Serve(ln)
 		log.Debugf("control: Stopped serving at %s", s.Addr)
 	}()
 }

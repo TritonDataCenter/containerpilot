@@ -14,20 +14,21 @@ type Endpoints struct {
 	app App
 }
 
-// EndpointFunc is an adapter which allows a normal function to serve itself
-// over HTTP as a handler. Also allows us to pass through App state.
+// EndpointFunc is an adapter which allows a normal function to serve itself and
+// handle incoming HTTP requests. Also allows us to pass through App state in an
+// organized fashion.
 type EndpointFunc func(http.ResponseWriter, *http.Request)
 
-// ServeHTTP by calling an EndpointFunc that implements some API endpoint
-// behavior.
+// ServeHTTP implements intermediate endpoint behavior before calling one of the
+// actual handler implementations below.
 func (ef EndpointFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Debugf("control: '%s %s' requested", r.Method, r.URL)
 	ef(w, r)
 }
 
-// GetEnvHandler generates HTTP response as a test endpoint
+// GetEnv generates HTTP response which returns current OS environ. Used as a
+// test endpoint.
 func (e Endpoints) GetEnv(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("control: Received request at '%s %s'", r.URL, r.Method)
-
 	if r.Method != http.MethodGet {
 		failedStatus := http.StatusNotImplemented
 		log.Errorf("%s requires GET, not %s", r.URL, r.Method)
@@ -49,10 +50,9 @@ func (e Endpoints) GetEnv(w http.ResponseWriter, r *http.Request) {
 	w.Write(envJSON)
 }
 
-// PostReloadHandler reloads ContainerPilot process
+// PostReload reloads ContainerPilot process configuration and generates null
+// HTTP response.
 func (e Endpoints) PostReload(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("control: Received request at '%s %s'", r.URL, r.Method)
-
 	if r.Method != http.MethodPost {
 		failedStatus := http.StatusNotImplemented
 		log.Errorf("%s requires POST, not %s", r.URL, r.Method)
