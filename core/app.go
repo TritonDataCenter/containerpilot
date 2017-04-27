@@ -147,8 +147,8 @@ func getEnvVarNameFromService(service string) string {
 // Run starts the application and blocks until finished
 func (a *App) Run() {
 	// Set up handlers for polling and to accept signal interrupts
-	a.ControlServer.Start(a)
 	for {
+		a.ControlServer.Start(a)
 		a.Bus = events.NewEventBus()
 		a.handleSignals()
 		a.handlePolling()

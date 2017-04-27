@@ -2,11 +2,9 @@ package control
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -45,16 +43,20 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	}, nil
 }
 
-// Start starts serving HTTP over the control server
+// Start sets up API routes, passing along App state, listens on the control
+// socket, and serves the HTTP server.
 func (s *HTTPServer) Start(app App) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	endpoints := &Endpoints{app}
+
 	router := http.NewServeMux()
-	router.HandleFunc("/v3/env", s.getEnvHandler)
-	router.HandleFunc("/v3/reload", s.postReloadHandler)
+	router.Handle("/v3/environ", EndpointFunc(endpoints.GetEnviron))
+	router.Handle("/v3/reload", EndpointFunc(endpoints.PostReload))
 	s.Handler = router
-	log.Debug("control: Initialized routes for control server")
+
+	log.Debug("control: Initialized router for control server")
 
 	ln, err := net.Listen(SocketType, s.Addr)
 	if err != nil {
@@ -63,7 +65,6 @@ func (s *HTTPServer) Start(app App) {
 
 	go func() {
 		log.Infof("control: Serving at %s", s.Addr)
-		// log.Fatal(s.Serve(ln))
 		s.Serve(ln)
 		log.Debugf("control: Stopped serving at %s", s.Addr)
 	}()
@@ -74,7 +75,7 @@ func (s *HTTPServer) Stop() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	// if err := s.Close(); err != nil {
 	if err := s.Shutdown(ctx); err != nil {
@@ -84,40 +85,4 @@ func (s *HTTPServer) Stop() error {
 
 	log.Debug("control: shutdown HTTP control plane")
 	return nil
-}
-
-// getEnvHandler generates HTTP response as a test endpoint
-func (s *HTTPServer) getEnvHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		failedStatus := http.StatusNotImplemented
-		log.Errorf("%s requires GET, not %s", r.URL, r.Method)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-
-	envJSON, err := json.Marshal(os.Environ())
-	if err != nil {
-		failedStatus := http.StatusUnprocessableEntity
-		log.Errorf("'GET %v' JSON response unprocessable due to error: %v", r.URL, err)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-	}
-
-	log.Debugf("marshaled environ: %v", string(envJSON))
-	w.Write(envJSON)
-}
-
-// postReloadHandler reloads ContainerPilot process
-func (s *HTTPServer) postReloadHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		failedStatus := http.StatusNotImplemented
-		log.Errorf("%s requires POST, not %s", r.URL, r.Method)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
 }
