@@ -74,7 +74,7 @@ func TestGetEnv(t *testing.T) {
 	t.Run("GET", func(t *testing.T) {
 		// NOTE: 'control' means nothing here, connection string must use
 		// protocol/url format.
-		resp, err := client.Get("http://control/v3/env")
+		resp, err := client.Get("http://control/v3/environ")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -98,7 +98,7 @@ func TestGetEnv(t *testing.T) {
 		r := strings.NewReader("{}\n")
 		// NOTE: 'control' means nothing here, connection string must use
 		// protocol/url format.
-		resp, err := client.Post("http://control/v3/env", "application/json", r)
+		resp, err := client.Post("http://control/v3/environ", "application/json", r)
 		if err != nil {
 			t.Fatal(err)
 		}
