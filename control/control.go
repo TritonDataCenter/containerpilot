@@ -43,16 +43,19 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	}, nil
 }
 
-// Start starts serving HTTP over the control server
+// Start sets up API routes, passing along App state, listens on the control
+// socket, and serves the HTTP server.
 func (s *HTTPServer) Start(app App) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	endpoints := &Endpoints{app}
+
 	router := http.NewServeMux()
-	router.Handle("/v3/environ", EndpointFunc(endpoints.GetEnv))
+	router.Handle("/v3/environ", EndpointFunc(endpoints.GetEnviron))
 	router.Handle("/v3/reload", EndpointFunc(endpoints.PostReload))
 	s.Handler = router
+
 	log.Debug("control: Initialized router for control server")
 
 	ln, err := net.Listen(SocketType, s.Addr)

@@ -28,7 +28,7 @@ func (ef EndpointFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // GetEnv generates HTTP response which returns current OS environ. Used as a
 // test endpoint.
-func (e Endpoints) GetEnv(w http.ResponseWriter, r *http.Request) {
+func (e Endpoints) GetEnviron(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		failedStatus := http.StatusNotImplemented
 		log.Errorf("%s requires GET, not %s", r.URL, r.Method)
