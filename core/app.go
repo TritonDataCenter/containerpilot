@@ -151,9 +151,8 @@ func (a *App) Run() {
 		reapChildren()
 	}
 
-	a.ControlServer.Start(a)
-
 	for {
+		a.ControlServer.Start(a)
 		a.Bus = events.NewEventBus()
 		a.handleSignals()
 		a.handlePolling()
