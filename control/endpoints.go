@@ -71,6 +71,7 @@ func (e Endpoints) PutEnviron(w http.ResponseWriter, r *http.Request) {
 // PostReload handles incoming HTTP POST requests and reloads our current
 // ContainerPilot process configuration. Returns null HTTP response.
 func (e Endpoints) PostReload(w http.ResponseWriter, r *http.Request) {
-	e.app.Reload()
+	defer r.Body.Close()
+	go e.app.Reload()
 	log.Debug("control: reloaded app via control plane")
 }
