@@ -109,6 +109,8 @@ func NewApp(configFlag string) (*App, error) {
 			log.Errorf("error marshalling config for debug: %v", err)
 		}
 		log.Debugf("loaded config: %v", string(configJSON))
+		// NOTE: Leaks secrets... because we know you put them there
+		log.Debugf("loaded environ: %v", os.Environ())
 	}
 
 	cs, err := control.NewHTTPServer(cfg.Control)
@@ -150,8 +152,9 @@ func (a *App) Run() {
 	if 1 == os.Getpid() {
 		reapChildren()
 	}
+
 	for {
-		a.ControlServer.Serve()
+		a.ControlServer.Start(a)
 		a.Bus = events.NewEventBus()
 		a.handleSignals()
 		a.handlePolling()
@@ -219,6 +222,12 @@ func (a *App) Terminate() {
 		log.Infof("killing processes for service %#v", service.Name)
 		service.Kill()
 	}
+
+	if a.ControlServer != nil {
+		if err := a.ControlServer.Stop(); err != nil {
+			log.Warn("could not gracefully terminate control server")
+		}
+	}
 }
 
 // Reload will set the 'reload' flag on our event loop and then shut it
@@ -234,7 +243,9 @@ func (a *App) Reload() {
 		a.Telemetry.Shutdown()
 	}
 	if a.ControlServer != nil {
-		a.ControlServer.Shutdown()
+		if err := a.ControlServer.Stop(); err != nil {
+			log.Warn("failed to gracefully reload control server")
+		}
 	}
 }
 
@@ -259,7 +270,6 @@ func (a *App) reload() error {
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
 func (a *App) handlePolling() {
-
 	for _, job := range a.Jobs {
 		job.Run(a.Bus)
 	}

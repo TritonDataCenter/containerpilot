@@ -1,29 +1,33 @@
 package control
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"net"
 	"net/http"
-	"os"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-const (
-	// SocketType is the default listener type
-	SocketType = "unix"
-)
+// SocketType is the default listener type
+var SocketType = "unix"
 
 // HTTPServer contains the state of the HTTP Server used by ContainerPilot's
 // HTTP transport control plane. Currently this is listening via a UNIX socket
 // file.
 type HTTPServer struct {
-	mux        *http.ServeMux
-	addr       net.UnixAddr
-	listening  bool
-	lock       sync.RWMutex
+	http.Server
+	Addr        string
+	lock        sync.RWMutex
+}
+
+// App interface ensures App object passed into Start contains appropriate
+// methods for use by control endpoint handlers.
+type App interface {
+	Reload()
+	ToggleMaintenanceMode()
 }
 
 // NewHTTPServer initializes a new control server for manipulating
@@ -34,73 +38,55 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 		return nil, err
 	}
 
-	mux := http.NewServeMux()
-	addr := net.UnixAddr{
-		Name: cfg.SocketPath,
-		Net: SocketType,
-	}
-
 	return &HTTPServer{
-		mux: mux,
-		addr: addr,
-		listening: false,
+		Addr: cfg.SocketPath,
 	}, nil
 }
 
-var listener net.Listener
-
-// Serve starts serving the control server
-func (s *HTTPServer) Serve() {
+// Start sets up API routes, passing along App state, listens on the control
+// socket, and serves the HTTP server.
+func (s *HTTPServer) Start(app App) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	// ref https://github.com/joyent/containerpilot/pull/165
-	if listener != nil {
-		return
-	}
+	endpoints := &Endpoints{app}
 
-	s.mux.HandleFunc("/v3/env", s.getEnvHandler)
+	router := http.NewServeMux()
+	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
+	router.Handle("/v3/reload", PostHandler(endpoints.PostReload))
+	s.Handler = router
 
-	ln, err := net.Listen(s.addr.Network(), s.addr.String())
+	s.SetKeepAlivesEnabled(false)
+
+	log.Debug("control: Initialized router for control server")
+
+	ln, err := net.Listen(SocketType, s.Addr)
 	if err != nil {
-		log.Fatalf("error serving socket at %s: %v", s.addr.String(), err)
+		log.Fatalf("error listening to socket at %s: %v", s.Addr, err)
 	}
-
-	listener = ln
-	s.listening = true
 
 	go func() {
-		log.Infof("control: Serving at %s", s.addr.String())
-		log.Fatal(http.Serve(ln, s.mux))
-		log.Debugf("control: Stopped serving at %s", s.addr.String())
+		log.Infof("control: Serving at %s", s.Addr)
+		s.Serve(ln)
+		log.Debugf("control: Stopped serving at %s", s.Addr)
 	}()
 }
 
-// Shutdown shuts down the control server
-func (s *HTTPServer) Shutdown() {
-	s.listening = false
-	log.Debug("control: Shutdown received but currently a no-op")
-}
-
-// getEnvHandler generates HTTP response as a test endpoint
-func (s *HTTPServer) getEnvHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		failedStatus := http.StatusNotImplemented
-		log.Errorf("'GET %v' not responding to request method '%v'", r.URL, r.Method)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-		return
+// Stop shuts down the control server gracefully
+func (s *HTTPServer) Stop() error {
+	// This timeout won't stop the configuration reload process, since that
+	// happens async, but timing out can pre-emptively close the HTTP connection
+	// that fired the reload in the first place. If pre-emptive timeout occurs
+	// than CP only throws a warning in it's logs.
+	//
+	// Also, 600 seemed to be the magic number... I'm sure it'll vary.
+	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Millisecond)
+	defer cancel()
+	if err := s.Shutdown(ctx); err != nil {
+		log.Warn("control: failed to gracefully shutdown control server")
+		return err
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-
-	envJSON, err := json.Marshal(os.Environ())
-	if err != nil {
-		failedStatus := http.StatusUnprocessableEntity
-		log.Errorf("'GET %v' JSON response unprocessable due to error: %v", r.URL, err)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-	}
-
-	log.Debugf("marshaled environ: %v", string(envJSON))
-	w.Write(envJSON)
+	log.Debug("control: completed graceful shutdown of control server")
+	return nil
 }
