@@ -2,9 +2,10 @@ package control
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
-	"io"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -14,45 +15,16 @@ type Endpoints struct {
 	app App
 }
 
-// EndpointFunc is an adapter which allows a normal function to serve itself and
-// handle incoming HTTP requests. Also allows us to pass through App state in an
-// organized fashion.
-type EndpointFunc func(http.ResponseWriter, *http.Request)
+// PostHandler is an adapter which allows a normal function to serve itself and
+// handle incoming HTTP POST requests. Also allows us to pass through App state
+// in a more organized fashion.
+type PostHandler func(http.ResponseWriter, *http.Request)
 
-// ServeHTTP implements intermediate endpoint behavior before calling one of the
-// actual handler implementations below.
-func (ef EndpointFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// ServeHTTP implements intermediate endpoint behavior for POST
+// requests. Subsequently calls actual handler implementations defined below.
+func (ph PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("control: '%s %s' requested", r.Method, r.URL)
-	ef(w, r)
-}
 
-// GetEnv generates HTTP response which returns current OS environ. Used as a
-// test endpoint.
-func (e Endpoints) GetEnviron(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		failedStatus := http.StatusNotImplemented
-		log.Errorf("%s requires GET, not %s", r.URL, r.Method)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-
-	envJSON, err := json.Marshal(os.Environ())
-	if err != nil {
-		failedStatus := http.StatusUnprocessableEntity
-		log.Errorf("'GET %v' JSON response unprocessable due to error: %v", r.URL, err)
-		http.Error(w, http.StatusText(failedStatus), failedStatus)
-	}
-
-	log.Debugf("marshaled environ: %v", string(envJSON))
-	w.Write(envJSON)
-}
-
-// PostReload reloads ContainerPilot process configuration and generates null
-// HTTP response.
-func (e Endpoints) PostReload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		failedStatus := http.StatusNotImplemented
 		log.Errorf("%s requires POST, not %s", r.URL, r.Method)
@@ -60,10 +32,46 @@ func (e Endpoints) PostReload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e.app.Reload()
-	log.Debug("reloaded app via control plane")
-
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	ph(w, r)
+
 	io.WriteString(w, "\n")
+}
+
+// PutEnviron handles incoming HTTP POST requests containing JSON environment
+// variables and updates the environment of our current ContainerPilot
+// process. Returns null HTTP response.
+func (e Endpoints) PutEnviron(w http.ResponseWriter, r *http.Request) {
+	var postEnv map[string]string
+
+	errFunc := func(err error) {
+		failedStatus := http.StatusUnprocessableEntity
+		log.Errorf("'%v %v' request unprocessable due to error:\n%v", r.Method, r.URL, err)
+		http.Error(w, http.StatusText(failedStatus), failedStatus)
+	}
+
+	jsonBlob, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		errFunc(err)
+	}
+
+	err = json.Unmarshal(jsonBlob, &postEnv)
+	if err != nil {
+		errFunc(err)
+	}
+
+	for envKey, envValue := range postEnv {
+		os.Setenv(envKey, envValue)
+	}
+}
+
+// PostReload handles incoming HTTP POST requests and reloads our current
+// ContainerPilot process configuration. Returns null HTTP response.
+func (e Endpoints) PostReload(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	go e.app.Reload()
+	log.Debug("control: reloaded app via control plane")
 }

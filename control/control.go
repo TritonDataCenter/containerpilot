@@ -52,9 +52,11 @@ func (s *HTTPServer) Start(app App) {
 	endpoints := &Endpoints{app}
 
 	router := http.NewServeMux()
-	router.Handle("/v3/environ", EndpointFunc(endpoints.GetEnviron))
-	router.Handle("/v3/reload", EndpointFunc(endpoints.PostReload))
+	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
+	router.Handle("/v3/reload", PostHandler(endpoints.PostReload))
 	s.Handler = router
+
+	s.SetKeepAlivesEnabled(false)
 
 	log.Debug("control: Initialized router for control server")
 
@@ -72,17 +74,19 @@ func (s *HTTPServer) Start(app App) {
 
 // Stop shuts down the control server gracefully
 func (s *HTTPServer) Stop() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	// This timeout won't stop the configuration reload process, since that
+	// happens async, but timing out can pre-emptively close the HTTP connection
+	// that fired the reload in the first place. If pre-emptive timeout occurs
+	// than CP only throws a warning in it's logs.
+	//
+	// Also, 600 seemed to be the magic number... I'm sure it'll vary.
+	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Millisecond)
 	defer cancel()
-	// if err := s.Close(); err != nil {
 	if err := s.Shutdown(ctx); err != nil {
-		log.Error("control: failed to shutdown HTTP control plane")
+		log.Warn("control: failed to gracefully shutdown control server")
 		return err
 	}
 
-	log.Debug("control: shutdown HTTP control plane")
+	log.Debug("control: completed graceful shutdown of control server")
 	return nil
 }
