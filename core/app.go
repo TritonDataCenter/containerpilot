@@ -109,6 +109,8 @@ func NewApp(configFlag string) (*App, error) {
 			log.Errorf("error marshalling config for debug: %v", err)
 		}
 		log.Debugf("loaded config: %v", string(configJSON))
+		// NOTE: Leaks secrets... because we know you put them there
+		log.Debugf("loaded environ: %v", os.Environ())
 	}
 
 	cs, err := control.NewHTTPServer(cfg.Control)
@@ -223,7 +225,7 @@ func (a *App) Terminate() {
 
 	if a.ControlServer != nil {
 		if err := a.ControlServer.Stop(); err != nil {
-			log.Error("could not gracefully terminate control server")
+			log.Warn("could not gracefully terminate control server")
 		}
 	}
 }
@@ -242,7 +244,7 @@ func (a *App) Reload() {
 	}
 	if a.ControlServer != nil {
 		if err := a.ControlServer.Stop(); err != nil {
-			log.Error("could not gracefully reload control server")
+			log.Warn("failed to gracefully reload control server")
 		}
 	}
 }
@@ -256,7 +258,6 @@ func (a *App) reload() error {
 		log.Errorf("error initializing config: %v", err)
 		return err
 	}
-	// a.ControlServer = newApp.ControlServer
 	a.Discovery = newApp.Discovery
 	a.Jobs = newApp.Jobs
 	a.Watches = newApp.Watches
@@ -269,7 +270,6 @@ func (a *App) reload() error {
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
 func (a *App) handlePolling() {
-
 	for _, job := range a.Jobs {
 		job.Run(a.Bus)
 	}
