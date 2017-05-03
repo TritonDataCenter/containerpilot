@@ -97,7 +97,6 @@ func RunAndWait(c *Command) (int, error) {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				if status.ExitStatus() == 0 {
-					log.Debug(err)
 					return 0, nil
 				}
 				return status.ExitStatus(), err
@@ -221,7 +220,6 @@ func (c *Command) waitForTimeout() error {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				if status.ExitStatus() == 0 {
-					log.Debug(err)
 					return nil // process exited cleanly before we hit wait4
 				}
 				return fmt.Errorf("%s exited with error", c.Name)

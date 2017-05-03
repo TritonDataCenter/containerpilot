@@ -1,8 +1,6 @@
 package core
 
-import (
-	"time"
-)
+import "time"
 
 // Every `pollTime` seconds, run the `PollingFunc` function.
 // Expect a bool on the quit channel to stop gracefully.
