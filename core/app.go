@@ -209,6 +209,7 @@ func (a *App) Terminate() {
 				job.Kill()
 			}
 		})
+		return
 	}
 	for _, job := range a.Jobs {
 		log.Infof("killing processes for job %#v", job.Name)

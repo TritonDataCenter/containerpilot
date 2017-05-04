@@ -14,18 +14,6 @@ import (
 	"github.com/joyent/containerpilot/tests/assert"
 )
 
-type TestApp struct {
-	maintaining, reloading bool
-}
-
-func (ta TestApp) Reload() {
-	ta.reloading = true
-}
-
-func (ta TestApp) ToggleMaintenanceMode() {
-	ta.maintaining = true
-}
-
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }

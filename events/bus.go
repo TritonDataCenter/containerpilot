@@ -19,7 +19,7 @@ type EventBus struct {
 func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
 	reg := make(map[Subscriber]bool)
-	done := make(chan bool, 1)
+	done := make(chan bool, 2)
 	bus := &EventBus{registry: reg, lock: lock, done: done, reload: false}
 	return bus
 }

@@ -31,7 +31,7 @@ func getSignalTestConfig(t *testing.T) *App {
 	cfg.Validate(&mocks.NoopDiscoveryBackend{})
 	job := jobs.NewJob(cfg)
 	app := EmptyApp()
-	app.StopTimeout = 5
+	app.StopTimeout = 1
 	app.Jobs = []*jobs.Job{job}
 	app.Bus = events.NewEventBus()
 	return app
