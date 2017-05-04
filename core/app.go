@@ -150,9 +150,6 @@ func getEnvVarNameFromService(service string) string {
 // Run starts the application and blocks until finished
 func (a *App) Run() {
 	// Set up handlers for polling and to accept signal interrupts
-	if 1 == os.Getpid() {
-		reapChildren()
-	}
 	args := getArgs(flag.Args())
 	cmd, err := commands.NewCommand(args, "0", nil)
 	if err != nil {
@@ -164,7 +161,7 @@ func (a *App) Run() {
 
 	if a.PreStartCmd != nil {
 		// Run the preStart handler, if any, and exit if it returns an error
-		if code, err := commands.RunAndWait(a.PreStartCmd); err != nil {
+		if code, err := commands.RunAndWait(a.PreStartCmd); err != nil || code != 0 {
 			os.Exit(code)
 		}
 	}
