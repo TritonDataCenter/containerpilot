@@ -17,18 +17,18 @@ DOCKERRUN := docker run --rm \
 	-v ${ROOT}/vendor:/go/src \
 	-v ${ROOT}:/cp/src/${IMPORT_PATH} \
 	-w /cp/src/${IMPORT_PATH} \
-	containerpilot_build
+	containerpilot2_build
 
 DOCKERBUILD := docker run --rm \
 	-e LDFLAGS="${LDFLAGS}" \
 	-v ${ROOT}/vendor:/go/src \
 	-v ${ROOT}:/cp/src/${IMPORT_PATH} \
 	-w /cp/src/${IMPORT_PATH} \
-	containerpilot_build
+	containerpilot2_build
 
 clean:
 	rm -rf build release cover vendor
-	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
+	docker rmi -f containerpilot2_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	docker rm -f containerpilot_etcd > /dev/null 2>&1 || true
 	./scripts/test.sh clean
@@ -39,35 +39,35 @@ clean:
 # default top-level target
 build: build/containerpilot
 
-build/containerpilot:  build/containerpilot_build */*.go vendor
+build/containerpilot:  build/containerpilot2_build */*.go vendor
 	${DOCKERBUILD} go build -o build/containerpilot -ldflags "$(LDFLAGS)"
 	@rm -rf src || true
 
 # builds the builder container
-build/containerpilot_build:
+build/containerpilot2_build:
 	mkdir -p ${ROOT}/build
-	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
-	docker build -t containerpilot_build ${ROOT}
-	docker inspect -f "{{ .ID }}" containerpilot_build > build/containerpilot_build
+	docker rmi -f containerpilot2_build > /dev/null 2>&1 || true
+	docker build -t containerpilot2_build ${ROOT}
+	docker inspect -f "{{ .ID }}" containerpilot2_build > build/containerpilot2_build
 
 # shortcut target for other targets: asserts a
 # working test environment
-docker: build/containerpilot_build consul etcd
+docker: build/containerpilot2_build consul etcd
 
 # top-level target for vendoring our packages: glide install requires
 # being in the package directory so we have to run this for each package
-vendor: build/containerpilot_build
+vendor: build/containerpilot2_build
 	${DOCKERBUILD} glide install
 
 # fetch a dependency via go get, vendor it, and then save into the parent
 # package's glide.yml
 # usage DEP=github.com/owner/package make add-dep
-add-dep: build/containerpilot_build
+add-dep: build/containerpilot2_build
 	docker run --rm \
 		-e LDFLAGS="${LDFLAGS}" \
 		-v ${ROOT}:/cp/src/${IMPORT_PATH} \
 		-w /cp/src/${IMPORT_PATH} \
-		containerpilot_build \
+		containerpilot2_build \
 		bash -c "DEP=$(DEP) ./scripts/add_dep.sh"
 
 # ----------------------------------------------
