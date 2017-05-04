@@ -64,7 +64,7 @@ func NewJob(cfg *Config) *Job {
 		frequency:         cfg.freqInterval,
 	}
 	job.Rx = make(chan events.Event, eventBufferSize)
-	job.Flush = make(chan bool)
+	job.Flush = make(chan bool, 1)
 	if job.Name == "containerpilot" {
 		// right now this hardcodes the telemetry service to
 		// be always "on", but maybe we want to have it verify itself

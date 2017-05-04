@@ -38,7 +38,9 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 	if _, ok := bus.registry[subscriber]; ok {
 		delete(bus.registry, subscriber)
 	}
-	if len(bus.registry) == 0 {
+	// we want to shut down once everything has exited except for
+	// the control server
+	if len(bus.registry) <= 1 {
 		bus.done <- true
 	}
 }

@@ -216,20 +216,6 @@ func (a *App) Terminate() {
 	}
 }
 
-// Reload will set the 'reload' flag on our event loop and then shut it
-// down so that the main loop can reload the configuration and restart.
-func (a *App) Reload() {
-	a.signalLock.Lock()
-	defer a.signalLock.Unlock()
-	log.Infof("reloading configuration.")
-
-	a.Bus.SetReloadFlag()
-	a.Bus.Shutdown()
-	if a.Telemetry != nil {
-		a.Telemetry.Shutdown()
-	}
-}
-
 // reload does the actual work of reloading the configuration and
 // updating the App with those changes. The EventBus should be
 // already shut down before we call this.
