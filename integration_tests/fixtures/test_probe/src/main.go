@@ -16,8 +16,6 @@ func runTest(testName string, args []string) {
 	AllTests = map[string]TestCommand{
 		"test_consul":           TestConsul,
 		"test_discovery":        TestDiscovery,
-		"test_sighup_deadlock":  TestSighupDeadlock,
-		"test_sighup_prestart":  TestSigHupPrestart,
 		"test_sigterm":          TestSigterm,
 		"test_sigusr1_prestart": TestSigUsr1Prestart,
 	}
