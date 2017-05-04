@@ -20,7 +20,7 @@ func TestPutEnviron(t *testing.T) {
 
 	s := SetupHTTPServer(t, fmt.Sprintf(`{ "socket": %q}`, tempSocketPath))
 	defer s.Stop()
-	s.Start(nil)
+	s.Start()
 
 	client := &http.Client{
 		Transport: &http.Transport{

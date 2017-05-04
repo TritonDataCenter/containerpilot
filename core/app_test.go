@@ -8,8 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 /*
@@ -179,6 +182,57 @@ func TestPidEnvVar(t *testing.T) {
 	}
 	if pid := os.Getenv("CONTAINERPILOT_PID"); pid == "" {
 		t.Errorf("expected CONTAINERPILOT_PID to be set even on error")
+	}
+}
+
+// Test configuration reload
+func TestReloadConfig(t *testing.T) {
+	cfg := &jobs.Config{
+		Name:       "test-service",
+		Port:       1,
+		Interfaces: []string{"inet"},
+		Exec:       []string{"./testdata/test.sh", "interruptSleep"},
+		Health: &jobs.HealthConfig{
+			Heartbeat: 1,
+			TTL:       1,
+		},
+	}
+	cfg.Validate(&mocks.NoopDiscoveryBackend{})
+	job := jobs.NewJob(cfg)
+	app := EmptyApp()
+	app.StopTimeout = 5
+	app.Jobs = []*jobs.Job{job}
+	app.Bus = events.NewEventBus()
+
+	// write invalid config to temp file and assign it as app config
+	f := testCfgToTempFile(t, `invalid`)
+	defer os.Remove(f.Name())
+	app.ConfigFlag = f.Name()
+
+	err := app.reload()
+	if err == nil {
+		t.Errorf("invalid configuration did not return error")
+	}
+
+	// write new valid configuration
+	validConfig := []byte(`{ "consul": "newconsul:8500" }`)
+	f2, err := os.Create(f.Name()) // we'll just blow away the old file
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f2.Write(validConfig); err != nil {
+		t.Fatal(err)
+	}
+	if err := f2.Close(); err != nil {
+		t.Fatal(err)
+	}
+	err = app.reload()
+	if err != nil {
+		t.Errorf("valid configuration returned error: %v", err)
+	}
+	discSvc := app.Discovery
+	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
+		t.Errorf("configuration was not reloaded: %v", discSvc)
 	}
 }
 

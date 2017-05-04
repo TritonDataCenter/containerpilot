@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests"
 	"github.com/joyent/containerpilot/tests/assert"
 )
@@ -48,10 +49,12 @@ func SetupHTTPServer(t *testing.T, raw string) *HTTPServer {
 	}
 
 	s, err := NewHTTPServer(cfg)
+	s.Bus = events.NewEventBus()
+	s.Subscribe(s.Bus)
+
 	if err != nil {
 		t.Fatalf("Could not init control server: %s", err)
 	}
-
 	return s
 }
 
@@ -65,9 +68,3 @@ func TestNewHTTPServer(t *testing.T) {
 	s = SetupHTTPServer(t, fmt.Sprintf(`{ "socket": %q }`, tempSocketPath))
 	assert.Equal(t, s.Addr, tempSocketPath, "expected server addr to ref default socket")
 }
-
-// func TestHTTPServerStart(t *testing.T) {
-// }
-
-// func TestHTTPServerStop(t *testing.T) {
-// }
