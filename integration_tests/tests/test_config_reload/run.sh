@@ -21,7 +21,7 @@ fi
 
 # slam reload endpoint to verify we don't deadlock
 docker exec "$APP_ID" /reload-containerpilot.sh multi
-sleep 3
+sleep 10
 docker exec "$APP_ID" /reload-containerpilot.sh single
 if [[ $? -ne 0 ]]; then
     echo '--------------------'
