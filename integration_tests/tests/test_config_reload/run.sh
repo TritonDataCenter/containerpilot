@@ -6,7 +6,7 @@ docker-compose up -d consul app
 APP_ID=$(docker-compose ps -q app)
 
 # single reload and verify config has reloaded
-docker exec "$APP_ID" /reload.sh single
+docker exec "$APP_ID" /reload-containerpilot.sh single
 sleep 1
 docker logs "$APP_ID" > app.log
 
@@ -20,9 +20,9 @@ if [[ "$reloads" -ne 1 ]] || [[ "$serves" -ne 2 ]]; then
 fi
 
 # slam reload endpoint to verify we don't deadlock
-docker exec "$APP_ID" /reload.sh multi
+docker exec "$APP_ID" /reload-containerpilot.sh multi
 sleep 3
-docker exec "$APP_ID" /reload.sh single
+docker exec "$APP_ID" /reload-containerpilot.sh single
 if [[ $? -ne 0 ]]; then
     echo '--------------------'
     echo 'multi reload failed'

@@ -14,4 +14,3 @@ services:
       - consul:consul
     volumes:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
-      - './reload.sh:/reload.sh'
