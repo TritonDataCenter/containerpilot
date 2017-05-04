@@ -41,6 +41,14 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 	// we want to shut down once everything has exited except for
 	// the control server
 	if len(bus.registry) <= 1 {
+		// we're going to recover from a panic here because otherwise
+		// its only safe to call unregister if we're sure we haven't
+		// shut down already
+		defer func() {
+			if r := recover(); r != nil {
+				log.Warn("deregistered on closed event bus")
+			}
+		}()
 		bus.done <- true
 	}
 }
