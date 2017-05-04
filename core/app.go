@@ -147,9 +147,6 @@ func getEnvVarNameFromService(service string) string {
 // Run starts the application and blocks until finished
 func (a *App) Run() {
 	// Set up handlers for polling and to accept signal interrupts
-	if 1 == os.Getpid() {
-		reapChildren()
-	}
 	for {
 		a.ControlServer.Serve()
 		a.Bus = events.NewEventBus()
