@@ -21,8 +21,11 @@ fi
 
 # slam reload endpoint to verify we don't deadlock
 docker exec "$APP_ID" /reload-containerpilot.sh multi
-sleep 10
-docker exec "$APP_ID" /reload-containerpilot.sh single
+for _ in $(seq 0 20)
+do
+    # might take a little while for the control server to settle
+    docker exec "$APP_ID" /reload-containerpilot.sh single && break
+done
 if [[ $? -ne 0 ]]; then
     echo '--------------------'
     echo 'multi reload failed'
