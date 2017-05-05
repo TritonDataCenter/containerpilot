@@ -21,7 +21,7 @@ func NewDebugSubscriber(bus *events.EventBus, max int) *DebugSubscriber {
 		max:     max,
 	}
 	ds.Rx = make(chan events.Event, 100)
-	ds.Flush = make(chan bool)
+	ds.Flush = make(chan bool, 1)
 	ds.Bus = bus
 	return ds
 }

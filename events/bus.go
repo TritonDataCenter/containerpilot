@@ -19,7 +19,7 @@ type EventBus struct {
 func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
 	reg := make(map[Subscriber]bool)
-	done := make(chan bool, 1)
+	done := make(chan bool, 2)
 	bus := &EventBus{registry: reg, lock: lock, done: done, reload: false}
 	return bus
 }
@@ -38,7 +38,17 @@ func (bus *EventBus) Unregister(subscriber Subscriber) {
 	if _, ok := bus.registry[subscriber]; ok {
 		delete(bus.registry, subscriber)
 	}
-	if len(bus.registry) == 0 {
+	// we want to shut down once everything has exited except for
+	// the control server
+	if len(bus.registry) <= 1 {
+		// we're going to recover from a panic here because otherwise
+		// its only safe to call unregister if we're sure we haven't
+		// shut down already
+		defer func() {
+			if r := recover(); r != nil {
+				log.Warn("deregistered on closed event bus")
+			}
+		}()
 		bus.done <- true
 	}
 }

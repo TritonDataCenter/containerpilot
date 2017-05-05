@@ -146,10 +146,9 @@ func getEnvVarNameFromService(service string) string {
 
 // Run starts the application and blocks until finished
 func (a *App) Run() {
-	// Set up handlers for polling and to accept signal interrupts
 	for {
-		a.ControlServer.Serve()
 		a.Bus = events.NewEventBus()
+		a.ControlServer.Run(a.Bus)
 		a.handleSignals()
 		a.handlePolling()
 		if !a.Bus.Wait() {
@@ -205,33 +204,16 @@ func (a *App) Terminate() {
 	a.Bus.Shutdown()
 	if a.StopTimeout > 0 {
 		time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
-			for _, service := range a.Jobs {
-				log.Infof("killing processes for service %#v", service.Name)
-				service.Kill()
+			for _, job := range a.Jobs {
+				log.Infof("killing processes for job %#v", job.Name)
+				job.Kill()
 			}
 		})
 		return
 	}
-	for _, service := range a.Jobs {
-		log.Infof("killing processes for service %#v", service.Name)
-		service.Kill()
-	}
-}
-
-// Reload will set the 'reload' flag on our event loop and then shut it
-// down so that the main loop can reload the configuration and restart.
-func (a *App) Reload() {
-	a.signalLock.Lock()
-	defer a.signalLock.Unlock()
-	log.Infof("reloading configuration.")
-
-	a.Bus.SetReloadFlag()
-	a.Bus.Shutdown()
-	if a.Telemetry != nil {
-		a.Telemetry.Shutdown()
-	}
-	if a.ControlServer != nil {
-		a.ControlServer.Shutdown()
+	for _, job := range a.Jobs {
+		log.Infof("killing processes for job %#v", job.Name)
+		job.Kill()
 	}
 }
 
@@ -249,14 +231,13 @@ func (a *App) reload() error {
 	a.Watches = newApp.Watches
 	a.StopTimeout = newApp.StopTimeout
 	a.Telemetry = newApp.Telemetry
-
+	a.ControlServer = newApp.ControlServer
 	return nil
 }
 
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
 func (a *App) handlePolling() {
-
 	for _, job := range a.Jobs {
 		job.Run(a.Bus)
 	}

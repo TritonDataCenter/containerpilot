@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/joyent/containerpilot/discovery/consul"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/tests/mocks"
@@ -32,7 +31,7 @@ func getSignalTestConfig(t *testing.T) *App {
 	cfg.Validate(&mocks.NoopDiscoveryBackend{})
 	job := jobs.NewJob(cfg)
 	app := EmptyApp()
-	app.StopTimeout = 5
+	app.StopTimeout = 1
 	app.Jobs = []*jobs.Job{job}
 	app.Bus = events.NewEventBus()
 	return app
@@ -86,42 +85,6 @@ func TestTerminateSignal(t *testing.T) {
 	}
 }
 
-// Test handler for SIGHUP // TODO this only tests the reload method
-func TestReloadSignal(t *testing.T) {
-	app := getSignalTestConfig(t)
-
-	// write invalid config to temp file and assign it as app config
-	f := testCfgToTempFile(t, `invalid`)
-	defer os.Remove(f.Name())
-	app.ConfigFlag = f.Name()
-
-	err := app.reload()
-	if err == nil {
-		t.Errorf("invalid configuration did not return error")
-	}
-
-	// write new valid configuration
-	validConfig := []byte(`{ "consul": "newconsul:8500" }`)
-	f2, err := os.Create(f.Name()) // we'll just blow away the old file
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f2.Write(validConfig); err != nil {
-		t.Fatal(err)
-	}
-	if err := f2.Close(); err != nil {
-		t.Fatal(err)
-	}
-	err = app.reload()
-	if err != nil {
-		t.Errorf("valid configuration returned error: %v", err)
-	}
-	discSvc := app.Discovery
-	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
-		t.Errorf("configuration was not reloaded: %v", discSvc)
-	}
-}
-
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
@@ -130,8 +93,6 @@ func TestSignalWiring(t *testing.T) {
 	app.handleSignals()
 	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
-	sendAndWaitForSignal(t, syscall.SIGCHLD)
-	sendAndWaitForSignal(t, syscall.SIGHUP)
 }
 
 // Helper to ensure the signal that we send has been received so that
