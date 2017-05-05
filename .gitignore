@@ -32,6 +32,8 @@ vendor/
 .glide
 *.tar.gz
 *.log
+cover.out
+cover.html
 
 # fake paths from overlaying volumes in Docker
 /src
