@@ -2,6 +2,7 @@ package control
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -72,5 +73,26 @@ func (e Endpoints) PostReload(r *http.Request) (interface{}, int) {
 	e.bus.SetReloadFlag()
 	e.bus.Shutdown()
 	log.Debug("control: reloaded app via control plane")
+	return nil, http.StatusOK
+}
+
+// PostMetric handles incoming HTTP POST requests, serializes the metrics
+// into Events, and publishes them for sensors to record their values.
+// Returns empty response or HTTP422.
+func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
+	var postMetrics map[string]string
+	jsonBlob, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		return nil, http.StatusUnprocessableEntity
+	}
+	err = json.Unmarshal(jsonBlob, &postMetrics)
+	if err != nil {
+		return nil, http.StatusUnprocessableEntity
+	}
+	for metricKey, metricValue := range postMetrics {
+		eventVal := fmt.Sprintf("%v|%v", metricKey, metricValue)
+		e.bus.Publish(events.Event{events.Metric, eventVal})
+	}
 	return nil, http.StatusOK
 }
