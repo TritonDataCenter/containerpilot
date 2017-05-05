@@ -80,14 +80,16 @@ func (e Endpoints) PostReload(r *http.Request) (interface{}, int) {
 // into Events, and publishes them for sensors to record their values.
 // Returns empty response or HTTP422.
 func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
-	var postMetrics map[string]string
+	var postMetrics map[string]interface{}
 	jsonBlob, err := ioutil.ReadAll(r.Body)
+
 	defer r.Body.Close()
 	if err != nil {
 		return nil, http.StatusUnprocessableEntity
 	}
 	err = json.Unmarshal(jsonBlob, &postMetrics)
 	if err != nil {
+		log.Debug(err)
 		return nil, http.StatusUnprocessableEntity
 	}
 	for metricKey, metricValue := range postMetrics {
