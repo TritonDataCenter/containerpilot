@@ -3,7 +3,7 @@ set -e
 
 single() {
     echo -e "POST /v3/reload HTTP/1.1\r\nHost: control\r\n\r\n" | \
-        nc -U /var/run/containerpilot.socket
+        nc -U /var/run/containerpilot.socket > /dev/null 2>&1
     exit 0
 }
 
