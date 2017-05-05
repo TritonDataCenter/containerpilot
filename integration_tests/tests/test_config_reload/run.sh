@@ -25,6 +25,7 @@ for _ in $(seq 0 20)
 do
     # might take a little while for the control server to settle
     docker exec "$APP_ID" /reload-containerpilot.sh single && break
+    sleep 1
 done
 if [[ $? -ne 0 ]]; then
     echo '--------------------'

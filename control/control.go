@@ -69,7 +69,6 @@ func (srv *HTTPServer) Start() {
 	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
 	router.Handle("/v3/reload", PostHandler(endpoints.PostReload))
 	srv.Handler = router
-
 	srv.SetKeepAlivesEnabled(false)
 	log.Debug("control: initialized router for control server")
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,4 +56,31 @@ func TestNewHTTPServer(t *testing.T) {
 	defer os.Remove(tempSocketPath)
 	s = SetupHTTPServer(t, fmt.Sprintf(`{ "socket": %q }`, tempSocketPath))
 	assert.Equal(t, s.Addr, tempSocketPath, "expected server addr to ref default socket")
+}
+
+func TestServerSmokeTest(t *testing.T) {
+
+	tempSocketPath := tempSocketPath()
+	defer os.Remove(tempSocketPath)
+
+	s := SetupHTTPServer(t, fmt.Sprintf(`{ "socket": %q}`, tempSocketPath))
+	defer s.Stop()
+	s.Start()
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			Dial: socketDialer(tempSocketPath),
+		},
+	}
+
+	// note the host name 'control' is meaningless here but the client
+	// requires it for the connection string
+	resp, err := client.Get("http://control/v3/xxxx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 but got %v\n%+v", resp.StatusCode, resp)
+	}
 }
