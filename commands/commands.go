@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -12,11 +11,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
-)
-
-const (
-	errWaitNoChild   = "wait: no child processes"
-	errWaitIDNoChild = "waitid: no child processes"
 )
 
 // Command wraps an os/exec.Cmd with a timeout, logging, and arg parsing.
@@ -45,7 +39,7 @@ func NewCommand(rawArgs interface{}, timeout time.Duration, fields log.Fields) (
 		lock:      &sync.Mutex{},
 		logger:    log.StandardLogger().Writer(),
 		logFields: fields,
-	} // exec.Cmd created at Run or RunAndWaitForOutput
+	} // exec.Cmd created at Run
 	return cmd, nil
 }
 
@@ -112,66 +106,6 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 			bus.Publish(events.Event{events.ExitSuccess, c.Name})
 		}
 	}()
-}
-
-// RunAndWaitForOutput runs the command and blocks until completed, then
-// returns a string of the stdout
-// TODO v3: remove this once the control plane is available for Sensors (the
-// only caller) to send metrics to
-func (c *Command) RunAndWaitForOutput(pctx context.Context, bus *events.EventBus) string {
-	if c == nil {
-		log.Debugf("nothing to run for %s", c.Name)
-		return ""
-	}
-	// we should never have more than one instance running for any
-	// realistic configuration but this ensures that's the case
-	c.lock.Lock()
-	log.Debugf("%s.Run start", c.Name)
-	c.setUpCmd()
-	defer reapChildren(c.Cmd.SysProcAttr.Pgid)
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
-	if c.Timeout > 0 {
-		ctx, cancel = context.WithTimeout(pctx, c.Timeout)
-	} else {
-		ctx, cancel = context.WithCancel(pctx)
-	}
-	defer cancel()
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			// unlock only here because we'll receive this
-			// cancel from both a typical exit and a timeout
-			defer c.lock.Unlock()
-			if ctx.Err() == context.DeadlineExceeded {
-				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
-			}
-			// if the context was canceled we don't know if its because we
-			// canceled it in the caller or the applicaton exited gracefully,
-			// so Kill() will have to handle both cases safely
-			c.Kill()
-		}
-	}()
-	// we'll pass stderr to the container's stderr, but stdout must
-	// be "clean" and not have anything other than what we intend
-	// to write to our collector.
-	c.Cmd.Stderr = os.Stderr
-	log.Debugf("%s.Cmd.Output", c.Name)
-	defer log.Debugf("%s.RunAndWaitForOutput end", c.Name)
-	// blocks this goroutine here; if the context gets cancelled
-	// we'll return from Output() and do all the cleanup
-	out, err := c.Cmd.Output()
-	if err != nil {
-		log.Errorf("%s exited with error: %v", c.Name, err)
-		bus.Publish(events.Event{events.ExitFailed, c.Name})
-		bus.Publish(events.Event{events.Error, err.Error()})
-		return ""
-	}
-	bus.Publish(events.Event{events.ExitSuccess, c.Name})
-	return string(out[:])
 }
 
 func (c *Command) wait() error {
