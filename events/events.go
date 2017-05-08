@@ -30,6 +30,7 @@ const (
 	ExitMaintenance
 	Error
 	Quit
+	Metric
 	Startup  // fired once after events are set up and event loop is started
 	Shutdown // fired once after all jobs exit or on receiving SIGTERM
 )

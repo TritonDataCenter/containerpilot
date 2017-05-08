@@ -11,36 +11,6 @@ import (
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 
-func TestCommandRunAndWaitForOutputOk(t *testing.T) {
-	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, 2)
-	ds.Run(0)
-	cmd, _ := NewCommand("./testdata/test.sh doStuff --debug", time.Duration(0), nil)
-	cmd.Name = "TestRunAndWaitForOutputOk"
-	out, got := runtestCommandRunAndWaitForOutput(cmd, 2)
-	if out != "Running doStuff with args: --debug\n" {
-		t.Fatalf("unexpected output from 'test.sh doStuff': %s", out)
-	}
-	if got[events.Event{events.ExitFailed, cmd.Name}] > 0 {
-		t.Fatalf("unexpected error in 'test.sh doStuff")
-	}
-}
-
-func TestCommandRunAndWaitForOutputBad(t *testing.T) {
-	cmd, _ := NewCommand("./testdata/doesNotExist.sh", time.Duration(0), nil)
-	cmd.Name = "TestRunAndWaitForOutputBad"
-	out, got := runtestCommandRunAndWaitForOutput(cmd, 2)
-	if out != "" {
-		t.Fatalf("expected no output from 'doesNotExist' but got %s", out)
-	}
-	exitFail := events.Event{events.ExitFailed, cmd.Name}
-	errMsg := events.Event{events.Error,
-		"fork/exec ./testdata/doesNotExist.sh: no such file or directory"}
-	if got[exitFail] != 1 || got[errMsg] != 1 {
-		t.Fatalf("expected error in events from 'doesNotExist' but got %v", got)
-	}
-}
-
 func TestCommandRunWithTimeoutZero(t *testing.T) {
 	cmd, _ := NewCommand("sleep 2", time.Duration(0), nil)
 	got := runtestCommandRun(cmd, 2)
@@ -110,19 +80,6 @@ func TestCommandRunReuseCmd(t *testing.T) {
 }
 
 // test helpers
-
-func runtestCommandRunAndWaitForOutput(cmd *Command, count int) (string, map[events.Event]int) {
-	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, count)
-	ds.Run(0)
-	out := cmd.RunAndWaitForOutput(context.Background(), bus)
-	ds.Close()
-	got := map[events.Event]int{}
-	for _, result := range ds.Results {
-		got[result]++
-	}
-	return out, got
-}
 
 func runtestCommandRun(cmd *Command, count int) map[events.Event]int {
 	bus := events.NewEventBus()

@@ -4,9 +4,9 @@ package events
 
 import "fmt"
 
-const eventCodename = "NoneExitSuccessExitFailedStoppingStoppedStatusHealthyStatusUnhealthyStatusChangedTimerExpiredEnterMaintenanceExitMaintenanceErrorQuitStartupShutdown"
+const eventCodename = "NoneExitSuccessExitFailedStoppingStoppedStatusHealthyStatusUnhealthyStatusChangedTimerExpiredEnterMaintenanceExitMaintenanceErrorQuitMetricStartupShutdown"
 
-var eventCodeindex = [...]uint8{0, 4, 15, 25, 33, 40, 53, 68, 81, 93, 109, 124, 129, 133, 140, 148}
+var eventCodeindex = [...]uint8{0, 4, 15, 25, 33, 40, 53, 68, 81, 93, 109, 124, 129, 133, 139, 146, 154}
 
 func (i EventCode) String() string {
 	if i < 0 || i >= EventCode(len(eventCodeindex)-1) {

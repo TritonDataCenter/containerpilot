@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/joyent/containerpilot/commands"
@@ -20,6 +21,7 @@ type SensorConfig struct {
 	Exec      interface{} `mapstructure:"exec"`
 	Timeout   string      `mapstructure:"timeout"`
 
+	fullName   string // combined name
 	sensorType SensorType
 	poll       time.Duration
 	timeout    time.Duration
@@ -65,7 +67,8 @@ func (cfg *SensorConfig) Validate() error {
 	if err != nil {
 		return fmt.Errorf("unable to create sensor[%s].exec: %v", cfg.Name, err)
 	}
-	check.Name = fmt.Sprintf("%s.sensor", cfg.Name)
+	cfg.fullName = strings.Join([]string{cfg.Namespace, cfg.Subsystem, cfg.Name}, "_")
+	check.Name = fmt.Sprintf("%s.sensor", cfg.fullName)
 	cfg.exec = check
 
 	// the prometheus client lib's API here is baffling... they don't expose

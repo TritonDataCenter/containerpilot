@@ -68,6 +68,8 @@ func (srv *HTTPServer) Start() {
 	router := http.NewServeMux()
 	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
 	router.Handle("/v3/reload", PostHandler(endpoints.PostReload))
+	router.Handle("/v3/metric", PostHandler(endpoints.PostMetric))
+
 	srv.Handler = router
 	srv.SetKeepAlivesEnabled(false)
 	log.Debug("control: initialized router for control server")

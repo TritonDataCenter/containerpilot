@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/tests/assert"
 	"github.com/joyent/containerpilot/tests/mocks"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -23,7 +23,7 @@ in our tests. So for those tests we'll stand up a test HTTP server and give it
 the prometheus handler and then check the results of a GET.
 */
 
-func TestSensorObserve(t *testing.T) {
+func TestSensorRun(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
 	cfg := &SensorConfig{
@@ -33,83 +33,23 @@ func TestSensorObserve(t *testing.T) {
 		Help:      "help",
 		Type:      "counter",
 		Poll:      1,
-		Exec:      "./testdata/test.sh measureStuff",
-		Timeout:   "100ms",
+		Exec:      "true",
 	}
-
-	got := runSensorTest(cfg, 5)
-	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", cfg.Name)}
-	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
-	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
-		t.Fatalf("expected 2 successful poll events but got %v", got)
-	}
-
-	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_TestSensorObserve 84") != 1 {
-		t.Fatalf("Failed to get match for sensor in response: %s", resp)
-	}
-}
-
-func TestSensorBadExec(t *testing.T) {
-	cfg := &SensorConfig{
-		Namespace: "telemetry",
-		Subsystem: "sensors",
-		Name:      "TestSensorBadExec",
-		Help:      "help",
-		Type:      "counter",
-		Poll:      1,
-		Exec:      "./testdata/doesNotExist.sh",
-		Timeout:   "100ms",
-	}
-	got := runSensorTest(cfg, 7)
-	exitFail := events.Event{events.ExitFailed, fmt.Sprintf("%s.sensor", cfg.Name)}
-	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
-	errMsg := events.Event{events.Error,
-		"fork/exec ./testdata/doesNotExist.sh: no such file or directory"}
-
-	if got[exitFail] != 2 || got[poll] != 2 ||
-		got[events.QuitByClose] != 1 || got[errMsg] != 2 {
-		t.Fatalf("expected 2 failed poll events but got %v", got)
-	}
-}
-
-func TestSensorBadRecord(t *testing.T) {
-	log.SetLevel(log.WarnLevel) // suppress test noise
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
-	defer testServer.Close()
-	cfg := &SensorConfig{
-		Namespace: "telemetry",
-		Subsystem: "sensors",
-		Name:      "TestSensorBadRecord",
-		Help:      "help",
-		Type:      "counter",
-		Poll:      1,
-		Exec:      "./testdata/test.sh doStuff --debug",
-		Timeout:   "100ms",
-	}
-	got := runSensorTest(cfg, 5)
-	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", cfg.Name)}
-	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
-	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
-		t.Fatalf("expected 2 successful poll events but got %v", got)
-	}
-	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_TestSensorBadRecord 0") != 1 {
-		t.Fatalf("expected 0-value sensor data for TestSensorBadRecord but got: %s", resp)
-	}
-}
-
-func runSensorTest(cfg *SensorConfig, count int) map[events.Event]int {
-	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, count)
-	ds.Run(0)
 	cfg.Validate()
 	sensor := NewSensor(cfg)
+
+	bus := events.NewEventBus()
+	ds := mocks.NewDebugSubscriber(bus, 6)
+	ds.Run(0)
 	sensor.Run(bus)
 
-	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", cfg.Name)}
+	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", sensor.Name)}
+	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", sensor.Name)}
+	record := events.Event{events.Metric, fmt.Sprintf("%s|84", sensor.Name)}
+
 	bus.Publish(poll)
 	bus.Publish(poll) // Ensure we can run it more than once
+	bus.Publish(record)
 	sensor.Close()
 	ds.Close()
 
@@ -117,13 +57,68 @@ func runSensorTest(cfg *SensorConfig, count int) map[events.Event]int {
 	for _, result := range ds.Results {
 		got[result]++
 	}
-	return got
+	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+		t.Fatalf("expected 2 successful poll events but got %v", got)
+	}
+
+	resp := getFromTestServer(t, testServer)
+	assert.Equal(t,
+		strings.Count(resp, "telemetry_sensors_TestSensorObserve 84"), 1,
+		"failed to get match for sensor in response")
+}
+
+// TestSensorProcessMetric covers the same ground as the 4 collector-
+// specific tests below, but checks the unhappy path.
+func TestSensorProcessMetric(t *testing.T) {
+	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	defer testServer.Close()
+	cfg := &SensorConfig{
+		Namespace: "telemetry",
+		Subsystem: "sensors",
+		Name:      "TestSensorProcessMetric",
+		Help:      "help",
+		Type:      "gauge",
+		Poll:      1,
+		Exec:      "true",
+	}
+	cfg.Validate()
+	sensor := NewSensor(cfg)
+	testFunc := func(input, expected string) bool {
+		sensor.processMetric(input)
+		resp := getFromTestServer(t, testServer)
+		return strings.Count(resp, expected) == 1
+	}
+
+	t.Run("record Ok", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"telemetry_sensors_TestSensorProcessMetric|30.0",
+			"telemetry_sensors_TestSensorProcessMetric 30",
+		), "failed to get match for sensor in response")
+	})
+	t.Run("record wrong name", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"TestSensorProcessMetric|20.0",
+			"telemetry_sensors_TestSensorProcessMetric 30",
+		), "should not have updated sensor value")
+	})
+	t.Run("invalid record", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"telemetry_sensors_TestSensorProcessMetric",
+			"telemetry_sensors_TestSensorProcessMetric 30",
+		), "should not have updated sensor value")
+	})
+	t.Run("non-numeric record", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"telemetry_sensors_TestSensorProcessMetric|xxx",
+			"telemetry_sensors_TestSensorProcessMetric 30",
+		), "should not have updated sensor value")
+	})
+
 }
 
 func TestSensorRecordCounter(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-
 	sensor := &Sensor{
 		Type: Counter,
 		collector: prometheus.NewCounter(prometheus.CounterOpts{
@@ -133,22 +128,26 @@ func TestSensorRecordCounter(t *testing.T) {
 			Help:      "help",
 		})}
 	prometheus.MustRegister(sensor.collector)
-	sensor.record("1")
-	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_TestSensorRecordCounter 1") != 1 {
-		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+	testFunc := func(input, expected string) bool {
+		sensor.record(input)
+		resp := getFromTestServer(t, testServer)
+		return strings.Count(resp, expected) == 1
 	}
-	sensor.record("2")
-	resp = getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_TestSensorRecordCounter 3") != 1 {
-		t.Fatalf("Failed to get match for sensor in response: %s", resp)
-	}
+	t.Run("record ok", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"1", "telemetry_sensors_TestSensorRecordCounter 1"),
+			"failed to update sensor")
+	})
+	t.Run("record update", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"2", "telemetry_sensors_TestSensorRecordCounter 3"),
+			"failed to update sensor")
+	})
 }
 
 func TestSensorRecordGauge(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-
 	sensor := &Sensor{
 		Type: Gauge,
 		collector: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -157,18 +156,23 @@ func TestSensorRecordGauge(t *testing.T) {
 			Name:      "TestSensorRecordGauge",
 			Help:      "help",
 		})}
-
 	prometheus.MustRegister(sensor.collector)
-	sensor.record("1.2")
-	resp := getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_TestSensorRecordGauge 1.2") != 1 {
-		t.Fatalf("Failed to get match for sensor in response: %s", resp)
+
+	testFunc := func(input, expected string) bool {
+		sensor.record(input)
+		resp := getFromTestServer(t, testServer)
+		return strings.Count(resp, expected) == 1
 	}
-	sensor.record("2.3")
-	resp = getFromTestServer(t, testServer)
-	if strings.Count(resp, "telemetry_sensors_TestSensorRecordGauge 2.3") != 1 {
-		t.Fatalf("Failed to get match for sensor in response: %s", resp)
-	}
+	t.Run("record ok", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"1.2", "telemetry_sensors_TestSensorRecordGauge 1.2"),
+			"failed to update sensor")
+	})
+	t.Run("record update", func(t *testing.T) {
+		assert.True(t, testFunc(
+			"2.3", "telemetry_sensors_TestSensorRecordGauge 2.3"),
+			"failed to update sensor")
+	})
 }
 
 func TestSensorRecordHistogram(t *testing.T) {
@@ -186,30 +190,31 @@ func TestSensorRecordHistogram(t *testing.T) {
 	prometheus.MustRegister(sensor.collector)
 	patt := `telemetry_sensors_TestSensorRecordHistogram_bucket{le="([\.0-9|\+Inf]*)"} ([1-9])`
 
-	sensor.record("1.2")
-	resp := getFromTestServer(t, testServer)
-	expected := [][]string{{"2.5", "1"}, {"5", "1"}, {"10", "1"}, {"+Inf", "1"}}
-	if !checkBuckets(resp, patt, expected) {
-		t.Fatalf("Failed to get match for sensor in response")
+	testFunc := func(input string, expected [][]string) bool {
+		sensor.record(input)
+		resp := getFromTestServer(t, testServer)
+		return checkBuckets(resp, patt, expected)
 	}
-	sensor.record("1.2") // same value should add
-	resp = getFromTestServer(t, testServer)
-	expected = [][]string{{"2.5", "2"}, {"5", "2"}, {"10", "2"}, {"+Inf", "2"}}
-	if !checkBuckets(resp, patt, expected) {
-		t.Fatalf("Failed to get match for sensor in response")
-	}
-	sensor.record("4.5") // overlapping should overlap
-	resp = getFromTestServer(t, testServer)
-	expected = [][]string{{"2.5", "2"}, {"5", "3"}, {"10", "3"}, {"+Inf", "3"}}
-	if !checkBuckets(resp, patt, expected) {
-		t.Fatalf("Failed to get match for sensor in response")
-	}
+	t.Run("record ok", func(t *testing.T) {
+		assert.True(t, testFunc("1.2",
+			[][]string{{"2.5", "1"}, {"5", "1"}, {"10", "1"}, {"+Inf", "1"}}),
+			"failed to update sensor")
+	})
+	t.Run("record add", func(t *testing.T) {
+		assert.True(t, testFunc("1.2",
+			[][]string{{"2.5", "2"}, {"5", "2"}, {"10", "2"}, {"+Inf", "2"}}),
+			"failed to update sensor")
+	})
+	t.Run("record overlap", func(t *testing.T) {
+		assert.True(t, testFunc("4.5",
+			[][]string{{"2.5", "2"}, {"5", "3"}, {"10", "3"}, {"+Inf", "3"}}),
+			"failed to update sensor")
+	})
 }
 
 func TestSensorRecordSummary(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-
 	sensor := &Sensor{
 		Type: Summary,
 		collector: prometheus.NewSummary(prometheus.SummaryOpts{
@@ -221,25 +226,26 @@ func TestSensorRecordSummary(t *testing.T) {
 	prometheus.MustRegister(sensor.collector)
 	patt := `telemetry_sensors_TestSensorRecordSummary{quantile="([\.0-9]*)"} ([0-9\.]*)`
 
-	// need a bunch of metrics to make quantiles make any sense
-	for i := 1; i <= 10; i++ {
-		sensor.record(fmt.Sprintf("%v", i))
-	}
-	resp := getFromTestServer(t, testServer)
-	expected := [][]string{{"0.5", "5"}, {"0.9", "9"}, {"0.99", "10"}}
-	if !checkBuckets(resp, patt, expected) {
-		t.Fatalf("Failed to get match for sensor in response")
-	}
-
-	for i := 1; i <= 5; i++ {
-		// add a new record for each one in the bottom half
-		sensor.record(fmt.Sprintf("%v", i))
-	}
-	resp = getFromTestServer(t, testServer)
-	expected = [][]string{{"0.5", "4"}, {"0.9", "9"}, {"0.99", "10"}}
-	if !checkBuckets(resp, patt, expected) {
-		t.Fatalf("Failed to get match for sensor in response")
-	}
+	t.Run("record ok", func(t *testing.T) {
+		// need a bunch of metrics to make quantiles make any sense
+		for i := 1; i <= 10; i++ {
+			sensor.record(fmt.Sprintf("%v", i))
+		}
+		resp := getFromTestServer(t, testServer)
+		expected := [][]string{{"0.5", "5"}, {"0.9", "9"}, {"0.99", "10"}}
+		assert.True(t, checkBuckets(resp, patt, expected),
+			"failed to get match for sensor in response")
+	})
+	t.Run("record update", func(t *testing.T) {
+		for i := 1; i <= 5; i++ {
+			// add a new record for each one in the bottom half
+			sensor.record(fmt.Sprintf("%v", i))
+		}
+		resp := getFromTestServer(t, testServer)
+		expected := [][]string{{"0.5", "4"}, {"0.9", "9"}, {"0.99", "10"}}
+		assert.True(t, checkBuckets(resp, patt, expected),
+			"failed to get match for sensor in response")
+	})
 }
 
 // test helpers

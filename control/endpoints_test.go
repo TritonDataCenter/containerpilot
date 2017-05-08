@@ -9,7 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestPutEnviron(t *testing.T) {
@@ -96,5 +98,50 @@ func TestPostHandler(t *testing.T) {
 			})
 		assert.Equal(t, status, 501, "expected HTTP501 method not allowed")
 		assert.Equal(t, result, "Not Implemented\n", "expected '%q' but got '%q'")
+	})
+}
+
+func TestPostMetric(t *testing.T) {
+	testFunc := func(t *testing.T, expected map[events.Event]int, body string) int {
+		bus := events.NewEventBus()
+		ds := mocks.NewDebugSubscriber(bus, len(expected)+1)
+		ds.Run(0)
+
+		// this is kind of gross but required so that we can drive the debug
+		// subscriber at least one event tick even if we're expecting no events
+		bus.Publish(events.GlobalStartup)
+		endpoints := &Endpoints{bus}
+		req, _ := http.NewRequest("POST", "/v3/metric", strings.NewReader(body))
+		_, status := endpoints.PostMetric(req)
+		ds.Close()
+		got := map[events.Event]int{}
+		for _, result := range ds.Results {
+			if result != events.GlobalStartup {
+				got[result]++
+			}
+		}
+		assert.Equal(t, expected, got, "got %v but expected: %v")
+		return status
+	}
+
+	t.Run("POST bad JSON", func(t *testing.T) {
+		body := "{{\n"
+		expected := map[events.Event]int{}
+		status := testFunc(t, expected, body)
+		assert.Equal(t, status, http.StatusUnprocessableEntity, "status was not 422")
+	})
+	t.Run("POST value", func(t *testing.T) {
+		body := "{\"mymetric\": 1.0}"
+		expected := map[events.Event]int{events.Event{events.Metric, "mymetric|1"}: 1}
+		status := testFunc(t, expected, body)
+		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
+	})
+	t.Run("POST multi-metric", func(t *testing.T) {
+		body := "{\"mymetric\": 1.5, \"myothermetric\": 2}"
+		status := testFunc(t, map[events.Event]int{
+			events.Event{events.Metric, "mymetric|1.5"}:    1,
+			events.Event{events.Metric, "myothermetric|2"}: 1,
+		}, body)
+		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
 	})
 }

@@ -42,7 +42,7 @@ type Sensor struct {
 // NewSensor creates a Sensor from a validated SensorConfig
 func NewSensor(cfg *SensorConfig) *Sensor {
 	sensor := &Sensor{
-		Name:      cfg.Name,
+		Name:      cfg.fullName,
 		Type:      cfg.sensorType,
 		exec:      cfg.exec,
 		poll:      cfg.poll,
@@ -55,16 +55,28 @@ func NewSensor(cfg *SensorConfig) *Sensor {
 
 // Observe runs the health sensor and captures its output for recording
 func (sensor *Sensor) Observe(ctx context.Context) {
-	// TODO v3: this should be replaced with the async Run once
-	// the control plane is available for Sensors to POST to
-	output := sensor.exec.RunAndWaitForOutput(ctx, sensor.Bus)
-	sensor.record(output)
+	if sensor.exec != nil {
+		sensor.exec.Run(ctx, sensor.Bus)
+	}
+}
+
+func (sensor *Sensor) processMetric(event string) {
+	metric := strings.Split(event, "|")
+	if len(metric) < 2 {
+		log.Errorf("sensor: invalid metric format: %v", event)
+		return
+	}
+	metricKey := metric[0]
+	metricVal := metric[1]
+	if sensor.Name == metricKey {
+		sensor.record(metricVal)
+	}
 }
 
 func (sensor *Sensor) record(metricValue string) {
 	if val, err := strconv.ParseFloat(
 		strings.TrimSpace(metricValue), 64); err != nil {
-		log.Errorf("sensor produced non-numeric value: %v", metricValue)
+		log.Errorf("sensor produced non-numeric value: %v: %v", metricValue, err)
 	} else {
 		// we should use a type switch here but the prometheus collector
 		// implementations are themselves interfaces and not structs,
@@ -94,19 +106,24 @@ func (sensor *Sensor) Run(bus *events.EventBus) {
 	go func() {
 		for {
 			event := <-sensor.Rx
-			switch event {
-			case events.Event{events.TimerExpired, pollSource}:
-				sensor.Observe(ctx)
-			case
-				events.Event{events.Quit, sensor.Name},
-				events.QuitByClose,
-				events.GlobalShutdown:
-				sensor.Unsubscribe(sensor.Bus)
-				close(sensor.Rx)
-				cancel()
-				sensor.Flush <- true
-				sensor.exec.CloseLogs()
-				return
+			switch event.Code {
+			case events.Metric:
+				sensor.processMetric(event.Source)
+			default:
+				switch event {
+				case events.Event{events.TimerExpired, pollSource}:
+					sensor.Observe(ctx)
+				case
+					events.Event{events.Quit, sensor.Name},
+					events.QuitByClose,
+					events.GlobalShutdown:
+					sensor.Unsubscribe(sensor.Bus)
+					close(sensor.Rx)
+					cancel()
+					sensor.Flush <- true
+					sensor.exec.CloseLogs()
+					return
+				}
 			}
 		}
 	}()
