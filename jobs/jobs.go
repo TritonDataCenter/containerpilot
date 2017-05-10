@@ -219,13 +219,16 @@ func (job *Job) Run(bus *events.EventBus) {
 				job.restartsRemain--
 				job.StartJob(ctx)
 			case events.Event{events.ExitFailed, healthCheckName}:
-				job.setStatus(statusUnhealthy)
-				job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
-				// do we want a "SendFailedHeartbeat" method to fail faster?
+				if job.getStatus() != statusMaintenance {
+					job.setStatus(statusUnhealthy)
+					job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
+				}
 			case events.Event{events.ExitSuccess, healthCheckName}:
-				job.setStatus(statusHealthy)
-				job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
-				job.SendHeartbeat()
+				if job.getStatus() != statusMaintenance {
+					job.setStatus(statusHealthy)
+					job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
+					job.SendHeartbeat()
+				}
 			case
 				events.Event{events.Quit, job.Name},
 				events.QuitByClose,
