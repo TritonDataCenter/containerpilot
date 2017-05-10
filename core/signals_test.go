@@ -37,26 +37,6 @@ func getSignalTestConfig(t *testing.T) *App {
 	return app
 }
 
-// ------------------------------------------
-
-// Test handler for SIGUSR1
-func TestMaintenanceSignal(t *testing.T) {
-	app := getSignalTestConfig(t)
-	if app.InMaintenanceMode() {
-		t.Fatal("Should not be in maintenance mode by default")
-	}
-
-	app.ToggleMaintenanceMode()
-	if !app.InMaintenanceMode() {
-		t.Fatal("Should be in maintenance mode after receiving SIGUSR1")
-	}
-
-	app.ToggleMaintenanceMode()
-	if app.InMaintenanceMode() {
-		t.Fatal("Should not be in maintenance mode after receiving second SIGUSR1")
-	}
-}
-
 // Test handler for SIGTERM. Note that the SIGCHLD handler is fired
 // by this same test, but that we don't have a separate unit test
 // because they'll interfere with each other's state.
@@ -91,7 +71,6 @@ func TestSignalWiring(t *testing.T) {
 	app := EmptyApp()
 	app.Bus = events.NewEventBus()
 	app.handleSignals()
-	sendAndWaitForSignal(t, syscall.SIGUSR1)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
 }
 
