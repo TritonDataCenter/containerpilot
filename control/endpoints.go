@@ -76,6 +76,22 @@ func (e Endpoints) PostReload(r *http.Request) (interface{}, int) {
 	return nil, http.StatusOK
 }
 
+// PostEnableMaintenanceMode handles incoming HTTP POST requests and toggles
+// ContainerPilot maintenance mode on. Returns empty response or HTTP422.
+func (e Endpoints) PostEnableMaintenanceMode(r *http.Request) (interface{}, int) {
+	defer r.Body.Close()
+	e.bus.Publish(events.GlobalEnterMaintenance)
+	return nil, http.StatusOK
+}
+
+// PostDisableMaintenanceMode handles incoming HTTP POST requests and toggles
+// ContainerPilot maintenance mode on. Returns empty response or HTTP422.
+func (e Endpoints) PostDisableMaintenanceMode(r *http.Request) (interface{}, int) {
+	defer r.Body.Close()
+	e.bus.Publish(events.GlobalExitMaintenance)
+	return nil, http.StatusOK
+}
+
 // PostMetric handles incoming HTTP POST requests, serializes the metrics
 // into Events, and publishes them for sensors to record their values.
 // Returns empty response or HTTP422.
