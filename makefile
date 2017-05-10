@@ -144,10 +144,15 @@ cover: build/containerpilot_build
 	mkdir -p cover
 	$(docker) bash ./scripts/cover.sh
 
+
 ## generate stringer code
 generate:
+	go install github.com/joyent/containerpilot/jobs
+	go install github.com/joyent/containerpilot/events
+	cd jobs && stringer -type jobStatus
 	cd events && stringer -type EventCode
 	# fix this up for making it pass linting
+	sed -i 's/_jobStatus_/jobStatus/g' ./jobs/jobstatus_string.go
 	sed -i 's/_EventCode_/eventCode/g' ./events/eventcode_string.go
 
 TEST ?= "all"

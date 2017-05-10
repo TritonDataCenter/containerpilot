@@ -18,6 +18,8 @@ const (
 	eventBufferSize = 1000
 )
 
+// go:generate stringer -type jobStatus
+
 // note: this num may end up being public so we can use it in the status
 // endpoint, but let's leave it as unexported until that API has been decided
 type jobStatus int
