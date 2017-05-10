@@ -69,7 +69,9 @@ func (e Endpoints) PutEnviron(r *http.Request) (interface{}, int) {
 // ContainerPilot process configuration.  Returns empty response or HTTP422.
 func (e Endpoints) PostReload(r *http.Request) (interface{}, int) {
 	log.Debug("control: reloading app via control plane")
-	defer r.Body.Close()
+	if r.Body != nil {
+		defer r.Body.Close()
+	}
 	e.bus.SetReloadFlag()
 	e.bus.Shutdown()
 	log.Debug("control: reloaded app via control plane")
@@ -79,7 +81,9 @@ func (e Endpoints) PostReload(r *http.Request) (interface{}, int) {
 // PostEnableMaintenanceMode handles incoming HTTP POST requests and toggles
 // ContainerPilot maintenance mode on. Returns empty response or HTTP422.
 func (e Endpoints) PostEnableMaintenanceMode(r *http.Request) (interface{}, int) {
-	defer r.Body.Close()
+	if r.Body != nil {
+		defer r.Body.Close()
+	}
 	e.bus.Publish(events.GlobalEnterMaintenance)
 	return nil, http.StatusOK
 }
@@ -87,7 +91,9 @@ func (e Endpoints) PostEnableMaintenanceMode(r *http.Request) (interface{}, int)
 // PostDisableMaintenanceMode handles incoming HTTP POST requests and toggles
 // ContainerPilot maintenance mode on. Returns empty response or HTTP422.
 func (e Endpoints) PostDisableMaintenanceMode(r *http.Request) (interface{}, int) {
-	defer r.Body.Close()
+	if r.Body != nil {
+		defer r.Body.Close()
+	}
 	e.bus.Publish(events.GlobalExitMaintenance)
 	return nil, http.StatusOK
 }
