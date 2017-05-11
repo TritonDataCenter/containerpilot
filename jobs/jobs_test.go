@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/tests/assert"
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 
@@ -151,4 +152,57 @@ func TestJobRunPeriodic(t *testing.T) {
 	if got != 6 {
 		t.Fatalf("expected exactly 6 task executions but got %d\n%v", got, ds.Results)
 	}
+}
+
+func TestJobMaintenance(t *testing.T) {
+
+	testFunc := func(t *testing.T, startingState jobStatus, event events.Event) jobStatus {
+		bus := events.NewEventBus()
+		cfg := &Config{Name: "myjob", Exec: "true",
+			// need to make sure this can't succeed during test
+			Health: &HealthConfig{CheckExec: "false", Heartbeat: 10, TTL: 50},
+		}
+		cfg.Validate(noop)
+		job := NewJob(cfg)
+		job.setStatus(startingState)
+		job.Run(bus)
+		job.Bus.Publish(event)
+		job.Close()
+		return job.getStatus()
+	}
+
+	t.Run("enter maintenance", func(t *testing.T) {
+		status := testFunc(t, statusUnknown, events.GlobalEnterMaintenance)
+		assert.Equal(t, status, statusMaintenance,
+			"expected job in '%v' status after entering maintenance but got '%v'")
+	})
+
+	// in-flight health checks should not bump the Job out of maintenance
+	t.Run("healthy no change", func(t *testing.T) {
+		status := testFunc(t, statusMaintenance,
+			events.Event{events.ExitSuccess, "check.myjob"})
+		assert.Equal(t, status, statusMaintenance,
+			"expected job in '%v' status after passing check while in maintenance but got '%v'")
+	})
+
+	// in-flight health checks should not bump the Job out of maintenance
+	t.Run("unhealthy no change", func(t *testing.T) {
+		status := testFunc(t, statusMaintenance,
+			events.Event{events.ExitFailed, "check.myjob"})
+		assert.Equal(t, status, statusMaintenance,
+			"expected job in '%v' status after failed check while in maintenance but got '%v'")
+	})
+
+	t.Run("exit maintenance", func(t *testing.T) {
+		status := testFunc(t, statusMaintenance, events.GlobalExitMaintenance)
+		assert.Equal(t, status, statusUnknown,
+			"expected job in '%v' status after exiting maintenance but got '%v'")
+	})
+
+	t.Run("now healthy", func(t *testing.T) {
+		status := testFunc(t, statusUnknown,
+			events.Event{events.ExitSuccess, "check.myjob"})
+		assert.Equal(t, status, statusHealthy,
+			"expected job in '%v' status after passing check out of maintenance but got '%v'")
+	})
 }

@@ -145,3 +145,77 @@ func TestPostMetric(t *testing.T) {
 		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
 	})
 }
+
+func TestPostEnableMaintenanceMode(t *testing.T) {
+	testFunc := func(t *testing.T, expected map[events.Event]int, req *http.Request) int {
+		bus := events.NewEventBus()
+		ds := mocks.NewDebugSubscriber(bus, len(expected)+1)
+		ds.Run(0)
+
+		// this is kind of gross but required so that we can drive the debug
+		// subscriber at least one event tick even if we're expecting no events
+		bus.Publish(events.GlobalStartup)
+		endpoints := &Endpoints{bus}
+		_, status := endpoints.PostEnableMaintenanceMode(req)
+		ds.Close()
+		got := map[events.Event]int{}
+		for _, result := range ds.Results {
+			if result != events.GlobalStartup {
+				got[result]++
+			}
+		}
+		assert.Equal(t, expected, got, "got %v but expected: %v")
+		return status
+	}
+
+	t.Run("POST bad JSON", func(t *testing.T) {
+		body := "{{\n"
+		req, _ := http.NewRequest("POST", "/v3/maintenance/enable", strings.NewReader(body))
+		expected := map[events.Event]int{}
+		status := testFunc(t, expected, req)
+		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
+	})
+	t.Run("POST disable", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/v3/maintenance/enable", nil)
+		expected := map[events.Event]int{events.GlobalEnterMaintenance: 1}
+		status := testFunc(t, expected, req)
+		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
+	})
+}
+
+func TestPostDisableMaintenanceMode(t *testing.T) {
+	testFunc := func(t *testing.T, expected map[events.Event]int, req *http.Request) int {
+		bus := events.NewEventBus()
+		ds := mocks.NewDebugSubscriber(bus, len(expected)+1)
+		ds.Run(0)
+
+		// this is kind of gross but required so that we can drive the debug
+		// subscriber at least one event tick even if we're expecting no events
+		bus.Publish(events.GlobalStartup)
+		endpoints := &Endpoints{bus}
+		_, status := endpoints.PostDisableMaintenanceMode(req)
+		ds.Close()
+		got := map[events.Event]int{}
+		for _, result := range ds.Results {
+			if result != events.GlobalStartup {
+				got[result]++
+			}
+		}
+		assert.Equal(t, expected, got, "got %v but expected: %v")
+		return status
+	}
+
+	t.Run("POST bad JSON", func(t *testing.T) {
+		body := "{{\n"
+		req, _ := http.NewRequest("POST", "/v3/maintenance/disable", strings.NewReader(body))
+		expected := map[events.Event]int{}
+		status := testFunc(t, expected, req)
+		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
+	})
+	t.Run("POST disable", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/v3/maintenance/disable", nil)
+		expected := map[events.Event]int{events.GlobalExitMaintenance: 1}
+		status := testFunc(t, expected, req)
+		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
+	})
+}

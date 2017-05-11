@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -17,11 +18,28 @@ const (
 	eventBufferSize = 1000
 )
 
+// go:generate stringer -type jobStatus
+
+// note: this num may end up being public so we can use it in the status
+// endpoint, but let's leave it as unexported until that API has been decided
+type jobStatus int
+
+// jobStatus enum
+const (
+	statusUnknown jobStatus = iota
+	statusHealthy
+	statusUnhealthy
+	statusMaintenance
+)
+
 // Job manages the state of a job and its start/stop conditions
 type Job struct {
-	Name             string
-	exec             *commands.Command
-	Status           bool
+	Name string
+	exec *commands.Command
+
+	// service health and discovery
+	Status           jobStatus
+	statusLock       *sync.RWMutex
 	discoveryCatalog discovery.Backend
 	Service          *discovery.ServiceDefinition
 	healthCheckExec  *commands.Command
@@ -65,11 +83,12 @@ func NewJob(cfg *Config) *Job {
 	}
 	job.Rx = make(chan events.Event, eventBufferSize)
 	job.Flush = make(chan bool, 1)
+	job.statusLock = &sync.RWMutex{}
 	if job.Name == "containerpilot" {
 		// right now this hardcodes the telemetry service to
-		// be always "on", but maybe we want to have it verify itself
+		// be always "healthy", but maybe we want to have it verify itself
 		// before heartbeating in the future?
-		job.Status = true
+		job.setStatus(statusHealthy)
 	}
 	return job
 }
@@ -91,8 +110,23 @@ func (job *Job) SendHeartbeat() {
 	}
 }
 
+// note: this method may end up being public so we can use it in the status
+// endpoint, but let's leave it as unexported until that API has been decided
+func (job *Job) getStatus() jobStatus {
+	job.statusLock.RLock()
+	defer job.statusLock.RUnlock()
+	return job.Status
+}
+
+func (job *Job) setStatus(status jobStatus) {
+	job.statusLock.Lock()
+	defer job.statusLock.Unlock()
+	job.Status = status
+}
+
 // MarkForMaintenance marks this Job's service for maintenance
 func (job *Job) MarkForMaintenance() {
+	job.setStatus(statusMaintenance)
 	if job.discoveryCatalog != nil || job.Service != nil {
 		job.discoveryCatalog.MarkForMaintenance(job.Service)
 	}
@@ -163,12 +197,14 @@ func (job *Job) Run(bus *events.EventBus) {
 			event := <-job.Rx
 			switch event {
 			case events.Event{events.TimerExpired, heartbeatSource}:
-				if job.healthCheckExec != nil {
-					job.HealthCheck(ctx)
-				} else if job.Service != nil {
-					// this is the case for non-checked but advertised
-					// services like the telemetry endpoint
-					job.SendHeartbeat()
+				if job.getStatus() != statusMaintenance {
+					if job.healthCheckExec != nil {
+						job.HealthCheck(ctx)
+					} else if job.Service != nil {
+						// this is the case for non-checked but advertised
+						// services like the telemetry endpoint
+						job.SendHeartbeat()
+					}
 				}
 			case events.Event{events.TimerExpired, startTimeoutSource}:
 				job.Bus.Publish(events.Event{
@@ -183,18 +219,25 @@ func (job *Job) Run(bus *events.EventBus) {
 				job.restartsRemain--
 				job.StartJob(ctx)
 			case events.Event{events.ExitFailed, healthCheckName}:
-				job.Status = false
-				job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
-				// do we want a "SendFailedHeartbeat" method to fail faster?
+				if job.getStatus() != statusMaintenance {
+					job.setStatus(statusUnhealthy)
+					job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
+				}
 			case events.Event{events.ExitSuccess, healthCheckName}:
-				job.Status = true
-				job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
-				job.SendHeartbeat()
+				if job.getStatus() != statusMaintenance {
+					job.setStatus(statusHealthy)
+					job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
+					job.SendHeartbeat()
+				}
 			case
 				events.Event{events.Quit, job.Name},
 				events.QuitByClose,
 				events.GlobalShutdown:
 				break loop
+			case events.GlobalEnterMaintenance:
+				job.MarkForMaintenance()
+			case events.GlobalExitMaintenance:
+				job.setStatus(statusUnknown)
 			case
 				events.Event{events.ExitSuccess, job.Name},
 				events.Event{events.ExitFailed, job.Name}:

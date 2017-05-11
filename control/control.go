@@ -69,6 +69,10 @@ func (srv *HTTPServer) Start() {
 	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
 	router.Handle("/v3/reload", PostHandler(endpoints.PostReload))
 	router.Handle("/v3/metric", PostHandler(endpoints.PostMetric))
+	router.Handle("/v3/maintenance/enable",
+		PostHandler(endpoints.PostEnableMaintenanceMode))
+	router.Handle("/v3/maintenance/disable",
+		PostHandler(endpoints.PostDisableMaintenanceMode))
 
 	srv.Handler = router
 	srv.SetKeepAlivesEnabled(false)

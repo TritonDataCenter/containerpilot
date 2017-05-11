@@ -28,7 +28,6 @@ var (
 )
 
 // App encapsulates the state of ContainerPilot after the initial setup.
-// after it is run, it can be reloaded and paused with signals.
 type App struct {
 	ControlServer *control.HTTPServer
 	Discovery     discovery.Backend
@@ -36,9 +35,7 @@ type App struct {
 	Watches       []*watches.Watch
 	Telemetry     *telemetry.Telemetry
 	StopTimeout   int
-	maintModeLock *sync.RWMutex
 	signalLock    *sync.RWMutex
-	paused        bool
 	ConfigFlag    string
 	Bus           *events.EventBus
 }
@@ -46,7 +43,6 @@ type App struct {
 // EmptyApp creates an empty application
 func EmptyApp() *App {
 	app := &App{}
-	app.maintModeLock = &sync.RWMutex{}
 	app.signalLock = &sync.RWMutex{}
 	return app
 }
@@ -174,27 +170,6 @@ func getArgs(args []string) []string {
 		renderedArgs = append(renderedArgs, string(newArg))
 	}
 	return renderedArgs
-}
-
-// ToggleMaintenanceMode marks all services for maintenance
-func (a *App) ToggleMaintenanceMode() {
-	a.maintModeLock.RLock()
-	a.signalLock.Lock()
-	defer a.signalLock.Unlock()
-	defer a.maintModeLock.RUnlock()
-	a.paused = !a.paused
-	if a.paused {
-		a.Bus.Publish(events.Event{events.EnterMaintenance, "global"})
-	}
-}
-
-// InMaintenanceMode checks if the App is in maintenance mode
-func (a *App) InMaintenanceMode() bool {
-	// we wrap access to `paused` in a RLock so that if we're in the middle of
-	// marking services for maintenance we don't get stale reads
-	a.maintModeLock.RLock()
-	defer a.maintModeLock.RUnlock()
-	return a.paused
 }
 
 // Terminate kills the application
