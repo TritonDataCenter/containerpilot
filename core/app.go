@@ -14,6 +14,7 @@ import (
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
+	"github.com/joyent/containerpilot/subcommands"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/watches"
 
@@ -54,6 +55,7 @@ func LoadApp() (*App, error) {
 	var versionFlag bool
 	var renderFlag string
 	var templateFlag bool
+	var reloadFlag bool
 
 	if !flag.Parsed() {
 		flag.StringVar(&configFlag, "config", "",
@@ -63,15 +65,20 @@ func LoadApp() (*App, error) {
 		flag.StringVar(&renderFlag, "out", "-",
 			"-(default) for stdout or file path where to save rendered JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
+		flag.BoolVar(&reloadFlag, "reload", false,
+			"reload a ContainerPilot process through its application control socket.")
 		flag.Parse()
 	}
+
 	if versionFlag {
 		fmt.Printf("Version: %s\nGitHash: %s\n", Version, GitHash)
 		os.Exit(0)
 	}
+
 	if configFlag == "" {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
+
 	if templateFlag {
 		err := config.RenderConfig(configFlag, renderFlag)
 		if err != nil {
@@ -80,7 +87,16 @@ func LoadApp() (*App, error) {
 		os.Exit(0)
 	}
 
+	if reloadFlag {
+		if err := subcommands.SendReload(configFlag); err != nil {
+			fmt.Println("Reload: Failed to reload control socket:", err)
+			os.Exit(2)
+		}
+		os.Exit(0)
+	}
+
 	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
+
 	app, err := NewApp(configFlag)
 	if err != nil {
 		return nil, err
