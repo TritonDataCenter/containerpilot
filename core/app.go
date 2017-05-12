@@ -54,6 +54,9 @@ func LoadApp() (*App, error) {
 	var configFlag string
 	var versionFlag bool
 	var renderFlag string
+	var maintFlag string
+	var putEnvFlags string
+	var putMetricFlags string
 	var templateFlag bool
 	var reloadFlag bool
 
