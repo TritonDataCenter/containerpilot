@@ -171,7 +171,7 @@ func (c *Command) setUpCmd() {
 func (c *Command) Kill() error {
 	log.Debugf("%s.kill", c.Name)
 	if c.Cmd != nil && c.Cmd.Process != nil {
-		log.Warnf("killing command at pid: %d", c.Cmd.Process.Pid)
+		log.Warnf("killing command for %s", c.Name)
 		return c.Cmd.Process.Kill()
 	}
 	return nil
@@ -212,7 +212,7 @@ func (c *Command) waitForTimeout() error {
 		// we'll deadlock
 		defer func() { quit <- 0 }()
 	}
-	log.Debugf("%s.run waiting for PID %d: ", c.Name, cmd.Process.Pid)
+	log.Debugf("%s.run waiting", c.Name)
 
 	defer reapChildren(c.Cmd.SysProcAttr.Pgid)
 	err := c.Cmd.Wait()
