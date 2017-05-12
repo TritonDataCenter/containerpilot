@@ -66,7 +66,13 @@ func LoadApp() (*App, error) {
 			"-(default) for stdout or file path where to save rendered JSON config file.")
 		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
 		flag.BoolVar(&reloadFlag, "reload", false,
-			"reload a ContainerPilot process through its application control socket.")
+			"reload a ContainerPilot process through its control socket.")
+		flag.StringVar(&maintFlag, "maintenance", "enable",
+			"enable/disable maintanence mode through a ContainerPilot process control socket.")
+		flag.StringVar(&putEnvFlags, "putenv", "MY_ENV=my_val",
+			"update environ of a ContainerPilot process through its control socket.")
+		flag.StringVar(&putMetricFlags, "putmetric", "MY_METRIC=my_val",
+			"update metrics of a ContainerPilot process through its control socket.")
 		flag.Parse()
 	}
 
