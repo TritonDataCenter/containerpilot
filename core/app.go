@@ -14,6 +14,7 @@ import (
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
+	"github.com/joyent/containerpilot/subcommands"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/watches"
 
@@ -50,28 +51,54 @@ func EmptyApp() *App {
 // LoadApp parses the commandline arguments and loads the config
 func LoadApp() (*App, error) {
 
-	var configFlag string
 	var versionFlag bool
-	var renderFlag string
 	var templateFlag bool
+	var reloadFlag bool
+
+	var configFlag string
+	var renderFlag string
+	var maintFlag string
+
+	var putMetricFlags MultiFlag
+	var putEnvFlags MultiFlag
 
 	if !flag.Parsed() {
-		flag.StringVar(&configFlag, "config", "",
-			"file path to JSON5 configuration file.")
+		flag.BoolVar(&versionFlag, "version", false,
+			"Show version identifier and quit.")
+
 		flag.BoolVar(&templateFlag, "template", false,
 			"Render template and quit. (default: false)")
+
+		flag.BoolVar(&reloadFlag, "reload", false,
+			"Reload a ContainerPilot process through its control socket.")
+
+		flag.StringVar(&configFlag, "config", "",
+			"File path to JSON5 configuration file.")
+
 		flag.StringVar(&renderFlag, "out", "-",
 			"-(default) for stdout or file path where to save rendered JSON config file.")
-		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
+
+		flag.StringVar(&maintFlag, "maintenance", "",
+			"Enable/disable maintanence mode through a ContainerPilot process control socket.")
+
+		flag.Var(&putMetricFlags, "putmetric",
+			"Update metrics of a ContainerPilot process through its control socket.")
+
+		flag.Var(&putEnvFlags, "putenv",
+			"Update environ of a ContainerPilot process through its control socket.")
+
 		flag.Parse()
 	}
+
 	if versionFlag {
 		fmt.Printf("Version: %s\nGitHash: %s\n", Version, GitHash)
 		os.Exit(0)
 	}
+
 	if configFlag == "" {
 		configFlag = os.Getenv("CONTAINERPILOT")
 	}
+
 	if templateFlag {
 		err := config.RenderConfig(configFlag, renderFlag)
 		if err != nil {
@@ -80,7 +107,45 @@ func LoadApp() (*App, error) {
 		os.Exit(0)
 	}
 
+	cmd, _ := subcommands.Init(configFlag)
+
+	if reloadFlag {
+		if err := cmd.SendReload(); err != nil {
+			fmt.Println("Reload: failed to run subcommand:", err)
+			os.Exit(2)
+		}
+		os.Exit(0)
+	}
+
+	if maintFlag != "" {
+		if err := cmd.SendMaintenance(maintFlag); err != nil {
+			fmt.Println("SendMaintenance: failed to run subcommand:", err)
+			os.Exit(2)
+		}
+
+		os.Exit(0)
+	}
+
+	if putEnvFlags.Len() != 0 {
+		if err := cmd.SendEnviron(putEnvFlags.Values); err != nil {
+			fmt.Println("SendEnviron: failed to run subcommand:", err)
+			os.Exit(2)
+		}
+
+		os.Exit(0)
+	}
+
+	if putMetricFlags.Len() != 0 {
+		if err := cmd.SendMetric(putMetricFlags.Values); err != nil {
+			fmt.Println("SendMetric: failed to run subcommand:", err)
+			os.Exit(2)
+		}
+
+		os.Exit(0)
+	}
+
 	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
+
 	app, err := NewApp(configFlag)
 	if err != nil {
 		return nil, err
