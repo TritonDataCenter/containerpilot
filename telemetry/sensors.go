@@ -49,7 +49,6 @@ func NewSensor(cfg *SensorConfig) *Sensor {
 		collector: cfg.collector,
 	}
 	sensor.Rx = make(chan events.Event, eventBufferSize)
-	sensor.Flush = make(chan bool)
 	return sensor
 }
 
@@ -104,26 +103,33 @@ func (sensor *Sensor) Run(bus *events.EventBus) {
 	events.NewEventTimer(ctx, sensor.Rx, sensor.poll, pollSource)
 
 	go func() {
+		defer func() {
+			cancel()
+			sensor.Unsubscribe(sensor.Bus)
+			sensor.exec.CloseLogs()
+		}()
 		for {
-			event := <-sensor.Rx
-			switch event.Code {
-			case events.Metric:
-				sensor.processMetric(event.Source)
-			default:
-				switch event {
-				case events.Event{events.TimerExpired, pollSource}:
-					sensor.Observe(ctx)
-				case
-					events.Event{events.Quit, sensor.Name},
-					events.QuitByClose,
-					events.GlobalShutdown:
-					sensor.Unsubscribe(sensor.Bus)
-					close(sensor.Rx)
-					cancel()
-					sensor.Flush <- true
-					sensor.exec.CloseLogs()
+			select {
+			case event, ok := <-sensor.Rx:
+				if !ok {
 					return
 				}
+				switch event.Code {
+				case events.Metric:
+					sensor.processMetric(event.Source)
+				default:
+					switch event {
+					case events.Event{events.TimerExpired, pollSource}:
+						sensor.Observe(ctx)
+					case
+						events.Event{events.Quit, sensor.Name},
+						events.QuitByClose,
+						events.GlobalShutdown:
+						return
+					}
+				}
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()

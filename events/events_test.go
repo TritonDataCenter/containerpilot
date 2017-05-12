@@ -13,7 +13,7 @@ func TestSafeUnsubscribe(t *testing.T) {
 
 	ts.Run()
 	bus.Publish(Event{Code: Startup, Source: "serviceA"})
-	ts.Close()
+	ts.Quit()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -51,7 +51,6 @@ type TestSubscriber struct {
 func NewTestSubscriber(bus *EventBus) *TestSubscriber {
 	my := &TestSubscriber{lock: &sync.RWMutex{}, results: []Event{}}
 	my.Rx = make(chan Event, 1000)
-	my.Flush = make(chan bool)
 	my.Bus = bus
 	return my
 }
@@ -64,7 +63,6 @@ func (ts *TestSubscriber) Run() {
 				ts.lock.Lock()
 				ts.results = append(ts.results, event)
 				ts.Unsubscribe(ts.Bus)
-				ts.Flush <- true
 				close(ts.Rx)
 				break
 			default:

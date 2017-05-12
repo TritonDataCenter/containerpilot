@@ -35,28 +35,26 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 		Addr: cfg.SocketPath,
 	}
 	srv.Rx = make(chan events.Event, 10)
-	srv.Flush = make(chan bool)
 	return srv, nil
 }
 
 // Run executes the event loop for the control server
 func (srv *HTTPServer) Run(bus *events.EventBus) {
-	srv.Subscribe(bus)
+	srv.Subscribe(bus, true)
 	srv.Bus = bus
 	srv.Start()
 
 	go func() {
-	loop:
+		defer srv.Stop()
 		for {
 			event := <-srv.Rx
 			switch event {
 			case
 				events.QuitByClose,
 				events.GlobalShutdown:
-				break loop
+				return
 			}
 		}
-		srv.Stop()
 	}()
 }
 
@@ -124,7 +122,7 @@ func (srv *HTTPServer) Stop() error {
 		return err
 	}
 
-	srv.Unsubscribe(srv.Bus)
+	srv.Unsubscribe(srv.Bus, true)
 	close(srv.Rx)
 	log.Debug("control: completed graceful shutdown of control server")
 	return nil

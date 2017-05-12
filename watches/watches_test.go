@@ -41,8 +41,6 @@ func TestWatchPollFail(t *testing.T) {
 
 func runWatchTest(cfg *Config, count int, disc discovery.Backend) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, count)
-	ds.Run(0)
 	cfg.Validate(disc)
 	watch := NewWatch(cfg)
 	watch.Run(bus)
@@ -50,11 +48,12 @@ func runWatchTest(cfg *Config, count int, disc discovery.Backend) map[events.Eve
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s.poll", cfg.Name)}
 	bus.Publish(poll)
 	bus.Publish(poll) // Ensure we can run it more than once
-	watch.Close()
-	ds.Close()
+	watch.Quit()
+	bus.Wait()
+	results := bus.DebugEvents()
 
 	got := map[events.Event]int{}
-	for _, result := range ds.Results {
+	for _, result := range results {
 		got[result]++
 	}
 	return got

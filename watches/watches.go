@@ -32,7 +32,6 @@ func NewWatch(cfg *Config) *Watch {
 		discoveryService: cfg.discoveryService,
 	}
 	watch.Rx = make(chan events.Event, eventBufferSize)
-	watch.Flush = make(chan bool)
 	return watch
 }
 
@@ -63,29 +62,36 @@ func (watch *Watch) Run(bus *events.EventBus) {
 		time.Duration(watch.poll)*time.Second, timerSource)
 
 	go func() {
+		defer func() {
+			cancel()
+			watch.Unsubscribe(watch.Bus)
+		}()
 		for {
-			event := <-watch.Rx
-			switch event {
-			case events.Event{events.TimerExpired, timerSource}:
-				didChange, isHealthy := watch.CheckForUpstreamChanges()
-				if didChange {
-					watch.Bus.Publish(events.Event{events.StatusChanged, watch.Name})
-					// we only send the StatusHealthy and StatusUnhealthy
-					// events if there was a change
-					if isHealthy {
-						watch.Bus.Publish(events.Event{events.StatusHealthy, watch.Name})
-					} else {
-						watch.Bus.Publish(events.Event{events.StatusUnhealthy, watch.Name})
-					}
+			select {
+			case event, ok := <-watch.Rx:
+				if !ok {
+					return
 				}
-			case
-				events.Event{events.Quit, watch.Name},
-				events.QuitByClose,
-				events.GlobalShutdown:
-				watch.Unsubscribe(watch.Bus)
-				close(watch.Rx)
-				cancel()
-				watch.Flush <- true
+				switch event {
+				case events.Event{events.TimerExpired, timerSource}:
+					didChange, isHealthy := watch.CheckForUpstreamChanges()
+					if didChange {
+						watch.Bus.Publish(events.Event{events.StatusChanged, watch.Name})
+						// we only send the StatusHealthy and StatusUnhealthy
+						// events if there was a change
+						if isHealthy {
+							watch.Bus.Publish(events.Event{events.StatusHealthy, watch.Name})
+						} else {
+							watch.Bus.Publish(events.Event{events.StatusUnhealthy, watch.Name})
+						}
+					}
+				case
+					events.Event{events.Quit, watch.Name},
+					events.QuitByClose,
+					events.GlobalShutdown:
+					return
+				}
+			case <-ctx.Done():
 				return
 			}
 		}

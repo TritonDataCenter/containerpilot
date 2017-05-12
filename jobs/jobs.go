@@ -82,7 +82,6 @@ func NewJob(cfg *Config) *Job {
 		frequency:         cfg.freqInterval,
 	}
 	job.Rx = make(chan events.Event, eventBufferSize)
-	job.Flush = make(chan bool, 1)
 	job.statusLock = &sync.RWMutex{}
 	if job.Name == "containerpilot" {
 		// right now this hardcodes the telemetry service to
@@ -166,102 +165,116 @@ func (job *Job) Kill() {
 
 // Run executes the event loop for the Job
 func (job *Job) Run(bus *events.EventBus) {
-
 	job.Subscribe(bus)
 	job.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 
-	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
 	if job.frequency > 0 {
-		events.NewEventTimer(ctx, job.Rx, job.frequency, runEverySource)
+		events.NewEventTimer(ctx, job.Rx, job.frequency,
+			fmt.Sprintf("%s.run-every", job.Name))
 	}
-
-	heartbeatSource := fmt.Sprintf("%s.heartbeat", job.Name)
 	if job.heartbeat > 0 {
-		events.NewEventTimer(ctx, job.Rx, job.heartbeat, heartbeatSource)
+		events.NewEventTimer(ctx, job.Rx, job.heartbeat,
+			fmt.Sprintf("%s.heartbeat", job.Name))
 	}
-
-	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
 	if job.startTimeout > 0 {
-		events.NewEventTimeout(ctx, job.Rx, job.startTimeout, startTimeoutSource)
+		events.NewEventTimeout(ctx, job.Rx, job.startTimeout,
+			fmt.Sprintf("%s.wait-timeout", job.Name))
 	}
 
+	go func() {
+		defer job.cleanup(ctx, cancel)
+		for {
+			select {
+			case event, ok := <-job.Rx:
+				if !ok {
+					return
+				}
+				if job.processEvent(ctx, event) {
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+}
+
+func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
+
+	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
+	heartbeatSource := fmt.Sprintf("%s.heartbeat", job.Name)
+	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
 	var healthCheckName string
 	if job.healthCheckExec != nil {
 		healthCheckName = job.healthCheckExec.Name
 	}
 
-	go func() {
-	loop: // aw yeah, goto like it's 1968!
-		for {
-			event := <-job.Rx
-			switch event {
-			case events.Event{events.TimerExpired, heartbeatSource}:
-				if job.getStatus() != statusMaintenance {
-					if job.healthCheckExec != nil {
-						job.HealthCheck(ctx)
-					} else if job.Service != nil {
-						// this is the case for non-checked but advertised
-						// services like the telemetry endpoint
-						job.SendHeartbeat()
-					}
-				}
-			case events.Event{events.TimerExpired, startTimeoutSource}:
-				job.Bus.Publish(events.Event{
-					Code: events.TimerExpired, Source: job.Name})
-				job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
-			case events.Event{events.TimerExpired, runEverySource}:
-				if !job.restartPermitted() {
-					log.Debugf("interval expired but restart not permitted: %v",
-						job.Name)
-					break loop
-				}
-				job.restartsRemain--
-				job.StartJob(ctx)
-			case events.Event{events.ExitFailed, healthCheckName}:
-				if job.getStatus() != statusMaintenance {
-					job.setStatus(statusUnhealthy)
-					job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
-				}
-			case events.Event{events.ExitSuccess, healthCheckName}:
-				if job.getStatus() != statusMaintenance {
-					job.setStatus(statusHealthy)
-					job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
-					job.SendHeartbeat()
-				}
-			case
-				events.Event{events.Quit, job.Name},
-				events.QuitByClose,
-				events.GlobalShutdown:
-				break loop
-			case events.GlobalEnterMaintenance:
-				job.MarkForMaintenance()
-			case events.GlobalExitMaintenance:
-				job.setStatus(statusUnknown)
-			case
-				events.Event{events.ExitSuccess, job.Name},
-				events.Event{events.ExitFailed, job.Name}:
-				if job.frequency > 0 {
-					break // note: breaks switch only
-				}
-				if !job.restartPermitted() {
-					log.Debugf("job exited but restart not permitted: %v",
-						job.Name)
-					break loop
-				}
-				job.restartsRemain--
-				job.StartJob(ctx)
-			case job.startEvent:
-				if job.startsRemain == unlimited || job.startsRemain > 0 {
-					job.startsRemain--
-					job.StartJob(ctx)
-				} else {
-					break loop
-				}
+	switch event {
+	case events.Event{events.TimerExpired, heartbeatSource}:
+		if job.getStatus() != statusMaintenance {
+			if job.healthCheckExec != nil {
+				job.HealthCheck(ctx)
+			} else if job.Service != nil {
+				// this is the case for non-checked but advertised
+				// services like the telemetry endpoint
+				job.SendHeartbeat()
 			}
 		}
-		job.cleanup(ctx, cancel)
-	}()
+	case events.Event{events.TimerExpired, startTimeoutSource}:
+		job.Bus.Publish(events.Event{
+			Code: events.TimerExpired, Source: job.Name})
+		job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
+	case events.Event{events.TimerExpired, runEverySource}:
+		if !job.restartPermitted() {
+			log.Debugf("interval expired but restart not permitted: %v",
+				job.Name)
+			return true
+		}
+		job.restartsRemain--
+		job.StartJob(ctx)
+	case events.Event{events.ExitFailed, healthCheckName}:
+		if job.getStatus() != statusMaintenance {
+			job.setStatus(statusUnhealthy)
+			job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
+		}
+	case events.Event{events.ExitSuccess, healthCheckName}:
+		if job.getStatus() != statusMaintenance {
+			job.setStatus(statusHealthy)
+			job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
+			job.SendHeartbeat()
+		}
+	case
+		events.Event{events.Quit, job.Name},
+		events.QuitByClose,
+		events.GlobalShutdown:
+		return true
+	case events.GlobalEnterMaintenance:
+		job.MarkForMaintenance()
+	case events.GlobalExitMaintenance:
+		job.setStatus(statusUnknown)
+	case
+		events.Event{events.ExitSuccess, job.Name},
+		events.Event{events.ExitFailed, job.Name}:
+		if job.frequency > 0 {
+			break // periodic jobs ignore previous events
+		}
+		if !job.restartPermitted() {
+			log.Debugf("job exited but restart not permitted: %v",
+				job.Name)
+			return true
+		}
+		job.restartsRemain--
+		job.StartJob(ctx)
+	case job.startEvent:
+		if job.startsRemain == unlimited || job.startsRemain > 0 {
+			job.startsRemain--
+			job.StartJob(ctx)
+		} else {
+			return true
+		}
+	}
+	return false
 }
 
 func (job *Job) restartPermitted() bool {
@@ -294,13 +307,11 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 			}
 		}
 	}
-	job.Unsubscribe(job.Bus)
-	job.Deregister()
-	close(job.Rx)
 	cancel()
+	job.Unsubscribe(job.Bus) // deregister from events
+	job.Deregister()         // deregister from Consul
 	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 	job.exec.CloseLogs()
-	job.Flush <- true
 }
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
