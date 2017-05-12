@@ -1,12 +1,11 @@
 package client
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 type HTTPClient struct {
@@ -36,21 +35,69 @@ func NewHTTPClient(socketPath string) (*HTTPClient, error) {
 	return client, nil
 }
 
-func (c HTTPClient) Reload() error {
-	resp, err := c.Post("http://control/v3/reload", "application/json", nil)
+func (self HTTPClient) Reload() (*http.Response, error) {
+	resp, err := self.Post("http://control/v3/reload", "application/json", nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
-		return errors.New(mesg)
+		return nil, errors.New(mesg)
 	}
 
-	return nil
+	return resp, nil
 }
 
-// func (c Client) SetMaintenance()
-// func (c Client) PutEnv()
-// func (c Client) PutMetric()
+func (self HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
+	var flag string
+	if isEnabled {
+		flag = "enable"
+	} else {
+		flag = "disable"
+	}
+
+	resp, err := self.Post("http://control/v3/maintenance/" + flag, "application/json", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
+		return nil, errors.New(mesg)
+	}
+
+	return resp, nil
+}
+
+func (self HTTPClient) PutEnv(body string) (*http.Response, error) {
+	resp, err := self.Post("http://control/v3/env", "application/json", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
+		return nil, errors.New(mesg)
+	}
+
+	return resp, nil
+}
+
+func (self HTTPClient) PutMetric(body string) (*http.Response, error) {
+	resp, err := self.Post("http://control/v3/metric", "application/json", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
+		return nil, errors.New(mesg)
+	}
+
+	return resp, nil
+}
