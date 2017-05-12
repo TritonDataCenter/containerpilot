@@ -180,7 +180,6 @@ func (c *Command) Kill() error {
 func (c *Command) waitForTimeout() error {
 
 	quit := make(chan int)
-	cmd := c.Cmd
 
 	// for commands that don't have a timeout we just block forever;
 	// this is required for backwards compat.
