@@ -97,10 +97,20 @@ func LoadApp() (*App, error) {
 	}
 
 	if reloadFlag {
-		if err := subcommands.SendReload(configFlag); err != nil {
+		cmd, err := subcommands.Init(configFlag)
+		if err != nil {
+			fmt.Println("Reload: Failed to load subcommand:", err)
+			os.Exit(2)
+		}
+		if err := cmd.SendReload(); err != nil {
 			fmt.Println("Reload: Failed to reload control socket:", err)
 			os.Exit(2)
 		}
+		os.Exit(0)
+	}
+
+	if putEnvFlags != "" {
+		fmt.Printf("putEnvFlags: %v", putEnvFlags)
 		os.Exit(0)
 	}
 
