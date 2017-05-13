@@ -1,16 +1,16 @@
 package client
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 )
 
 type HTTPClient struct {
 	http.Client
-	socketPath   string
+	socketPath  string
 }
 
 var SocketType = "unix"
@@ -73,7 +73,8 @@ func (self HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
 }
 
 func (self HTTPClient) PutEnv(body string) (*http.Response, error) {
-	resp, err := self.Post("http://control/v3/env", "application/json", body)
+	resp, err := self.Post("http://control/v3/env", "application/json",
+		strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,8 @@ func (self HTTPClient) PutEnv(body string) (*http.Response, error) {
 }
 
 func (self HTTPClient) PutMetric(body string) (*http.Response, error) {
-	resp, err := self.Post("http://control/v3/metric", "application/json", body)
+	resp, err := self.Post("http://control/v3/metric", "application/json",
+		strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
