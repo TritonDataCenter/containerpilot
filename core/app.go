@@ -51,31 +51,42 @@ func EmptyApp() *App {
 // LoadApp parses the commandline arguments and loads the config
 func LoadApp() (*App, error) {
 
-	var configFlag string
 	var versionFlag bool
-	var renderFlag string
-	var maintFlag string
-	var putEnvFlags string
-	var putMetricFlags string
 	var templateFlag bool
 	var reloadFlag bool
 
+	var configFlag string
+	var renderFlag string
+	var maintFlag string
+
+	var putMetricFlag MultiFlag
+	var putEnvFlags MultiFlag
+
 	if !flag.Parsed() {
-		flag.StringVar(&configFlag, "config", "",
-			"file path to JSON5 configuration file.")
+		flag.BoolVar(&versionFlag, "version", false,
+			"Show version identifier and quit.")
+
 		flag.BoolVar(&templateFlag, "template", false,
 			"Render template and quit. (default: false)")
-		flag.StringVar(&renderFlag, "out", "-",
-			"-(default) for stdout or file path where to save rendered JSON config file.")
-		flag.BoolVar(&versionFlag, "version", false, "Show version identifier and quit.")
+
 		flag.BoolVar(&reloadFlag, "reload", false,
 			"reload a ContainerPilot process through its control socket.")
+
+		flag.StringVar(&configFlag, "config", "",
+			"file path to JSON5 configuration file.")
+
+		flag.StringVar(&renderFlag, "out", "-",
+			"-(default) for stdout or file path where to save rendered JSON config file.")
+
 		flag.StringVar(&maintFlag, "maintenance", "enable",
 			"enable/disable maintanence mode through a ContainerPilot process control socket.")
-		flag.StringVar(&putEnvFlags, "putenv", "MY_ENV=my_val",
-			"update environ of a ContainerPilot process through its control socket.")
-		flag.StringVar(&putMetricFlags, "putmetric", "MY_METRIC=my_val",
+
+		flag.Var(&putMetricFlag, "putmetric",
 			"update metrics of a ContainerPilot process through its control socket.")
+
+		flag.Var(&putEnvFlags, "putenv",
+			"update environ of a ContainerPilot process through its control socket.")
+
 		flag.Parse()
 	}
 
@@ -99,18 +110,27 @@ func LoadApp() (*App, error) {
 	if reloadFlag {
 		cmd, err := subcommands.Init(configFlag)
 		if err != nil {
-			fmt.Println("Reload: Failed to load subcommand:", err)
+			fmt.Println("Reload: failed to load subcommand:", err)
 			os.Exit(2)
 		}
 		if err := cmd.SendReload(); err != nil {
-			fmt.Println("Reload: Failed to reload control socket:", err)
+			fmt.Println("Reload: failed to reload control socket:", err)
 			os.Exit(2)
 		}
 		os.Exit(0)
 	}
 
-	if putEnvFlags != "" {
-		fmt.Printf("putEnvFlags: %v", putEnvFlags)
+	if putEnvFlags.Len() != 0 {
+		cmd, err := subcommands.Init(configFlag)
+		if err != nil {
+			fmt.Println("PutEnv: failed to load subcommand:", err)
+			os.Exit(2)
+		}
+		if err := cmd.SendEnviron(putEnvFlags.Values); err != nil {
+			fmt.Println("PutEnv: failed to send environ:", err)
+			os.Exit(2)
+		}
+
 		os.Exit(0)
 	}
 
