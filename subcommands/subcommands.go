@@ -46,17 +46,8 @@ func (self Subcommand) SendReload() error {
 	return nil
 }
 
-func (self Subcommand) SendEnableMaintenance() error {
-	_, err := self.client.SetMaintenance(true)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (self Subcommand) SendDisableMaintenance() error {
-	_, err := self.client.SetMaintenance(false)
+func (self Subcommand) SendMaintenance(isEnabled bool) error {
+	_, err := self.client.SetMaintenance(isEnabled)
 	if err != nil {
 		return err
 	}
