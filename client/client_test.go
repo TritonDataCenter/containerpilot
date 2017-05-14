@@ -1,13 +1,25 @@
 package client
 
-// func TestClientReload() {
-// }
+import (
+	// "fmt"
+	"testing"
 
-// func TestClientSetMaintenance() {
-// }
+	"github.com/joyent/containerpilot/tests"
+	"github.com/joyent/containerpilot/tests/assert"
+)
 
-// func TestClientPutEnv() {
-// }
+func TestClientReload(t *testing.T) {
+	t.Skip("Not implemented")
+}
 
-// func TestClientPutMetric() {
-// }
+func TestClientSetMaintenance(t *testing.T) {
+	t.Skip("Not implemented")
+}
+
+func TestClientPutEnv(t *testing.T) {
+	t.Skip("Not implemented")
+}
+
+func TestClientPutMetric(t *testing.T) {
+	t.Skip("Not implemented")
+}
