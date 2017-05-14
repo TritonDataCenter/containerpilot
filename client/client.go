@@ -10,7 +10,7 @@ import (
 
 type HTTPClient struct {
 	http.Client
-	socketPath  string
+	socketPath string
 }
 
 var SocketType = "unix"
@@ -58,7 +58,7 @@ func (self HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
 		flag = "disable"
 	}
 
-	resp, err := self.Post("http://control/v3/maintenance/" + flag, "application/json", nil)
+	resp, err := self.Post("http://control/v3/maintenance/"+flag, "application/json", nil)
 	if err != nil {
 		return nil, err
 	}

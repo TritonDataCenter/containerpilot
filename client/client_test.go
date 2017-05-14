@@ -1,11 +1,7 @@
 package client
 
 import (
-	// "fmt"
 	"testing"
-
-	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/assert"
 )
 
 func TestClientReload(t *testing.T) {
