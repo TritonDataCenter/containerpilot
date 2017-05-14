@@ -14,17 +14,21 @@ type Subcommand struct {
 }
 
 func Init(configFlag string) (*Subcommand, error) {
-	cfg, err := config.LoadConfig(configFlag)
-	if err != nil {
-		return nil, err
+	var socketPath = "/var/run/containerpilot.socket"
+
+	if configFlag != "" {
+		cfg, err := config.LoadConfig(configFlag)
+		if err != nil {
+			return nil, err
+		}
+		if cfg.Control == nil {
+			err := errors.New("Reload: Couldn't reuse control config")
+			return nil, err
+		}
+		socketPath = cfg.Control.SocketPath
 	}
 
-	if cfg.Control == nil {
-		err := errors.New("Reload: Couldn't reuse control config")
-		return nil, err
-	}
-
-	httpclient, err := client.NewHTTPClient(cfg.Control.SocketPath)
+	httpclient, err := client.NewHTTPClient(socketPath)
 	if err != nil {
 		return nil, err
 	}
