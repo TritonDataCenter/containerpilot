@@ -73,7 +73,7 @@ func (self HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
 }
 
 func (self HTTPClient) PutEnv(body string) (*http.Response, error) {
-	resp, err := self.Post("http://control/v3/env", "application/json",
+	resp, err := self.Post("http://control/v3/environ", "application/json",
 		strings.NewReader(body))
 	if err != nil {
 		return nil, err
