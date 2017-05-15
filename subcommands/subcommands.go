@@ -8,10 +8,13 @@ import (
 	"github.com/joyent/containerpilot/config"
 )
 
+// Subcommand provides a simple object for storing a configured HTTPClient.
 type Subcommand struct {
 	client *client.HTTPClient
 }
 
+// Init initializes the configuration of a Subcommand function and the
+// HTTPClient which they utilize for control plane interaction.
 func Init(configFlag string) (*Subcommand, error) {
 	var socketPath = "/var/run/containerpilot.socket"
 
@@ -37,8 +40,9 @@ func Init(configFlag string) (*Subcommand, error) {
 	}, nil
 }
 
-func (self Subcommand) SendReload() error {
-	_, err := self.client.Reload()
+// SendReload fires a Reload request through the HTTPClient.
+func (s Subcommand) SendReload() error {
+	_, err := s.client.Reload()
 	if err != nil {
 		return err
 	}
@@ -46,8 +50,15 @@ func (self Subcommand) SendReload() error {
 	return nil
 }
 
-func (self Subcommand) SendMaintenance(isEnabled bool) error {
-	_, err := self.client.SetMaintenance(isEnabled)
+// SendMaintenance fires either an enable or disable SetMaintenance request
+// through the HTTPClient.
+func (s Subcommand) SendMaintenance(isEnabled string) error {
+	flag := false
+	if isEnabled == "enable" {
+		flag = true
+	}
+
+	_, err := s.client.SetMaintenance(flag)
 	if err != nil {
 		return err
 	}
@@ -55,13 +66,14 @@ func (self Subcommand) SendMaintenance(isEnabled bool) error {
 	return nil
 }
 
-func (self Subcommand) SendEnviron(env map[string]string) error {
+// SendEnviron fires a PutEnv request through the HTTPClient.
+func (s Subcommand) SendEnviron(env map[string]string) error {
 	envJSON, err := json.Marshal(env)
 	if err != nil {
 		return err
 	}
 
-	_, err = self.client.PutEnv(string(envJSON))
+	_, err = s.client.PutEnv(string(envJSON))
 	if err != nil {
 		return err
 	}
@@ -69,13 +81,14 @@ func (self Subcommand) SendEnviron(env map[string]string) error {
 	return nil
 }
 
-func (self Subcommand) SendMetric(metrics map[string]string) error {
+// SendMetric fires a PutMetric request through the HTTPClient.
+func (s Subcommand) SendMetric(metrics map[string]string) error {
 	metricsJSON, err := json.Marshal(metrics)
 	if err != nil {
 		return err
 	}
 
-	_, err = self.client.PutMetric(string(metricsJSON))
+	_, err = s.client.PutMetric(string(metricsJSON))
 	if err != nil {
 		return err
 	}
