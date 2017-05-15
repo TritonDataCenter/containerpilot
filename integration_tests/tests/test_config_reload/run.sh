@@ -16,6 +16,7 @@ if [[ "$reloads" -ne 1 ]] || [[ "$serves" -ne 2 ]]; then
     echo '--------------------'
     echo 'single reload failed'
     echo '----- APP LOGS -----'
+    cat app.log
     exit 1
 fi
 
@@ -31,6 +32,7 @@ if [[ $? -ne 0 ]]; then
     echo '--------------------'
     echo 'multi reload failed'
     echo '----- APP LOGS -----'
+    cat app.log
     exit 1
 fi
 

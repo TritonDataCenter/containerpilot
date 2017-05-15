@@ -78,10 +78,7 @@ func (srv *HTTPServer) Start() {
 	srv.SetKeepAlivesEnabled(false)
 	log.Debug("control: initialized router for control server")
 
-	ln, err := net.Listen(SocketType, srv.Addr)
-	if err != nil {
-		log.Fatalf("error listening to socket at %s: %v", srv.Addr, err)
-	}
+	ln := srv.listenWithRetry()
 
 	go func() {
 		log.Infof("control: serving at %s", srv.Addr)
@@ -89,6 +86,25 @@ func (srv *HTTPServer) Start() {
 		log.Debugf("control: stopped serving at %s", srv.Addr)
 	}()
 
+}
+
+// on a reload we can't guarantee that the control server will be shut down
+// and the socket file cleaned up before we're ready to start again, so we'll
+// retry with the listener a few times before bailing out.
+func (srv *HTTPServer) listenWithRetry() net.Listener {
+	var (
+		err error
+		ln  net.Listener
+	)
+	for i := 0; i < 10; i++ {
+		ln, err = net.Listen(SocketType, srv.Addr)
+		if err == nil {
+			return ln
+		}
+		time.Sleep(time.Second)
+	}
+	log.Fatalf("error listening to socket at %s: %v", srv.Addr, err)
+	return nil
 }
 
 // Stop shuts down the control server gracefully
