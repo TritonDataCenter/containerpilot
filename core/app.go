@@ -107,11 +107,7 @@ func LoadApp() (*App, error) {
 		os.Exit(0)
 	}
 
-	cmd, err := subcommands.Init(configFlag)
-	if err != nil {
-		fmt.Println("Subcommands: failed to init config:", err)
-		os.Exit(2)
-	}
+	cmd, _ := subcommands.Init(configFlag)
 
 	if reloadFlag {
 		if err := cmd.SendReload(); err != nil {
