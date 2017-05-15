@@ -20,6 +20,9 @@ if [[ "$reloads" -ne 1 ]] || [[ "$serves" -ne 2 ]]; then
     exit 1
 fi
 
+# DEBUG - revert me
+cat app.log
+
 # slam reload endpoint to verify we don't deadlock
 docker exec "$APP_ID" /reload-containerpilot.sh multi
 for _ in $(seq 0 20)
