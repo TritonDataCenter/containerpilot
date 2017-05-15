@@ -2,7 +2,6 @@ package subcommands
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/joyent/containerpilot/client"
 	"github.com/joyent/containerpilot/config"
@@ -16,21 +15,12 @@ type Subcommand struct {
 // Init initializes the configuration of a Subcommand function and the
 // HTTPClient which they utilize for control plane interaction.
 func Init(configFlag string) (*Subcommand, error) {
-	var socketPath = "/var/run/containerpilot.socket"
-
-	if configFlag != "" {
-		cfg, err := config.LoadConfig(configFlag)
-		if err != nil {
-			return nil, err
-		}
-		if cfg.Control == nil {
-			err := errors.New("Reload: Couldn't reuse control config")
-			return nil, err
-		}
-		socketPath = cfg.Control.SocketPath
+	cfg, err := config.LoadConfig(configFlag)
+	if err != nil {
+		return nil, err
 	}
 
-	httpclient, err := client.NewHTTPClient(socketPath)
+	httpclient, err := client.NewHTTPClient(cfg.Control.SocketPath)
 	if err != nil {
 		return nil, err
 	}

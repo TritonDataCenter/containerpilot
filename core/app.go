@@ -70,22 +70,22 @@ func LoadApp() (*App, error) {
 			"Render template and quit. (default: false)")
 
 		flag.BoolVar(&reloadFlag, "reload", false,
-			"reload a ContainerPilot process through its control socket.")
+			"Reload a ContainerPilot process through its control socket.")
 
 		flag.StringVar(&configFlag, "config", "",
-			"file path to JSON5 configuration file.")
+			"File path to JSON5 configuration file.")
 
 		flag.StringVar(&renderFlag, "out", "-",
 			"-(default) for stdout or file path where to save rendered JSON config file.")
 
 		flag.StringVar(&maintFlag, "maintenance", "",
-			"enable/disable maintanence mode through a ContainerPilot process control socket.")
+			"Enable/disable maintanence mode through a ContainerPilot process control socket.")
 
 		flag.Var(&putMetricFlags, "putmetric",
-			"update metrics of a ContainerPilot process through its control socket.")
+			"Update metrics of a ContainerPilot process through its control socket.")
 
 		flag.Var(&putEnvFlags, "putenv",
-			"update environ of a ContainerPilot process through its control socket.")
+			"Update environ of a ContainerPilot process through its control socket.")
 
 		flag.Parse()
 	}
