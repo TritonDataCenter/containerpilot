@@ -40,24 +40,18 @@ func NewHTTPClient(socketPath string) (*HTTPClient, error) {
 }
 
 // Reload makes a request to the reload endpoint of a ContainerPilot process.
-func (c HTTPClient) Reload() (*http.Response, error) {
+func (c HTTPClient) Reload() error {
 	resp, err := c.Post("http://control/v3/reload", "application/json", nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
-		return nil, errors.New(mesg)
-	}
-
-	return resp, nil
+	return nil
 }
 
 // SetMaintenance makes a request to either the enable or disable maintenance
 // endpoint of a ContainerPilot process.
-func (c HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
+func (c HTTPClient) SetMaintenance(isEnabled bool) error {
 	flag := "disable"
 	if isEnabled {
 		flag = "enable"
@@ -65,50 +59,40 @@ func (c HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
 
 	resp, err := c.Post("http://control/v3/maintenance/"+flag, "application/json", nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
-		return nil, errors.New(mesg)
-	}
-
-	return resp, nil
+	return nil
 }
 
 // PutEnv makes a request to the environ endpoint of a ContainerPilot process
 // for setting environ variable pairs.
-func (c HTTPClient) PutEnv(body string) (*http.Response, error) {
+func (c HTTPClient) PutEnv(body string) error {
 	resp, err := c.Post("http://control/v3/environ", "application/json",
 		strings.NewReader(body))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
-		return nil, errors.New(mesg)
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		return fmt.Errorf("unprocessable entity received by control server")
 	}
-
-	return resp, nil
+	return nil
 }
 
 // PutMetric makes a request to the metric endpoint of a ContainerPilot process
 // for setting custom metrics.
-func (c HTTPClient) PutMetric(body string) (*http.Response, error) {
+func (c HTTPClient) PutMetric(body string) error {
 	resp, err := c.Post("http://control/v3/metric", "application/json",
 		strings.NewReader(body))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		mesg := fmt.Sprintf("expected 200 but got %v\n%+v", resp.StatusCode, resp)
-		return nil, errors.New(mesg)
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		return fmt.Errorf("unprocessable entity received by control server")
 	}
-
-	return resp, nil
+	return nil
 }

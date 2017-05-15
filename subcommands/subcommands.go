@@ -32,8 +32,7 @@ func Init(configFlag string) (*Subcommand, error) {
 
 // SendReload fires a Reload request through the HTTPClient.
 func (s Subcommand) SendReload() error {
-	_, err := s.client.Reload()
-	if err != nil {
+	if err := s.client.Reload(); err != nil {
 		return err
 	}
 
@@ -48,8 +47,7 @@ func (s Subcommand) SendMaintenance(isEnabled string) error {
 		flag = true
 	}
 
-	_, err := s.client.SetMaintenance(flag)
-	if err != nil {
+	if err := s.client.SetMaintenance(flag); err != nil {
 		return err
 	}
 
@@ -63,8 +61,7 @@ func (s Subcommand) SendEnviron(env map[string]string) error {
 		return err
 	}
 
-	_, err = s.client.PutEnv(string(envJSON))
-	if err != nil {
+	if err = s.client.PutEnv(string(envJSON)); err != nil {
 		return err
 	}
 
@@ -78,8 +75,7 @@ func (s Subcommand) SendMetric(metrics map[string]string) error {
 		return err
 	}
 
-	_, err = s.client.PutMetric(string(metricsJSON))
-	if err != nil {
+	if err = s.client.PutMetric(string(metricsJSON)); err != nil {
 		return err
 	}
 
