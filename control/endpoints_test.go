@@ -96,8 +96,8 @@ func TestPostHandler(t *testing.T) {
 			func(r *http.Request) (interface{}, int) {
 				return nil, 200
 			})
-		assert.Equal(t, status, 501, "expected HTTP501 method not allowed")
-		assert.Equal(t, result, "Not Implemented\n", "expected '%q' but got '%q'")
+		assert.Equal(t, status, 405, "expected HTTP405 method not allowed")
+		assert.Equal(t, result, "Method Not Allowed\n", "expected '%q' but got '%q'")
 	})
 }
 

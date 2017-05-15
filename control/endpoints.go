@@ -25,7 +25,7 @@ type PostHandler func(*http.Request) (interface{}, int)
 
 func (pw PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		failedStatus := http.StatusNotImplemented
+		failedStatus := http.StatusMethodNotAllowed
 		http.Error(w, http.StatusText(failedStatus), failedStatus)
 		return
 	}
