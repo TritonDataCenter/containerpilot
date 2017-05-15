@@ -59,7 +59,7 @@ func LoadApp() (*App, error) {
 	var renderFlag string
 	var maintFlag string
 
-	var putMetricFlag MultiFlag
+	var putMetricFlags MultiFlag
 	var putEnvFlags MultiFlag
 
 	if !flag.Parsed() {
@@ -78,10 +78,10 @@ func LoadApp() (*App, error) {
 		flag.StringVar(&renderFlag, "out", "-",
 			"-(default) for stdout or file path where to save rendered JSON config file.")
 
-		flag.StringVar(&maintFlag, "maintenance", "enable",
+		flag.StringVar(&maintFlag, "maintenance", "",
 			"enable/disable maintanence mode through a ContainerPilot process control socket.")
 
-		flag.Var(&putMetricFlag, "putmetric",
+		flag.Var(&putMetricFlags, "putmetric",
 			"update metrics of a ContainerPilot process through its control socket.")
 
 		flag.Var(&putEnvFlags, "putenv",
@@ -107,27 +107,41 @@ func LoadApp() (*App, error) {
 		os.Exit(0)
 	}
 
+	cmd, err := subcommands.Init(configFlag)
+	if err != nil {
+		fmt.Println("Subcommands: failed to init config:", err)
+		os.Exit(2)
+	}
+
 	if reloadFlag {
-		cmd, err := subcommands.Init(configFlag)
-		if err != nil {
-			fmt.Println("Reload: failed to load subcommand:", err)
-			os.Exit(2)
-		}
 		if err := cmd.SendReload(); err != nil {
-			fmt.Println("Reload: failed to reload control socket:", err)
+			fmt.Println("Reload: failed to run subcommand:", err)
 			os.Exit(2)
 		}
 		os.Exit(0)
 	}
 
-	if putEnvFlags.Len() != 0 {
-		cmd, err := subcommands.Init(configFlag)
-		if err != nil {
-			fmt.Println("PutEnv: failed to load subcommand:", err)
+	if maintFlag != "" {
+		if err := cmd.SendMaintenance(maintFlag); err != nil {
+			fmt.Println("SendMaintenance: failed to run subcommand:", err)
 			os.Exit(2)
 		}
+
+		os.Exit(0)
+	}
+
+	if putEnvFlags.Len() != 0 {
 		if err := cmd.SendEnviron(putEnvFlags.Values); err != nil {
-			fmt.Println("PutEnv: failed to send environ:", err)
+			fmt.Println("SendEnviron: failed to run subcommand:", err)
+			os.Exit(2)
+		}
+
+		os.Exit(0)
+	}
+
+	if putMetricFlags.Len() != 0 {
+		if err := cmd.SendMetric(putMetricFlags.Values); err != nil {
+			fmt.Println("SendMetric: failed to run subcommand:", err)
 			os.Exit(2)
 		}
 
