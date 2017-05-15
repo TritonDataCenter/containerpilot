@@ -8,19 +8,23 @@ import (
 	"strings"
 )
 
+// HTTPClient provides a properly configured http.Client object used to send
+// requests out to a ContainerPilot process's control socket.
 type HTTPClient struct {
 	http.Client
 	socketPath string
 }
 
-var SocketType = "unix"
+var socketType = "unix"
 
 func socketDialer(socketPath string) func(string, string) (net.Conn, error) {
 	return func(_, _ string) (net.Conn, error) {
-		return net.Dial(SocketType, socketPath)
+		return net.Dial(socketType, socketPath)
 	}
 }
 
+// NewHTTPClient initializes an client.HTTPClient object by configuring it's
+// socketPath for HTTP communication through the local file system.
 func NewHTTPClient(socketPath string) (*HTTPClient, error) {
 	if socketPath == "" {
 		err := errors.New("control server not loading due to missing config")
@@ -35,8 +39,9 @@ func NewHTTPClient(socketPath string) (*HTTPClient, error) {
 	return client, nil
 }
 
-func (self HTTPClient) Reload() (*http.Response, error) {
-	resp, err := self.Post("http://control/v3/reload", "application/json", nil)
+// Reload makes a request to the reload endpoint of a ContainerPilot process.
+func (c HTTPClient) Reload() (*http.Response, error) {
+	resp, err := c.Post("http://control/v3/reload", "application/json", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -50,15 +55,15 @@ func (self HTTPClient) Reload() (*http.Response, error) {
 	return resp, nil
 }
 
-func (self HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
-	var flag string
+// SetMaintenance makes a request to either the enable or disable maintenance
+// endpoint of a ContainerPilot process.
+func (c HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
+	flag := "disable"
 	if isEnabled {
 		flag = "enable"
-	} else {
-		flag = "disable"
 	}
 
-	resp, err := self.Post("http://control/v3/maintenance/"+flag, "application/json", nil)
+	resp, err := c.Post("http://control/v3/maintenance/"+flag, "application/json", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +77,10 @@ func (self HTTPClient) SetMaintenance(isEnabled bool) (*http.Response, error) {
 	return resp, nil
 }
 
-func (self HTTPClient) PutEnv(body string) (*http.Response, error) {
-	resp, err := self.Post("http://control/v3/environ", "application/json",
+// PutEnv makes a request to the environ endpoint of a ContainerPilot process
+// for setting environ variable pairs.
+func (c HTTPClient) PutEnv(body string) (*http.Response, error) {
+	resp, err := c.Post("http://control/v3/environ", "application/json",
 		strings.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -88,8 +95,10 @@ func (self HTTPClient) PutEnv(body string) (*http.Response, error) {
 	return resp, nil
 }
 
-func (self HTTPClient) PutMetric(body string) (*http.Response, error) {
-	resp, err := self.Post("http://control/v3/metric", "application/json",
+// PutMetric makes a request to the metric endpoint of a ContainerPilot process
+// for setting custom metrics.
+func (c HTTPClient) PutMetric(body string) (*http.Response, error) {
+	resp, err := c.Post("http://control/v3/metric", "application/json",
 		strings.NewReader(body))
 	if err != nil {
 		return nil, err
