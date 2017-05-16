@@ -7,21 +7,18 @@ import (
 
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests/assert"
-	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestJobRunSafeClose(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, 4)
-	ds.Run(0)
-
-	cfg := &Config{Name: "myjob", Exec: "true"}
+	cfg := &Config{Name: "myjob", Exec: "sleep 10"} // don't want exec to finish
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Run(bus)
-	job.Bus.Publish(events.GlobalStartup)
-	job.Close()
-	ds.Close()
+	bus.Publish(events.GlobalStartup)
+	job.Quit()
+	bus.Wait()
+	results := job.Bus.DebugEvents()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,19 +31,15 @@ func TestJobRunSafeClose(t *testing.T) {
 		events.GlobalStartup,
 		events.Event{events.Stopping, "myjob"},
 		events.Event{events.Stopped, "myjob"},
-		events.QuitByClose,
 	}
-	if !reflect.DeepEqual(expected, ds.Results) {
-		t.Fatalf("expected: %v\ngot: %v", expected, ds.Results)
+	if !reflect.DeepEqual(expected, results) {
+		t.Fatalf("expected: %v\ngot: %v", expected, results)
 	}
 }
 
 // A Job should timeout if not started before the startupTimeout
 func TestJobRunStartupTimeout(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, 5)
-	ds.Run(time.Duration(1 * time.Second)) // need to leave room to wait for timeouts
-
 	cfg := &Config{Name: "myjob", Exec: "true",
 		When: &WhenConfig{Source: "never", Once: "startup", Timeout: "100ms"}}
 	cfg.Validate(noop)
@@ -54,37 +47,35 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	job.Run(bus)
 	job.Bus.Publish(events.GlobalStartup)
 
-	// note that we can't send a .Close() after this b/c we've timed out
-	// and we'll end up blocking forever
 	time.Sleep(200 * time.Millisecond)
 	defer func() {
 		if r := recover(); r != nil {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	ds.Close()
+	bus.Publish(events.QuitByClose)
+	job.Quit()
+	bus.Wait()
+	results := bus.DebugEvents()
 
 	got := map[events.Event]int{}
-	for _, result := range ds.Results {
+	for _, result := range results {
 		got[result]++
 	}
 	if !reflect.DeepEqual(got, map[events.Event]int{
 		events.Event{Code: events.TimerExpired, Source: "myjob"}: 1,
 		events.GlobalStartup:                                     1,
-		events.QuitByClose:                                       1,
 		events.Event{Code: events.Stopping, Source: "myjob"}:     1,
 		events.Event{Code: events.Stopped, Source: "myjob"}:      1,
+		events.QuitByClose:                                       1,
 	}) {
-		t.Fatalf("expected timeout after startup but got:\n%v", ds.Results)
+		t.Fatalf("expected timeout after startup but got:\n%v", results)
 	}
 }
 
 func TestJobRunRestarts(t *testing.T) {
 	runRestartsTest := func(restarts interface{}, expected int) {
 		bus := events.NewEventBus()
-		ds := mocks.NewDebugSubscriber(bus, expected+2) // + start and quit
-		ds.Run(time.Duration(100 * time.Millisecond))
-
 		cfg := &Config{
 			Name:            "myjob",
 			whenEvent:       events.GlobalStartup,
@@ -97,16 +88,18 @@ func TestJobRunRestarts(t *testing.T) {
 
 		job.Run(bus)
 		job.Bus.Publish(events.GlobalStartup)
+		time.Sleep(100 * time.Millisecond) // TODO: we can't force this, right?
 		exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 		var got = 0
-		ds.Close()
-		for _, result := range ds.Results {
+		bus.Wait()
+		results := bus.DebugEvents()
+		for _, result := range results {
 			if result == exitOk {
 				got++
 			}
 		}
 		if got != expected {
-			t.Fatalf("expected %d restarts but got %d\n%v", expected, got, ds.Results)
+			t.Fatalf("expected %d restarts but got %d\n%v", expected, got, results)
 		}
 	}
 	runRestartsTest(3, 4)
@@ -118,7 +111,6 @@ func TestJobRunRestarts(t *testing.T) {
 
 func TestJobRunPeriodic(t *testing.T) {
 	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, 10)
 
 	cfg := &Config{
 		Name: "myjob",
@@ -132,25 +124,25 @@ func TestJobRunPeriodic(t *testing.T) {
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Run(bus)
-	ds.Run(time.Duration(100 * time.Millisecond))
 	job.Bus.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 	exitFail := events.Event{Code: events.ExitFailed, Source: "myjob"}
-	time.Sleep(100 * time.Millisecond)
-	job.Close()
-	ds.Close()
+	time.Sleep(200 * time.Millisecond)
+	job.Quit()
+	bus.Wait()
+	results := bus.DebugEvents()
 	var got = 0
-	for _, result := range ds.Results {
+	for _, result := range results {
 		if result == exitOk {
 			got++
 		} else {
 			if result == exitFail {
-				t.Fatalf("no events should have timed-out but got %v", ds.Results)
+				t.Fatalf("no events should have timed-out but got %v", results)
 			}
 		}
 	}
 	if got != 6 {
-		t.Fatalf("expected exactly 6 task executions but got %d\n%v", got, ds.Results)
+		t.Fatalf("expected exactly 6 task executions but got %d\n%v", got, results)
 	}
 }
 
@@ -167,7 +159,7 @@ func TestJobMaintenance(t *testing.T) {
 		job.setStatus(startingState)
 		job.Run(bus)
 		job.Bus.Publish(event)
-		job.Close()
+		job.Quit()
 		return job.getStatus()
 	}
 

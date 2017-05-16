@@ -2,8 +2,7 @@ package events
 
 import (
 	"sync"
-
-	log "github.com/Sirupsen/logrus"
+	"time"
 )
 
 // EventBus manages the state of and transmits messages to all its Subscribers
@@ -11,7 +10,48 @@ type EventBus struct {
 	registry map[Subscriber]bool
 	lock     *sync.RWMutex
 	reload   bool
-	done     chan bool
+	done     sync.WaitGroup
+
+	// circular buffer of events
+	head int
+	tail int
+	buf  []Event
+}
+
+func (bus *EventBus) enqueue(event Event) {
+	bus.buf[bus.mod(bus.head+1)] = event
+	old := bus.head
+	bus.head = (bus.head + 1) % len(bus.buf)
+	if old != -1 && bus.head == bus.tail {
+		bus.tail = bus.mod(bus.tail + 1)
+	}
+}
+
+// DebugEvents ...
+func (bus *EventBus) DebugEvents() []Event {
+	time.Sleep(100 * time.Millisecond)
+	events := []Event{}
+	for {
+		if bus.head == -1 {
+			break
+		}
+		event := bus.buf[bus.mod(bus.tail)]
+		if bus.tail == bus.head {
+			bus.head = -1
+			bus.tail = 0
+		} else {
+			bus.tail = bus.mod(bus.tail + 1)
+		}
+		if event == NonEvent {
+			break
+		}
+		events = append(events, event)
+	}
+	return events
+}
+
+func (bus *EventBus) mod(p int) int {
+	return p % len(bus.buf)
 }
 
 // NewEventBus initializes an EventBus. We need this rather than a struct
@@ -19,50 +59,50 @@ type EventBus struct {
 func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
 	reg := make(map[Subscriber]bool)
-	done := make(chan bool, 2)
-	bus := &EventBus{registry: reg, lock: lock, done: done, reload: false}
+	buf := make([]Event, 10)
+	for i := range buf {
+		buf[i] = Event{}
+	}
+	bus := &EventBus{registry: reg, lock: lock, reload: false,
+		buf: buf, head: -1, tail: 0}
 	return bus
 }
 
 // Register the Subscriber for all Events
-func (bus *EventBus) Register(subscriber Subscriber) {
+func (bus *EventBus) Register(subscriber Subscriber, isInternal ...bool) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
 	bus.registry[subscriber] = true
+
+	// internal subscribers like the control socket and telemetry server
+	// will never unregister from events, but we want to be able to exit
+	if len(isInternal) == 0 || !isInternal[0] {
+		bus.done.Add(1)
+	}
 }
 
 // Unregister the Subscriber from all Events
-func (bus *EventBus) Unregister(subscriber Subscriber) {
+func (bus *EventBus) Unregister(subscriber Subscriber, isInternal ...bool) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
 	if _, ok := bus.registry[subscriber]; ok {
 		delete(bus.registry, subscriber)
 	}
-	// we want to shut down once everything has exited except for
-	// the control server
-	if len(bus.registry) <= 1 {
-		// we're going to recover from a panic here because otherwise
-		// its only safe to call unregister if we're sure we haven't
-		// shut down already
-		defer func() {
-			if r := recover(); r != nil {
-				log.Warn("deregistered on closed event bus")
-			}
-		}()
-		bus.done <- true
+	if len(isInternal) == 0 || !isInternal[0] {
+		bus.done.Done()
 	}
 }
 
 // Publish an Event to all Subscribers
 func (bus *EventBus) Publish(event Event) {
-	log.Debugf("event: %v", event)
-	bus.lock.RLock()
-	defer bus.lock.RUnlock()
+	bus.lock.Lock()
+	defer bus.lock.Unlock()
 	for subscriber := range bus.registry {
 		// sending to an unsubscribed Subscriber shouldn't be a runtime
 		// error, so this is in intentionally allowed to panic here
 		subscriber.Receive(event)
 	}
+	bus.enqueue(event)
 }
 
 // SetReloadFlag sets the flag that Wait will use to signal to the main
@@ -82,8 +122,7 @@ func (bus *EventBus) Shutdown() {
 // Wait blocks until the EventBus registry is unpopulated. Returns true
 // if the "reload" flag was set.
 func (bus *EventBus) Wait() bool {
-	<-bus.done
-	close(bus.done)
+	bus.done.Wait()
 	bus.lock.RLock()
 	defer bus.lock.RUnlock()
 	return bus.reload

@@ -6,14 +6,12 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestCommandRunWithTimeoutZero(t *testing.T) {
 	cmd, _ := NewCommand("sleep 2", time.Duration(0), nil)
-	got := runtestCommandRun(cmd, 2)
+	got := runtestCommandRun(cmd)
 	timedout := events.Event{events.ExitFailed, "sleep"}
 	if got[timedout] != 1 {
 		t.Fatalf("stopped command prior to test timeout, got events %v", got)
@@ -21,10 +19,9 @@ func TestCommandRunWithTimeoutZero(t *testing.T) {
 }
 
 func TestCommandRunWithTimeoutKilled(t *testing.T) {
-	log.SetLevel(log.ErrorLevel) // suppress test noise
 	cmd, _ := NewCommand("sleep 2", time.Duration(100*time.Millisecond), nil)
 	cmd.Name = t.Name()
-	got := runtestCommandRun(cmd, 3)
+	got := runtestCommandRun(cmd)
 	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
 	expired := events.Event{events.ExitFailed, t.Name()}
 	errMsg := events.Event{events.Error, fmt.Sprintf("%s: signal: killed", cmd.Name)}
@@ -37,7 +34,7 @@ func TestCommandRunChildrenKilled(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/test.sh sleepStuff",
 		time.Duration(100*time.Millisecond), nil)
 	cmd.Name = t.Name()
-	got := runtestCommandRun(cmd, 3)
+	got := runtestCommandRun(cmd)
 	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
 	expired := events.Event{events.ExitFailed, t.Name()}
 	errMsg := events.Event{events.Error, fmt.Sprintf("%s: signal: killed", cmd.Name)}
@@ -48,7 +45,7 @@ func TestCommandRunChildrenKilled(t *testing.T) {
 
 func TestCommandRunExecFailed(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", time.Duration(0), nil)
-	got := runtestCommandRun(cmd, 3)
+	got := runtestCommandRun(cmd)
 	failed := events.Event{events.ExitFailed, "./testdata/test.sh"}
 	errMsg := events.Event{events.Error, "./testdata/test.sh: exit status 255"}
 	if got[failed] != 1 || got[errMsg] != 1 {
@@ -58,7 +55,7 @@ func TestCommandRunExecFailed(t *testing.T) {
 
 func TestCommandRunExecInvalid(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/invalidCommand", time.Duration(0), nil)
-	got := runtestCommandRun(cmd, 3)
+	got := runtestCommandRun(cmd)
 	failed := events.Event{events.ExitFailed, "./testdata/invalidCommand"}
 	errMsg := events.Event{events.Error,
 		"fork/exec ./testdata/invalidCommand: no such file or directory"}
@@ -75,22 +72,22 @@ func TestEmptyCommand(t *testing.T) {
 
 func TestCommandRunReuseCmd(t *testing.T) {
 	cmd, _ := NewCommand("true", time.Duration(0), nil)
-	runtestCommandRun(cmd, 2)
-	runtestCommandRun(cmd, 2)
+	runtestCommandRun(cmd)
+	runtestCommandRun(cmd)
 }
 
 // test helpers
 
-func runtestCommandRun(cmd *Command, count int) map[events.Event]int {
+func runtestCommandRun(cmd *Command) map[events.Event]int {
 	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, count)
-	ds.Run(200 * time.Millisecond)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	cmd.Run(ctx, bus)
+	time.Sleep(300 * time.Millisecond)
 	defer cancel()
-	ds.Close()
+	bus.Wait()
+	results := bus.DebugEvents()
 	got := map[events.Event]int{}
-	for _, result := range ds.Results {
+	for _, result := range results {
 		got[result]++
 	}
 	return got

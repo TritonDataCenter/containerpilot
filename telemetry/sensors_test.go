@@ -12,7 +12,6 @@ import (
 
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests/assert"
-	"github.com/joyent/containerpilot/tests/mocks"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -39,8 +38,6 @@ func TestSensorRun(t *testing.T) {
 	sensor := NewSensor(cfg)
 
 	bus := events.NewEventBus()
-	ds := mocks.NewDebugSubscriber(bus, 6)
-	ds.Run(0)
 	sensor.Run(bus)
 
 	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", sensor.Name)}
@@ -50,14 +47,15 @@ func TestSensorRun(t *testing.T) {
 	bus.Publish(poll)
 	bus.Publish(poll) // Ensure we can run it more than once
 	bus.Publish(record)
-	sensor.Close()
-	ds.Close()
+	sensor.Quit()
+	bus.Wait()
+	results := bus.DebugEvents()
 
 	got := map[events.Event]int{}
-	for _, result := range ds.Results {
+	for _, result := range results {
 		got[result]++
 	}
-	if got[exitOk] != 2 || got[poll] != 2 || got[events.QuitByClose] != 1 {
+	if got[exitOk] != 2 || got[poll] != 2 {
 		t.Fatalf("expected 2 successful poll events but got %v", got)
 	}
 
