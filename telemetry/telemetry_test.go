@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 
@@ -14,24 +15,21 @@ func TestTelemetryServerRestart(t *testing.T) {
 	cfg.Validate(&mocks.NoopDiscoveryBackend{})
 
 	telem := NewTelemetry(cfg)
+
 	// initial server
-	telem.Serve()
+	bus := events.NewEventBus()
+	telem.Run(bus)
 	checkServerIsListening(t, telem)
-	telem.Shutdown()
+	telem.Stop()
 
 	// reloaded server
 	telem = NewTelemetry(cfg)
-	telem.Serve()
+	telem.Run(bus)
 	checkServerIsListening(t, telem)
 }
 
 func checkServerIsListening(t *testing.T, telem *Telemetry) {
-	telem.lock.RLock()
-	defer telem.lock.RUnlock()
-	verifyMetricsEndpointOk(t, telem)
-}
 
-func verifyMetricsEndpointOk(t *testing.T, telem *Telemetry) {
 	url := fmt.Sprintf("http://%v:%v/metrics", telem.addr.IP, telem.addr.Port)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -41,5 +39,4 @@ func verifyMetricsEndpointOk(t *testing.T, telem *Telemetry) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("got %v status from telemetry server", resp.StatusCode)
 	}
-
 }
