@@ -100,7 +100,7 @@ func RenderConfig(configFlag, renderFlag string) error {
 	}
 
 	// Save the rendered template, either to stdout or to file
-	if renderFlag == "-" {
+	if renderFlag == "-" || renderFlag == "" {
 		fmt.Printf("%s", renderedConfig)
 	} else {
 		var err error

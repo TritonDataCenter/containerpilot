@@ -67,25 +67,29 @@ func LoadApp() (*App, error) {
 			"Show version identifier and quit.")
 
 		flag.BoolVar(&templateFlag, "template", false,
-			"Render template and quit. (default: false)")
+			"Render template and quit.")
 
 		flag.BoolVar(&reloadFlag, "reload", false,
 			"Reload a ContainerPilot process through its control socket.")
 
 		flag.StringVar(&configFlag, "config", "",
-			"File path to JSON5 configuration file.")
+			"File path to JSON5 configuration file. Defaults to CONTAINERPILOT env var.")
 
-		flag.StringVar(&renderFlag, "out", "-",
-			"-(default) for stdout or file path where to save rendered JSON config file.")
+		flag.StringVar(&renderFlag, "out", "",
+			`File path where to save rendered config file when '-template' is used.
+	Defaults to stdout ('-').`)
 
 		flag.StringVar(&maintFlag, "maintenance", "",
-			"Enable/disable maintanence mode through a ContainerPilot process control socket.")
+			`Toggle maintenance mode for a ContainerPilot process through its control socket.
+	Options: '-maintenance enable' or '-maintenance disable'`)
 
 		flag.Var(&putMetricFlags, "putmetric",
-			"Update metrics of a ContainerPilot process through its control socket.")
+			`Update metrics of a ContainerPilot process through its control socket.
+	Pass metrics in the format: 'key=value'`)
 
 		flag.Var(&putEnvFlags, "putenv",
-			"Update environ of a ContainerPilot process through its control socket.")
+			`Update environ of a ContainerPilot process through its control socket.
+	Pass environment in the format: 'key=value'`)
 
 		flag.Parse()
 	}
