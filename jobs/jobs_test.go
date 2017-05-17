@@ -198,3 +198,94 @@ func TestJobMaintenance(t *testing.T) {
 			"expected job in '%v' status after passing check out of maintenance but got '%v'")
 	})
 }
+
+func TestJobProcessEvent(t *testing.T) {
+
+	t.Run("start each startEvent", func(t *testing.T) {
+		// when: {
+		//   source: "upstream",
+		//   each: "changed"
+		// }
+		job := &Job{
+			Name:         "testJob",
+			startEvent:   events.Event{events.StatusChanged, "upstream"},
+			startsRemain: unlimited,
+		}
+		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent returned %v after 1st startEvent, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent returned %v after 2nd startEvent, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent returned %v after exit, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent returned %v after 3rd startEvent, expected %v")
+	})
+
+	t.Run("start one startEvent, with 2 restarts", func(t *testing.T) {
+		// when: {
+		//   source: "upstream",
+		//   once: "changed"
+		// },
+		// restarts: 2
+		job := &Job{
+			Name:           "testJob",
+			startEvent:     events.Event{events.StatusChanged, "upstream"},
+			startsRemain:   1,
+			restartLimit:   2,
+			restartsRemain: 2,
+		}
+		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent returned %v after 1st startEvent, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.True(t, got, "processEvent returned %v after 2nd startEvent, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent returned %v after 2nd exit, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.True(t, got, "processEvent returned %v after 3rd exit, expected %v")
+	})
+
+	t.Run("restart each exit", func(t *testing.T) {
+		// restarts: "unlimited"
+		job := &Job{
+			Name:           "testJob",
+			startEvent:     events.GlobalStartup,
+			startsRemain:   0,
+			restartLimit:   unlimited,
+			restartsRemain: unlimited,
+		}
+		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent returned %v after 2nd exit, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent returned %v after 3rd exit, expected %v")
+	})
+
+	t.Run("restart once on exit", func(t *testing.T) {
+		// restarts: 1
+		job := &Job{
+			Name:           "testJob",
+			startEvent:     events.GlobalStartup,
+			startsRemain:   0,
+			restartLimit:   1,
+			restartsRemain: 1,
+		}
+		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.True(t, got, "processEvent returned %v after 2nd exit, expected %v")
+	})
+
+}

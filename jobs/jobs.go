@@ -259,20 +259,26 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 		if job.frequency > 0 {
 			break // periodic jobs ignore previous events
 		}
-		if !job.restartPermitted() {
-			log.Debugf("job exited but restart not permitted: %v",
-				job.Name)
-			return true
-		}
-		job.restartsRemain--
-		job.StartJob(ctx)
-	case job.startEvent:
-		if job.startsRemain == unlimited || job.startsRemain > 0 {
-			job.startsRemain--
+		if job.restartPermitted() {
+			job.restartsRemain--
 			job.StartJob(ctx)
-		} else {
+			break
+		}
+		if job.startsRemain != 0 {
+			break
+		}
+		log.Debugf("job exited but restart not permitted: %v", job.Name)
+		return true
+	case job.startEvent:
+		if job.startsRemain == 0 {
 			return true
 		}
+		if job.startsRemain != unlimited {
+			// if we have unlimited restarts we want to make sure we don't
+			// decrement forever and then wrap-around
+			job.startsRemain--
+		}
+		job.StartJob(ctx)
 	}
 	return false
 }
