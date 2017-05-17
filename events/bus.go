@@ -3,6 +3,8 @@ package events
 import (
 	"sync"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // EventBus manages the state of and transmits messages to all its Subscribers
@@ -97,6 +99,7 @@ func (bus *EventBus) Unregister(subscriber Subscriber, isInternal ...bool) {
 func (bus *EventBus) Publish(event Event) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
+	log.Debugf("event: %v", event)
 	for subscriber := range bus.registry {
 		// sending to an unsubscribed Subscriber shouldn't be a runtime
 		// error, so this is in intentionally allowed to panic here
