@@ -292,7 +292,7 @@ func (a *App) handlePolling() {
 		for _, sensor := range a.Telemetry.Sensors {
 			sensor.Run(a.Bus)
 		}
-		a.Telemetry.Serve()
+		a.Telemetry.Run(a.Bus)
 	}
 	// kick everything off
 	a.Bus.Publish(events.GlobalStartup)
