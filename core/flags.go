@@ -24,6 +24,10 @@ func (f *MultiFlag) Set(value string) error {
 		f.Values = make(map[string]string, 1)
 	}
 	pair := strings.Split(value, "=")
+	if len(pair) < 2 {
+		return fmt.Errorf(
+			"flag value '%v' was not in the format 'key=val'", value)
+	}
 	key, val := strings.Join(pair[0:1], ""), strings.Join(pair[1:2], "")
 	f.Values[key] = val
 	return nil
