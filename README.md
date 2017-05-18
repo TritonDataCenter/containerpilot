@@ -55,25 +55,25 @@ Documentation for ContainerPilot and where it fits with the rest of the Triton e
 - [Why isn't there a "post-start" event?](./docs/20-design.md#why-isnt-there-a-post-start-event)
 - [Why should you not use ContainerPilot?](./docs/20-design.md#why-should-you-not-use-containerpilot)
 
+
 Configuration
 - [Installation](./docs/30-configuration/31-installation.md)
-- [Configuration syntax](./docs/30-configuration/32-configuration-file.md#syntax)
-- [Environment variable parsing and template rendering](./docs/30-configuration/32-configuration-file.md#environment-variable-parsing-and-template-rendering)
-- [Consul configuration](./docs/30-configuration/33-consul.md)
+- [Configuration file](./docs/30-configuration/32-configuration-file.md#syntax)
+  - [Environment variable parsing and template rendering](./docs/30-configuration/32-configuration-file.md#environment-variable-parsing-and-template-rendering)
+- [Consul](./docs/30-configuration/33-consul.md)
   - [Client configuration](./docs/30-configuration/33-consul.md#client-configuration)
   - [Consul agent configuration](./docs/30-configuration/33-consul.md#consul-agent-configuration)
-- [Job configuration](./docs/30-configuration/34-jobs.md)
+- [Jobs](./docs/30-configuration/34-jobs.md)
   - [Service discovery](./docs/30-configuration/34-jobs.md#service-discovery)
   - [Health checks](./docs/30-configuration/34-jobs.md#health-checks)
   - [Restart behavior](./docs/30-configuration/34-jobs.md#restart-behavior)
   - [Pre-stop/post-stop behaviors](./docs/30-configuration/34-jobs.md#pre-stop-post-stop-behaviors)
-- [Watch configuration](./docs/30-configuration/35-watches.md)
-- [Telemetry configuration](./docs/30-configuration/36-telemetry.md)
+- [Watches](./docs/30-configuration/35-watches.md)
+- [Telemetry](./docs/30-configuration/36-telemetry.md)
   - [Sensor configuration](./docs/30-configuration/36-telemetry.md#sensor-configuration)
 - [Control plane](./docs/30-configuration/37-control-plane.md)
   - [ContainerPilot subcommands](./docs/30-configuration/37-control-plane.md#containerpilot-subcommands)
 - [Logging](./docs/30-configuration/38-logging.md)
-
 
 
 [Support](./docs/40-support.md)
