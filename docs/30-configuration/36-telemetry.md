@@ -62,15 +62,15 @@ val=$(free | awk -F' +' '/Mem/{print $3}')
 
 ContainerPilot supports all four of the [metric types](http://prometheus.io/docs/concepts/metric_types/) available in the Prometheus API. Briefly these are:
 
-*Counter*
+##### Counter
 
 A cumulative metric that represents a single numerical value that only ever goes up. A typical use case for a counter is a count of the number of of certain events. The value returned by the sensor will be added to the counter for that metric.
 
-*Gauge*
+##### Gauge
 
 A metric that represents a single numerical value that can arbitrarily go up and down. A typical use case for a gauge might be a measurement of the current memory usage. The value returned by the sensor script will be set as the new value for the gauge metric.
 
-*Histogram*
+##### Histogram
 
 A count of observations in "buckets", along with the sum of all observed values. A typical use case might be request durations or response sizes. When the Prometheus server scrapes this telemetry endpoint, it will receive a list of buckets and their counts. For example:
 
@@ -84,7 +84,7 @@ namespace_subsystem_response_bucket{le="+Inf"} 2
 
 This indicates that the collector has seen 2 events in total. One event had a value less than 5 (`le="5"`), whereas a second was less than 10.
 
-*Summary*
+##### Summary
 
 A summary is similar to a histogram, but while it also provides a total count of observations and a sum of all observed values, it calculates quantiles over a sliding time window. For example:
 
