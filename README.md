@@ -59,7 +59,9 @@ Documentation for ContainerPilot and where it fits with the rest of the Triton e
 Configuration
 - [Installation](./docs/30-configuration/31-installation.md)
 - [Configuration file](./docs/30-configuration/32-configuration-file.md#syntax)
-  - [Environment variable parsing and template rendering](./docs/30-configuration/32-configuration-file.md#environment-variable-parsing-and-template-rendering)
+  - [Schema](./docs/30-configuration/32-configuration-file.md#schema)
+  - [Environment variables](./docs/30-configuration/32-configuration-file.md#environment-variables)
+  - [Template rendering](./docs/30-configuration/32-configuration-file.md#template-rendering)
 - [Consul](./docs/30-configuration/33-consul.md)
   - [Client configuration](./docs/30-configuration/33-consul.md#client-configuration)
   - [Consul agent configuration](./docs/30-configuration/33-consul.md#consul-agent-configuration)
