@@ -19,19 +19,19 @@ func TestTelemetryConfigParse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse telemetry JSON: %s", err)
 	}
-	assert.Equal(t, len(telem.SensorConfigs), 1, "expected 1 sensor but got: %v")
-	sensor := telem.SensorConfigs[0]
-	if _, ok := sensor.collector.(prometheus.Counter); !ok {
-		t.Fatalf("incorrect collector; expected Counter but got %v", sensor.collector)
+	assert.Equal(t, len(telem.MetricConfigs), 1, "expected 1 metric but got: %v")
+	metric := telem.MetricConfigs[0]
+	if _, ok := metric.collector.(prometheus.Counter); !ok {
+		t.Fatalf("incorrect collector; expected Counter but got %v", metric.collector)
 	}
 }
 
-func TestTelemetryConfigBadSensor(t *testing.T) {
-	testCfg := tests.DecodeRaw(`{"sensors": [{}], "interfaces": ["inet"]}`)
+func TestTelemetryConfigBadMetric(t *testing.T) {
+	testCfg := tests.DecodeRaw(`{"metrics": [{}], "interfaces": ["inet"]}`)
 	_, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
-	expected := "invalid sensor type"
+	expected := "invalid metric type"
 	if err == nil || !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected '%v' in error from bad sensor type but got %v", expected, err)
+		t.Fatalf("expected '%v' in error from bad metric type but got %v", expected, err)
 	}
 }
 
@@ -40,6 +40,6 @@ func TestTelemetryConfigBadInterface(t *testing.T) {
 	_, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	expected := "none of the interface specifications were able to match"
 	if err == nil || !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected '%v' in error from bad sensor type but got %v", expected, err)
+		t.Fatalf("expected '%v' in error from bad metric type but got %v", expected, err)
 	}
 }

@@ -94,10 +94,10 @@ func TestValidConfigTelemetry(t *testing.T) {
 	}
 
 	telem := cfg.Telemetry
-	sensor0 := telem.SensorConfigs[0]
+	metric0 := telem.MetricConfigs[0]
 	assert.Equal(t, telem.Port, 9000, "expected '%v' for telem.Port but got '%v")
 	assert.Equal(t, telem.Tags, []string{"dev"}, "expected '%v' for telem.Tags but got '%v")
-	assert.Equal(t, sensor0.Name, "zed", "expected '%v' for sensor0.Name but got '%v")
+	assert.Equal(t, metric0.Name, "zed", "expected '%v' for metric0.Name but got '%v")
 }
 
 // watches.Config

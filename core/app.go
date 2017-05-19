@@ -289,7 +289,7 @@ func (a *App) handlePolling() {
 		watch.Run(a.Bus)
 	}
 	if a.Telemetry != nil {
-		for _, sensor := range a.Telemetry.Sensors {
+		for _, sensor := range a.Telemetry.Metrics {
 			sensor.Run(a.Bus)
 		}
 		a.Telemetry.Run(a.Bus)

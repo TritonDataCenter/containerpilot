@@ -12,9 +12,9 @@ import (
 )
 
 // Telemetry represents the service to advertise for finding the metrics
-// endpoint, and the collection of Sensors.
+// endpoint, and the collection of Metrics.
 type Telemetry struct {
-	Sensors   []*Sensor
+	Metrics   []*Metric
 	Path      string
 	heartbeat time.Duration
 	router    *http.ServeMux
@@ -31,16 +31,16 @@ func NewTelemetry(cfg *Config) *Telemetry {
 	}
 	t := &Telemetry{
 		Path:    "/metrics", // TODO hard-coded?
-		Sensors: []*Sensor{},
+		Metrics: []*Metric{},
 	}
 	t.addr = cfg.addr
 	router := http.NewServeMux()
 	router.Handle(t.Path, prometheus.Handler())
 	t.Handler = router
 
-	for _, sensorCfg := range cfg.SensorConfigs {
-		sensor := NewSensor(sensorCfg)
-		t.Sensors = append(t.Sensors, sensor)
+	for _, sensorCfg := range cfg.MetricConfigs {
+		sensor := NewMetric(sensorCfg)
+		t.Metrics = append(t.Metrics, sensor)
 	}
 	t.Rx = make(chan events.Event, 10)
 	return t

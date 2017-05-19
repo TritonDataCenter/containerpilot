@@ -1,7 +1,7 @@
 {
   port: 8000,
   interfaces: ["inet"],
-  sensors: [
+  metrics: [
     {
       namespace: "telemetry",
       subsystem: "telemetry",

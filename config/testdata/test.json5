@@ -96,7 +96,7 @@
     port: 9000,
     interfaces: ["inet"],
     tags: ["dev"],
-    sensors: [
+    metrics: [
       {
         namespace: "org",
         subsystem: "app",

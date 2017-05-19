@@ -10,21 +10,21 @@ import (
 )
 
 // Config represents the service to advertise for finding the metrics
-// endpoint, and the collection of Sensors.
+// endpoint, and the collection of Metrics.
 type Config struct {
 	Port       int           `mapstructure:"port"`
 	Interfaces []interface{} `mapstructure:"interfaces"` // optional override
 	Tags       []string      `mapstructure:"tags"`
-	Sensors    []interface{} `mapstructure:"sensors"`
+	Metrics    []interface{} `mapstructure:"metrics"`
 
 	// derived in Validate
-	SensorConfigs []*SensorConfig
+	MetricConfigs []*MetricConfig
 	JobConfig     *jobs.Config
 	addr          net.TCPAddr
 }
 
 // NewConfig parses json config into a validated Config
-// including a validated Config and validated SensorConfigs
+// including a validated Config and validated MetricConfigs
 func NewConfig(raw interface{}, disc discovery.Backend) (*Config, error) {
 	if raw == nil {
 		return nil, nil
@@ -36,15 +36,15 @@ func NewConfig(raw interface{}, disc discovery.Backend) (*Config, error) {
 	if err := cfg.Validate(disc); err != nil {
 		return nil, fmt.Errorf("telemetry validation error: %v", err)
 	}
-	if cfg.Sensors != nil {
-		// note that we don't return an error if there are no sensors
+	if cfg.Metrics != nil {
+		// note that we don't return an error if there are no metrics
 		// because the prometheus handler will still pick up metrics
 		// internal to ContainerPilot (i.e. the golang runtime)
-		sensors, err := NewSensorConfigs(cfg.Sensors)
+		metrics, err := NewMetricConfigs(cfg.Metrics)
 		if err != nil {
 			return nil, err
 		}
-		cfg.SensorConfigs = sensors
+		cfg.MetricConfigs = metrics
 	}
 	return cfg, nil
 }

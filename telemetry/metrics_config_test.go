@@ -8,81 +8,81 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func TestSensorConfigParse(t *testing.T) {
+func TestMetricConfigParse(t *testing.T) {
 
 	errMsg := "incorrect collector; expected %v but got %v"
 	fragment := `[{
 	namespace: "telemetry",
-	subsystem: "sensors",
-	name: "TestSensorConfigParse",
+	subsystem: "metrics",
+	name: "TestMetricConfigParse",
 	help: "help",
 	type: "%s"
 }]`
 
 	testCfg := tests.DecodeRawToSlice(fmt.Sprintf(fragment, "counter"))
-	sensors, _ := NewSensorConfigs(testCfg)
-	collector := sensors[0].collector
+	metrics, _ := NewMetricConfigs(testCfg)
+	collector := metrics[0].collector
 	if _, ok := collector.(prometheus.Counter); !ok {
 		t.Fatalf(errMsg, collector, "Counter")
 	}
 
 	testCfg = tests.DecodeRawToSlice(fmt.Sprintf(fragment, "gauge"))
-	sensors, _ = NewSensorConfigs(testCfg)
-	collector = sensors[0].collector
+	metrics, _ = NewMetricConfigs(testCfg)
+	collector = metrics[0].collector
 	if _, ok := collector.(prometheus.Gauge); !ok {
 		t.Fatalf(errMsg, collector, "Gauge")
 	}
 
 	testCfg = tests.DecodeRawToSlice(fmt.Sprintf(fragment, "histogram"))
-	sensors, _ = NewSensorConfigs(testCfg)
-	collector = sensors[0].collector
+	metrics, _ = NewMetricConfigs(testCfg)
+	collector = metrics[0].collector
 	if _, ok := collector.(prometheus.Histogram); !ok {
 		t.Fatalf(errMsg, collector, "Histogram")
 	}
 
 	testCfg = tests.DecodeRawToSlice(fmt.Sprintf(fragment, "summary"))
-	sensors, _ = NewSensorConfigs(testCfg)
-	collector = sensors[0].collector
+	metrics, _ = NewMetricConfigs(testCfg)
+	collector = metrics[0].collector
 	if _, ok := collector.(prometheus.Summary); !ok {
 		t.Fatalf(errMsg, collector, "Summary")
 	}
 }
 
 // invalid collector type
-func TestSensorConfigBadType(t *testing.T) {
+func TestMetricConfigBadType(t *testing.T) {
 	testCfg := tests.DecodeRawToSlice(`[{
 	namespace: "telemetry",
-	subsystem: "sensors",
-	name: "TestSensorBadType",
+	subsystem: "metrics",
+	name: "TestMetricBadType",
 	type: "nonsense"}]`)
 
-	if sensors, err := NewSensorConfigs(testCfg); err == nil {
-		t.Fatalf("did not get expected error from parsing sensors: %v", sensors)
+	if metrics, err := NewMetricConfigs(testCfg); err == nil {
+		t.Fatalf("did not get expected error from parsing metrics: %v", metrics)
 	}
 }
 
 // invalid metric name
-func TestSensorConfigBadName(t *testing.T) {
+func TestMetricConfigBadName(t *testing.T) {
 	testCfg := tests.DecodeRawToSlice(`[{
 	"namespace": "telemetry",
-	"subsystem": "sensors",
-	"name": "Test.Sensor.Bad.Name",
+	"subsystem": "metrics",
+	"name": "Test.Metric.Bad.Name",
 	"type": "counter"}]`)
 
-	if sensors, err := NewSensorConfigs(testCfg); err == nil {
-		t.Fatalf("did not get expected error from parsing sensors: %v", sensors)
+	if metrics, err := NewMetricConfigs(testCfg); err == nil {
+		t.Fatalf("did not get expected error from parsing metrics: %v", metrics)
 	}
 }
 
 // partial metric name parses ok and write out as expected
-func TestSensorConfigPartialName(t *testing.T) {
+func TestMetricConfigPartialName(t *testing.T) {
 	testCfg := tests.DecodeRawToSlice(`[{
-	"name": "telemetry_sensors_partial_name",
+	"name": "telemetry_metrics_partial_name",
 	"help": "help text",
 	"type": "counter"}]`)
 
-	sensors, _ := NewSensorConfigs(testCfg)
-	if _, ok := sensors[0].collector.(prometheus.Counter); !ok {
-		t.Fatalf("incorrect collector; expected Counter but got %v", sensors[0].collector)
+	metrics, _ := NewMetricConfigs(testCfg)
+	if _, ok := metrics[0].collector.(prometheus.Counter); !ok {
+		t.Fatalf("incorrect collector; expected Counter but got %v", metrics[0].collector)
 	}
 }

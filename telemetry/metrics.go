@@ -12,96 +12,96 @@ import (
 
 const eventBufferSize = 1000
 
-// go:generate stringer -type SensorType
+// go:generate stringer -type MetricType
 
-// SensorType is an enum for Prometheus sensor types
-type SensorType int
+// MetricType is an enum for Prometheus metric types
+type MetricType int
 
-// SensorType enum
+// MetricType enum
 const (
-	Counter SensorType = iota
+	Counter MetricType = iota
 	Gauge
 	Histogram
 	Summary
 )
 
-// Sensor manages state of periodic sensors.
-type Sensor struct {
+// Metric manages state of periodic metrics.
+type Metric struct {
 	Name      string
-	Type      SensorType
+	Type      MetricType
 	collector prometheus.Collector
 
 	events.EventHandler // Event handling
 }
 
-// NewSensor creates a Sensor from a validated SensorConfig
-func NewSensor(cfg *SensorConfig) *Sensor {
-	sensor := &Sensor{
+// NewMetric creates a Metric from a validated MetricConfig
+func NewMetric(cfg *MetricConfig) *Metric {
+	metric := &Metric{
 		Name:      cfg.fullName,
-		Type:      cfg.sensorType,
+		Type:      cfg.metricType,
 		collector: cfg.collector,
 	}
-	sensor.Rx = make(chan events.Event, eventBufferSize)
-	return sensor
+	metric.Rx = make(chan events.Event, eventBufferSize)
+	return metric
 }
 
-func (sensor *Sensor) processMetric(event string) {
-	metric := strings.Split(event, "|")
-	if len(metric) < 2 {
-		log.Errorf("sensor: invalid metric format: %v", event)
+func (metric *Metric) processMetric(event string) {
+	measurement := strings.Split(event, "|")
+	if len(measurement) < 2 {
+		log.Errorf("metric: invalid metric format: %v", event)
 		return
 	}
-	metricKey := metric[0]
-	metricVal := metric[1]
-	if sensor.Name == metricKey {
-		sensor.record(metricVal)
+	metricKey := measurement[0]
+	metricVal := measurement[1]
+	if metric.Name == metricKey {
+		metric.record(metricVal)
 	}
 }
 
-func (sensor *Sensor) record(metricValue string) {
+func (metric *Metric) record(metricValue string) {
 	if val, err := strconv.ParseFloat(
 		strings.TrimSpace(metricValue), 64); err != nil {
-		log.Errorf("sensor produced non-numeric value: %v: %v", metricValue, err)
+		log.Errorf("metric produced non-numeric value: %v: %v", metricValue, err)
 	} else {
 		// we should use a type switch here but the prometheus collector
 		// implementations are themselves interfaces and not structs,
 		// so that doesn't work.
-		switch sensor.Type {
+		switch metric.Type {
 		case Counter:
-			sensor.collector.(prometheus.Counter).Add(val)
+			metric.collector.(prometheus.Counter).Add(val)
 		case Gauge:
-			sensor.collector.(prometheus.Gauge).Set(val)
+			metric.collector.(prometheus.Gauge).Set(val)
 		case Histogram:
-			sensor.collector.(prometheus.Histogram).Observe(val)
+			metric.collector.(prometheus.Histogram).Observe(val)
 		case Summary:
-			sensor.collector.(prometheus.Summary).Observe(val)
+			metric.collector.(prometheus.Summary).Observe(val)
 		}
 	}
 }
 
-// Run executes the event loop for the Sensor
-func (sensor *Sensor) Run(bus *events.EventBus) {
-	sensor.Subscribe(bus)
-	sensor.Bus = bus
+// Run executes the event loop for the Metric
+func (metric *Metric) Run(bus *events.EventBus) {
+	metric.Subscribe(bus)
+	metric.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer func() {
 			cancel()
-			sensor.Unsubscribe(sensor.Bus)
+			metric.Unsubscribe(metric.Bus)
 		}()
 		for {
 			select {
-			case event, ok := <-sensor.Rx:
+			case event, ok := <-metric.Rx:
 				if !ok {
 					return
 				}
 				switch event.Code {
 				case events.Metric:
-					sensor.processMetric(event.Source)
+					metric.processMetric(event.Source)
 				default:
 					switch event {
 					case
-						events.Event{events.Quit, sensor.Name},
+						events.Event{events.Quit, metric.Name},
 						events.QuitByClose,
 						events.GlobalShutdown:
 						return
