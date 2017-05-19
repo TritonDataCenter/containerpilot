@@ -31,8 +31,6 @@ func TestSensorRun(t *testing.T) {
 		Name:      "TestSensorObserve",
 		Help:      "help",
 		Type:      "counter",
-		Poll:      1,
-		Exec:      "true",
 	}
 	cfg.Validate()
 	sensor := NewSensor(cfg)
@@ -40,12 +38,7 @@ func TestSensorRun(t *testing.T) {
 	bus := events.NewEventBus()
 	sensor.Run(bus)
 
-	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", sensor.Name)}
-	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", sensor.Name)}
 	record := events.Event{events.Metric, fmt.Sprintf("%s|84", sensor.Name)}
-
-	bus.Publish(poll)
-	bus.Publish(poll) // Ensure we can run it more than once
 	bus.Publish(record)
 	sensor.Quit()
 	bus.Wait()
@@ -55,10 +48,6 @@ func TestSensorRun(t *testing.T) {
 	for _, result := range results {
 		got[result]++
 	}
-	if got[exitOk] != 2 || got[poll] != 2 {
-		t.Fatalf("expected 2 successful poll events but got %v", got)
-	}
-
 	resp := getFromTestServer(t, testServer)
 	assert.Equal(t,
 		strings.Count(resp, "telemetry_sensors_TestSensorObserve 84"), 1,
@@ -76,8 +65,6 @@ func TestSensorProcessMetric(t *testing.T) {
 		Name:      "TestSensorProcessMetric",
 		Help:      "help",
 		Type:      "gauge",
-		Poll:      1,
-		Exec:      "true",
 	}
 	cfg.Validate()
 	sensor := NewSensor(cfg)

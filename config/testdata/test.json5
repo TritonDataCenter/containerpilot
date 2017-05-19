@@ -102,10 +102,7 @@
         subsystem: "app",
         name: "zed",
         help: "gauge of zeds in org app",
-        type: "gauge",
-        interval: 10,
-        exec: "/bin/sensorZ",
-        timeout: "5s"
+        type: "gauge"
       }
     ]
   }

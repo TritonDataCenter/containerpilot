@@ -2,13 +2,10 @@ package telemetry
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -32,8 +29,6 @@ const (
 type Sensor struct {
 	Name      string
 	Type      SensorType
-	exec      *commands.Command
-	poll      time.Duration
 	collector prometheus.Collector
 
 	events.EventHandler // Event handling
@@ -44,19 +39,10 @@ func NewSensor(cfg *SensorConfig) *Sensor {
 	sensor := &Sensor{
 		Name:      cfg.fullName,
 		Type:      cfg.sensorType,
-		exec:      cfg.exec,
-		poll:      cfg.poll,
 		collector: cfg.collector,
 	}
 	sensor.Rx = make(chan events.Event, eventBufferSize)
 	return sensor
-}
-
-// Observe runs the health sensor and captures its output for recording
-func (sensor *Sensor) Observe(ctx context.Context) {
-	if sensor.exec != nil {
-		sensor.exec.Run(ctx, sensor.Bus)
-	}
 }
 
 func (sensor *Sensor) processMetric(event string) {
@@ -98,15 +84,10 @@ func (sensor *Sensor) Run(bus *events.EventBus) {
 	sensor.Subscribe(bus)
 	sensor.Bus = bus
 	ctx, cancel := context.WithCancel(context.Background())
-
-	pollSource := fmt.Sprintf("%s-sensor-poll", sensor.Name)
-	events.NewEventTimer(ctx, sensor.Rx, sensor.poll, pollSource)
-
 	go func() {
 		defer func() {
 			cancel()
 			sensor.Unsubscribe(sensor.Bus)
-			sensor.exec.CloseLogs()
 		}()
 		for {
 			select {
@@ -119,8 +100,6 @@ func (sensor *Sensor) Run(bus *events.EventBus) {
 					sensor.processMetric(event.Source)
 				default:
 					switch event {
-					case events.Event{events.TimerExpired, pollSource}:
-						sensor.Observe(ctx)
 					case
 						events.Event{events.Quit, sensor.Name},
 						events.QuitByClose,

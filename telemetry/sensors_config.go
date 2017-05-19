@@ -3,29 +3,21 @@ package telemetry
 import (
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // A SensorConfig is a single measurement of the application.
 type SensorConfig struct {
-	Namespace string      `mapstructure:"namespace"`
-	Subsystem string      `mapstructure:"subsystem"`
-	Name      string      `mapstructure:"name"`
-	Help      string      `mapstructure:"help"` // help string returned by API
-	Type      string      `mapstructure:"type"`
-	Poll      int         `mapstructure:"interval"` // time in seconds
-	Exec      interface{} `mapstructure:"exec"`
-	Timeout   string      `mapstructure:"timeout"`
+	Namespace string `mapstructure:"namespace"`
+	Subsystem string `mapstructure:"subsystem"`
+	Name      string `mapstructure:"name"`
+	Help      string `mapstructure:"help"` // help string returned by API
+	Type      string `mapstructure:"type"`
 
 	fullName   string // combined name
 	sensorType SensorType
-	poll       time.Duration
-	timeout    time.Duration
-	exec       *commands.Command
 	collector  prometheus.Collector
 }
 
@@ -46,30 +38,7 @@ func NewSensorConfigs(raw []interface{}) ([]*SensorConfig, error) {
 // Validate ensures Sensor meets all requirements
 func (cfg *SensorConfig) Validate() error {
 
-	if cfg.Timeout == "" {
-		cfg.Timeout = fmt.Sprintf("%ds", cfg.Poll)
-	}
-	if cfg.Poll <= 0 {
-		return fmt.Errorf("sensor[%s].interval must be > 0", cfg.Name)
-	}
-	poll, err := utils.ParseDuration(cfg.Poll)
-	if err != nil {
-		return fmt.Errorf("unable to parse sensor[%s].interval: %v", cfg.Name, err)
-	}
-	cfg.poll = poll
-
-	timeout, err := utils.GetTimeout(cfg.Timeout)
-	if err != nil {
-		return fmt.Errorf("unable to parse sensor[%s].timeout: %v", cfg.Name, err)
-	}
-	cfg.timeout = timeout
-	check, err := commands.NewCommand(cfg.Exec, cfg.timeout, nil)
-	if err != nil {
-		return fmt.Errorf("unable to create sensor[%s].exec: %v", cfg.Name, err)
-	}
 	cfg.fullName = strings.Join([]string{cfg.Namespace, cfg.Subsystem, cfg.Name}, "_")
-	check.Name = fmt.Sprintf("%s.sensor", cfg.fullName)
-	cfg.exec = check
 
 	// the prometheus client lib's API here is baffling... they don't expose
 	// an interface or embed their Opts type in each of the Opts "subtypes",

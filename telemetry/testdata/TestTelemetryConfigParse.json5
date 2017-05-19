@@ -7,9 +7,7 @@
       subsystem: "telemetry",
       name: "TestTelemetryParse",
       help: "help",
-      type: "counter",
-      interval: 5,
-      exec: ["/bin/sensor.sh"]
+      type: "counter"
     }
   ]
 }
