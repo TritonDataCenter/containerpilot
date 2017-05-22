@@ -16,19 +16,24 @@
         interval: 1,
         ttl: 5
       }
+    },
+    {
+      name: "sensor",
+      exec: ["/sensor.sh", "count"],
+      when: {
+        interval: "1s"
+      }
     }
   ],
   telemetry: {
     port: 9090,
-    sensors: [
+    metrics: [
        {
-        namespace: "containerpilot",
-        subsystem: "app",
-        name: "some_counter",
-        help: "help text",
-        type: "counter",
-        interval: 1,
-        exec: ["/sensor.sh", "count"]
+         namespace: "containerpilot",
+         subsystem: "app",
+         name: "some_counter",
+         help: "help text",
+         type: "counter"
        }
     ]
   }

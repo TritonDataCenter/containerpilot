@@ -56,6 +56,6 @@
   ],
   telemetry: {
     port: 9090,
-    sensors: []
+    metrics: []
   }
 }

@@ -22,32 +22,25 @@ in our tests. So for those tests we'll stand up a test HTTP server and give it
 the prometheus handler and then check the results of a GET.
 */
 
-func TestSensorRun(t *testing.T) {
+func TestMetricRun(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-	cfg := &SensorConfig{
+	cfg := &MetricConfig{
 		Namespace: "telemetry",
-		Subsystem: "sensors",
-		Name:      "TestSensorObserve",
+		Subsystem: "metrics",
+		Name:      "TestMetricObserve",
 		Help:      "help",
 		Type:      "counter",
-		Poll:      1,
-		Exec:      "true",
 	}
 	cfg.Validate()
-	sensor := NewSensor(cfg)
+	metric := NewMetric(cfg)
 
 	bus := events.NewEventBus()
-	sensor.Run(bus)
+	metric.Run(bus)
 
-	exitOk := events.Event{events.ExitSuccess, fmt.Sprintf("%s.sensor", sensor.Name)}
-	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s-sensor-poll", sensor.Name)}
-	record := events.Event{events.Metric, fmt.Sprintf("%s|84", sensor.Name)}
-
-	bus.Publish(poll)
-	bus.Publish(poll) // Ensure we can run it more than once
+	record := events.Event{events.Metric, fmt.Sprintf("%s|84", metric.Name)}
 	bus.Publish(record)
-	sensor.Quit()
+	metric.Quit()
 	bus.Wait()
 	results := bus.DebugEvents()
 
@@ -55,194 +48,188 @@ func TestSensorRun(t *testing.T) {
 	for _, result := range results {
 		got[result]++
 	}
-	if got[exitOk] != 2 || got[poll] != 2 {
-		t.Fatalf("expected 2 successful poll events but got %v", got)
-	}
-
 	resp := getFromTestServer(t, testServer)
 	assert.Equal(t,
-		strings.Count(resp, "telemetry_sensors_TestSensorObserve 84"), 1,
-		"failed to get match for sensor in response")
+		strings.Count(resp, "telemetry_metrics_TestMetricObserve 84"), 1,
+		"failed to get match for metric in response")
 }
 
-// TestSensorProcessMetric covers the same ground as the 4 collector-
+// TestMetricProcessMetric covers the same ground as the 4 collector-
 // specific tests below, but checks the unhappy path.
-func TestSensorProcessMetric(t *testing.T) {
+func TestMetricProcessMetric(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-	cfg := &SensorConfig{
+	cfg := &MetricConfig{
 		Namespace: "telemetry",
-		Subsystem: "sensors",
-		Name:      "TestSensorProcessMetric",
+		Subsystem: "metrics",
+		Name:      "TestMetricProcessMetric",
 		Help:      "help",
 		Type:      "gauge",
-		Poll:      1,
-		Exec:      "true",
 	}
 	cfg.Validate()
-	sensor := NewSensor(cfg)
+	metric := NewMetric(cfg)
 	testFunc := func(input, expected string) bool {
-		sensor.processMetric(input)
+		metric.processMetric(input)
 		resp := getFromTestServer(t, testServer)
 		return strings.Count(resp, expected) == 1
 	}
 
 	t.Run("record Ok", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"telemetry_sensors_TestSensorProcessMetric|30.0",
-			"telemetry_sensors_TestSensorProcessMetric 30",
-		), "failed to get match for sensor in response")
+			"telemetry_metrics_TestMetricProcessMetric|30.0",
+			"telemetry_metrics_TestMetricProcessMetric 30",
+		), "failed to get match for metric in response")
 	})
 	t.Run("record wrong name", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"TestSensorProcessMetric|20.0",
-			"telemetry_sensors_TestSensorProcessMetric 30",
-		), "should not have updated sensor value")
+			"TestMetricProcessMetric|20.0",
+			"telemetry_metrics_TestMetricProcessMetric 30",
+		), "should not have updated metric value")
 	})
 	t.Run("invalid record", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"telemetry_sensors_TestSensorProcessMetric",
-			"telemetry_sensors_TestSensorProcessMetric 30",
-		), "should not have updated sensor value")
+			"telemetry_metrics_TestMetricProcessMetric",
+			"telemetry_metrics_TestMetricProcessMetric 30",
+		), "should not have updated metric value")
 	})
 	t.Run("non-numeric record", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"telemetry_sensors_TestSensorProcessMetric|xxx",
-			"telemetry_sensors_TestSensorProcessMetric 30",
-		), "should not have updated sensor value")
+			"telemetry_metrics_TestMetricProcessMetric|xxx",
+			"telemetry_metrics_TestMetricProcessMetric 30",
+		), "should not have updated metric value")
 	})
 
 }
 
-func TestSensorRecordCounter(t *testing.T) {
+func TestMetricRecordCounter(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-	sensor := &Sensor{
+	metric := &Metric{
 		Type: Counter,
 		collector: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "telemetry",
-			Subsystem: "sensors",
-			Name:      "TestSensorRecordCounter",
+			Subsystem: "metrics",
+			Name:      "TestMetricRecordCounter",
 			Help:      "help",
 		})}
-	prometheus.MustRegister(sensor.collector)
+	prometheus.MustRegister(metric.collector)
 	testFunc := func(input, expected string) bool {
-		sensor.record(input)
+		metric.record(input)
 		resp := getFromTestServer(t, testServer)
 		return strings.Count(resp, expected) == 1
 	}
 	t.Run("record ok", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"1", "telemetry_sensors_TestSensorRecordCounter 1"),
-			"failed to update sensor")
+			"1", "telemetry_metrics_TestMetricRecordCounter 1"),
+			"failed to update metric")
 	})
 	t.Run("record update", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"2", "telemetry_sensors_TestSensorRecordCounter 3"),
-			"failed to update sensor")
+			"2", "telemetry_metrics_TestMetricRecordCounter 3"),
+			"failed to update metric")
 	})
 }
 
-func TestSensorRecordGauge(t *testing.T) {
+func TestMetricRecordGauge(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-	sensor := &Sensor{
+	metric := &Metric{
 		Type: Gauge,
 		collector: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: "telemetry",
-			Subsystem: "sensors",
-			Name:      "TestSensorRecordGauge",
+			Subsystem: "metrics",
+			Name:      "TestMetricRecordGauge",
 			Help:      "help",
 		})}
-	prometheus.MustRegister(sensor.collector)
+	prometheus.MustRegister(metric.collector)
 
 	testFunc := func(input, expected string) bool {
-		sensor.record(input)
+		metric.record(input)
 		resp := getFromTestServer(t, testServer)
 		return strings.Count(resp, expected) == 1
 	}
 	t.Run("record ok", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"1.2", "telemetry_sensors_TestSensorRecordGauge 1.2"),
-			"failed to update sensor")
+			"1.2", "telemetry_metrics_TestMetricRecordGauge 1.2"),
+			"failed to update metric")
 	})
 	t.Run("record update", func(t *testing.T) {
 		assert.True(t, testFunc(
-			"2.3", "telemetry_sensors_TestSensorRecordGauge 2.3"),
-			"failed to update sensor")
+			"2.3", "telemetry_metrics_TestMetricRecordGauge 2.3"),
+			"failed to update metric")
 	})
 }
 
-func TestSensorRecordHistogram(t *testing.T) {
+func TestMetricRecordHistogram(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
 
-	sensor := &Sensor{
+	metric := &Metric{
 		Type: Histogram,
 		collector: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Namespace: "telemetry",
-			Subsystem: "sensors",
-			Name:      "TestSensorRecordHistogram",
+			Subsystem: "metrics",
+			Name:      "TestMetricRecordHistogram",
 			Help:      "help",
 		})}
-	prometheus.MustRegister(sensor.collector)
-	patt := `telemetry_sensors_TestSensorRecordHistogram_bucket{le="([\.0-9|\+Inf]*)"} ([1-9])`
+	prometheus.MustRegister(metric.collector)
+	patt := `telemetry_metrics_TestMetricRecordHistogram_bucket{le="([\.0-9|\+Inf]*)"} ([1-9])`
 
 	testFunc := func(input string, expected [][]string) bool {
-		sensor.record(input)
+		metric.record(input)
 		resp := getFromTestServer(t, testServer)
 		return checkBuckets(resp, patt, expected)
 	}
 	t.Run("record ok", func(t *testing.T) {
 		assert.True(t, testFunc("1.2",
 			[][]string{{"2.5", "1"}, {"5", "1"}, {"10", "1"}, {"+Inf", "1"}}),
-			"failed to update sensor")
+			"failed to update metric")
 	})
 	t.Run("record add", func(t *testing.T) {
 		assert.True(t, testFunc("1.2",
 			[][]string{{"2.5", "2"}, {"5", "2"}, {"10", "2"}, {"+Inf", "2"}}),
-			"failed to update sensor")
+			"failed to update metric")
 	})
 	t.Run("record overlap", func(t *testing.T) {
 		assert.True(t, testFunc("4.5",
 			[][]string{{"2.5", "2"}, {"5", "3"}, {"10", "3"}, {"+Inf", "3"}}),
-			"failed to update sensor")
+			"failed to update metric")
 	})
 }
 
-func TestSensorRecordSummary(t *testing.T) {
+func TestMetricRecordSummary(t *testing.T) {
 	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
 	defer testServer.Close()
-	sensor := &Sensor{
+	metric := &Metric{
 		Type: Summary,
 		collector: prometheus.NewSummary(prometheus.SummaryOpts{
 			Namespace: "telemetry",
-			Subsystem: "sensors",
-			Name:      "TestSensorRecordSummary",
+			Subsystem: "metrics",
+			Name:      "TestMetricRecordSummary",
 			Help:      "help",
 		})}
-	prometheus.MustRegister(sensor.collector)
-	patt := `telemetry_sensors_TestSensorRecordSummary{quantile="([\.0-9]*)"} ([0-9\.]*)`
+	prometheus.MustRegister(metric.collector)
+	patt := `telemetry_metrics_TestMetricRecordSummary{quantile="([\.0-9]*)"} ([0-9\.]*)`
 
 	t.Run("record ok", func(t *testing.T) {
 		// need a bunch of metrics to make quantiles make any sense
 		for i := 1; i <= 10; i++ {
-			sensor.record(fmt.Sprintf("%v", i))
+			metric.record(fmt.Sprintf("%v", i))
 		}
 		resp := getFromTestServer(t, testServer)
 		expected := [][]string{{"0.5", "5"}, {"0.9", "9"}, {"0.99", "10"}}
 		assert.True(t, checkBuckets(resp, patt, expected),
-			"failed to get match for sensor in response")
+			"failed to get match for metric in response")
 	})
 	t.Run("record update", func(t *testing.T) {
 		for i := 1; i <= 5; i++ {
 			// add a new record for each one in the bottom half
-			sensor.record(fmt.Sprintf("%v", i))
+			metric.record(fmt.Sprintf("%v", i))
 		}
 		resp := getFromTestServer(t, testServer)
 		expected := [][]string{{"0.5", "4"}, {"0.9", "9"}, {"0.99", "10"}}
 		assert.True(t, checkBuckets(resp, patt, expected),
-			"failed to get match for sensor in response")
+			"failed to get match for metric in response")
 	})
 }
 
