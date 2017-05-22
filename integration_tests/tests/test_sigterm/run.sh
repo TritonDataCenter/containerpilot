@@ -14,8 +14,12 @@ CONSUL_ID="$(docker-compose ps -q consul)"
 TEST_ID=$(docker ps -l -f "ancestor=cpfix_test_probe" --format="{{.ID}}")
 
 if [ $result -ne 0 ]; then
+    echo '----- TEST LOGS ------'
     docker logs "$TEST_ID" | tee test.log
+    echo '----- APP LOGS ------'
     docker logs "$APP_ID" | tee app.log
+    echo '----- CONSUL LOGS ------'
     docker logs "$CONSUL_ID" | tee consul.log
+    echo '---------------------'
 fi
 exit $result
