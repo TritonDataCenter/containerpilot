@@ -25,12 +25,13 @@ http {
 
     # for each service, create a backend
     {{range services}}
+    {{ if service .Name }}
     upstream {{.Name}} {
         # write the health service address:port pairs for this backend
         {{range service .Name}}
         server {{.Address}}:{{.Port}};
         {{end}}
-    }{{end}}
+    }{{end}}{{end}}
 
     server {
         listen       80;
@@ -46,6 +47,7 @@ http {
         }
 
         {{range services}}
+        {{ if service .Name }}
         location = /{{.Name}} {
             return 302 /{{.Name}}/;
         }
@@ -53,7 +55,7 @@ http {
         location /{{.Name}} {
             proxy_pass http://{{.Name}}/;
             proxy_redirect off;
-        }{{end}}
+        }{{end}}{{end}}
 
     }
 }
