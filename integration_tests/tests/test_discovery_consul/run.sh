@@ -16,11 +16,13 @@ result=$?
 
 if [ ! $result -eq 0 ]; then
     APP_ID=$(docker ps -l -f "ancestor=cpfix_app" --format="{{.ID}}")
-    CONSUL_ID=$(docker ps -l -f "ancestor=cpfix_consul" --format="{{.ID}}")
+    CONSUL_ID=$(docker ps -l -f "ancestor=consul" --format="{{.ID}}")
     NGINX_ID=$(docker ps -l -f "ancestor=cpfix_nginx" --format="{{.ID}}")
-    echo '----- APP LOGS ------'
+    echo '----- CONSUL LOGS ------'
     docker logs "${CONSUL_ID}" | tee consul.log
+    echo '----- NGINX LOGS ------'
     docker logs "${NGINX_ID}" | tee nginx.log
+    echo '----- APP LOGS ------'
     docker logs "${APP_ID}" | tee app.log
     echo '---------------------'
 fi
