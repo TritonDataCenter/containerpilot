@@ -143,7 +143,8 @@ func (c *Command) Kill() {
 
 // CloseLogs safely closes the io.WriteCloser we're using to pipe logs
 func (c *Command) CloseLogs() {
-	if c.logger != nil {
+	if c != nil && c.logger != nil {
 		c.logger.Close()
 	}
+	return
 }
