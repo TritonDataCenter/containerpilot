@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
@@ -20,6 +21,8 @@ func init() {
 type Consul struct {
 	consul.Client
 	wasRegistered bool
+	lock          sync.RWMutex
+	upstreams     map[string][]*consul.ServiceEntry
 }
 
 // ConfigHook is the hook to register with the Consul backend
@@ -50,7 +53,9 @@ func NewConsulConfig(config interface{}) (*Consul, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Consul{*client, false}, nil
+	upstreams := make(map[string][]*consul.ServiceEntry)
+	consul := &Consul{*client, false, sync.RWMutex{}, upstreams}
+	return consul, nil
 }
 
 func configFromMap(raw map[string]interface{}) (*consul.Config, error) {
@@ -172,40 +177,41 @@ func (c *Consul) registerCheck(service discovery.ServiceDefinition) error {
 	)
 }
 
-var upstreams = make(map[string][]*consul.ServiceEntry)
-
-// CheckForUpstreamChanges runs the health check
-func (c Consul) CheckForUpstreamChanges(backendName, backendTag string) (didChange, isHealthy bool) {
-	services, meta, err := c.Health().Service(backendName, backendTag, true, nil)
+// CheckForUpstreamChanges requests the set of healthy instances of a
+// service from Consul and checks whether there has been a change since
+// the last check.
+func (c *Consul) CheckForUpstreamChanges(backendName, backendTag string) (didChange, isHealthy bool) {
+	instances, meta, err := c.Health().Service(backendName, backendTag, true, nil)
 	if err != nil {
 		log.Warnf("failed to query %v: %s [%v]", backendName, err, meta)
 		return false, false
 	}
-	if len(services) > 0 {
-		isHealthy = true
-	}
-	didChange = compareForChange(upstreams[backendName], services)
-	if didChange || len(services) == 0 {
-		// We don't want to cause an onChange event the first time we read-in
-		// but we do want to make sure we've written the key for this map
-		upstreams[backendName] = services
-	}
+	isHealthy = len(instances) > 0
+	didChange = c.compareAndSwap(backendName, instances)
 	return didChange, isHealthy
+}
+
+// returns true if any addresses for the service changed and updates
+// the internal state
+func (c *Consul) compareAndSwap(service string, new []*consul.ServiceEntry) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	existing := c.upstreams[service]
+	c.upstreams[service] = new
+	return compareForChange(existing, new)
 }
 
 // Compare the two arrays to see if the address or port has changed
 // or if we've added or removed entries.
-func compareForChange(existing, new []*consul.ServiceEntry) (changed bool) {
-
-	if len(existing) != len(new) {
+func compareForChange(existing, newEntries []*consul.ServiceEntry) (changed bool) {
+	if len(existing) != len(newEntries) {
 		return true
 	}
-
 	sort.Sort(ByServiceID(existing))
-	sort.Sort(ByServiceID(new))
+	sort.Sort(ByServiceID(newEntries))
 	for i, ex := range existing {
-		if ex.Service.Address != new[i].Service.Address ||
-			ex.Service.Port != new[i].Service.Port {
+		if ex.Service.Address != newEntries[i].Service.Address ||
+			ex.Service.Port != newEntries[i].Service.Port {
 			return true
 		}
 	}

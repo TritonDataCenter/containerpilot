@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	consul "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/joyent/containerpilot/discovery"
+	"github.com/joyent/containerpilot/tests/assert"
 )
 
 func TestConsulObjectParse(t *testing.T) {
@@ -42,6 +44,36 @@ func runParseTest(t *testing.T, uri, expectedAddress, expectedScheme string) {
 		t.Fatalf("Expected %s over %s but got %s over %s",
 			expectedAddress, expectedScheme, address, scheme)
 	}
+}
+
+func TestCheckForChanges(t *testing.T) {
+	c, _ := NewConsulConfig(`consul: "localhost:8500"`)
+
+	t0 := []*consul.ServiceEntry{}
+	didChange := c.compareAndSwap("test", t0)
+	assert.False(t, didChange, "got '%v' for 'didChange' after t0, expected '%v'")
+
+	t1 := []*consul.ServiceEntry{
+		&consul.ServiceEntry{
+			Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}},
+		&consul.ServiceEntry{
+			Service: &consul.AgentService{Address: "1.2.3.5", Port: 80}},
+	}
+	didChange = c.compareAndSwap("test", t1)
+	assert.True(t, didChange, "got '%v' for 'didChange' after t1, expected '%v'")
+
+	didChange = c.compareAndSwap("test", t0)
+	assert.True(t, didChange, "got '%v' for 'didChange' after t0 (again), expected '%v'")
+
+	didChange = c.compareAndSwap("test", t1)
+	assert.True(t, didChange, "got '%v' for 'didChange' after t1 (again), expected '%v'")
+
+	t3 := []*consul.ServiceEntry{
+		&consul.ServiceEntry{
+			Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}},
+	}
+	didChange = c.compareAndSwap("test", t3)
+	assert.True(t, didChange, "got '%v' for 'didChange' after t3, expected '%v'")
 }
 
 /*
