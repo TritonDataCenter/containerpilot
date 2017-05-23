@@ -188,7 +188,7 @@ func (c *Consul) CheckForUpstreamChanges(backendName, backendTag string) (didCha
 	}
 	isHealthy = len(instances) > 0
 	didChange = c.compareAndSwap(backendName, instances)
-	return
+	return didChange, isHealthy
 }
 
 // returns true if any addresses for the service changed and updates
@@ -203,15 +203,15 @@ func (c *Consul) compareAndSwap(service string, new []*consul.ServiceEntry) bool
 
 // Compare the two arrays to see if the address or port has changed
 // or if we've added or removed entries.
-func compareForChange(existing, new []*consul.ServiceEntry) (changed bool) {
-	if len(existing) != len(new) {
+func compareForChange(existing, newEntries []*consul.ServiceEntry) (changed bool) {
+	if len(existing) != len(newEntries) {
 		return true
 	}
 	sort.Sort(ByServiceID(existing))
-	sort.Sort(ByServiceID(new))
+	sort.Sort(ByServiceID(newEntries))
 	for i, ex := range existing {
-		if ex.Service.Address != new[i].Service.Address ||
-			ex.Service.Port != new[i].Service.Port {
+		if ex.Service.Address != newEntries[i].Service.Address ||
+			ex.Service.Port != newEntries[i].Service.Port {
 			return true
 		}
 	}
