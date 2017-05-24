@@ -1,6 +1,6 @@
 # Telemetry
 
-If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to Consul. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
+If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to Consul. Each `metric` for the telemetry service configures a collectors for the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
 
 Configuration details follow, but [this blog post offers a usage example and narrative](https://www.joyent.com/blog/containerpilot-telemetry) for it.
 
@@ -15,19 +15,26 @@ A minimal configuration for ContainerPilot including telemetry might look like t
     port: 9090,
     interfaces: ["eth0"],
     tags: ["tag1"],
-    sensors: [
+    metrics: [
       {
         namespace: "my_namespace",
         subsystem: "my_subsystem",
         name: "my_events_count",
         help: "help text",
-        type: "counter",
-        interval: 5,
-        exec: "/bin/sensor.sh",
-        timeout: "5s"
+        type: "counter"
       }
     ]
-  }
+  },
+  jobs: [
+    {
+      name: "sensor",
+      exec: "/bin/sensor.sh",
+      timeout: "5s",
+      when: {
+        interval: "5s"
+      }
+    }
+  ]
 }
 ```
 
@@ -36,20 +43,19 @@ The fields are as follows:
 - `port` is the port the telemetry service will advertise to the discovery service. (Default value is 9090.)
 - `interfaces` is an optional single or array of interface specifications. If given, the IP of the service will be obtained from the first interface specification that matches. (Default value is `["eth0:inet"]`)
 - `tags` is an optional array of tags. If the discovery service supports it (Consul does), the service will register itself with these tags.
-- `sensors` is an optional array of sensor configurations (see below). If no sensors are provided, then the telemetry endpoint will still be exposed and will show only telemetry about ContainerPilot internals.
+- `metrics` is an optional array of collector configurations (see below). If no sensors are provided, then the telemetry endpoint will still be exposed and will show only telemetry about ContainerPilot internals.
 
-## Sensor configuration
+## Collector configuration
 
-The `sensors` field is a list of user-defined sensors that the telemetry service will use to collect telemetry. Each time a sensor is polled, the user-defined `exec` executable will be run. The sensor can use the [HTTP control socket](./37-control-plane.md) to record the metric value, or the sensor can call `containerpilot -putmetric` to record the metric.
+The `metrics` field is a list of user-defined metrics that the telemetry service will use to configure Prometheus collectors.
 
 - `namespace`, `subsystem`, and `name` are the names that the Prometheus client library will use to construct the name for the telemetry. These three names are concatenated with underscores `_` to become the final name that is scraped recorded by Prometheus. In the example above the metric recorded would be named `my_namespace_my_subsystem_my_event_count`. You can leave off the `namespace` and `subsystem` values and put everything into the `name` field if desired; the option to provide these other fields is simply for convenience of those who might be generating ContainerPilot configurations programmatically. Please see the [Prometheus documents on naming](http://prometheus.io/docs/practices/naming/) for best practices on how to name your telemetry.
 - `help` is the help text that will be associated with the metric recorded by Prometheus. This is useful for debugging by giving a more verbose description.
 - `type` is the type of collector Prometheus will use (one of `counter`, `gauge`, `histogram` or `summary`). See [below](#Collector_types) for details.
-- `interval` is the time in seconds between running the `check`.
-- `exec` is the executable (and its arguments) that is called when it is time to perform a telemetry collection.
-- `timeout` an optional value to wait before forcibly killing the `check` handler. Handlers killed in this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state. The minimum timeout is `1ms` (see the golang [`ParseDuration`](https://golang.org/pkg/time/#ParseDuration) docs for this format). This field is optional and defaults to be equal to the `poll` time.
 
-An example of a good check script might be:
+### Sensor configuration
+
+The collectors can record metrics sent via the [HTTP control socket](./37-control-plane.md). If your application can't use this endpoint on its own, you can use a periodic job to record the metric value and call `containerpilot -putmetric`. An example of a good job script might be:
 
 ```bash
 #!/bin/bash
