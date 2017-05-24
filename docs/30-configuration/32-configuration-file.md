@@ -232,30 +232,6 @@ Interfaces and their IP addresses are ordered alphabetically by interface name, 
 - `eth2 10.1.0.200 fdc6:238c:c4bc::1`
 - `lo ::1 127.0.0.1`
 
-## Exec and arguments
-
-All `exec` fields that configure a child process (`jobs/exec` and `jobs/health/exec`) accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments. This is sometimes useful for breaking up long command lines.
-
-**String command**
-
-```json5
-health: {
-  exec: "/usr/bin/curl --fail -s http://localhost/app"
-}
-```
-
-**Array command**
-
-```json5
-health: {
-  exec: [
-    "/usr/bin/curl",
-    "--fail",
-    "-s",
-    "http://localhost/app"
-  ]
-}
-```
 
 ## Environment variables
 
