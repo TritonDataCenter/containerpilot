@@ -314,10 +314,10 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 		}
 	}
 	cancel()
-	job.Unsubscribe(job.Bus) // deregister from events
-	job.Deregister()         // deregister from Consul
-	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 	job.exec.CloseLogs()
+	job.Deregister()         // deregister from Consul
+	job.Unsubscribe(job.Bus) // deregister from events
+	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 }
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing
