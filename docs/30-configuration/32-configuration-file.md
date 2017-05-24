@@ -16,7 +16,7 @@ $ export CONTAINERPILOT=/etc/containerpilot.json5
 $ containerpilot
 ```
 
-The configuration file format is [JSON5](http://json5.org/). If you are familiar with JSON, it is similar except that it accept comments, fields don't need to be surrounded by quotes, and it isn't nearly as fussy about extraneous trailing commas.
+The configuration file format is [JSON5](http://json5.org/). If you are familiar with JSON, it is similar except that it accepts comments, fields don't need to be surrounded by quotes, and it isn't nearly as fussy about extraneous trailing commas.
 
 ## Schema
 
@@ -66,8 +66,9 @@ The following is a completed example of the JSON5 file configuration schema, wit
         ]
     },
     {
+      // we can create a chain of "setup" events by having
+      // jobs wait for other jobs to become healthy
       name: "setup",
-      // we can create a chain of "prestart" events
       when: {
         source: "consul-agent",
         once: "healthy"
@@ -132,6 +133,14 @@ The following is a completed example of the JSON5 file configuration schema, wit
       },
       exec: "/usr/local/bin/reload-nginx.sh",
       timeout: "30s"
+    },
+    {
+      // this job will write metrics to our telemetry collector
+      name: "sensor",
+      exec: "/usr/local/bin/sensor.sh"
+      when: {
+        interval: "5s"
+      }
     }
   ],
   watches: {
@@ -150,13 +159,11 @@ The following is a completed example of the JSON5 file configuration schema, wit
   telemetry: {
     port: 9090,
     interfaces: "eth0"
-    sensors: [
+    metrics: [
       {
         name: "metric_id"
         help: "help text"
         type: "counter"
-        interval: 5
-        exec: "/usr/local/bin/sensor.sh"
       }
     ]
   }
@@ -188,17 +195,15 @@ A watch is a configuration of a service to watch in Consul. The watch monitors t
 
 [Read more](./35-watches.md).
 
-
 ### Control
 
 Jobs often need a way to send information back to ContainerPilot to reload its own configuration, to update metrics, to put a service into maintenance mode, etc. ContainerPilot exposes a HTTP control plane that listens on a local unix socket. By default this can be found at `/var/run/containerpilot.socket`, and the location can be changed via the `control` configuration field.
 
 [Read more](./37-control-plane.md).
 
-
 ### Telemetry
 
-If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `services` block. Each `sensor` for the telemetry service will run periodically and record values in the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
+If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to the discovery service similar to services configured via the `jobs` block. Each `metric` for the telemetry service will configure a collector for the [Prometheus client library](https://github.com/prometheus/client_golang). Jobs can record metrics via the control socket described above. A Prometheus server can then make HTTP requests to the telemetry endpoint.
 
 [Read more](./36-telemetry.md).
 
@@ -229,7 +234,7 @@ Interfaces and their IP addresses are ordered alphabetically by interface name, 
 
 ## Exec and arguments
 
-All `exec` fields, including `jobs/exec`, `jobs/health/exec`, and `telemetry/sensors/exec`, accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments. This is sometimes useful for breaking up long command lines.
+All `exec` fields that configure a child process (`jobs/exec` and `jobs/health/exec`) accept both a string or an array. If a string is given, the command and its arguments are separated by spaces; otherwise, the first element of the array is the command path, and the rest are its arguments. This is sometimes useful for breaking up long command lines.
 
 **String command**
 
@@ -256,7 +261,7 @@ health: {
 
 ContainerPilot will set the following environment variables for all its child processes. Note that these environment variables are not available during configuration [template parsing and rendering](#template-rendering), because they require that the template be rendered first.
 
-- `CONTAINERPILOT_PID`: the PID of ContainerPilot itself.
+- `CONTAINERPILOT_PID`: the PID of ContainerPilot itself. This will usually be '1'.
 - `CONTAINERPILOT_{JOB}_IP`: the IP address of every job that ContainerPilot advertises for service discovery.
 
 

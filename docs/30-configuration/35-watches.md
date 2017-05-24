@@ -16,7 +16,7 @@ watches: [
 
 The `interval` is the time (in seconds) between polling attempts to Consul. The `name` is the service to query and the `tag` is the optional tag to add to the query.
 
-A watch keeps in memory a list of the healthy IP addresses associated with the service. The list is not persisted to disk and if ContainerPilot is restarted it will need to check back in with the canonical data store which is Consul. If this list changes between polls, the watch emits one or two events:
+A watch keeps an in-memory list of the healthy IP addresses associated with the service. The list is not persisted to disk and if ContainerPilot is restarted it will need to check back in with the canonical data store, which is Consul. If this list changes between polls, the watch emits one or two events:
 
 - A `changed` event is emitted whenever there is a change.
 - A `healthy` event is emitted whenever the watched service becomes healthy. This might mean that the state was previously unknown (as when ContainerPilot first starts up) or that it was previously unhealthy and is now healthy. This event will only be fired once for each change in status or count of instances. Subsequent polls that return the same value will not emit the event again.

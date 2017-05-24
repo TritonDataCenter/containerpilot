@@ -4,7 +4,7 @@
 
 Please report any issues you encounter with ContainerPilot or its documentation by [opening a Github issue](https://github.com/joyent/containerpilot/issues). When creating a bug report, please include as many details as possible, including the output of `containerpilot -version` and any steps needed to reproduce the issue if possible. If you can reproduce the issue with debug logging on, please include any logs you can provide. If you're reporting a crash, include the stack trace. Check the open issues to see if anyone else is reporting a similar problem.
 
-If you are a Joyent support customer, we'd encourage you to report ContainerPilot issues on GitHub so their resolution can be shared with the community. But the Support team will be happy give you direct support via Zendesk.
+If you are a Joyent support customer, we encourage you to report ContainerPilot issues on GitHub so their resolution can be shared with the community. But the Support team will be happy give you direct support via Zendesk as well.
 
 ## Contributing
 
