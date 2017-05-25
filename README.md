@@ -85,13 +85,13 @@ Configuration
     - [health checks](./docs/30-configuration/34-jobs.md#health-checks)
     - [service discovery](./docs/30-configuration/34-jobs.md#service-discovery)
   - [Exec arguments](./docs/30-configuration/34-jobs.md#exec-arguments)
-  - [Example job configurations](./docs/30-configuration/34-jobs.md#example-job-configurations)
 - [Watches](./docs/30-configuration/35-watches.md)
 - [Telemetry](./docs/30-configuration/36-telemetry.md)
   - [Sensor configuration](./docs/30-configuration/36-telemetry.md#sensor-configuration)
 - [Control plane](./docs/30-configuration/37-control-plane.md)
   - [ContainerPilot subcommands](./docs/30-configuration/37-control-plane.md#containerpilot-subcommands)
 - [Logging](./docs/30-configuration/38-logging.md)
+- [Example configurations](./docs/30-configuration/39-examples.md)
 
 
 [Support](./docs/40-support.md)

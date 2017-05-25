@@ -54,6 +54,7 @@ Configuration
 - [Control plane](./30-configuration/37-control-plane.md)
   - [ContainerPilot subcommands](./30-configuration/37-control-plane.md#containerpilot-subcommands)
 - [Logging](./30-configuration/38-logging.md)
+- [Example configurations](./30-configuration/39-examples.md)
 
 
 [Support](./40-support.md)
