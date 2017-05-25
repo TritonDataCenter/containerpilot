@@ -29,7 +29,7 @@ In theory it's possible for ContainerPilot to fire an event immediately after it
 If ContainerPilot were to emit a `started` event then the job that emits the event will almost never be ready to do work when the event is handled. This means that jobs that depend on that job will need to implement some kind of health checking and retry logic anyways, and we would gain nothing at the cost of making configuration very confusing and error prone. Jobs that are dependent on another job should listen for the `healthy` event from their dependencies.
 
 
-## Why Consul and not etcd or ZK?
+## Why Consul and not etcd or Zookeeper?
 
 Consul provides a number of higher-level capabilities than a simple KV store like etcd or ZK. Providing the ability to use these capabilities would mean either going with a least-common-denominator approach or having complex provider-specific configuration options for tagging interfaces, providing secure connection to the backend, and faster deregistration on shutdown, among others. Additionally, Consul has first-class support for multi-datacenter deployments.
 

@@ -9,12 +9,11 @@
 
 [Design: the Why of ContainerPilot](./20-design.md)
 - [Why active service discovery?](./20-design.md#why-active-service-discovery)
-- [Why are behaviors specified by application developer?](./20-design.md#why-are-behaviors-specified-by-application-developer)
+- [Why isn't there a "post-start" or "started" event?](./20-design.md#why-isnt-there-a-post-start-or-started-event)
+- [Why Consul and not etcd or Zookeeper?](./20-design.md#why-consul-and-not-etcd-or-zookeeper)
 - [Why are jobs not the same as services?](./20-design.md#why-are-jobs-not-the-same-as-services)
-- [Why don't watches have behaviors?](./20-design.md#why-dont-watches-have-behaviors)
-- [Why isn't there a "post-start" event?](./20-design.md#why-isnt-there-a-post-start-event)
+- [Why don't watches or metrics have behaviors?](./20-design.md#why-dont-watches-or-metrics-have-behaviors)
 - [Why should you not use ContainerPilot?](./20-design.md#why-should-you-not-use-containerpilot)
-
 
 Configuration
 - [Installation](./30-configuration/31-installation.md)
