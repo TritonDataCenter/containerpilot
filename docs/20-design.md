@@ -31,11 +31,15 @@ If ContainerPilot were to emit a `started` event then the job that emits the eve
 
 ## Why Consul and not etcd or ZK?
 
-??? TODO
+Consul provides a number of higher-level capabilities than a simple KV store like etcd or ZK. Providing the ability to use these capabilities would mean either going with a least-common-denominator approach or having complex provider-specific configuration options for tagging interfaces, providing secure connection to the backend, and faster deregistration on shutdown, among others. Additionally, Consul has first-class support for multi-datacenter deployments.
+
+The primary argument for supporting etcd rather than Consul is that Kubernetes and related projects are using it as their service discovery layer. In our discussions with some end users, we haven't found that there's any resistance to the idea that the scheduler's own consensus & membership store doesn't need to be the same store used by applications. And even perhaps _should not_ be the same store, given that in most organizations the team responsible for application development will not be the same team responsible for running the deployment platform.
+
 
 ## Why are jobs not the same as services?
 
-??? TODO
+A job is the core abstraction for managing all processes in ContainerPilot. But the end user will not necessarily want to advertise all processes in a container to Consul. Health checks, sensors, setup tasks, etc. are all processes that a container needs to run that are internal to the container.
+
 
 ## Why don't watches have behaviors?
 
