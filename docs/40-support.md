@@ -25,7 +25,7 @@ While it's easy to say "just use semver", in practice there are several interfac
 
 ContainerPilot includes bindings to the Consul API via the [Hashicorp library](https://github.com/hashicorp/consul/tree/master/api). The Consul API has to date been backwards compatible but not necessarily forwards compatible. Bumping the required version of the Consul API will be considered a minor version bump to ContainerPilot unless upstream breaks backwards compatibility.
 
-##### Interface with Promtheus-compatible servers
+##### Interface with Prometheus-compatible servers
 
 ContainerPilot acts as a Prometheus client via the [Prometheus client library](https://github.com/prometheus/client_golang). Bumping the required version of the Prometheus API will be considered a minor version bump to ContainerPilot unless upstream breaks backwards compatibility.
 
