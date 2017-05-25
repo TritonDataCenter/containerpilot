@@ -229,8 +229,3 @@ health: {
   ]
 }
 ```
-
-
-## Example job configurations
-
-TODO

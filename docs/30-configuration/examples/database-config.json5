@@ -1,0 +1,77 @@
+/*
+This example demonstrates how a user might configure multiple database
+connections with varying requirements.
+
+'app' is a Node.js application that has a hard dependency on 'mysql';
+it will fail to start if there's no 'mysql' connection. It has a soft
+dependency on 'redis'; it can handle a missing redis gracefully.
+*/
+{
+  consul: "localhost:8500", // ContainerPilot will talk to the local agent
+  jobs: [
+    {
+      // this job has no 'port' configuration so it will not be
+      // advertised to the Consul server. note there's no 'when' field
+      // so this will start on the 'global startup' event by default.
+      name: "consul-agent",
+      exec: [
+        "consul", "agent", "-rejoin", "-retry-join", "{{ .CONSUL }}",
+        "-retry-max", "10", "-retry-interval", "10s"
+      ],
+      restarts: "unlimited",
+      health: {
+        exec: "consul info | grep leader"
+      }
+    },
+    {
+      name: "configure-db",
+      exec: [
+        "consul-template", "-once", "-consul-addr", "localhost:8500",
+        "-template", "/etc/template.ctmpl:/etc/app.conf"
+      ],
+      when: {
+        // this job won't fire until mysql is healthy
+        source: "watch.mysql",
+        once: "healthy"
+      }
+    },
+    {
+      name: "configure-redis",
+      exec: [
+        "consul-template", "-once", "-consul-addr", "localhost:8500",
+        "-template", "'/etc/template.ctmpl:/etc/app.conf:pkill -SIGHUP node'"
+      ],
+      when: {
+        // this job will fire whenever redis changes
+        source: "watch.redis",
+        each: "changed"
+      }
+    },
+    {
+      name: "app",
+      exec: "node server.js -p 8000",
+      port: 8000,
+      restarts: "unlimited",
+      when: {
+        // 'app' won't start until the 'configure-db' has succeeeded
+        source: "configure-db",
+        once: "exitSuccess"
+      },
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+        interval: 5,
+        ttl: 10
+      }
+    }
+  ],
+  watches: [
+    {
+      name: "mysql",
+      interval: 5
+    },
+    {
+      name: "redis",
+      interval: 5
+    }
+  ]
+}

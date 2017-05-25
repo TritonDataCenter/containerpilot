@@ -1,0 +1,53 @@
+/*
+This example demonstrates how a user might rely on ContainerPilot only
+to register a service, and use a persistent consul-template process to
+manage the watching of dependencies.
+*/
+{
+  consul: "localhost:8500", // ContainerPilot will talk to the local agent
+  jobs: [
+    {
+      // this job has no 'port' configuration so it will not be
+      // advertised to the Consul server. note there's no 'when' field
+      // so this will start on the 'global startup' event by default.
+      name: "consul-agent",
+      exec: [
+        "consul", "agent", "-rejoin", "-retry-join", "{{ .CONSUL }}",
+        "-retry-max", "10", "-retry-interval", "10s"
+      ],
+      restarts: "unlimited",
+      health: {
+        exec: "consul info | grep leader"
+      }
+    },
+    {
+      // like 'consul-agent' this job is persistent but not advertised
+      // to the Consul server
+      name: "consul-template",
+      exec: [
+        "consul-template", "-consul-addr", "localhost:8500",
+        "-template", "/etc/template.ctmpl:/etc/app.conf"
+      ],
+      restarts: "unlimited", // we want to be persistent
+      when: {
+        // we'll wait for the "consul-agent healthy" event, which appears
+        // inside this container only as it's for a non-advertised job.
+        source: "consul-agent",
+        once: "healthy"
+      }
+    },
+    {
+      name: "app",
+      exec: [
+        "/usr/local/bin/node",
+        "/usr/local/bin/http-server", "/srv", "-p", "8000"],
+      port: 8000, // this job will be advertised to Consul servers
+      restarts: "unlimited",
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+        interval: 5,
+        ttl: 10
+      }
+    }
+  ]
+}

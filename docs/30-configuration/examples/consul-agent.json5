@@ -1,0 +1,72 @@
+/*
+This example demonstrates how a user can create a chain of dependencies
+on a consul-agent process that runs inside the container (as is required
+in CaaS environments like sdc-docker).
+
+'app' is a Node.js application that requires configuration from
+Consul before it can start. The 'preStart' job that configures 'app'
+needs 'consul-agent' to be healthy before it can run.
+*/
+{
+  consul: "localhost:8500", // ContainerPilot will talk to the local agent
+  jobs: [
+    {
+      // this job has no 'port' configuration so it will not be
+      // advertised to the Consul server. note there's no 'when' field
+      // so this will start on the 'global startup' event by default.
+      name: "consul-agent",
+      exec: [
+        "consul", "agent",
+        "-rejoin",
+        "-retry-join", "{{ .CONSUL }}",
+        "-retry-max", "10",
+        "-retry-interval", "10s"
+      ],
+      restarts: "unlimited",
+      health: {
+        // this health check will result in 'consul-agent healthy' events
+        // that can be consumed by the 'when' field of our 'preStart'
+        exec: "consul info | grep leader"
+      }
+    },
+    {
+      // this job is not advertised and has no health check. we'll never
+      // see a 'preStart healthy' event, just 'preStart exitSuccess'
+      name: "preStart",
+      exec: [
+        "consul-template", "-once", "-consul-addr", "localhost:8500",
+        "-template", "/etc/template.ctmpl:/etc/app.conf"
+      ],
+      restarts: "never", // default behavior
+      when: {
+        // we'll wait for the "consul-agent healthy" event, which appears
+        // inside this container only as it's for a non-advertised job.
+        // note we don't need to script a poll+timeout.
+        source: "consul-agent",
+        once: "healthy",
+        timeout: "120s"
+      }
+    }
+    {
+      name: "app",
+      exec: [
+        "/usr/local/bin/node",
+        "/usr/local/bin/http-server", "/srv", "-p", "8000"],
+      port: 8000, // this job will be advertised to Consul servers
+      restarts: "unlimited",
+      when: {
+        // 'app' won't start until the 'preStart' has succeeeded, but we
+        // give up after 120 seconds
+        source: "preStart",
+        once: "exitSuccess"
+        timeout: "120s"
+      },
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
+        interval: 5,
+        ttl: 10
+        timeout: "10s" // the health check can have its own timeout
+      }
+    }
+  ]
+}
