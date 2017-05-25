@@ -41,10 +41,19 @@ The primary argument for supporting etcd rather than Consul is that Kubernetes a
 A job is the core abstraction for managing all processes in ContainerPilot. But the end user will not necessarily want to advertise all processes in a container to Consul. Health checks, sensors, setup tasks, etc. are all processes that a container needs to run that are internal to the container.
 
 
-## Why don't watches have behaviors?
+## Why don't watches or metrics have behaviors?
 
-??? TODO
+By having ContainerPilot's behaviors all in jobs rather than in watches or metrics, you can configure more than one behavior when an event is emitted.
+
+For watches, ContainerPilot provides only the `changed`, `healthy`, and/or `unhealthy` events. The application developer can decide whether to coalesce multiple concurrent events into a single event, whether to start a job and then wait for that job to complete before starting a different one, or whatever they require for their application.
+
+Likewise, for metrics, a single job might take a measurement from the application environment but write several metrics after parsing that measurement. A good example of this is Nginx's `stub_status` module, which provides several numerical measurements to a single HTTP GET. A job designed as a sensor might take this result, do some math on some of the numbers, and then execute `containerpilot -putmetric` multiple times.
+
 
 ## Why should you not use ContainerPilot?
 
-??? TODO
+ContainerPilot is just one option for implementing the Autopilot Pattern.
+
+This pattern creates responsibilities on the application that many legacy applications will be unable to fulfill, and ContainerPilot is designed first and foremost with supporting those kinds of applications. Greenfield applications in organizations that already have rich libraries and tooling for handling questions of service discovery, health checking, process supervision, metrics colection, etc. and that have their own service catalog already deployed will be unlikely to get much out of using ContainerPilot.
+
+Much of what ContainerPilot does can be assembled from existing components. One can include in a container an init system and supervisor like [`s6`](http://skarnet.org/software/s6/), which runs Consul agent and [`consul-template`], a [Prometheus](https://prometheus.io/) metrics collection agent, a tool like [registrar](https://gliderlabs.com/registrator/latest/), and a collection of bash scripts to tie all the pieces together. ContainerPilot is an opinionated choice of tooling, but if your organization has strong feelings about those tools then it's possible to implement its behaviors by a sufficiently motivated development team.
