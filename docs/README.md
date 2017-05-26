@@ -1,4 +1,4 @@
-## Contents
+# Contents
 
 [Lifecycle](./10-lifecycle.md)
 - [What is a job?](./10-lifecycle.md#what-is-a-job)
