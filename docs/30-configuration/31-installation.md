@@ -28,3 +28,7 @@ ContainerPilot is written in [go](https://golang.org/). The makefile at the root
 If you have Docker running, `make build` will build a container image that includes the golang toolchain, downloads and installs all the required libraries into the `vendor/` directory, and builds ContainerPilot. The compiled binary will be found at `build/containerpilot`
 
 If you have a golang toolchain, `make local build` will build using the architecture flags it picks up from the environment. This has mostly been tested on MacOS and SmartOS. It's unlikely that ContainerPilot will operate correctly when built for Windows because of specific POSIX behaviors it needs as an init system.
+
+### Building the documentation
+
+The ContainerPilot documentation is deployed on [Joyent's website](https://www.joyent.com/containerpilot/docs). Use the `make kirby` target to build the documentation; the output can be found at `build/docs`.
