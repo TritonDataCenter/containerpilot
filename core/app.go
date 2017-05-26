@@ -220,6 +220,7 @@ func (a *App) Run() {
 			break
 		}
 		if err := a.reload(); err != nil {
+			log.Error(err)
 			break
 		}
 	}

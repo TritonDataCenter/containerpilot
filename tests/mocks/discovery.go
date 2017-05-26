@@ -1,16 +1,11 @@
 package mocks
 
-import "github.com/joyent/containerpilot/discovery"
+import "github.com/hashicorp/consul/api"
 
 // NoopDiscoveryBackend is a mock discovery.Backend
 type NoopDiscoveryBackend struct {
 	Val     bool
 	lastVal bool
-}
-
-// SendHeartbeat (required for mock interface)
-func (noop *NoopDiscoveryBackend) SendHeartbeat(service *discovery.ServiceDefinition) {
-	return
 }
 
 // CheckForUpstreamChanges will return the public Val field to mock
@@ -25,8 +20,22 @@ func (noop *NoopDiscoveryBackend) CheckForUpstreamChanges(backend, tag string) (
 	return didChange, isHealthy
 }
 
-// MarkForMaintenance (required for mock interface)
-func (noop *NoopDiscoveryBackend) MarkForMaintenance(service *discovery.ServiceDefinition) {}
+// CheckRegister (required for mock interface)
+func (noop *NoopDiscoveryBackend) CheckRegister(check *api.AgentCheckRegistration) error {
+	return nil
+}
 
-// Deregister (required for mock interface)
-func (noop *NoopDiscoveryBackend) Deregister(service *discovery.ServiceDefinition) {}
+// PassTTL (required for mock interface)
+func (noop *NoopDiscoveryBackend) PassTTL(checkID, note string) error {
+	return nil
+}
+
+// ServiceDeregister (required for mock interface)
+func (noop *NoopDiscoveryBackend) ServiceDeregister(serviceID string) error {
+	return nil
+}
+
+// ServiceRegister (required for mock interface)
+func (noop *NoopDiscoveryBackend) ServiceRegister(service *api.AgentServiceRegistration) error {
+	return nil
+}

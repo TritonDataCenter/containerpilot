@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/flynn/json5"
 
 	"github.com/joyent/containerpilot/control"
@@ -21,6 +20,7 @@ import (
 )
 
 type rawConfig struct {
+	consul      interface{}
 	logConfig   *LogConfig
 	stopTimeout int
 	jobs        []interface{}
@@ -44,33 +44,6 @@ const (
 	// Amount of time to wait before killing the application
 	defaultStopTimeout int = 5
 )
-
-func parseDiscoveryBackend(rawCfg map[string]interface{}) (discovery.Backend, error) {
-	var discoveryService discovery.Backend
-	var err error
-	discoveryCount := 0
-
-	for _, key := range discovery.GetBackends() {
-		handler := discovery.GetConfigHook(key)
-		if handler != nil {
-			if rawCfg, ok := rawCfg[key]; ok {
-				discoveryService, err = handler(rawCfg)
-				if err != nil {
-					return nil, err
-				}
-				log.Debugf("parsed service discovery backend: %s", key)
-				discoveryCount++
-			}
-			delete(rawCfg, key)
-		}
-	}
-	if discoveryCount == 0 {
-		return nil, errors.New("no discovery backend defined")
-	} else if discoveryCount > 1 {
-		return nil, errors.New("more than one discovery backend defined")
-	}
-	return discoveryService, nil
-}
 
 // InitLogging configure logrus with the new log config if available
 func (cfg *Config) InitLogging() error {
@@ -155,20 +128,17 @@ func newConfig(configData []byte) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	disc, err := parseDiscoveryBackend(configMap)
-	if err != nil {
-		return nil, err
-	}
-	// Delete discovery backend keys
-	for _, backend := range discovery.GetBackends() {
-		delete(configMap, backend)
-	}
 
 	raw := &rawConfig{}
 	if err = decodeConfig(configMap, raw); err != nil {
 		return nil, err
 	}
 	cfg := &Config{}
+
+	disc, err := discovery.NewConsul(raw.consul)
+	if err != nil {
+		return nil, err
+	}
 	cfg.Discovery = disc
 
 	cfg.LogConfig = raw.logConfig
@@ -290,6 +260,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	if err := utils.DecodeRaw(configMap["stopTimeout"], &stopTimeout); err != nil {
 		return err
 	}
+	result.consul = configMap["consul"]
 	result.stopTimeout = stopTimeout
 	result.logConfig = &logConfig
 	result.control = configMap["control"]
@@ -297,6 +268,7 @@ func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
 	result.watches = decodeArray(configMap["watches"])
 	result.telemetry = configMap["telemetry"]
 
+	delete(configMap, "consul")
 	delete(configMap, "logging")
 	delete(configMap, "control")
 	delete(configMap, "stopTimeout")

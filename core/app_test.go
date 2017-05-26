@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/tests/assert"
@@ -231,7 +231,7 @@ func TestReloadConfig(t *testing.T) {
 		t.Errorf("valid configuration returned error: %v", err)
 	}
 	discSvc := app.Discovery
-	if svc, ok := discSvc.(*consul.Consul); !ok || svc == nil {
+	if svc, ok := discSvc.(*discovery.Consul); !ok || svc == nil {
 		t.Errorf("configuration was not reloaded: %v", discSvc)
 	}
 }

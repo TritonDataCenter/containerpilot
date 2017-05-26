@@ -3,12 +3,8 @@ package main // import "github.com/joyent/containerpilot"
 import (
 	"runtime"
 
-	"github.com/joyent/containerpilot/core"
-
 	log "github.com/Sirupsen/logrus"
-
-	// Import backends so that they initialize
-	_ "github.com/joyent/containerpilot/discovery/consul"
+	"github.com/joyent/containerpilot/core"
 )
 
 // Main executes the containerpilot CLI

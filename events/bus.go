@@ -112,8 +112,8 @@ func (bus *EventBus) Publish(event Event) {
 // App that we want to restart rather than be shut down
 func (bus *EventBus) SetReloadFlag() {
 	bus.lock.Lock()
+	defer bus.lock.Unlock()
 	bus.reload = true
-	bus.lock.Unlock()
 }
 
 // Shutdown asks all Subscribers to halt by sending the GlobalShutdown
