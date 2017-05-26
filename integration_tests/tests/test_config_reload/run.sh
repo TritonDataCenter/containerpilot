@@ -7,11 +7,16 @@ APP_ID=$(docker-compose ps -q app)
 
 # single reload and verify config has reloaded
 docker exec "$APP_ID" /reload-containerpilot.sh single
-sleep 1
-docker logs "$APP_ID" > app.log
-
-reloads=$(grep -c "control: reloaded app via control plane" app.log)
-serves=$(grep -c "control: serving at /var/run/containerpilot.socket" app.log)
+for i in $(seq 0 10); do
+    sleep 1
+    docker logs "$APP_ID" > app.log
+    reloads=$(grep -c "control: reloaded app via control plane" app.log)
+    serves=$(grep -c "control: serving at /var/run/containerpilot.socket" app.log)
+    if [[ "$reloads" -eq 1 ]] && [[ "$serves" -eq 2 ]]; then
+        echo "reloaded within $i seconds"
+        break
+    fi
+done
 if [[ "$reloads" -ne 1 ]] || [[ "$serves" -ne 2 ]]; then
     echo '--------------------'
     echo 'single reload failed'
