@@ -62,7 +62,7 @@ func envFunc(env string) string {
 }
 
 // loop accepts 1 or two parameters
-// loop 5  returns 0 1 2 3 4 or loop 5 8 returns 5 6 7 or loop 5 1 returns
+// loop 5 returns 0 1 2 3 4 or loop 5 8 returns 5 6 7 or loop 5 1 returns 5 4 3 2
 func loop(params ...int) ([]int, error) {
 	var start, stop int
 	result := []int{}
