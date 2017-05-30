@@ -23,7 +23,7 @@ The above snippet adds the ContainerPilot binary to the container at `/usr/local
 
 ### Building yourself
 
-ContainerPilot is written in [go](https://golang.org/). The makefile at the root of the repository can build either via your local golang toolchain (currently golang 1.8) or in a Docker container.
+ContainerPilot is written in [go](https://golang.org/). The makefile at the root of the repository can build either via your local golang toolchain (currently golang 1.8) or in a Docker container. The makefile target `make help` will describe the various Make targets available.
 
 If you have Docker running, `make build` will build a container image that includes the golang toolchain, downloads and installs all the required libraries into the `vendor/` directory, and builds ContainerPilot. The compiled binary will be found at `build/containerpilot`
 

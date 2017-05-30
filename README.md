@@ -52,8 +52,8 @@ Documentation for ContainerPilot and where it fits with the rest of the Triton e
 - [Why isn't there a "post-start" or "started" event?](./docs/20-design.md#why-isnt-there-a-post-start-or-started-event)
 - [Why Consul and not etcd or Zookeeper?](./docs/20-design.md#why-consul-and-not-etcd-or-zookeeper)
 - [Why are jobs not the same as services?](./docs/20-design.md#why-are-jobs-not-the-same-as-services)
-- [Why don't watches or metrics have behaviors?](./docs/20-design.md#why-dont-watches-or-metrics-have-behaviors)
-- [Why should you not use ContainerPilot?](./docs/20-design.md#why-should-you-not-use-containerpilot)
+- [Why don't watches or metrics have an exec field?](./docs/20-design.md#why-dont-watches-or-metrics-have-an-exec-field)
+- [Why use something other than ContainerPilot?](./docs/20-design.md#why-use-something-other-than-containerpilot)
 
 
 Configuration

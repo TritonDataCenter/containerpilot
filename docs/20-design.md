@@ -7,7 +7,7 @@ The goal of service discovery in cloud-native applications is to configure depen
 - Insert a proxy between the application and the dependency. The proxy knows which dependency instances are available and implements load balancing among them.
 - Add dependency load balancing and dynamic configuration to the application itself.
 
-The first option is a common approach in the container ecosystem. It represents all the right reasons to outsource a problem: we get quick scalability with no need to modify the existing application. The proxy is a centralized place to manage access to dependencies, so all we have to do is point the client application at the proxy and go. The proxy itself can be as simple as HAProxy, or it can be a more complex proxy that can direct writes to a master and reads to the read replicas. This doesn't entirely solve the discovery problem but at least it centralizes the solution.
+The first option is a common approach in the container ecosystem. It represents all the right reasons to outsource a problem: we get quick scalability with no need to modify the existing application. The proxy is a centralized place to manage access to dependencies, so all we have to do is point the client application at the proxy and go. The proxy itself can be as simple as HAProxy, or it can be a more complex proxy that can direct writes to a primary and reads to the read replicas. This doesn't entirely solve the discovery problem but at least it centralizes the solution.
 
 But there are several problems with this approach. Proxies add extra network latency and overhead. Proxies add new points of failure; if the proxy itself goes offline or is overloaded, the whole system fails instead of giving us a means to degrade gracefully with application-specific logic.
 
@@ -17,7 +17,9 @@ But this deeply ties the logic of the application to the infrastructure, particu
 
 The alternative to that pattern is for active discovery and configuration in the application. The application registers itself with a "service catalog" and queries this catalog for any external dependencies. We'll also need to health check the application and keep the service catalog up to date. Although the application developer now has more responsibility for the behavior of their application, they also have the ability to get much more visibility into failures and application-specific control over how to handle them.
 
-The difference between the two options is a matter of where decisions are made. Passive discovery patterns are those that separate the application from the decisions, leaving the application passive in both the choice of what back ends to connect to, and passive in resolving failures that may result. Active discovery patterns move those decisions into the application so it can have an active role in choosing the backend and working around failures it may encounter. By making the application an active participant in the discovery process, we can eliminate a layer of complexity, misdirection, and latency between the application and its backends and give us faster, more reliable, and more resilient applications.
+The difference between the two options is a matter of where decisions are made. Passive discovery patterns are those that separate the application from the decisions, leaving the application passive in both the choice of what back ends to connect to, and passive in resolving failures that may result. Active discovery patterns move those decisions into the application so it can have an active role in choosing the backend and working around failures it may encounter.
+
+By making the application an active participant in the discovery process, we can eliminate a layer of complexity, misdirection, and latency between the application and its backends and give us faster, more reliable, and more resilient applications.
 
 For more on this topic, see Casey Bisson's article on the ContainerSummit website: [_Active vs. passive discovery in distributed applications_](https://containersummit.io/articles/active-vs-passive-discovery).
 
@@ -33,24 +35,24 @@ If ContainerPilot were to emit a `started` event then the job that emits the eve
 
 Consul provides a number of higher-level capabilities than a simple KV store like etcd or ZK. Providing the ability to use these capabilities would mean either going with a least-common-denominator approach or having complex provider-specific configuration options for tagging interfaces, providing secure connection to the backend, and faster deregistration on shutdown, among others. Additionally, Consul has first-class support for multi-datacenter deployments.
 
-The primary argument for supporting etcd rather than Consul is that Kubernetes and related projects are using it as their service discovery layer. In our discussions with some end users, we haven't found that there's any resistance to the idea that the scheduler's own consensus & membership store doesn't need to be the same store used by applications. And even perhaps _should not_ be the same store, given that in most organizations the team responsible for application development will not be the same team responsible for running the deployment platform.
+The primary argument for supporting etcd rather than Consul is that Kubernetes and related projects are using it as their service discovery layer. But there's no particular reason that the scheduler's own consensus and membership store needs to be the same store used by applications. And even perhaps _should not_ be the same store, given that in most organizations the team responsible for application development will not be the same team responsible for running the deployment platform.
 
 
 ## Why are jobs not the same as services?
 
-A job is the core abstraction for managing all processes in ContainerPilot. But the end user will not necessarily want to advertise all processes in a container to Consul. Health checks, sensors, setup tasks, etc. are all processes that a container needs to run that are internal to the container.
+A job is the core abstraction for managing all processes in ContainerPilot. A service is a job that's been registered with Consul. But the end user will not necessarily want to register all processes in a container. Health checks, sensors, setup tasks, etc. are all processes that a container needs to run that are internal to the container.
 
 
-## Why don't watches or metrics have behaviors?
+## Why don't watches or metrics have an exec field?
 
-By having ContainerPilot's behaviors all in jobs rather than in watches or metrics, you can configure more than one behavior when an event is emitted.
+By having ContainerPilot's `exec` fields all in jobs rather than in watches or metrics, you can configure more than one `exec` behavior when an event is emitted.
 
 For watches, ContainerPilot provides only the `changed`, `healthy`, and/or `unhealthy` events. The application developer can decide whether to coalesce multiple concurrent events into a single event, whether to start a job and then wait for that job to complete before starting a different one, or whatever they require for their application.
 
 Likewise, for metrics, a single job might take a measurement from the application environment but write several metrics after parsing that measurement. A good example of this is Nginx's `stub_status` module, which provides several numerical measurements to a single HTTP GET. A job designed as a sensor might take this result, do some math on some of the numbers, and then execute `containerpilot -putmetric` multiple times.
 
 
-## Why should you not use ContainerPilot?
+## Why use something other than ContainerPilot?
 
 ContainerPilot is just one option for implementing the Autopilot Pattern.
 

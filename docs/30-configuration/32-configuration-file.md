@@ -16,6 +16,13 @@ $ export CONTAINERPILOT=/etc/containerpilot.json5
 $ containerpilot
 ```
 
+##### Examples: specifying the configuration file path in a Dockerfile
+
+```bash
+# configure via environment variable
+ENV CONTAINERPILOT=/etc/containerpilot.json5
+```
+
 The configuration file format is [JSON5](http://json5.org/). If you are familiar with JSON, it is similar except that it accepts comments, fields don't need to be surrounded by quotes, and it isn't nearly as fussy about extraneous trailing commas.
 
 ## Schema
