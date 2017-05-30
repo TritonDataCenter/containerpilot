@@ -2,9 +2,16 @@
 
 # rewrites the title as Kirby front-matter (in-place)
 addFrontMatter() {
-    sed -i -e '1 s/^# \(.*\)$/Title: \1\n\n----\n\nText:/; t' \
-        -e '1,// s//Title: \1\n\n----\n\nText:/' \
-        "$1"
+    title=$(head -1 "$1" | sed -r 's/^# //')
+    body=$(tail -n +2 "$1")
+    {
+        echo "Title: $title"
+        echo
+        echo "----"
+        echo
+        echo "Text:"
+        echo "$body"
+    } > "$1"
 }
 
 # rewrites all markdown links to indexes (in-place)
