@@ -21,12 +21,11 @@ type Config struct {
 	Exec interface{} `mapstructure:"exec"`
 
 	// service discovery
-	Port             int           `mapstructure:"port"`
-	Interfaces       interface{}   `mapstructure:"interfaces"`
-	Tags             []string      `mapstructure:"tags"`
-	ConsulConfig     *ConsulConfig `mapstructure:"consul"`
-	discoveryCatalog discovery.Backend
-	definition       *discovery.ServiceDefinition
+	Port              int           `mapstructure:"port"`
+	Interfaces        interface{}   `mapstructure:"interfaces"`
+	Tags              []string      `mapstructure:"tags"`
+	ConsulExtras      *ConsulExtras `mapstructure:"consul"`
+	serviceDefinition *discovery.ServiceDefinition
 
 	// health checking
 	Health            *HealthConfig `mapstructure:"health"`
@@ -70,8 +69,8 @@ type HealthConfig struct {
 	TTL          int         `mapstructure:"ttl"`      // time in seconds
 }
 
-// ConsulConfig handles additional Consul configuration.
-type ConsulConfig struct {
+// ConsulExtras handles additional Consul configuration.
+type ConsulExtras struct {
 	EnableTagOverride              bool   `mapstructure:"enableTagOverride"`
 	DeregisterCriticalServiceAfter string `mapstructure:"deregisterCriticalServiceAfter"`
 }
@@ -134,7 +133,6 @@ func (cfg *Config) setStopping(name string) {
 }
 
 func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
-
 	// setting up discovery requires the TTL from the health check first
 	if err := cfg.validateHealthCheck(); err != nil {
 		return err
@@ -343,7 +341,7 @@ func (cfg *Config) validateRestarts() error {
 }
 
 // addDiscoveryConfig validates the configuration for service discovery
-// and attaches the discovery.Backend to the Config
+// and attaches the discovery.ServiceDefinition to the Config
 func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
 	interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
 	if ifaceErr != nil {
@@ -356,30 +354,31 @@ func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
 	hostname, _ := os.Hostname()
 	id := fmt.Sprintf("%s-%s", cfg.Name, hostname)
 
-	cfg.discoveryCatalog = disc
+	var (
+		enableTagOverride bool
+		deregAfter        string
+	)
 
-	var consulExtras *discovery.ConsulExtras
-	if cfg.ConsulConfig != nil {
-		if cfg.ConsulConfig.DeregisterCriticalServiceAfter != "" {
-			if _, err := time.ParseDuration(cfg.ConsulConfig.DeregisterCriticalServiceAfter); err != nil {
-				return fmt.Errorf(
-					"unable to parse job[%s].consul.deregisterCriticalServiceAfter: %s",
-					cfg.Name, err)
-			}
+	if cfg.ConsulExtras != nil {
+		deregAfter = cfg.ConsulExtras.DeregisterCriticalServiceAfter
+		_, err := time.ParseDuration(deregAfter)
+		if err != nil {
+			return fmt.Errorf(
+				"unable to parse job[%s].consul.deregisterCriticalServiceAfter: %s",
+				cfg.Name, err)
 		}
-		consulExtras = &discovery.ConsulExtras{
-			DeregisterCriticalServiceAfter: cfg.ConsulConfig.DeregisterCriticalServiceAfter,
-			EnableTagOverride:              cfg.ConsulConfig.EnableTagOverride,
-		}
+		enableTagOverride = cfg.ConsulExtras.EnableTagOverride
 	}
-	cfg.definition = &discovery.ServiceDefinition{
-		ID:           id,
-		Name:         cfg.Name,
-		Port:         cfg.Port,
-		TTL:          cfg.ttl,
-		Tags:         cfg.Tags,
-		IPAddress:    ipAddress,
-		ConsulExtras: consulExtras,
+	cfg.serviceDefinition = &discovery.ServiceDefinition{
+		ID:                             id,
+		Name:                           cfg.Name,
+		Port:                           cfg.Port,
+		TTL:                            cfg.ttl,
+		Tags:                           cfg.Tags,
+		IPAddress:                      ipAddress,
+		DeregisterCriticalServiceAfter: deregAfter,
+		EnableTagOverride:              enableTagOverride,
+		Consul:                         disc,
 	}
 	return nil
 }

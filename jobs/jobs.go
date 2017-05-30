@@ -38,12 +38,11 @@ type Job struct {
 	exec *commands.Command
 
 	// service health and discovery
-	Status           jobStatus
-	statusLock       *sync.RWMutex
-	discoveryCatalog discovery.Backend
-	Service          *discovery.ServiceDefinition
-	healthCheckExec  *commands.Command
-	healthCheckName  string
+	Status          jobStatus
+	statusLock      *sync.RWMutex
+	Service         *discovery.ServiceDefinition
+	healthCheckExec *commands.Command
+	healthCheckName string
 
 	// starting events
 	startEvent   events.Event
@@ -69,8 +68,7 @@ func NewJob(cfg *Config) *Job {
 		Name:              cfg.Name,
 		exec:              cfg.exec,
 		heartbeat:         cfg.heartbeatInterval,
-		discoveryCatalog:  cfg.discoveryCatalog,
-		Service:           cfg.definition,
+		Service:           cfg.serviceDefinition,
 		healthCheckExec:   cfg.healthCheckExec,
 		startEvent:        cfg.whenEvent,
 		startTimeout:      cfg.whenTimeout,
@@ -104,8 +102,8 @@ func FromConfigs(cfgs []*Config) []*Job {
 
 // SendHeartbeat sends a heartbeat for this Job's service
 func (job *Job) SendHeartbeat() {
-	if job.discoveryCatalog != nil || job.Service != nil {
-		job.discoveryCatalog.SendHeartbeat(job.Service)
+	if job.Service != nil {
+		job.Service.SendHeartbeat()
 	}
 }
 
@@ -126,15 +124,15 @@ func (job *Job) setStatus(status jobStatus) {
 // MarkForMaintenance marks this Job's service for maintenance
 func (job *Job) MarkForMaintenance() {
 	job.setStatus(statusMaintenance)
-	if job.discoveryCatalog != nil || job.Service != nil {
-		job.discoveryCatalog.MarkForMaintenance(job.Service)
+	if job.Service != nil {
+		job.Service.MarkForMaintenance()
 	}
 }
 
 // Deregister will deregister this instance of Job's service
 func (job *Job) Deregister() {
-	if job.discoveryCatalog != nil || job.Service != nil {
-		job.discoveryCatalog.Deregister(job.Service)
+	if job.Service != nil {
+		job.Service.Deregister()
 	}
 }
 

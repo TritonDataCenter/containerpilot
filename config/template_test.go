@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	// need to import this so that we have a registered backend
-	_ "github.com/joyent/containerpilot/discovery/consul"
 	"github.com/joyent/containerpilot/tests/assert"
 )
 

@@ -1,4 +1,4 @@
-package consul
+package discovery
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	consul "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
-	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/tests/assert"
 )
 
@@ -16,7 +15,7 @@ func TestConsulObjectParse(t *testing.T) {
 		"scheme":  "https",
 		"token":   "ec492475-7753-4ff0-bd65-2f056d68f78b",
 	}
-	_, err := NewConsulConfig(rawCfg)
+	_, err := NewConsul(rawCfg)
 	if err != nil {
 		t.Fatalf("unable to parse config: %v", err)
 	}
@@ -47,7 +46,7 @@ func runParseTest(t *testing.T, uri, expectedAddress, expectedScheme string) {
 }
 
 func TestCheckForChanges(t *testing.T) {
-	c, _ := NewConsulConfig(`consul: "localhost:8500"`)
+	c, _ := NewConsul(`consul: "localhost:8500"`)
 
 	t0 := []*consul.ServiceEntry{}
 	didChange := c.compareAndSwap("test", t0)
@@ -96,11 +95,12 @@ func TestWithConsul(t *testing.T) {
 }
 
 func testConsulTTLPass(t *testing.T) {
-	consul, _ := NewConsulConfig(testServer.HTTPAddr)
-	service := generateServiceDefinition(fmt.Sprintf("service-TestConsulTTLPass"))
+	consul, _ := NewConsul(testServer.HTTPAddr)
+	name := fmt.Sprintf("service-TestConsulTTLPass")
+	service := generateServiceDefinition(name, consul)
 	id := service.ID
 
-	consul.SendHeartbeat(service) // force registration and 1st heartbeat
+	service.SendHeartbeat() // force registration and 1st heartbeat
 	checks, _ := consul.Agent().Checks()
 	check := checks[id]
 	if check.Status != "passing" {
@@ -109,10 +109,11 @@ func testConsulTTLPass(t *testing.T) {
 }
 
 func testConsulReregister(t *testing.T) {
-	consul, _ := NewConsulConfig(testServer.HTTPAddr)
-	service := generateServiceDefinition(fmt.Sprintf("service-TestConsulReregister"))
+	consul, _ := NewConsul(testServer.HTTPAddr)
+	name := fmt.Sprintf("service-TestConsulReregister")
+	service := generateServiceDefinition(name, consul)
 	id := service.ID
-	consul.SendHeartbeat(service) // force registration and 1st heartbeat
+	service.SendHeartbeat() // force registration and 1st heartbeat
 	services, _ := consul.Agent().Services()
 	svc := services[id]
 	if svc.Address != "192.168.1.1" {
@@ -120,9 +121,10 @@ func testConsulReregister(t *testing.T) {
 	}
 
 	// new Consul client (as though we've restarted)
-	consul, _ = NewConsulConfig(testServer.HTTPAddr)
+	consul, _ = NewConsul(testServer.HTTPAddr)
+	service = generateServiceDefinition(name, consul)
 	service.IPAddress = "192.168.1.2"
-	consul.SendHeartbeat(service) // force re-registration and 1st heartbeat
+	service.SendHeartbeat() // force re-registration and 1st heartbeat
 
 	services, _ = consul.Agent().Services()
 	svc = services[id]
@@ -133,13 +135,13 @@ func testConsulReregister(t *testing.T) {
 
 func testConsulCheckForChanges(t *testing.T) {
 	backend := fmt.Sprintf("service-TestConsulCheckForChanges")
-	consul, _ := NewConsulConfig(testServer.HTTPAddr)
-	service := generateServiceDefinition(backend)
+	consul, _ := NewConsul(testServer.HTTPAddr)
+	service := generateServiceDefinition(backend, consul)
 	id := service.ID
 	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
-	consul.SendHeartbeat(service) // force registration and 1st heartbeat
+	service.SendHeartbeat() // force registration and 1st heartbeat
 
 	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); !changed {
 		t.Errorf("%v should have changed after first health check TTL", id)
@@ -155,22 +157,21 @@ func testConsulCheckForChanges(t *testing.T) {
 
 func testConsulEnableTagOverride(t *testing.T) {
 	backend := fmt.Sprintf("service-TestConsulEnableTagOverride")
-	consul, _ := NewConsulConfig(testServer.HTTPAddr)
-	service := &discovery.ServiceDefinition{
-		ID:        backend,
-		Name:      backend,
-		IPAddress: "192.168.1.1",
-		TTL:       1,
-		Port:      9000,
-		ConsulExtras: &discovery.ConsulExtras{
-			EnableTagOverride: true,
-		},
+	consul, _ := NewConsul(testServer.HTTPAddr)
+	service := &ServiceDefinition{
+		ID:                backend,
+		Name:              backend,
+		IPAddress:         "192.168.1.1",
+		TTL:               1,
+		Port:              9000,
+		EnableTagOverride: true,
+		Consul:            consul,
 	}
 	id := service.ID
 	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
-	consul.SendHeartbeat(service) // force registration
+	service.SendHeartbeat() // force registration
 	catalogService, _, err := consul.Catalog().Service(id, "", nil)
 	if err != nil {
 		t.Fatalf("error finding service: %v", err)
@@ -183,12 +184,13 @@ func testConsulEnableTagOverride(t *testing.T) {
 	}
 }
 
-func generateServiceDefinition(serviceName string) *discovery.ServiceDefinition {
-	return &discovery.ServiceDefinition{
+func generateServiceDefinition(serviceName string, consul *Consul) *ServiceDefinition {
+	return &ServiceDefinition{
 		ID:        serviceName,
 		Name:      serviceName,
 		IPAddress: "192.168.1.1",
 		TTL:       5,
 		Port:      9000,
+		Consul:    consul,
 	}
 }
