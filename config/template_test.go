@@ -27,6 +27,9 @@ func TestParseEnvironment(t *testing.T) {
 
 func TestTemplate(t *testing.T) {
 	env := parseEnvironment([]string{"NAME=Template", "USER=pilot", "PARTS=a:b:c"})
+	// To test env function
+	os.Setenv("NAME_1", "Template")
+	defer os.Unsetenv("NAME_1")
 
 	testTemplate := func(name string, template string, expected string) {
 		tmpl, err := NewTemplate([]byte(template))
@@ -46,6 +49,12 @@ func TestTemplate(t *testing.T) {
 
 	testTemplate("One var", `Hello, {{.NAME}}!`, "Hello, Template!")
 	testTemplate("Var undefined", `Hello, {{.NONAME}}!`, "Hello, !")
+	testTemplate("Loop double", `{{ loop 2 5 }}`, "[2 3 4]")
+	testTemplate("Loop inverse", `{{ loop 10 1 }}`, "[10 9 8 7 6 5 4 3 2]")
+	testTemplate("Loop single", `{{ loop 5 }}`, "[0 1 2 3 4]")
+	testTemplate("Loop range",
+		`{{ range $i := loop 2 5 -}}i={{$i}},{{ end }}`, "i=2,i=3,i=4,")
+	testTemplate("ENV", `Hello, {{ env (printf "NA%s" "ME_1") }}!`, "Hello, Template!")
 	testTemplate("Default", `Hello, {{.NONAME | default "World" }}!`, "Hello, World!")
 	testTemplate("Default", `Hello, {{.NONAME | default 100 }}!`, "Hello, 100!")
 	testTemplate("Default", `Hello, {{.NONAME | default 10.1 }}!`, "Hello, 10.1!")

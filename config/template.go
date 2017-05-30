@@ -57,6 +57,39 @@ func parseEnvironment(environ []string) Environment {
 	return env
 }
 
+func envFunc(env string) string {
+	return os.Getenv(env)
+}
+
+// loop accepts 1 or two parameters
+// loop 5 returns 0 1 2 3 4 or loop 5 8 returns 5 6 7 or loop 5 1 returns 5 4 3 2
+func loop(params ...int) ([]int, error) {
+	var start, stop int
+	result := []int{}
+
+	switch len(params) {
+	case 1:
+		start, stop = 0, params[0]
+	case 2:
+		start, stop = params[0], params[1]
+	default:
+		return nil, fmt.Errorf("loop: wrong number of arguments, expected 1 or 2"+
+			", but got %d", len(params))
+	}
+
+	if stop < start {
+		for i := start; i > stop; i-- {
+			result = append(result, i)
+		}
+	} else {
+		for i := start; i < stop; i++ {
+			result = append(result, i)
+
+		}
+	}
+	return result, nil
+}
+
 // Template encapsulates a golang template
 // and its associated environment variables.
 type Template struct {
@@ -83,10 +116,12 @@ func NewTemplate(config []byte) (*Template, error) {
 	env := parseEnvironment(os.Environ())
 	tmpl, err := template.New("").Funcs(template.FuncMap{
 		"default":         defaultValue,
+		"env":             envFunc,
 		"split":           split,
 		"join":            join,
 		"replaceAll":      replaceAll,
 		"regexReplaceAll": regexReplaceAll,
+		"loop":            loop,
 	}).Option("missingkey=zero").Parse(string(config))
 	if err != nil {
 		return nil, err
