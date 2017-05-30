@@ -171,7 +171,7 @@ func (c *Command) setUpCmd() {
 func (c *Command) Kill() error {
 	log.Debugf("%s.kill", c.Name)
 	if c.Cmd != nil && c.Cmd.Process != nil {
-		log.Warnf("killing command at pid: %d", c.Cmd.Process.Pid)
+		log.Warnf("killing command for %s", c.Name)
 		return c.Cmd.Process.Kill()
 	}
 	return nil
@@ -180,7 +180,6 @@ func (c *Command) Kill() error {
 func (c *Command) waitForTimeout() error {
 
 	quit := make(chan int)
-	cmd := c.Cmd
 
 	// for commands that don't have a timeout we just block forever;
 	// this is required for backwards compat.
@@ -212,7 +211,7 @@ func (c *Command) waitForTimeout() error {
 		// we'll deadlock
 		defer func() { quit <- 0 }()
 	}
-	log.Debugf("%s.run waiting for PID %d: ", c.Name, cmd.Process.Pid)
+	log.Debugf("%s.run waiting", c.Name)
 
 	defer reapChildren(c.Cmd.SysProcAttr.Pgid)
 	err := c.Cmd.Wait()
