@@ -111,40 +111,50 @@ func LoadApp() (*App, error) {
 		os.Exit(0)
 	}
 
-	cmd, _ := subcommands.Init(configFlag)
-
 	if reloadFlag {
+		cmd, err := subcommands.Init(configFlag)
+		if err != nil {
+			return nil, err
+		}
 		if err := cmd.SendReload(); err != nil {
-			fmt.Println("Reload: failed to run subcommand:", err)
-			os.Exit(2)
+			return nil,
+				fmt.Errorf("-reload: failed to run subcommand: %v", err)
 		}
 		os.Exit(0)
 	}
 
 	if maintFlag != "" {
-		if err := cmd.SendMaintenance(maintFlag); err != nil {
-			fmt.Println("SendMaintenance: failed to run subcommand:", err)
-			os.Exit(2)
+		cmd, err := subcommands.Init(configFlag)
+		if err != nil {
+			return nil, err
 		}
-
+		if err := cmd.SendMaintenance(maintFlag); err != nil {
+			return nil,
+				fmt.Errorf("-maintenance: failed to run subcommand: %v", err)
+		}
 		os.Exit(0)
 	}
 
 	if putEnvFlags.Len() != 0 {
-		if err := cmd.SendEnviron(putEnvFlags.Values); err != nil {
-			fmt.Println("SendEnviron: failed to run subcommand:", err)
-			os.Exit(2)
+		cmd, err := subcommands.Init(configFlag)
+		if err != nil {
+			return nil, err
 		}
-
+		if err := cmd.SendEnviron(putEnvFlags.Values); err != nil {
+			return nil, fmt.Errorf("-putenv: failed to run subcommand: %v", err)
+		}
 		os.Exit(0)
 	}
 
 	if putMetricFlags.Len() != 0 {
-		if err := cmd.SendMetric(putMetricFlags.Values); err != nil {
-			fmt.Println("SendMetric: failed to run subcommand:", err)
-			os.Exit(2)
+		cmd, err := subcommands.Init(configFlag)
+		if err != nil {
+			return nil, err
 		}
-
+		if err := cmd.SendMetric(putMetricFlags.Values); err != nil {
+			return nil,
+				fmt.Errorf("-putmetric: failed to run subcommand: %v", err)
+		}
 		os.Exit(0)
 	}
 
