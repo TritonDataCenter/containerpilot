@@ -1,6 +1,10 @@
-hash: 7a72ba93b39a5a461759ab476bfaabbf4e105deb67f93adc1bfda8e10b2e0fd7
-updated: 2017-04-05T15:10:03.856365456-04:00
+hash: 8bc11c446e427cadc69ba0419740a8baaaaa7d86c604385708919b7f6af27a89
+updated: 2017-04-20T14:29:51.367942088-05:00
 imports:
+- name: github.com/armon/go-metrics
+  version: 93f237eba9b0602f3e73710416558854a81d9337
+- name: github.com/armon/go-radix
+  version: 4239b77079c7b5d1243b7b4736304ce8ddb6f0f2
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
@@ -16,9 +20,34 @@ imports:
 - name: github.com/hashicorp/consul
   version: 21f2d5ad0c02af6c4b32d8fd04f7c81e9b002d41
   subpackages:
+  - acl
   - api
+  - consul/structs
+  - testutil
+  - types
 - name: github.com/hashicorp/go-cleanhttp
   version: 3573b8b52aa7b37b9358d966a898feb387f62437
+- name: github.com/hashicorp/go-msgpack
+  version: fa3f63826f7c23912c15263591e65d54d080b458
+  subpackages:
+  - codec
+- name: github.com/hashicorp/golang-lru
+  version: 0a025b7e63adc15a622f29b0b2c4c3848243bbf6
+  subpackages:
+  - simplelru
+- name: github.com/hashicorp/hcl
+  version: 630949a3c5fa3c613328e1b8256052cbc2327c9b
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
+- name: github.com/hashicorp/raft
+  version: 5f09c4ffdbcd2a53768e78c47717415de12b6728
 - name: github.com/hashicorp/serf
   version: 19f2c401e122352c047a84d6584dd51e2fb8fcc4
   subpackages:
@@ -57,4 +86,6 @@ imports:
   version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
   subpackages:
   - unix
-devImports: []
+testImports:
+- name: github.com/sean-/seed
+  version: e2103e2c35297fb7e17febb81e49b312087a2372

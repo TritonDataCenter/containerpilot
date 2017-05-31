@@ -8,15 +8,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests"
 	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/sean-/seed"
 )
 
 func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	seed.MustInit()
 }
 
 func socketDialer(tempSocketPath string) func(string, string) (net.Conn, error) {
