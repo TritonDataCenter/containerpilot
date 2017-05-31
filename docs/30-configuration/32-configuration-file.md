@@ -280,3 +280,26 @@ Replace a substring with another string (possibly using a regex for substring se
 
 - `Hello, {{.NAME | replaceAll "e" "_" }}!` will output `Hello, T_mplat_!`
 - `Hello, {{.NAME | regexReplaceAll "[epa]+" "_" }}!` will output `Hello, T_m_l_t_!`
+
+##### `loop`
+If loop is given one integer, it will return a list that begins at zero till the integer but not including the given integer. if two integers are given it will return a list that begins from the first integer till the second integer. It works also in descending order.
+- `{{ range $i := loop 5 }}{{ $i }},{{end}}` will output `0,1,2,3,4,`
+- `{{ range $i := loop 5 8 }}{{ $i }},{{end}}` will output `5,6,7,`
+- `{{ range $i := loop 5 1 }}{{ $i }},{{end}}` will output `5,4,3,2`
+
+
+##### `env`
+Reads string as an environment variable exposed to container pilot. 
+- `{{ env "MY_VAR_1" }}`
+
+if you combine `loop` and `env` you can create jobs dynamically 
+```
+  watches: [
+    {{ range $i := loop 0 5 -}}{{ if (env (printf "SERVICE_NAME_%d" $i)) -}}
+    {
+      name: "{{ (env (printf "SERVICE_NAME_%d" $i)) }}",
+      interval: {{ (env (printf "SERVICE_INTERVAL_%d" $i)) | default 10 }}
+    },
+    {{- end }}{{- end }}
+  ],
+```
