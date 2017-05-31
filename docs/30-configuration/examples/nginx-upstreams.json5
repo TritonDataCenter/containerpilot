@@ -1,0 +1,78 @@
+/*
+This example demonstrates how a user can watch external dependencies via
+'watches' and have jobs respond to changes in those dependencies.
+*/
+{
+  consul: "localhost:8500", // ContainerPilot talks to the local agent
+  jobs: [
+    {
+      // this job has no 'port' configuration so it will not be
+      // advertised to the Consul server. note there's no 'when' field
+      // so this will start on the 'global startup' event by default.
+      name: "consul-agent",
+      exec: [
+        "consul", "agent", "-rejoin", "-retry-join", "{{ .CONSUL }}",
+        "-retry-max", "10", "-retry-interval", "10s"
+      ],
+      restarts: "unlimited",
+      health: {
+        exec: "consul info | grep leader"
+      }
+    },
+    {
+      // this job is not advertised and has no health check. we'll never
+      // see a 'preStart healthy' event, just 'preStart exitSuccess'
+      name: "preStart",
+      exec: [
+        "consul-template", "-once", "-consul-addr", "localhost:8500",
+        "-template", "/etc/template.ctmpl:/etc/nginx/conf.d/site.conf"
+      ],
+      when: {
+        source: "consul-agent",
+        once: "healthy"
+      }
+    },
+    {
+      name: "onChange-app",
+      exec: [
+        "consul-template", "-once", "-consul-addr", "localhost:8500",
+        "-template", "/etc/template.ctmpl:/etc/nginx/conf.d/site.conf"
+      ],
+      when: {
+        // this event will be received whenever the watch for 'app'
+        // sees a change in Consul.
+        source: "watch.app",
+        each: "changed"
+      }
+    },
+    {
+      name: "nginx",
+      exec: "nginx",
+      port: 80,
+      restarts: "unlimited",
+      when: {
+        // 'app' won't start until the 'preStart' has succeeeded, but we
+        // give up after 120 seconds
+        source: "preStart",
+        once: "exitSuccess"
+        timeout: "120s"
+      },
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:80/health",
+        interval: 5,
+        ttl: 10
+        timeout: "10s" // the health check can have its own timeout
+      }
+    }
+  ],
+  watches: [
+    {
+      // this watch will fire the following events:
+      // - 'watch.app changed' when there's a change in Consul
+      // - 'watch.app healthy' when app changes to being healthy
+      // - 'watch.app unhealthy' when app changes to being unhealthy
+      name: "app",
+      interval: 5
+    }
+  ]
+}

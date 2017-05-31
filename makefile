@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: clean test integration consul ship dockerfile docker cover lint local vendor dep-* tools
+.PHONY: clean test integration consul ship dockerfile docker cover lint local vendor dep-* tools kirby
 
 IMPORT_PATH := github.com/joyent/containerpilot
 VERSION ?= dev-build-not-for-release
@@ -165,3 +165,9 @@ consul:
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	docker run -d -m 256m -p 8500:8500 --name containerpilot_consul \
 		consul:latest agent -dev -client 0.0.0.0 -bind=0.0.0.0
+
+## build documentation for Kirby
+kirby: build/docs
+
+build/docs: docs/* scripts/docs.sh
+	bash ./scripts/docs.sh

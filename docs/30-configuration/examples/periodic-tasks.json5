@@ -1,0 +1,31 @@
+/*
+This example demonstrates how a user can configure periodic tasks
+and set up jobs that respond to failure of those tasks
+*/
+{
+  consul: "consul:8500",
+  jobs: [
+    {
+      name: "task1",
+      exec: "/bin/run/some/task.sh"
+      restarts: "unlimited",
+      when: {
+        interval: "60s"
+      }
+    },
+    {
+      name: "alarm-task1",
+      exec: [
+        // please don't really post production alarms to Slack, it's a silly example
+        "/usr/bin/curl", "--fail", "-sL",
+        "-XPOST", "-H", "'Content-Type': application/json",
+        "--data", "'{\"text\": \"oh no!\"}'",
+        "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXX"
+      ],
+      when: {
+        source: "task1",
+        each: "exitFailed"
+      }
+    }
+  ]
+}

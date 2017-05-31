@@ -1,0 +1,45 @@
+/*
+This example shows how a user might configure a job to have a preStop
+and postStop behavior
+*/
+{
+  consul: "consul:8500",
+  jobs: [
+    {
+      name: "app",
+      exec: "/bin/app",
+      restarts: "never",
+      port: 80,
+      health: {
+        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost/app",
+        interval: 5,
+        tll: 10,
+      }
+    },
+    {
+      name: "preStop",
+      when: {
+        // this job will start once 'app' has received a signal to
+        // shut down but before its deregistered. there's no way to
+        // guarantee that the job will complete before 'app' is killed
+        // so this kind of event should be short-lived.
+        source: "app",
+        once: "stopping"
+      },
+      exec: "/usr/local/bin/preStop-script.sh",
+      restart: "never",
+    },
+    {
+      name: "postStop",
+      when: {
+        // this job will start once 'app' has exited and been deregistered,
+        // which will happen if job stops without restarting. If 'app'
+        // has the configuration 'restarts: "unlimited"' then this event
+        // will only be received when we SIGHUP or shut down ContainerPilot.
+        source: "app",
+        once: "stopped"
+      },
+      exec: "/usr/local/bin/postStop-script.sh",
+    }
+  ]
+}
