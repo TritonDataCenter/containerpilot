@@ -292,7 +292,7 @@ If loop is given one integer, it will return a list that begins at zero till the
 Reads string as an environment variable exposed to container pilot. 
 - `{{ env "MY_VAR_1" }}`
 
-if you combine `loop` and `env` you can create jobs dynamically 
+if you combine `loop` and `env` you can create jobs or watches dynamically 
 ```
   watches: [
     {{ range $i := loop 0 5 -}}{{ if (env (printf "SERVICE_NAME_%d" $i)) -}}
