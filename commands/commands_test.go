@@ -66,7 +66,7 @@ func TestCommandRunExecInvalid(t *testing.T) {
 
 func TestEmptyCommand(t *testing.T) {
 	if cmd, err := NewCommand("", time.Duration(0), nil); cmd != nil || err == nil {
-		t.Errorf("Expected exit (nil, err) but got %s, %s", cmd, err)
+		t.Errorf("Expected exit (nil, err) but got %v, %s", cmd, err)
 	}
 }
 

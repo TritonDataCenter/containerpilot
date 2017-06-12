@@ -53,9 +53,9 @@ func TestTerminateSignal(t *testing.T) {
 		got[result]++
 	}
 	if !reflect.DeepEqual(got, map[events.Event]int{
-		events.GlobalShutdown:                                       1,
-		events.Event{Code: events.Stopping, Source: "test-service"}: 1,
-		events.Event{Code: events.Stopped, Source: "test-service"}:  1,
+		events.GlobalShutdown:                           1,
+		{Code: events.Stopping, Source: "test-service"}: 1,
+		{Code: events.Stopped, Source: "test-service"}:  1,
 	}) {
 		t.Fatalf("expected shutdown but got:\n%v", results)
 	}

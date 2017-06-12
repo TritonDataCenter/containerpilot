@@ -34,4 +34,3 @@ func TestControlConfigParse(t *testing.T) {
 		t.Fatal("parsed socket does not match custom socket")
 	}
 }
-

@@ -53,10 +53,8 @@ func TestCheckForChanges(t *testing.T) {
 	assert.False(t, didChange, "got '%v' for 'didChange' after t0, expected '%v'")
 
 	t1 := []*consul.ServiceEntry{
-		&consul.ServiceEntry{
-			Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}},
-		&consul.ServiceEntry{
-			Service: &consul.AgentService{Address: "1.2.3.5", Port: 80}},
+		{Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}},
+		{Service: &consul.AgentService{Address: "1.2.3.5", Port: 80}},
 	}
 	didChange = c.compareAndSwap("test", t1)
 	assert.True(t, didChange, "got '%v' for 'didChange' after t1, expected '%v'")
@@ -68,9 +66,7 @@ func TestCheckForChanges(t *testing.T) {
 	assert.True(t, didChange, "got '%v' for 'didChange' after t1 (again), expected '%v'")
 
 	t3 := []*consul.ServiceEntry{
-		&consul.ServiceEntry{
-			Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}},
-	}
+		{Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}}}
 	didChange = c.compareAndSwap("test", t3)
 	assert.True(t, didChange, "got '%v' for 'didChange' after t3, expected '%v'")
 }

@@ -29,8 +29,8 @@ func TestJobRunSafeClose(t *testing.T) {
 
 	expected := []events.Event{
 		events.GlobalStartup,
-		events.Event{events.Stopping, "myjob"},
-		events.Event{events.Stopped, "myjob"},
+		{events.Stopping, "myjob"},
+		{events.Stopped, "myjob"},
 	}
 	if !reflect.DeepEqual(expected, results) {
 		t.Fatalf("expected: %v\ngot: %v", expected, results)
@@ -63,11 +63,11 @@ func TestJobRunStartupTimeout(t *testing.T) {
 		got[result]++
 	}
 	if !reflect.DeepEqual(got, map[events.Event]int{
-		events.Event{Code: events.TimerExpired, Source: "myjob"}: 1,
-		events.GlobalStartup:                                     1,
-		events.Event{Code: events.Stopping, Source: "myjob"}:     1,
-		events.Event{Code: events.Stopped, Source: "myjob"}:      1,
-		events.QuitByClose:                                       1,
+		{Code: events.TimerExpired, Source: "myjob"}: 1,
+		events.GlobalStartup:                         1,
+		{Code: events.Stopping, Source: "myjob"}:     1,
+		{Code: events.Stopped, Source: "myjob"}:      1,
+		events.QuitByClose:                           1,
 	}) {
 		t.Fatalf("expected timeout after startup but got:\n%v", results)
 	}

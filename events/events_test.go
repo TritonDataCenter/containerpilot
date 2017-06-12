@@ -23,7 +23,7 @@ func TestSafeUnsubscribe(t *testing.T) {
 	bus.Publish(Event{Code: Startup, Source: "serviceB"}) // should not panic
 
 	expected := []Event{
-		Event{Code: Startup, Source: "serviceA"},
+		{Code: Startup, Source: "serviceA"},
 		QuitByClose,
 	}
 

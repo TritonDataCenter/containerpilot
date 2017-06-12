@@ -80,7 +80,7 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
 			}
 			// if the context was canceled we don't know if its because we
-			// canceled it in the caller or the applicaton exited gracefully,
+			// canceled it in the caller or the application exited gracefully,
 			// so Kill() will have to handle both cases safely
 			c.Kill()
 		}
