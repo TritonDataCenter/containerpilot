@@ -104,12 +104,6 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 
 // Validate ensures that a Config meets all constraints
 func (cfg *Config) Validate(disc discovery.Backend) error {
-	if disc != nil {
-		// non-advertised jobs don't need to have their names validated
-		if err := utils.ValidateServiceName(cfg.Name); err != nil {
-			return err
-		}
-	}
 	if err := cfg.validateDiscovery(disc); err != nil {
 		return err
 	}
@@ -138,8 +132,13 @@ func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
 		return err
 	}
 	// if port isn't set then we won't do any discovery for this job
-	if cfg.Port == 0 || disc == nil {
+	if (cfg.Port == 0 || disc == nil) && cfg.Name != "" {
 		return nil
+	}
+	// we only need to validate the name if we're doing discovery;
+	// we'll just take the name of the exec otherwise
+	if err := utils.ValidateServiceName(cfg.Name); err != nil {
+		return err
 	}
 	return cfg.addDiscoveryConfig(disc)
 }
