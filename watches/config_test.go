@@ -22,6 +22,10 @@ func TestWatchesParse(t *testing.T) {
 		"expected %v for Name got %v")
 	assert.Equal(t, watches[0].Poll, 11,
 		"expected %v for Poll got %v")
+	assert.Equal(t, watches[0].Tag, "dev",
+		"expected %v for Tag got %v")
+	assert.Equal(t, watches[0].DC, "",
+		"expected %v for DC got %v")
 
 	assert.Equal(t, watches[1].serviceName, "upstreamB",
 		"expected %v for serviceName got %v")
@@ -29,6 +33,8 @@ func TestWatchesParse(t *testing.T) {
 		"expected %v for Name got %v")
 	assert.Equal(t, watches[1].Poll, 79,
 		"expected %v for Poll got %v")
+	assert.Equal(t, watches[1].DC, "us-east-1",
+		"expected %v for DC got %v")
 }
 
 func TestWatchesConfigError(t *testing.T) {

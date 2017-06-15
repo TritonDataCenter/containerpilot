@@ -73,8 +73,9 @@ func (c *Consul) ServiceDeregister(serviceID string) error {
 // CheckForUpstreamChanges requests the set of healthy instances of a
 // service from Consul and checks whether there has been a change since
 // the last check.
-func (c *Consul) CheckForUpstreamChanges(backendName, backendTag string) (didChange, isHealthy bool) {
-	instances, meta, err := c.Health().Service(backendName, backendTag, true, nil)
+func (c *Consul) CheckForUpstreamChanges(backendName, backendTag, dc string) (didChange, isHealthy bool) {
+	opts := &api.QueryOptions{Datacenter: dc}
+	instances, meta, err := c.Health().Service(backendName, backendTag, true, opts)
 	if err != nil {
 		log.Warnf("failed to query %v: %s [%v]", backendName, err, meta)
 		return false, false

@@ -13,6 +13,7 @@ type Config struct {
 	serviceName      string
 	Poll             int    `mapstructure:"interval"` // time in seconds
 	Tag              string `mapstructure:"tag"`
+	DC               string `mapstructure:"dc"` // Consul datacenter
 	discoveryService discovery.Backend
 }
 

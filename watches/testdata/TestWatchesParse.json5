@@ -6,6 +6,7 @@
   },
   {
     name: "upstreamB",
-    interval: 79
+    interval: 79,
+    dc: "us-east-1"
   }
 ]

@@ -9,12 +9,13 @@ watches: [
   {
     name: "backend",
     interval: 3,
-    tag: "prod" // optional
+    tag: "prod",    // optional
+    dc: "us-east-1" // optional
   }
 ]
 ```
 
-The `interval` is the time (in seconds) between polling attempts to Consul. The `name` is the service to query and the `tag` is the optional tag to add to the query.
+The `interval` is the time (in seconds) between polling attempts to Consul. The `name` is the service to query, the `tag` is the optional tag to add to the query, and the `dc` is the optional Consul [datacenter](https://www.consul.io/docs/guides/datacenters.html) to query.
 
 A watch keeps an in-memory list of the healthy IP addresses associated with the service. The list is not persisted to disk and if ContainerPilot is restarted it will need to check back in with the canonical data store, which is Consul. If this list changes between polls, the watch emits one or two events:
 

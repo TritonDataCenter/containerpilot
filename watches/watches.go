@@ -16,6 +16,7 @@ type Watch struct {
 	Name             string
 	serviceName      string
 	tag              string
+	dc               string
 	poll             int
 	discoveryService discovery.Backend
 
@@ -28,6 +29,7 @@ func NewWatch(cfg *Config) *Watch {
 		Name:             cfg.Name,
 		serviceName:      cfg.serviceName,
 		tag:              cfg.Tag,
+		dc:               cfg.DC,
 		poll:             cfg.Poll,
 		discoveryService: cfg.discoveryService,
 	}
@@ -48,7 +50,7 @@ func FromConfigs(cfgs []*Config) []*Watch {
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
 // in a dependent backend. Returns true when there has been a change.
 func (watch *Watch) CheckForUpstreamChanges() (bool, bool) {
-	return watch.discoveryService.CheckForUpstreamChanges(watch.serviceName, watch.tag)
+	return watch.discoveryService.CheckForUpstreamChanges(watch.serviceName, watch.tag, watch.dc)
 }
 
 // Run executes the event loop for the Watch
