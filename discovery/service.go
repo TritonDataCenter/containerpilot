@@ -39,33 +39,27 @@ func (service *ServiceDefinition) MarkForMaintenance() {
 // SendHeartbeat writes a TTL check status=ok to the consul store.
 // If consul has never seen this service, we register the service and
 // its TTL check.
-func (service *ServiceDefinition) SendHeartbeat() {
+func (service *ServiceDefinition) SendHeartbeat() error {
 	if !service.wasRegistered {
 		if err := service.registerService(); err != nil {
 			log.Warnf("service registration failed: %s", err)
-			return
+			return err
 		}
 		service.wasRegistered = true
+		return nil
 	}
 	if err := service.Consul.PassTTL(service.ID, "ok"); err != nil {
 		log.Infof("service not registered: %v", err)
 		if err = service.registerService(); err != nil {
 			log.Warnf("service registration failed: %s", err)
-			return
-		}
-		if err = service.registerCheck(); err != nil {
-			log.Warnf("check registration failed: %s", err)
-			return
-		}
-		// now that we're ensured we're registered, we can push the
-		// heartbeat again
-		if err := service.Consul.PassTTL(service.ID, "ok"); err != nil {
-			log.Errorf("Failed to write heartbeat: %s", err)
+			return err
 		}
 		log.Infof("Service registered: %v", service.Name)
 	}
+	return nil
 }
 
+// registers the service along with a check set to the passing state
 func (service *ServiceDefinition) registerService() error {
 	return service.Consul.ServiceRegister(
 		&api.AgentServiceRegistration{
@@ -75,19 +69,10 @@ func (service *ServiceDefinition) registerService() error {
 			Port:              service.Port,
 			Address:           service.IPAddress,
 			EnableTagOverride: service.EnableTagOverride,
-		},
-	)
-}
-
-func (service *ServiceDefinition) registerCheck() error {
-	return service.Consul.CheckRegister(
-		&api.AgentCheckRegistration{
-			ID:        service.ID,
-			Name:      service.ID,
-			Notes:     fmt.Sprintf("TTL for %s set by containerpilot", service.Name),
-			ServiceID: service.ID,
-			AgentServiceCheck: api.AgentServiceCheck{
-				TTL: fmt.Sprintf("%ds", service.TTL),
+			Check: &api.AgentServiceCheck{
+				TTL:    fmt.Sprintf("%ds", service.TTL),
+				Status: api.HealthPassing,
+				Notes:  fmt.Sprintf("TTL for %s set by containerpilot", service.Name),
 				DeregisterCriticalServiceAfter: service.DeregisterCriticalServiceAfter,
 			},
 		},
