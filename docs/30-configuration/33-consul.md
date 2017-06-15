@@ -4,8 +4,22 @@ ContainerPilot uses Hashicorp's [Consul](https://www.consul.io/) to register job
 
 ## Client configuration
 
-The `consul` field in the ContainerPilot config file configures ContainerPilot's Consul client. For use with Consul's ACL system, use the `CONSUL_HTTP_TOKEN` environment variable. If you are communicating with Consul over TLS you may include the scheme (ex. https://consul:8500):
+The `consul` field in the ContainerPilot config file configures ContainerPilot's Consul client. For use with Consul's ACL system, use the `CONSUL_HTTP_TOKEN` environment variable. If you are communicating with Consul over TLS you may include the scheme (ex. https://consul:8500). Note that generally the Consul client will be communicating to an agent on localhost, so TLS may not b necessary. If you need extra configuration options for TLS, you can use the following optional fields (or environment variable options described in the [Consul documentation](https://www.consul.io/docs/commands/index.html#environment-variables))instead of a simple string:
 
+```json5
+consul: {
+  address: "consul.example.com:8500",
+  scheme: "https",
+  token: "aba7cbe5-879b-999a-07cc-2efd9ac0ffe", // or CONSUL_HTTP_TOKEN
+
+  tlscafile: "ca.crt",                 // or CONSUL_CACERT
+  tlscapath: "ca_certs/",              // or CONSUL_CAPATH
+  tlsclientcert: "client.crt",         // or CONSUL_CLIENT_CERT
+  tlsclientkey: "client.key",          // or CONSUL_CLIENT_KEY
+  tlsservername: "consul.example.com", // or CONSUL_TLS_SERVER_NAME
+  tlsverify: true,                     // or CONSUL_HTTP_SSL_VERIFY
+}
+```
 
 ## Consul agent configuration
 

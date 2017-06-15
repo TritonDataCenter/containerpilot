@@ -1,5 +1,5 @@
-hash: 7a72ba93b39a5a461759ab476bfaabbf4e105deb67f93adc1bfda8e10b2e0fd7
-updated: 2017-04-05T15:10:03.856365456-04:00
+hash: 4d1f003a7ecfbdf9a7c02771b8b0ff92401f76950ae1e91afce73481fbb98207
+updated: 2017-06-15T17:52:02.0614202Z
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -14,11 +14,17 @@ imports:
   subpackages:
   - proto
 - name: github.com/hashicorp/consul
-  version: 21f2d5ad0c02af6c4b32d8fd04f7c81e9b002d41
+  version: f4360770d8e7b852e2d05835b583d20799e58133
   subpackages:
   - api
+  - testutil
+  - testutil/retry
 - name: github.com/hashicorp/go-cleanhttp
   version: 3573b8b52aa7b37b9358d966a898feb387f62437
+- name: github.com/hashicorp/go-rootcerts
+  version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
+- name: github.com/hashicorp/go-uuid
+  version: 64130c7a86d732268a38cb04cfbaf0cc987fda98
 - name: github.com/hashicorp/serf
   version: 19f2c401e122352c047a84d6584dd51e2fb8fcc4
   subpackages:
@@ -27,8 +33,12 @@ imports:
   version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
   subpackages:
   - pbutil
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
+- name: github.com/pkg/errors
+  version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/prometheus/client_golang
   version: 90c15b5efa0dc32a7d259234e02ac9a99e6d3b82
   subpackages:
@@ -57,4 +67,4 @@ imports:
   version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
   subpackages:
   - unix
-devImports: []
+testImports: []
