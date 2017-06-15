@@ -11,7 +11,7 @@ type NoopDiscoveryBackend struct {
 // CheckForUpstreamChanges will return the public Val field to mock
 // whether a change has occurred. Will not report a change on the second
 // check unless the Val has been updated externally by the test rig
-func (noop *NoopDiscoveryBackend) CheckForUpstreamChanges(backend, tag string) (didChange, isHealthy bool) {
+func (noop *NoopDiscoveryBackend) CheckForUpstreamChanges(_, _, _ string) (didChange, isHealthy bool) {
 	if noop.lastVal != noop.Val {
 		didChange = true
 	}

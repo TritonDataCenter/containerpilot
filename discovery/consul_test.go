@@ -134,19 +134,19 @@ func testConsulCheckForChanges(t *testing.T) {
 	consul, _ := NewConsul(testServer.HTTPAddr)
 	service := generateServiceDefinition(backend, consul)
 	id := service.ID
-	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
 	service.SendHeartbeat() // force registration and 1st heartbeat
 
-	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); !changed {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
 		t.Errorf("%v should have changed after first health check TTL", id)
 	}
-	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
 		t.Errorf("%v should not have changed without TTL expiring", id)
 	}
 	consul.Agent().UpdateTTL(id, "expired", "critical")
-	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); !changed {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
 		t.Errorf("%v should have changed after TTL expired.", id)
 	}
 }
@@ -164,7 +164,7 @@ func testConsulEnableTagOverride(t *testing.T) {
 		Consul:            consul,
 	}
 	id := service.ID
-	if changed, _ := consul.CheckForUpstreamChanges(backend, ""); changed {
+	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
 		t.Fatalf("First read of %s should show `false` for change", id)
 	}
 	service.SendHeartbeat() // force registration
