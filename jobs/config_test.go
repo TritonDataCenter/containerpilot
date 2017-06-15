@@ -232,21 +232,24 @@ func TestJobConfigSmokeTest(t *testing.T) {
 
 func TestJobConfigValidateName(t *testing.T) {
 
-	cfgA := `[{name: ""}]`
+	cfgA := `[{name: "", port: 80, health: {exec: "myhealth", interval: 1, ttl: 3}}]`
 	_, err := NewConfigs(tests.DecodeRawToSlice(cfgA), noop)
 	assert.Error(t, err, "'name' must not be blank")
 
-	cfgB := `[{name: "", exec: "myexec"}]`
+	cfgB := `[{name: "", exec: "myexec", port: 80, health: {exec: "myhealth", interval: 1, ttl: 3}}]`
 	_, err = NewConfigs(tests.DecodeRawToSlice(cfgB), noop)
 	assert.Error(t, err, "'name' must not be blank")
 
-	// missing name is permitted if there's no discovery backend
 	cfgC := `[{name: "", exec: "myexec"}]`
-	cfg, err := NewConfigs(tests.DecodeRawToSlice(cfgC), nil)
+	_, err = NewConfigs(tests.DecodeRawToSlice(cfgC), nil)
+	assert.Error(t, err, "'name' must not be blank")
+
+	// invalid name is permitted if there's no 'port' config
+	cfgD := `[{name: "myjob_invalid_name", exec: "myexec"}]`
+	_, err = NewConfigs(tests.DecodeRawToSlice(cfgD), noop)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, cfg[0].Name, "myexec", "expected '%v' for cfg.Name got '%v'")
 }
 
 func TestJobConfigValidateDiscovery(t *testing.T) {
@@ -289,26 +292,27 @@ func TestJobConfigValidateFrequency(t *testing.T) {
 		assert.Error(t, err, errMsg)
 	}
 	expectErr(
-		`[{exec: "/bin/taskA", timeout: "1s", when: {interval: "-1s"}}]`,
-		"job[].when.interval '-1s' cannot be less than 1ms")
+		`[{name: "A", exec: "/bin/taskA", timeout: "1s", when: {interval: "-1s"}}]`,
+		"job[A].when.interval '-1s' cannot be less than 1ms")
 
 	expectErr(
-		`[{exec: "/bin/taskB", timeout: "1s", when: {interval: "1ns"}}]`,
-		"job[].when.interval '1ns' cannot be less than 1ms")
+		`[{name: "B", exec: "/bin/taskB", timeout: "1s", when: {interval: "1ns"}}]`,
+		"job[B].when.interval '1ns' cannot be less than 1ms")
 
 	expectErr(
-		`[{exec: "/bin/taskC", timeout: "-1ms", when: {interval: "1ms"}}]`,
-		"job[].timeout '-1ms' cannot be less than 1ms")
+		`[{name: "C", exec: "/bin/taskC", timeout: "-1ms", when: {interval: "1ms"}}]`,
+		"job[C].timeout '-1ms' cannot be less than 1ms")
 
 	expectErr(
-		`[{exec: "/bin/taskD", timeout: "1ns", when: {interval: "1ms"}}]`,
-		"job[].timeout '1ns' cannot be less than 1ms")
+		`[{name: "D", exec: "/bin/taskD", timeout: "1ns", when: {interval: "1ms"}}]`,
+		"job[D].timeout '1ns' cannot be less than 1ms")
 
 	expectErr(
-		`[{exec: "/bin/taskD", timeout: "1ns", when: {interval: "xx"}}]`,
-		"unable to parse job[].when.interval 'xx': time: invalid duration xx")
+		`[{name: "E", exec: "/bin/taskE", timeout: "1ns", when: {interval: "xx"}}]`,
+		"unable to parse job[E].when.interval 'xx': time: invalid duration xx")
 
-	testCfg := tests.DecodeRawToSlice(`[{exec: "/bin/taskE", when: {interval: "1ms"}}]`)
+	testCfg := tests.DecodeRawToSlice(
+		`[{name: "F", exec: "/bin/taskF", when: {interval: "1ms"}}]`)
 	job, _ := NewConfigs(testCfg, nil)
 	assert.Equal(t, job[0].execTimeout, job[0].freqInterval,
 		"expected execTimeout '%v' to equal interval '%v'")
@@ -377,26 +381,31 @@ func TestJobConfigValidateExec(t *testing.T) {
 
 func TestJobConfigValidateRestarts(t *testing.T) {
 
-	expectErr := func(test, val string) {
-		errMsg := fmt.Sprintf(`job[].restarts field '%v' invalid: accepts positive integers, "unlimited", or "never"`, val)
+	expectErr := func(test, name, val string) {
+		errMsg := fmt.Sprintf(`job[%s].restarts field '%s' invalid: accepts positive integers, "unlimited", or "never"`, name, val)
 		testCfg := tests.DecodeRawToSlice(test)
 		_, err := NewConfigs(testCfg, nil)
 		assert.Error(t, err, errMsg)
 	}
-	expectErr(`[{exec: "/bin/coprocessA", "restarts": "invalid"}]`, "invalid")
-	expectErr(`[{exec: "/bin/coprocessB", "restarts": "-1"}]`, "-1")
-	expectErr(`[{exec: "/bin/coprocessC", "restarts": -1 }]`, "-1")
+	expectErr(
+		`[{name: "A", exec: "/bin/coprocessA", "restarts": "invalid"}]`,
+		"A", "invalid")
+	expectErr(
+		`[{name: "B", exec: "/bin/coprocessB", "restarts": "-1"}]`,
+		"B", "-1")
+	expectErr(
+		`[{name: "C", exec: "/bin/coprocessC", "restarts": -1 }]`,
+		"C", "-1")
 
 	testCfg := tests.DecodeRawToSlice(`[
-	{ exec: "/bin/coprocessD", "restarts": "unlimited" },
-	{ exec: "/bin/coprocessE", "restarts": "never" },
-	{ exec: "/bin/coprocessF", "restarts": 1 },
-	{ exec: "/bin/coprocessG", "restarts": "1" },
-	{ exec: "/bin/coprocessH", "restarts": 0 },
-	{ exec: "/bin/coprocessI", "restarts": "0" },
-	{ exec: "/bin/coprocessJ"}
-]
-`)
+	{ name: "D", exec: "/bin/coprocessD", "restarts": "unlimited" },
+	{ name: "E", exec: "/bin/coprocessE", "restarts": "never" },
+	{ name: "F", exec: "/bin/coprocessF", "restarts": 1 },
+	{ name: "G", exec: "/bin/coprocessG", "restarts": "1" },
+	{ name: "H", exec: "/bin/coprocessH", "restarts": 0 },
+	{ name: "I", exec: "/bin/coprocessI", "restarts": "0" },
+	{ name: "J", exec: "/bin/coprocessJ"}]`)
+
 	cfg, _ := NewConfigs(testCfg, nil)
 	expectMsg := "expected restarts=%v got %v"
 
