@@ -1,34 +1,88 @@
 package discovery
 
 import (
+	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/joyent/containerpilot/utils"
 )
 
+type parsedConfig struct {
+	Address string          `mapstructure:"address"`
+	Scheme  string          `mapstructure:"scheme"`
+	Token   string          `mapstructure:"token"`
+	TLS     parsedTLSConfig `mapstructure:"tls"` // optional TLS settings
+}
+
+type parsedTLSConfig struct {
+	HTTPCAFile        string `mapstructure:"cafile"`
+	HTTPCAPath        string `mapstructure:"capath"`
+	HTTPClientCert    string `mapstructure:"clientcert"`
+	HTTPClientKey     string `mapstructure:"clientkey"`
+	HTTPTLSServerName string `mapstructure:"servername"`
+	HTTPSSLVerify     bool   `mapstructure:"verify"`
+}
+
+// override an already-parsed parsedConfig with any options that might
+// be set in the environment and then return the TLSConfig
+func getTLSConfig(parsed *parsedConfig) api.TLSConfig {
+	if cafile := os.Getenv("CONSUL_CACERT"); cafile != "" {
+		parsed.TLS.HTTPCAFile = cafile
+	}
+	if capath := os.Getenv("CONSUL_CAPATH"); capath != "" {
+		parsed.TLS.HTTPCAPath = capath
+	}
+	if clientCert := os.Getenv("CONSUL_CLIENT_CERT"); clientCert != "" {
+		parsed.TLS.HTTPClientCert = clientCert
+	}
+	if clientKey := os.Getenv("CONSUL_CLIENT_KEY"); clientKey != "" {
+		parsed.TLS.HTTPClientKey = clientKey
+	}
+	if serverName := os.Getenv("CONSUL_TLS_SERVER_NAME"); serverName != "" {
+		parsed.TLS.HTTPClientKey = serverName
+	}
+	verify := os.Getenv("CONSUL_HTTP_SSL_VERIFY")
+	switch strings.ToLower(verify) {
+	case "1", "true":
+		parsed.TLS.HTTPSSLVerify = true
+	case "0", "false":
+		parsed.TLS.HTTPSSLVerify = false
+	}
+	tlsConfig := api.TLSConfig{
+		Address:            parsed.TLS.HTTPTLSServerName,
+		CAFile:             parsed.TLS.HTTPCAPath,
+		CertFile:           parsed.TLS.HTTPCAPath,
+		KeyFile:            parsed.TLS.HTTPClientKey,
+		InsecureSkipVerify: !parsed.TLS.HTTPSSLVerify,
+	}
+	return tlsConfig
+}
+
 func configFromMap(raw map[string]interface{}) (*api.Config, error) {
-	config := &struct {
-		Address string `mapstructure:"address"`
-		Scheme  string `mapstructure:"scheme"`
-		Token   string `mapstructure:"token"`
-	}{}
-	if err := utils.DecodeRaw(raw, config); err != nil {
+	parsed := &parsedConfig{}
+	if err := utils.DecodeRaw(raw, parsed); err != nil {
 		return nil, err
 	}
-	return &api.Config{
-		Address: config.Address,
-		Scheme:  config.Scheme,
-		Token:   config.Token,
-	}, nil
+	config := &api.Config{
+		Address:   parsed.Address,
+		Scheme:    parsed.Scheme,
+		Token:     parsed.Token,
+		TLSConfig: getTLSConfig(parsed),
+	}
+	return config, nil
 }
 
 func configFromURI(uri string) (*api.Config, error) {
 	address, scheme := parseRawURI(uri)
-	return &api.Config{
-		Address: address,
-		Scheme:  scheme,
-	}, nil
+	parsed := &parsedConfig{Address: address, Scheme: scheme}
+	config := &api.Config{
+		Address:   parsed.Address,
+		Scheme:    parsed.Scheme,
+		Token:     parsed.Token,
+		TLSConfig: getTLSConfig(parsed),
+	}
+	return config, nil
 }
 
 // Returns the uri broken into an address and scheme portion

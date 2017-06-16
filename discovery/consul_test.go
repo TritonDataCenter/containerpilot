@@ -80,7 +80,7 @@ ref https://github.com/hashicorp/consul/tree/master/testutil
 var testServer *testutil.TestServer
 
 func TestWithConsul(t *testing.T) {
-	testServer = testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+	testServer, _ = testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "err"
 	})
 	defer testServer.Stop()
