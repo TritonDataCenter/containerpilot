@@ -149,11 +149,13 @@ cover: build/containerpilot_build
 generate:
 	go install github.com/joyent/containerpilot/jobs
 	go install github.com/joyent/containerpilot/events
-	cd jobs && stringer -type jobStatus
+	cd jobs && stringer -type JobStatus
 	cd events && stringer -type EventCode
 	# fix this up for making it pass linting
-	sed -i 's/_jobStatus_/jobStatus/g' ./jobs/jobstatus_string.go
-	sed -i 's/_EventCode_/eventCode/g' ./events/eventcode_string.go
+	sed -i '.bak' 's/_JobStatus_/jobStatus/g' ./jobs/jobstatus_string.go
+	@rm -f ./jobs/jobstatus_string.go.bak
+	sed -i '.bak' 's/_EventCode_/eventCode/g' ./events/eventcode_string.go
+	@rm -f ./events/eventcode_string.go.bak
 
 TEST ?= "all"
 ## run integration tests; filter with `TEST=testname make integration`
