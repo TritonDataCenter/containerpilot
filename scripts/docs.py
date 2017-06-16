@@ -5,6 +5,13 @@ import re
 import shutil
 
 
+# loads in the content all in one go
+def load_content(source):
+    with open(source, 'r') as fr:
+        content = fr.read()
+        return content
+
+
 # rewrites the title as Kirby front-matter
 def add_front_matter(content):
     title = content.split('\n', 1)[0].replace('# ', '')
@@ -61,10 +68,7 @@ def build_pages():
                 dest = '{}/docs.md'.format(build_dir)
 
                 os.makedirs(build_dir)
-                content = ''
-                with open(source, 'r') as fr:
-                    content = fr.read()
-
+                content = load_content(source)
                 content = add_front_matter(content)
                 content = rewrite_links(content)
 
@@ -76,14 +80,7 @@ def build_pages():
 
 # top-level indexes are weird exception to the structure
 def build_index_page(source, build_dir, url_prefix):
-    try:
-        os.makedirs(build_dir)
-    except:
-        pass
-    content = ''
-    with open(source, 'r') as fr:
-        content = fr.read()
-
+    content = load_content(source)
     content = add_front_matter(content)
 
     def rewrite_markdown_link(matchobj):
