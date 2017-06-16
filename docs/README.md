@@ -1,5 +1,7 @@
 # Contents
 
+ContainerPilot is an init system designed to live inside the container. It acts as a process supervisor, reaps zombies, run health checks, registers the app in the service catalog, watches the service catalog for changes, and runs your user-specified code at events in the lifecycle of the container to make it all work right. ContainerPilot uses Consul to coordinate global state among the application containers.
+
 [Lifecycle](./10-lifecycle.md)
 - [What is a job?](./10-lifecycle.md#what-is-a-job)
 - [What is an event?](./10-lifecycle.md#what-is-an-event)
@@ -53,7 +55,7 @@ Configuration
 - [Control plane](./30-configuration/37-control-plane.md)
   - [ContainerPilot subcommands](./30-configuration/37-control-plane.md#containerpilot-subcommands)
 - [Logging](./30-configuration/38-logging.md)
-- [Example configurations](./30-configuration/39-examples.md)
+- [Example configurations](./30-configuration/39-config-examples.md)
 
 
 [Support](./40-support.md)

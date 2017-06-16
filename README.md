@@ -91,7 +91,7 @@ Configuration
 - [Control plane](./docs/30-configuration/37-control-plane.md)
   - [ContainerPilot subcommands](./docs/30-configuration/37-control-plane.md#containerpilot-subcommands)
 - [Logging](./docs/30-configuration/38-logging.md)
-- [Example configurations](./docs/30-configuration/39-examples.md)
+- [Example configurations](./docs/30-configuration/39-config-examples.md)
 
 
 [Support](./docs/40-support.md)

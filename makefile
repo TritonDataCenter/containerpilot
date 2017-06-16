@@ -169,5 +169,12 @@ consul:
 ## build documentation for Kirby
 kirby: build/docs
 
-build/docs: docs/* scripts/docs.sh
-	bash ./scripts/docs.sh
+## preview the Kirby documentation
+kirby-preview: build/docs
+	docker run --rm -it -p 80:80 \
+		-v ${ROOT}/build/docs:/var/www/html/content/1-containerpilot/1-docs/ \
+		joyent/kirby-preview-base:latest
+
+build/docs: docs/* scripts/docs.py
+	rm -rf build/docs
+	./scripts/docs.py
