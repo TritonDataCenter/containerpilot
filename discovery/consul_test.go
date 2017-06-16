@@ -92,23 +92,24 @@ func TestWithConsul(t *testing.T) {
 
 func testConsulTTLPass(t *testing.T) {
 	consul, _ := NewConsul(testServer.HTTPAddr)
-	name := fmt.Sprintf("service-TestConsulTTLPass")
+	name := fmt.Sprintf("TestConsulTTLPass")
 	service := generateServiceDefinition(name, consul)
-	id := service.ID
+	checkID := fmt.Sprintf("service:%s", service.ID)
 
 	service.SendHeartbeat() // force registration and 1st heartbeat
 	checks, _ := consul.Agent().Checks()
-	check := checks[id]
+	check := checks[checkID]
 	if check.Status != "passing" {
-		t.Fatalf("status of check %s should be 'passing' but is %s", id, check.Status)
+		t.Fatalf("status of check %s should be 'passing' but is %s", checkID, check.Status)
 	}
 }
 
 func testConsulReregister(t *testing.T) {
 	consul, _ := NewConsul(testServer.HTTPAddr)
-	name := fmt.Sprintf("service-TestConsulReregister")
+	name := fmt.Sprintf("TestConsulReregister")
 	service := generateServiceDefinition(name, consul)
 	id := service.ID
+
 	service.SendHeartbeat() // force registration and 1st heartbeat
 	services, _ := consul.Agent().Services()
 	svc := services[id]
@@ -130,7 +131,7 @@ func testConsulReregister(t *testing.T) {
 }
 
 func testConsulCheckForChanges(t *testing.T) {
-	backend := fmt.Sprintf("service-TestConsulCheckForChanges")
+	backend := fmt.Sprintf("TestConsulCheckForChanges")
 	consul, _ := NewConsul(testServer.HTTPAddr)
 	service := generateServiceDefinition(backend, consul)
 	id := service.ID
@@ -145,14 +146,15 @@ func testConsulCheckForChanges(t *testing.T) {
 	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
 		t.Errorf("%v should not have changed without TTL expiring", id)
 	}
-	consul.Agent().UpdateTTL(id, "expired", "critical")
+	check := fmt.Sprintf("service:TestConsulCheckForChanges")
+	consul.Agent().UpdateTTL(check, "expired", "critical")
 	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
 		t.Errorf("%v should have changed after TTL expired.", id)
 	}
 }
 
 func testConsulEnableTagOverride(t *testing.T) {
-	backend := fmt.Sprintf("service-TestConsulEnableTagOverride")
+	backend := fmt.Sprintf("TestConsulEnableTagOverride")
 	consul, _ := NewConsul(testServer.HTTPAddr)
 	service := &ServiceDefinition{
 		ID:                backend,
