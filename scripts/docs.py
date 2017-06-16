@@ -38,7 +38,7 @@ def rewrite_links(content):
         match = matchobj.group(0)
         match = match.replace(
             './examples',
-            '/containerpilot/30-configuration/39-examples')
+            '/content/40-containerpilot/10-docs/30-configuration/examples')
         return match
 
     content = re.sub(
@@ -74,11 +74,12 @@ def copy_markdown():
 
                 print('{} -> {}'.format(source, dest))
 
-# top-level index is weird exception to the structure
-def fix_top_level():
-    build_dir = 'build/docs/00-index'
-    os.makedirs(build_dir)
-    source = 'docs/README.md'
+# top-level indexes are weird exception to the structure
+def fix_index_page(source, build_dir):
+    try:
+        os.makedirs(build_dir)
+    except:
+        pass
     content = ''
     with open(source, 'r') as fr:
         content = fr.read()
@@ -107,5 +108,7 @@ def copy_json_examples():
 
 if __name__ == '__main__':
     copy_markdown()
-    fix_top_level()
+    fix_index_page('docs/README.md', 'build/docs/00-index')
+    fix_index_page('docs/30-configuration/README.md',
+                   'build/docs/30-configuration')
     copy_json_examples()
