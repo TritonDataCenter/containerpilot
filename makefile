@@ -169,5 +169,5 @@ consul:
 ## build documentation for Kirby
 kirby: build/docs
 
-build/docs: docs/* scripts/docs.sh
-	bash ./scripts/docs.sh
+build/docs: docs/* scripts/docs.py
+	./scripts/docs.py
