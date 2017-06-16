@@ -176,4 +176,5 @@ kirby-preview: build/docs
 		joyent/kirby-preview-base:latest
 
 build/docs: docs/* scripts/docs.py
+	rm -r build/docs
 	./scripts/docs.py
