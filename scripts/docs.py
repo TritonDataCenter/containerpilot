@@ -51,7 +51,7 @@ def rewrite_links(content):
 
 # copy markdown files to the file structure that Kirby expects
 def copy_markdown():
-    os.mkdir('./build/docs')
+    os.makedirs('./build/docs')
     for dirpath, dirname, fnames in os.walk('docs'):
         for fname in fnames:
             if fname.endswith('.md') and fname != "README.md":
