@@ -2,7 +2,9 @@ package telemetry
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/watches"
@@ -28,45 +30,50 @@ func (hand StatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if hand.response == nil {
 		response := &statusResponse{}
 		for _, job := range hand.t.Jobs {
-			if job.Service.Port != 0 {
+			if job.Service != nil && job.Service.Port != 0 {
 				service := jobStatusResponse{
-					name:    job.Name,
-					address: job.Service.IPAddress,
-					port:    job.Service.Port,
-					status:  job.GetStatus(),
+					Name:    job.Name,
+					Address: job.Service.IPAddress,
+					Port:    job.Service.Port,
+					Status:  fmt.Sprintf("%s", job.GetStatus()),
 				}
-				response.services = append(response.services, service)
+				response.Services = append(response.Services, service)
 			}
 		}
 		for _, watch := range hand.t.Watches {
-			response.watches = append(response.watches, watch.Name)
+			name := strings.TrimPrefix(watch.Name, "watch.")
+			response.Watches = append(response.Watches, name)
 		}
 		hand.response = response
 	} else {
 		for _, job := range hand.t.Jobs {
-			status := job.GetStatus()
-			for _, service := range hand.response.services {
-				if service.name == job.Name {
-					service.status = status
+			status := fmt.Sprintf("%s", job.GetStatus())
+			for _, service := range hand.response.Services {
+				if service.Name == job.Name {
+					service.Status = status
 				}
 			}
 		}
 	}
+	fmt.Printf("%+v\n", hand.response)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(hand.response)
+	err := json.NewEncoder(w).Encode(hand.response)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 type statusResponse struct {
-	services []jobStatusResponse
-	watches  []string
+	Services []jobStatusResponse
+	Watches  []string
 }
 
 type jobStatusResponse struct {
-	name    string
-	address string
-	port    int
-	status  jobs.JobStatus
+	Name    string
+	Address string
+	Port    int
+	Status  string
 }
 
 // MonitorJobs ... (TODO: has a bad name)
