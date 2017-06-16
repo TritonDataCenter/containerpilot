@@ -108,7 +108,7 @@ def copy_json_examples():
 
 if __name__ == '__main__':
     copy_markdown()
-    fix_index_page('docs/README.md', 'build/docs/00-index')
+    fix_index_page('docs/README.md', 'build/docs')
     fix_index_page('docs/30-configuration/README.md',
-                   'build/docs')
+                   'build/docs/30-configuration')
     copy_json_examples()
