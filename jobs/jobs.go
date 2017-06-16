@@ -18,8 +18,6 @@ const (
 	eventBufferSize = 1000
 )
 
-// go:generate stringer -type JobStatus
-
 // JobStatus is an enum of job health status
 type JobStatus int
 
@@ -30,6 +28,19 @@ const (
 	statusUnhealthy
 	statusMaintenance
 )
+
+func (i JobStatus) String() string {
+	switch i {
+	case 1:
+		return "healthy"
+	case 2:
+		return "unhealthy"
+	case 3:
+		return "maintenance"
+	default:
+		return "unknown"
+	}
+}
 
 // Job manages the state of a job and its start/stop conditions
 type Job struct {
