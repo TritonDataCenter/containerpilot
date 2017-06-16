@@ -9,50 +9,52 @@ import (
 )
 
 type parsedConfig struct {
-	Address string `mapstructure:"address"`
-	Scheme  string `mapstructure:"scheme"`
-	Token   string `mapstructure:"token"`
+	Address string          `mapstructure:"address"`
+	Scheme  string          `mapstructure:"scheme"`
+	Token   string          `mapstructure:"token"`
+	TLS     parsedTLSConfig `mapstructure:"tls"` // optional TLS settings
+}
 
-	// optional TLS settings
-	HTTPCAFile        string `mapstructure:"tlscafile"`
-	HTTPCAPath        string `mapstructure:"tlscapath"`
-	HTTPClientCert    string `mapstructure:"tlsclientcert"`
-	HTTPClientKey     string `mapstructure:"tlsclientkey"`
-	HTTPTLSServerName string `mapstructure:"tlsservername"`
-	HTTPSSLVerify     bool   `mapstructure:"tlsverify"`
+type parsedTLSConfig struct {
+	HTTPCAFile        string `mapstructure:"cafile"`
+	HTTPCAPath        string `mapstructure:"capath"`
+	HTTPClientCert    string `mapstructure:"clientcert"`
+	HTTPClientKey     string `mapstructure:"clientkey"`
+	HTTPTLSServerName string `mapstructure:"servername"`
+	HTTPSSLVerify     bool   `mapstructure:"verify"`
 }
 
 // override an already-parsed parsedConfig with any options that might
 // be set in the environment and then return the TLSConfig
 func getTLSConfig(parsed *parsedConfig) api.TLSConfig {
 	if cafile := os.Getenv("CONSUL_CACERT"); cafile != "" {
-		parsed.HTTPCAFile = cafile
+		parsed.TLS.HTTPCAFile = cafile
 	}
 	if capath := os.Getenv("CONSUL_CAPATH"); capath != "" {
-		parsed.HTTPCAPath = capath
+		parsed.TLS.HTTPCAPath = capath
 	}
 	if clientCert := os.Getenv("CONSUL_CLIENT_CERT"); clientCert != "" {
-		parsed.HTTPClientCert = clientCert
+		parsed.TLS.HTTPClientCert = clientCert
 	}
 	if clientKey := os.Getenv("CONSUL_CLIENT_KEY"); clientKey != "" {
-		parsed.HTTPClientKey = clientKey
+		parsed.TLS.HTTPClientKey = clientKey
 	}
 	if serverName := os.Getenv("CONSUL_TLS_SERVER_NAME"); serverName != "" {
-		parsed.HTTPClientKey = serverName
+		parsed.TLS.HTTPClientKey = serverName
 	}
 	verify := os.Getenv("CONSUL_HTTP_SSL_VERIFY")
 	switch strings.ToLower(verify) {
 	case "1", "true":
-		parsed.HTTPSSLVerify = true
+		parsed.TLS.HTTPSSLVerify = true
 	case "0", "false":
-		parsed.HTTPSSLVerify = false
+		parsed.TLS.HTTPSSLVerify = false
 	}
 	tlsConfig := api.TLSConfig{
-		Address:            parsed.HTTPTLSServerName,
-		CAFile:             parsed.HTTPCAPath,
-		CertFile:           parsed.HTTPCAPath,
-		KeyFile:            parsed.HTTPClientKey,
-		InsecureSkipVerify: !parsed.HTTPSSLVerify,
+		Address:            parsed.TLS.HTTPTLSServerName,
+		CAFile:             parsed.TLS.HTTPCAPath,
+		CertFile:           parsed.TLS.HTTPCAPath,
+		KeyFile:            parsed.TLS.HTTPClientKey,
+		InsecureSkipVerify: !parsed.TLS.HTTPSSLVerify,
 	}
 	return tlsConfig
 }

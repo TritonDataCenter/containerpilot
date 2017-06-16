@@ -11,13 +11,14 @@ consul: {
   address: "consul.example.com:8500",
   scheme: "https",
   token: "aba7cbe5-879b-999a-07cc-2efd9ac0ffe", // or CONSUL_HTTP_TOKEN
-
-  tlscafile: "ca.crt",                 // or CONSUL_CACERT
-  tlscapath: "ca_certs/",              // or CONSUL_CAPATH
-  tlsclientcert: "client.crt",         // or CONSUL_CLIENT_CERT
-  tlsclientkey: "client.key",          // or CONSUL_CLIENT_KEY
-  tlsservername: "consul.example.com", // or CONSUL_TLS_SERVER_NAME
-  tlsverify: true,                     // or CONSUL_HTTP_SSL_VERIFY
+  tls: {
+    cafile: "ca.crt",                 // or CONSUL_CACERT
+    capath: "ca_certs/",              // or CONSUL_CAPATH
+    clientcert: "client.crt",         // or CONSUL_CLIENT_CERT
+    clientkey: "client.key",          // or CONSUL_CLIENT_KEY
+    servername: "consul.example.com", // or CONSUL_TLS_SERVER_NAME
+    verify: true,                     // or CONSUL_HTTP_SSL_VERIFY
+  }
 }
 ```
 
