@@ -20,7 +20,7 @@ Text:
     return content
 
 
-# rewrites all markdown links to indexes (in-place)
+# rewrites all markdown links
 def rewrite_links(content):
 
     def rewrite_markdown_link(matchobj):
@@ -74,8 +74,28 @@ def copy_markdown():
 
                 print('{} -> {}'.format(source, dest))
 
+
+# rewrites all markdown links for index pages
+def rewrite_index_links(content, added):
+
+    def rewrite_markdown_link(matchobj):
+        match = matchobj.group(0)
+        match = match.replace('.md', '')
+        match = re.sub(r'[0-9]{2}\-', '', match)
+        match = match.replace('(./', '(./{}/'.format(added))
+        print(match)
+        return match
+
+    content = re.sub(
+        r'\(\./.*?\.md.*?\)',
+        rewrite_markdown_link,
+        content)
+
+    return content
+
+
 # top-level indexes are weird exception to the structure
-def fix_index_page(source, build_dir):
+def fix_index_page(source, build_dir, added):
     try:
         os.makedirs(build_dir)
     except:
@@ -85,7 +105,7 @@ def fix_index_page(source, build_dir):
         content = fr.read()
 
     content = add_front_matter(content)
-    content = rewrite_links(content)
+    content = rewrite_index_links(content, added)
 
     dest = '{}/docs.md'.format(build_dir)
     with open(dest, 'w') as fw:
@@ -108,7 +128,7 @@ def copy_json_examples():
 
 if __name__ == '__main__':
     copy_markdown()
-    fix_index_page('docs/README.md', 'build/docs')
+    fix_index_page('docs/README.md', 'build/docs', 'docs')
     fix_index_page('docs/30-configuration/README.md',
-                   'build/docs/30-configuration')
+                   'build/docs/30-configuration', 'configuration')
     copy_json_examples()
