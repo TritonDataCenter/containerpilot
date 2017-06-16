@@ -18,15 +18,14 @@ const (
 	eventBufferSize = 1000
 )
 
-// go:generate stringer -type jobStatus
+// go:generate stringer -type JobStatus
 
-// note: this num may end up being public so we can use it in the status
-// endpoint, but let's leave it as unexported until that API has been decided
-type jobStatus int
+// JobStatus is an enum of job health status
+type JobStatus int
 
-// jobStatus enum
+// JobStatus enum
 const (
-	statusUnknown jobStatus = iota
+	statusUnknown JobStatus = iota
 	statusHealthy
 	statusUnhealthy
 	statusMaintenance
@@ -38,7 +37,7 @@ type Job struct {
 	exec *commands.Command
 
 	// service health and discovery
-	Status          jobStatus
+	Status          JobStatus
 	statusLock      *sync.RWMutex
 	Service         *discovery.ServiceDefinition
 	healthCheckExec *commands.Command
@@ -107,15 +106,14 @@ func (job *Job) SendHeartbeat() {
 	}
 }
 
-// note: this method may end up being public so we can use it in the status
-// endpoint, but let's leave it as unexported until that API has been decided
-func (job *Job) getStatus() jobStatus {
+// GetStatus returns the current health status of the Job
+func (job *Job) GetStatus() JobStatus {
 	job.statusLock.RLock()
 	defer job.statusLock.RUnlock()
 	return job.Status
 }
 
-func (job *Job) setStatus(status jobStatus) {
+func (job *Job) setStatus(status JobStatus) {
 	job.statusLock.Lock()
 	defer job.statusLock.Unlock()
 	job.Status = status
@@ -210,7 +208,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 
 	switch event {
 	case events.Event{events.TimerExpired, heartbeatSource}:
-		if job.getStatus() != statusMaintenance {
+		if job.GetStatus() != statusMaintenance {
 			if job.healthCheckExec != nil {
 				job.HealthCheck(ctx)
 			} else if job.Service != nil {
@@ -232,12 +230,12 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 		job.restartsRemain--
 		job.StartJob(ctx)
 	case events.Event{events.ExitFailed, healthCheckName}:
-		if job.getStatus() != statusMaintenance {
+		if job.GetStatus() != statusMaintenance {
 			job.setStatus(statusUnhealthy)
 			job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
 		}
 	case events.Event{events.ExitSuccess, healthCheckName}:
-		if job.getStatus() != statusMaintenance {
+		if job.GetStatus() != statusMaintenance {
 			job.setStatus(statusHealthy)
 			job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
 			job.SendHeartbeat()
