@@ -49,13 +49,12 @@ def rewrite_links(content):
     return content
 
 
-# copy markdown files to the file structure that Kirby expects
-def copy_markdown():
+# copy page markdown files to the file structure that Kirby expects
+def build_pages():
     os.makedirs('build/docs')
     for dirpath, dirname, fnames in os.walk('docs'):
         for fname in fnames:
             if fname.endswith('.md') and fname != "README.md":
-
                 source = '{}/{}'.format(dirpath, fname)
                 dirname = fname.replace('.md', '')
                 build_dir = './build/{}/{}'.format(dirpath, dirname)
@@ -75,27 +74,8 @@ def copy_markdown():
                 print('{} -> {}'.format(source, dest))
 
 
-# rewrites all markdown links for index pages
-def rewrite_index_links(content, added):
-
-    def rewrite_markdown_link(matchobj):
-        match = matchobj.group(0)
-        match = match.replace('.md', '')
-        match = re.sub(r'[0-9]{2}\-', '', match)
-        match = match.replace('(./', '(./{}/'.format(added))
-        print(match)
-        return match
-
-    content = re.sub(
-        r'\(\./.*?\.md.*?\)',
-        rewrite_markdown_link,
-        content)
-
-    return content
-
-
 # top-level indexes are weird exception to the structure
-def fix_index_page(source, build_dir, added):
+def build_index_page(source, build_dir, url_prefix):
     try:
         os.makedirs(build_dir)
     except:
@@ -105,7 +85,18 @@ def fix_index_page(source, build_dir, added):
         content = fr.read()
 
     content = add_front_matter(content)
-    content = rewrite_index_links(content, added)
+
+    def rewrite_markdown_link(matchobj):
+        match = matchobj.group(0)
+        match = match.replace('.md', '')
+        match = re.sub(r'[0-9]{2}\-', '', match)
+        match = match.replace('(./', '(./{}/'.format(url_prefix))
+        return match
+
+    content = re.sub(
+        r'\(\./.*?\.md.*?\)',
+        rewrite_markdown_link,
+        content)
 
     dest = '{}/docs.md'.format(build_dir)
     with open(dest, 'w') as fw:
@@ -114,7 +105,7 @@ def fix_index_page(source, build_dir, added):
     print('{} -> {}'.format(source, dest))
 
 
-# configuration examples in JSON5 format
+# copy configuration examples
 def copy_json_examples():
     dest_dir = 'build/docs/30-configuration/examples'
     os.makedirs(dest_dir)
@@ -127,8 +118,8 @@ def copy_json_examples():
 
 
 if __name__ == '__main__':
-    copy_markdown()
-    fix_index_page('docs/README.md', 'build/docs', 'docs')
-    fix_index_page('docs/30-configuration/README.md',
-                   'build/docs/30-configuration', 'configuration')
+    build_pages()
+    build_index_page('docs/README.md', 'build/docs', 'docs')
+    build_index_page('docs/30-configuration/README.md',
+                     'build/docs/30-configuration', 'configuration')
     copy_json_examples()
