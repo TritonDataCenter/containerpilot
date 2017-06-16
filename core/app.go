@@ -197,6 +197,8 @@ func NewApp(configFlag string) (*App, error) {
 	a.Jobs = jobs.FromConfigs(cfg.Jobs)
 	a.Watches = watches.FromConfigs(cfg.Watches)
 	a.Telemetry = telemetry.NewTelemetry(cfg.Telemetry)
+	a.Telemetry.MonitorJobs(a.Jobs)
+	a.Telemetry.MonitorWatches(a.Watches)
 	a.ConfigFlag = configFlag // stash the old config
 
 	// set an environment variable for each job IP address so that
