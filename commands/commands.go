@@ -91,7 +91,17 @@ func RunAndWait(c *Command) (int, error) {
 		fmt.Sprintf("CONTAINERPILOT_%s_PID", strings.ToUpper(c.Name)),
 		fmt.Sprintf("%v", c.Cmd.Process.Pid),
 	)
-	defer reapChildren(c.Cmd.SysProcAttr.Pgid)
+	// See https://golang.org/src/syscall/exec_linux.go
+	// SysProcAttr.Setpgid:
+	// "Set process group ID to Pgid, or, if Pgid == 0, to new pid"
+	// So in the case where ContainerPilot is PID1 this will fail
+	// to reap zombies unless we pass the PID and not the PGID to
+	// the syscall.Wait4 in reapChildren
+	pgid := c.Cmd.SysProcAttr.Pgid
+	if pgid == 0 {
+		pgid = c.Cmd.Process.Pid
+	}
+	defer reapChildren(pgid)
 	err := c.Cmd.Wait()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -125,7 +135,18 @@ func RunAndWaitForOutput(c *Command) (string, error) {
 	// to write to our collector.
 	c.Cmd.Stderr = os.Stderr
 	log.Debugf("%s.Cmd.Output", c.Name)
-	defer reapChildren(c.Cmd.SysProcAttr.Pgid)
+
+	// See https://golang.org/src/syscall/exec_linux.go
+	// SysProcAttr.Setpgid:
+	// "Set process group ID to Pgid, or, if Pgid == 0, to new pid"
+	// So in the case where ContainerPilot is PID1 this will fail
+	// to reap zombies unless we pass the PID and not the PGID to
+	// the syscall.Wait4 in reapChildren
+	pgid := c.Cmd.SysProcAttr.Pgid
+	if pgid == 0 {
+		pgid = c.Cmd.Process.Pid
+	}
+	defer reapChildren(pgid)
 	out, err := c.Cmd.Output()
 	if err != nil {
 		return "", err
@@ -209,7 +230,18 @@ func (c *Command) waitForTimeout() error {
 	}
 	log.Debugf("%s.run waiting", c.Name)
 
-	defer reapChildren(c.Cmd.SysProcAttr.Pgid)
+	// See https://golang.org/src/syscall/exec_linux.go
+	// SysProcAttr.Setpgid:
+	// "Set process group ID to Pgid, or, if Pgid == 0, to new pid"
+	// So in the case where ContainerPilot is PID1 this will fail
+	// to reap zombies unless we pass the PID and not the PGID to
+	// the syscall.Wait4 in reapChildren
+	pgid := c.Cmd.SysProcAttr.Pgid
+	if pgid == 0 {
+		pgid = c.Cmd.Process.Pid
+	}
+	defer reapChildren(pgid)
+
 	err := c.Cmd.Wait()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
