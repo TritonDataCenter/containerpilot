@@ -168,13 +168,12 @@ func (c *Command) setUpCmd() {
 }
 
 // Kill sends a kill signal to the underlying process.
-func (c *Command) Kill() error {
+func (c *Command) Kill() {
 	log.Debugf("%s.kill", c.Name)
 	if c.Cmd != nil && c.Cmd.Process != nil {
 		log.Warnf("killing command for %s", c.Name)
-		return c.Cmd.Process.Kill()
+		syscall.Kill(-c.Cmd.Process.Pid, syscall.SIGKILL)
 	}
-	return nil
 }
 
 func (c *Command) waitForTimeout() error {
@@ -193,10 +192,7 @@ func (c *Command) waitForTimeout() error {
 			select {
 			case <-ticker.C:
 				log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
-				if err := c.Kill(); err != nil {
-					log.Errorf("error killing command: %v", err)
-					return
-				}
+				c.Kill()
 				log.Debugf("%s.run#gofunc swallow quit", c.Name)
 				// Swallow quit signal
 				<-quit
