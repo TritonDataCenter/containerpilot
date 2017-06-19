@@ -205,3 +205,13 @@ func TestPostDisableMaintenanceMode(t *testing.T) {
 		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
 	})
 }
+
+func TestGetPing(t *testing.T) {
+	req := httptest.NewRequest("GET", "/v3/ping", nil)
+	w := httptest.NewRecorder()
+	GetPing(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+	status := resp.StatusCode
+	assert.Equal(t, status, 200, "expected HTTP 200 OK")
+}

@@ -17,6 +17,8 @@ Usage of ./containerpilot:
   -out string
         File path where to save rendered config file when '-template' is used.
         Defaults to stdout ('-').
+  -ping
+        Check that the ContainerPilot control socket is up.
   -putenv value
         Update environ of a ContainerPilot process through its control socket.
         Pass environment in the format: 'key=value'
@@ -116,4 +118,30 @@ Content-Length: 21
 {
   "updated": true
 }
+```
+
+
+##### `Ping GET /v3/ping`
+
+This API checks if the ContainerPilot socket is up without mutating any state. This endpoint returns a HTTP200 if the socket is up.
+
+*Example Subcommand*
+
+```
+./containerpilot -ping
+```
+
+*Example HTTP Request*
+
+```
+curl --unix-socket /var/containerpilot.sock \
+    http:/v3/ping
+```
+
+*Example Response*
+
+```
+HTTP/1.1 200 OK
+Content-Length: 2
+ok
 ```
