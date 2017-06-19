@@ -136,17 +136,7 @@ func RunAndWaitForOutput(c *Command) (string, error) {
 	c.Cmd.Stderr = os.Stderr
 	log.Debugf("%s.Cmd.Output", c.Name)
 
-	// See https://golang.org/src/syscall/exec_linux.go
-	// SysProcAttr.Setpgid:
-	// "Set process group ID to Pgid, or, if Pgid == 0, to new pid"
-	// So in the case where ContainerPilot is PID1 this will fail
-	// to reap zombies unless we pass the PID and not the PGID to
-	// the syscall.Wait4 in reapChildren
-	pgid := c.Cmd.SysProcAttr.Pgid
-	if pgid == 0 {
-		pgid = c.Cmd.Process.Pid
-	}
-	defer reapChildren(pgid)
+	defer reapChildren(c.Cmd.SysProcAttr.Pgid)
 	out, err := c.Cmd.Output()
 	if err != nil {
 		return "", err
