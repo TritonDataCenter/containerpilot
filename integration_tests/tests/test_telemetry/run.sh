@@ -31,6 +31,13 @@ result=$?
 set -e
 if [ $result -ne 0 ]; then exit $result; fi
 
+# Check the status endpoint too
+docker exec -it "${APP_ID}" curl -s "${IP}:9090/status" | grep 'app'
+result=$?
+set -e
+if [ $result -ne 0 ]; then exit $result; fi
+
+
 # Make we register and tear down telemetry service in Consul
 CONSUL_ID="$(docker-compose ps -q consul)"
 set +e
