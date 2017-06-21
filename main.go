@@ -13,7 +13,16 @@ func main() {
 	// contention on the main application
 	runtime.GOMAXPROCS(1)
 
-	app, configErr := core.LoadApp()
+	subcommand, params := core.GetArgs()
+	if subcommand != nil {
+		err := subcommand(params)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	app, configErr := core.NewApp(params.ConfigPath)
 	if configErr != nil {
 		log.Fatal(configErr)
 	}

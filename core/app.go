@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/subcommands"
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/watches"
 
@@ -48,145 +46,9 @@ func EmptyApp() *App {
 	return app
 }
 
-// LoadApp parses the commandline arguments and loads the config
-func LoadApp() (*App, error) {
-
-	var (
-		versionFlag  bool
-		templateFlag bool
-		reloadFlag   bool
-
-		configFlag string
-		renderFlag string
-		maintFlag  string
-
-		putMetricFlags MultiFlag
-		putEnvFlags    MultiFlag
-		pingFlag       bool
-	)
-
-	if !flag.Parsed() {
-		flag.BoolVar(&versionFlag, "version", false,
-			"Show version identifier and quit.")
-
-		flag.BoolVar(&templateFlag, "template", false,
-			"Render template and quit.")
-
-		flag.BoolVar(&reloadFlag, "reload", false,
-			"Reload a ContainerPilot process through its control socket.")
-
-		flag.StringVar(&configFlag, "config", "",
-			"File path to JSON5 configuration file. Defaults to CONTAINERPILOT env var.")
-
-		flag.StringVar(&renderFlag, "out", "",
-			`File path where to save rendered config file when '-template' is used.
-	Defaults to stdout ('-').`)
-
-		flag.StringVar(&maintFlag, "maintenance", "",
-			`Toggle maintenance mode for a ContainerPilot process through its control socket.
-	Options: '-maintenance enable' or '-maintenance disable'`)
-
-		flag.Var(&putMetricFlags, "putmetric",
-			`Update metrics of a ContainerPilot process through its control socket.
-	Pass metrics in the format: 'key=value'`)
-
-		flag.Var(&putEnvFlags, "putenv",
-			`Update environ of a ContainerPilot process through its control socket.
-	Pass environment in the format: 'key=value'`)
-
-		flag.BoolVar(&pingFlag, "ping", false,
-			"Check that the ContainerPilot control socket is up.")
-
-		flag.Parse()
-	}
-
-	if versionFlag {
-		fmt.Printf("Version: %s\nGitHash: %s\n", Version, GitHash)
-		os.Exit(0)
-	}
-
-	if configFlag == "" {
-		configFlag = os.Getenv("CONTAINERPILOT")
-	}
-
-	if templateFlag {
-		err := config.RenderConfig(configFlag, renderFlag)
-		if err != nil {
-			return nil, err
-		}
-		os.Exit(0)
-	}
-
-	if reloadFlag {
-		cmd, err := subcommands.Init(configFlag)
-		if err != nil {
-			return nil, err
-		}
-		if err := cmd.SendReload(); err != nil {
-			return nil,
-				fmt.Errorf("-reload: failed to run subcommand: %v", err)
-		}
-		os.Exit(0)
-	}
-
-	if maintFlag != "" {
-		cmd, err := subcommands.Init(configFlag)
-		if err != nil {
-			return nil, err
-		}
-		if err := cmd.SendMaintenance(maintFlag); err != nil {
-			return nil,
-				fmt.Errorf("-maintenance: failed to run subcommand: %v", err)
-		}
-		os.Exit(0)
-	}
-
-	if putEnvFlags.Len() != 0 {
-		cmd, err := subcommands.Init(configFlag)
-		if err != nil {
-			return nil, err
-		}
-		if err := cmd.SendEnviron(putEnvFlags.Values); err != nil {
-			return nil, fmt.Errorf("-putenv: failed to run subcommand: %v", err)
-		}
-		os.Exit(0)
-	}
-
-	if putMetricFlags.Len() != 0 {
-		cmd, err := subcommands.Init(configFlag)
-		if err != nil {
-			return nil, err
-		}
-		if err := cmd.SendMetric(putMetricFlags.Values); err != nil {
-			return nil,
-				fmt.Errorf("-putmetric: failed to run subcommand: %v", err)
-		}
-		os.Exit(0)
-	}
-
-	if pingFlag {
-		cmd, err := subcommands.Init(configFlag)
-		if err != nil {
-			return nil, err
-		}
-		if err := cmd.GetPing(); err != nil {
-			return nil, fmt.Errorf("-ping: failed: %v", err)
-		}
-		fmt.Println("ok")
-		os.Exit(0)
-	}
-
-	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
-
-	app, err := NewApp(configFlag)
-	if err != nil {
-		return nil, err
-	}
-	return app, nil
-}
-
 // NewApp creates a new App from the config
 func NewApp(configFlag string) (*App, error) {
+	os.Setenv("CONTAINERPILOT_PID", fmt.Sprintf("%v", os.Getpid()))
 	a := EmptyApp()
 	cfg, err := config.LoadConfig(configFlag)
 	if err != nil {
@@ -254,22 +116,6 @@ func (a *App) Run() {
 			break
 		}
 	}
-}
-
-// Render the command line args thru golang templating so we can
-// interpolate environment variables
-func getArgs(args []string) []string {
-	var renderedArgs []string
-	for _, arg := range args {
-		newArg, err := config.ApplyTemplate([]byte(arg))
-		if err != nil {
-			log.Errorf("unable to render command arguments template: %v", err)
-			renderedArgs = args // skip rendering on error
-			break
-		}
-		renderedArgs = append(renderedArgs, string(newArg))
-	}
-	return renderedArgs
 }
 
 // Terminate kills the application
