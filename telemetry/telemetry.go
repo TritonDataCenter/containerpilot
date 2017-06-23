@@ -7,19 +7,20 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/joyent/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/joyent/containerpilot/events"
 )
 
 // Telemetry represents the service to advertise for finding the metrics
 // endpoint, and the collection of Metrics.
 type Telemetry struct {
-	Metrics   []*Metric
-	Path      string
-	heartbeat time.Duration
-	router    *http.ServeMux
-	addr      net.TCPAddr
+	Metrics []*Metric // supports '/metrics' endpoint fields
+	Status  *Status   // supports '/status' endpoint fields
 
+	// server
+	router *http.ServeMux
+	addr   net.TCPAddr
 	http.Server
 	events.EventHandler // Event handling
 }
@@ -30,12 +31,13 @@ func NewTelemetry(cfg *Config) *Telemetry {
 		return nil
 	}
 	t := &Telemetry{
-		Path:    "/metrics", // TODO hard-coded?
 		Metrics: []*Metric{},
+		Status:  &Status{},
 	}
 	t.addr = cfg.addr
 	router := http.NewServeMux()
-	router.Handle(t.Path, prometheus.Handler())
+	router.Handle("/metrics", prometheus.Handler())
+	router.Handle("/status", NewStatusHandler(t))
 	t.Handler = router
 
 	for _, sensorCfg := range cfg.MetricConfigs {

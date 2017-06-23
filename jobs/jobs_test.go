@@ -148,7 +148,7 @@ func TestJobRunPeriodic(t *testing.T) {
 
 func TestJobMaintenance(t *testing.T) {
 
-	testFunc := func(t *testing.T, startingState jobStatus, event events.Event) jobStatus {
+	testFunc := func(t *testing.T, startingState JobStatus, event events.Event) JobStatus {
 		bus := events.NewEventBus()
 		cfg := &Config{Name: "myjob", Exec: "true",
 			// need to make sure this can't succeed during test
@@ -160,7 +160,7 @@ func TestJobMaintenance(t *testing.T) {
 		job.Run(bus)
 		job.Bus.Publish(event)
 		job.Quit()
-		return job.getStatus()
+		return job.GetStatus()
 	}
 
 	t.Run("enter maintenance", func(t *testing.T) {
