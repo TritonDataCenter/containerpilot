@@ -1,7 +1,6 @@
 package core
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -62,85 +61,6 @@ func TestWatchConfigRequiredFields(t *testing.T) {
 	assert.Error(t, err, "unable to parse watches: watch[name].interval must be > 0")
 }
 
-func TestInvalidConfigNoConfigFlag(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	os.Args = []string{"this", "/testdata/test.sh", "invalid1", "--debug"}
-	if _, err := LoadApp(); err != nil && err.Error() != "-config flag is required" {
-		t.Errorf("expected error but got %s", err)
-	}
-}
-
-func TestInvalidConfigParseNoDiscovery(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	f1 := testCfgToTempFile(t, "{}")
-	defer os.Remove(f1.Name())
-	os.Args = []string{"this", "-config", f1.Name()}
-	_, err := LoadApp()
-	assert.Error(t, err, "no discovery backend defined")
-}
-
-func TestInvalidConfigMissingFile(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	os.Args = []string{"this", "-config", "/xxxx"}
-	_, err := LoadApp()
-	assert.Error(t, err,
-		"could not read config file: open /xxxx: no such file or directory")
-}
-
-func TestInvalidConfigParseNotJson(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	f1 := testCfgToTempFile(t, "<>")
-	defer os.Remove(f1.Name())
-	os.Args = []string{"this", "-config", f1.Name()}
-	_, err := LoadApp()
-	assert.Error(t, fmt.Errorf("%s", err.Error()[:29]),
-		"parse error at line:col [1:1]")
-}
-
-func TestInvalidConfigParseTemplateError(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	// this config is missing quotes around the template
-	f1 := testCfgToTempFile(t, `{"test": {{ .NO_SUCH_KEY }}, "test2": "hello"}`)
-	defer os.Remove(f1.Name())
-	os.Args = []string{"this", "-config", f1.Name()}
-	_, err := LoadApp()
-	assert.Error(t, fmt.Errorf("%s", err.Error()[:30]),
-		"parse error at line:col [1:10]")
-}
-
-func TestRenderArgs(t *testing.T) {
-	flags := []string{"-name", "{{ .HOSTNAME }}"}
-	expected := os.Getenv("HOSTNAME")
-	if expected == "" {
-		// not all environments use this variable as a hostname but
-		// we really just want to make sure it's being rendered
-		expected, _ = os.Hostname()
-		os.Setenv("HOSTNAME", expected)
-	}
-	if got := getArgs(flags)[1]; got != expected {
-		t.Errorf("expected %v but got %v for rendered hostname", expected, got)
-	}
-
-	// invalid template should just be returned unchanged
-	flags = []string{"-name", "{{ .HOSTNAME }"}
-	expected = "{{ .HOSTNAME }"
-	if got := getArgs(flags)[1]; got != expected {
-		t.Errorf("expected %v but got %v for unrendered hostname", expected, got)
-	}
-}
-
-func TestControlServerCreation(t *testing.T) {
-	f1 := testCfgToTempFile(t, `{"consul": "consul:8500"}`)
-	defer os.Remove(f1.Name())
-	app, err := NewApp(f1.Name())
-	if err != nil {
-		t.Fatalf("got error while initializing config: %v", err)
-	}
-	if app.ControlServer == nil {
-		t.Error("expected control server to not be nil")
-	}
-}
-
 func TestMetricServiceCreation(t *testing.T) {
 
 	f := testCfgToTempFile(t, `{
@@ -171,17 +91,6 @@ func TestMetricServiceCreation(t *testing.T) {
 			}
 		}
 		t.Errorf("did not find CONTAINERPILOT_CONTAINERPILOT_IP env var")
-	}
-}
-
-func TestPidEnvVar(t *testing.T) {
-	defer argTestCleanup(argTestSetup())
-	os.Args = []string{"this", "-config", "{}", "/testdata/test.sh"}
-	if _, err := LoadApp(); err == nil {
-		t.Fatalf("expected error in LoadApp but got none")
-	}
-	if pid := os.Getenv("CONTAINERPILOT_PID"); pid == "" {
-		t.Errorf("expected CONTAINERPILOT_PID to be set even on error")
 	}
 }
 
@@ -253,14 +162,4 @@ func testCfgToTempFile(t *testing.T, text string) *os.File {
 		t.Fatal(err)
 	}
 	return f
-}
-
-func argTestSetup() []string {
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-	flag.Usage = nil
-	return os.Args
-}
-
-func argTestCleanup(oldArgs []string) {
-	os.Args = oldArgs
 }

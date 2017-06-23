@@ -2,87 +2,134 @@ package subcommands
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/joyent/containerpilot/client"
 	"github.com/joyent/containerpilot/config"
 )
 
-// Subcommand provides a simple object for storing a configured HTTPClient.
-type Subcommand struct {
-	client *client.HTTPClient
+// Params ...
+type Params struct {
+	Version string
+	GitHash string
+
+	ConfigPath      string
+	RenderFlag      string
+	MaintenanceFlag string
+
+	Metrics map[string]string
+	Env     map[string]string
 }
 
-// Init initializes the configuration of a Subcommand function and the
-// HTTPClient which they utilize for control plane interaction.
-func Init(configFlag string) (*Subcommand, error) {
-	cfg, err := config.LoadConfig(configFlag)
+// Handler functions implement a subcommand
+type Handler func(Params) error
+
+// VersionHandler prints the version info only
+func VersionHandler(params Params) error {
+	fmt.Printf("Version: %s\nGitHash: %s\n", params.Version, params.GitHash)
+	return nil
+}
+
+// RenderHandler asks the configuration package to render the
+// configuration to the path provided
+func RenderHandler(params Params) error {
+	return config.RenderConfig(params.ConfigPath, params.RenderFlag)
+}
+
+// ReloadHandler fires a Reload request through the HTTPClient.
+func ReloadHandler(params Params) error {
+	client, err := initClient(params.ConfigPath)
+	if err != nil {
+		return err
+	}
+	if err := client.Reload(); err != nil {
+		return fmt.Errorf("-reload: failed to run subcommand: %v", err)
+	}
+	return nil
+}
+
+// MaintenanceHandler fires either an enable or disable SetMaintenance
+// request through the HTTPClient.
+func MaintenanceHandler(params Params) error {
+	client, err := initClient(params.ConfigPath)
+	if err != nil {
+		return err
+	}
+	flag := false
+	if params.MaintenanceFlag == "enable" {
+		flag = true
+	}
+	if err := client.SetMaintenance(flag); err != nil {
+		return fmt.Errorf("-maintenance: failed to run subcommand: %v", err)
+	}
+	return nil
+}
+
+// PutEnvHandler fires a PutEnv request through the HTTPClient.
+func PutEnvHandler(params Params) error {
+	client, err := initClient(params.ConfigPath)
+	if err != nil {
+		return err
+	}
+	envJSON, err := json.Marshal(params.Env)
+	if err != nil {
+		return err
+	}
+	if err = client.PutEnv(string(envJSON)); err != nil {
+		return fmt.Errorf("-reload: failed to run subcommand: %v", err)
+	}
+	return nil
+}
+
+// PutMetricsHandler fires a PutMetric request through the HTTPClient.
+func PutMetricsHandler(params Params) error {
+	client, err := initClient(params.ConfigPath)
+	if err != nil {
+		return err
+	}
+	metricsJSON, err := json.Marshal(params.Metrics)
+	if err != nil {
+		return err
+	}
+	if err = client.PutMetric(string(metricsJSON)); err != nil {
+		return fmt.Errorf("-reload: failed to run subcommand: %v", err)
+	}
+	return nil
+}
+
+// GetPingHandler fires a ping check through the HTTPClient.
+func GetPingHandler(params Params) error {
+	client, err := initClient(params.ConfigPath)
+	if err != nil {
+		return err
+	}
+	if err := client.GetPing(); err != nil {
+		return fmt.Errorf("-ping: failed: %v", err)
+	}
+	fmt.Println("ok")
+	return nil
+}
+
+// loads the configuration so we can get the control socket and
+// initializes the HTTPClient which callers will use for sending
+// it commands
+func initClient(configPath string) (*client.HTTPClient, error) {
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
-
 	httpclient, err := client.NewHTTPClient(cfg.Control.SocketPath)
 	if err != nil {
 		return nil, err
 	}
-
-	return &Subcommand{
-		httpclient,
-	}, nil
+	return httpclient, nil
 }
 
-// SendReload fires a Reload request through the HTTPClient.
-func (s Subcommand) SendReload() error {
-	if err := s.client.Reload(); err != nil {
-		return err
+// we're using an interface{} for params for Handler but these should
+// never fail to type-assert. so this assert should be unreachable
+// unless we've screwed something up.
+func assert(ok bool, msg string) {
+	if !ok {
+		panic("invalid parameter types for %v")
 	}
-
-	return nil
-}
-
-// SendMaintenance fires either an enable or disable SetMaintenance request
-// through the HTTPClient.
-func (s Subcommand) SendMaintenance(isEnabled string) error {
-	flag := false
-	if isEnabled == "enable" {
-		flag = true
-	}
-
-	if err := s.client.SetMaintenance(flag); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// SendEnviron fires a PutEnv request through the HTTPClient.
-func (s Subcommand) SendEnviron(env map[string]string) error {
-	envJSON, err := json.Marshal(env)
-	if err != nil {
-		return err
-	}
-
-	if err = s.client.PutEnv(string(envJSON)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// SendMetric fires a PutMetric request through the HTTPClient.
-func (s Subcommand) SendMetric(metrics map[string]string) error {
-	metricsJSON, err := json.Marshal(metrics)
-	if err != nil {
-		return err
-	}
-
-	if err = s.client.PutMetric(string(metricsJSON)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// GetPing fires a ping check through the HTTPClient.
-func (s Subcommand) GetPing() error {
-	return s.client.GetPing()
 }
