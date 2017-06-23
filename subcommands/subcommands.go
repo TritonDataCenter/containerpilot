@@ -81,3 +81,8 @@ func (s Subcommand) SendMetric(metrics map[string]string) error {
 
 	return nil
 }
+
+// GetPing fires a ping check through the HTTPClient.
+func (s Subcommand) GetPing() error {
+	return s.client.GetPing()
+}

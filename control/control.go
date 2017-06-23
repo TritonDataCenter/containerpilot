@@ -71,6 +71,7 @@ func (srv *HTTPServer) Start() {
 		PostHandler(endpoints.PostEnableMaintenanceMode))
 	router.Handle("/v3/maintenance/disable",
 		PostHandler(endpoints.PostDisableMaintenanceMode))
+	router.HandleFunc("/v3/ping", GetPing)
 
 	srv.Handler = router
 	srv.SetKeepAlivesEnabled(false)

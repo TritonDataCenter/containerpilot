@@ -51,16 +51,19 @@ func EmptyApp() *App {
 // LoadApp parses the commandline arguments and loads the config
 func LoadApp() (*App, error) {
 
-	var versionFlag bool
-	var templateFlag bool
-	var reloadFlag bool
+	var (
+		versionFlag  bool
+		templateFlag bool
+		reloadFlag   bool
 
-	var configFlag string
-	var renderFlag string
-	var maintFlag string
+		configFlag string
+		renderFlag string
+		maintFlag  string
 
-	var putMetricFlags MultiFlag
-	var putEnvFlags MultiFlag
+		putMetricFlags MultiFlag
+		putEnvFlags    MultiFlag
+		pingFlag       bool
+	)
 
 	if !flag.Parsed() {
 		flag.BoolVar(&versionFlag, "version", false,
@@ -90,6 +93,9 @@ func LoadApp() (*App, error) {
 		flag.Var(&putEnvFlags, "putenv",
 			`Update environ of a ContainerPilot process through its control socket.
 	Pass environment in the format: 'key=value'`)
+
+		flag.BoolVar(&pingFlag, "ping", false,
+			"Check that the ContainerPilot control socket is up.")
 
 		flag.Parse()
 	}
@@ -155,6 +161,18 @@ func LoadApp() (*App, error) {
 			return nil,
 				fmt.Errorf("-putmetric: failed to run subcommand: %v", err)
 		}
+		os.Exit(0)
+	}
+
+	if pingFlag {
+		cmd, err := subcommands.Init(configFlag)
+		if err != nil {
+			return nil, err
+		}
+		if err := cmd.GetPing(); err != nil {
+			return nil, fmt.Errorf("-ping: failed: %v", err)
+		}
+		fmt.Println("ok")
 		os.Exit(0)
 	}
 

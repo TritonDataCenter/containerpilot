@@ -120,3 +120,11 @@ func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
 	}
 	return nil, http.StatusOK
 }
+
+// GetPing allows us to check if the control socket is up without
+// making a mutation of ContainerPilot's state
+func GetPing(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, "\n")
+}

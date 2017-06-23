@@ -96,3 +96,18 @@ func (c HTTPClient) PutMetric(body string) error {
 	}
 	return nil
 }
+
+// GetPing make a request to the ping endpoint of the ContainerPilot control
+// socket, to verify it's listening
+func (c HTTPClient) GetPing() error {
+	resp, err := c.Get("http://control/v3/ping")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		return fmt.Errorf("unprocessable entity received by control server")
+	}
+	return nil
+}
