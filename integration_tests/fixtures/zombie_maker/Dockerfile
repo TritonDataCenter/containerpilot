@@ -1,9 +1,7 @@
 FROM alpine:3.3
 
-ADD build/containerpilot /bin/containerpilot
-ADD app.json5 /app.json5
-
-ADD zombie.sh /zombie.sh
-RUN chmod 755 /zombie.sh
+COPY build/containerpilot /bin/containerpilot
+COPY app.json5 /app.json5
+COPY zombie.sh /zombie.sh
 
 ENTRYPOINT ["/bin/containerpilot", "-config=/app.json5"]
