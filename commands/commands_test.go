@@ -69,19 +69,14 @@ func TestRunWithTimeout(t *testing.T) {
 
 	// Ensure the task has time to start
 	runtime.Gosched()
-	// Wait for task to start + 250ms
+	// Wait for task to start + 450ms
 	ticker := time.NewTicker(650 * time.Millisecond)
 	select {
 	case <-ticker.C:
 		ticker.Stop()
-		err := cmd.Kill() // make sure we don't keep running
-		if err == nil {
-			// firing Kill should throw an error
+		if cmd.Cmd.ProcessState.Success() {
+			cmd.Kill() // make sure we don't keep running even if we failed
 			t.Fatalf("Command was not stopped by timeout")
-		} else {
-			if err.Error() != "os: process already finished" {
-				t.Fatalf("Command.Kill got unexpected error: %s", err)
-			}
 		}
 	}
 }
