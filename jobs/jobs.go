@@ -23,7 +23,8 @@ type JobStatus int
 
 // JobStatus enum
 const (
-	statusUnknown JobStatus = iota
+	statusIdle JobStatus = iota // will be default value before starting
+	statusUnknown
 	statusHealthy
 	statusUnhealthy
 	statusMaintenance
@@ -31,13 +32,14 @@ const (
 
 func (i JobStatus) String() string {
 	switch i {
-	case 1:
-		return "healthy"
 	case 2:
-		return "unhealthy"
+		return "healthy"
 	case 3:
+		return "unhealthy"
+	case 4:
 		return "maintenance"
 	default:
+		// both idle and unknown return unknown for purposes of serialization
 		return "unknown"
 	}
 }
@@ -219,7 +221,8 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 
 	switch event {
 	case events.Event{events.TimerExpired, heartbeatSource}:
-		if job.GetStatus() != statusMaintenance {
+		status := job.GetStatus()
+		if status != statusMaintenance && status != statusIdle {
 			if job.healthCheckExec != nil {
 				job.HealthCheck(ctx)
 			} else if job.Service != nil {
@@ -290,6 +293,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 				job.startEvent = events.NonEvent
 			}
 		}
+		job.setStatus(statusUnknown)
 		job.StartJob(ctx)
 	}
 	return false

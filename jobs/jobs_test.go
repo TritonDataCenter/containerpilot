@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -210,6 +211,7 @@ func TestJobProcessEvent(t *testing.T) {
 			Name:         "testJob",
 			startEvent:   events.Event{events.StatusChanged, "upstream"},
 			startsRemain: unlimited,
+			statusLock:   &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
 		assert.False(t, got, "processEvent returned %v after 1st startEvent, expected %v")
@@ -236,6 +238,7 @@ func TestJobProcessEvent(t *testing.T) {
 			startsRemain:   1,
 			restartLimit:   2,
 			restartsRemain: 2,
+			statusLock:     &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
 		assert.False(t, got, "processEvent returned %v after 1st startEvent, expected %v")
@@ -261,6 +264,7 @@ func TestJobProcessEvent(t *testing.T) {
 			startsRemain:   0,
 			restartLimit:   unlimited,
 			restartsRemain: unlimited,
+			statusLock:     &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
@@ -280,6 +284,7 @@ func TestJobProcessEvent(t *testing.T) {
 			startsRemain:   0,
 			restartLimit:   1,
 			restartsRemain: 1,
+			statusLock:     &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
