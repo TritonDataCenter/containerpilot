@@ -10,10 +10,11 @@ services:
 
   app:
     image: "cpfix_app"
-    mem_limit: 512m
+    mem_limit: 128m
     links:
       - consul:consul
     volumes:
+      - './containerpilot.json5:/etc/containerpilot.json5'
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
   test:
