@@ -265,9 +265,10 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 		events.Event{events.Quit, job.Name},
 		events.QuitByClose,
 		events.GlobalShutdown:
-		startCode := job.startEvent.Code
-		if (startCode == events.Stopping || startCode == events.Stopped) && job.exec != nil {
-			job.setStatus(statusExiting)
+		job.setStatus(statusExiting)
+		if (job.startEvent.Code == events.Stopping ||
+			job.startEvent.Code == events.Stopped) &&
+			job.exec != nil {
 			break
 		}
 		return true
