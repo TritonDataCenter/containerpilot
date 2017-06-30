@@ -28,7 +28,6 @@ const (
 	statusHealthy
 	statusUnhealthy
 	statusMaintenance
-	statusExiting
 )
 
 func (i JobStatus) String() string {
@@ -40,8 +39,7 @@ func (i JobStatus) String() string {
 	case 4:
 		return "maintenance"
 	default:
-		// idle, exiting, and unknown return unknown for purposes of
-		// serialization
+		// both idle and unknown return unknown for purposes of serialization
 		return "unknown"
 	}
 }
@@ -249,26 +247,23 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 			job.setStatus(statusUnhealthy)
 			job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
 		}
-		if job.GetStatus() == statusExiting {
-			return true
-		}
 	case events.Event{events.ExitSuccess, healthCheckName}:
 		if job.GetStatus() != statusMaintenance {
 			job.setStatus(statusHealthy)
 			job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
 			job.SendHeartbeat()
 		}
-		if job.GetStatus() == statusExiting {
-			return true
-		}
 	case
 		events.Event{events.Quit, job.Name},
 		events.QuitByClose,
 		events.GlobalShutdown:
-		job.setStatus(statusExiting)
 		if (job.startEvent.Code == events.Stopping ||
 			job.startEvent.Code == events.Stopped) &&
 			job.exec != nil {
+			// "pre-stop" and "post-stop" style jobs ignore the global
+			// shutdown and return on their ExitSuccess/ExitFailed.
+			// if the stop timeout on the global shutdown is exceeded
+			// the whole process gets SIGKILL
 			break
 		}
 		return true
