@@ -19,6 +19,8 @@ Every job will emit events associated with the lifecycle of its process. Any job
 - `stopping`: emitted when the job is asked to stop but before it does so. Useful when the job has a [stop timeout](#stop-timeout).
 - `stopped`: emitted when the job is stopped. Note that this is not the same as the process exiting because a job might have many executions of its process.
 
+Note that although `stopping` and `stopped` events are emitted for each running job when ContainerPilot is shutting down, the receiving job will have a limited window in which to execute. This window is 5 seconds, in order to provide enough time for ContainerPilot to halt all jobs, gracefully shut down its own listeners, and exit within the default Docker shutdown timeout of 10 seconds. After this point all processes receive a `SIGKILL` and are forced to exit immediately.
+
 Additionally, jobs may react to these events:
 
 - `startup`: published to all jobs when ContainerPilot is ready to start.
