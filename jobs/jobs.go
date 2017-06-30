@@ -210,7 +210,6 @@ func (job *Job) Run(bus *events.EventBus) {
 }
 
 func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
-
 	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
 	heartbeatSource := fmt.Sprintf("%s.heartbeat", job.Name)
 	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
@@ -258,6 +257,15 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 		events.Event{events.Quit, job.Name},
 		events.QuitByClose,
 		events.GlobalShutdown:
+		if (job.startEvent.Code == events.Stopping ||
+			job.startEvent.Code == events.Stopped) &&
+			job.exec != nil {
+			// "pre-stop" and "post-stop" style jobs ignore the global
+			// shutdown and return on their ExitSuccess/ExitFailed.
+			// if the stop timeout on the global shutdown is exceeded
+			// the whole process gets SIGKILL
+			break
+		}
 		return true
 	case events.GlobalEnterMaintenance:
 		job.MarkForMaintenance()

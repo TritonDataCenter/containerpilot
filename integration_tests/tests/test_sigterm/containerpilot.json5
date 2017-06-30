@@ -1,0 +1,35 @@
+{
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text"
+  },
+  jobs: [
+    {
+      name: "app",
+      port: 8000,
+      exec: "sleep 60",
+      health: {
+        exec: "true",
+        interval: 1,
+        ttl: 5,
+      },
+    },
+    {
+      name: "preStop",
+      exec: "echo 'preStop fired on app stopping'",
+      when: {
+        source: "app",
+        once: "stopping"
+      },
+    },
+    {
+      name: "postStop",
+      exec: "echo 'postStop fired on app stopped'",
+      when: {
+        source: "app",
+        once: "stopped"
+      },
+    }
+  ]
+}
