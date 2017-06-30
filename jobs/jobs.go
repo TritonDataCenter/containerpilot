@@ -28,6 +28,7 @@ const (
 	statusHealthy
 	statusUnhealthy
 	statusMaintenance
+	statusExiting
 )
 
 func (i JobStatus) String() string {
@@ -39,7 +40,8 @@ func (i JobStatus) String() string {
 	case 4:
 		return "maintenance"
 	default:
-		// both idle and unknown return unknown for purposes of serialization
+		// idle, exiting, and unknown return unknown for purposes of
+		// serialization
 		return "unknown"
 	}
 }
@@ -210,7 +212,6 @@ func (job *Job) Run(bus *events.EventBus) {
 }
 
 func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
-
 	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
 	heartbeatSource := fmt.Sprintf("%s.heartbeat", job.Name)
 	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
@@ -248,16 +249,27 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 			job.setStatus(statusUnhealthy)
 			job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
 		}
+		if job.GetStatus() == statusExiting {
+			return true
+		}
 	case events.Event{events.ExitSuccess, healthCheckName}:
 		if job.GetStatus() != statusMaintenance {
 			job.setStatus(statusHealthy)
 			job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
 			job.SendHeartbeat()
 		}
+		if job.GetStatus() == statusExiting {
+			return true
+		}
 	case
 		events.Event{events.Quit, job.Name},
 		events.QuitByClose,
 		events.GlobalShutdown:
+		startCode := job.startEvent.Code
+		if (startCode == events.Stopping || startCode == events.Stopped) && job.exec != nil {
+			job.setStatus(statusExiting)
+			break
+		}
 		return true
 	case events.GlobalEnterMaintenance:
 		job.MarkForMaintenance()
