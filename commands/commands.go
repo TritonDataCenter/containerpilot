@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"fmt"
-	"io"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -15,14 +14,13 @@ import (
 
 // Command wraps an os/exec.Cmd with a timeout, logging, and arg parsing.
 type Command struct {
-	Name      string // this gets used only in logs, defaults to Exec
-	Cmd       *exec.Cmd
-	Exec      string
-	Args      []string
-	Timeout   time.Duration
-	logger    io.WriteCloser
-	logFields log.Fields
-	lock      *sync.Mutex
+	Name    string // this gets used only in logs, defaults to Exec
+	Cmd     *exec.Cmd
+	Exec    string
+	Args    []string
+	Timeout time.Duration
+	logger  log.Entry
+	lock    *sync.Mutex
 }
 
 // NewCommand parses JSON config into a Command
@@ -31,14 +29,14 @@ func NewCommand(rawArgs interface{}, timeout time.Duration, fields log.Fields) (
 	if err != nil {
 		return nil, err
 	}
+	logger := log.WithFields(fields)
 	cmd := &Command{
-		Name:      exec, // override this in caller
-		Exec:      exec,
-		Args:      args,
-		Timeout:   timeout,
-		lock:      &sync.Mutex{},
-		logger:    log.StandardLogger().Writer(),
-		logFields: fields,
+		Name:    exec, // override this in caller
+		Exec:    exec,
+		Args:    args,
+		Timeout: timeout,
+		lock:    &sync.Mutex{},
+		logger:  *logger,
 	} // exec.Cmd created at Run
 	return cmd, nil
 }
@@ -56,8 +54,8 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 	c.lock.Lock()
 	log.Debugf("%s.Run start", c.Name)
 	c.setUpCmd()
-	c.Cmd.Stdout = c.logger
-	c.Cmd.Stderr = c.logger
+	c.Cmd.Stdout = c.logger.Writer()
+	c.Cmd.Stderr = c.logger.Writer()
 
 	var (
 		ctx    context.Context
@@ -150,14 +148,4 @@ func (c *Command) Kill() {
 		log.Debugf("killing command '%v' at pid: %d", c.Name, c.Cmd.Process.Pid)
 		syscall.Kill(-c.Cmd.Process.Pid, syscall.SIGKILL)
 	}
-}
-
-// CloseLogs safely closes the io.WriteCloser we're using to pipe logs
-func (c *Command) CloseLogs() {
-	// need to nil check these because they might have been closed
-	// concurrently.
-	if c != nil && c.logger != nil {
-		c.logger.Close()
-	}
-	return
 }

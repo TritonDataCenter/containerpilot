@@ -1,5 +1,5 @@
-hash: 4d1f003a7ecfbdf9a7c02771b8b0ff92401f76950ae1e91afce73481fbb98207
-updated: 2017-06-15T17:52:02.0614202Z
+hash: c78fd9afa84fae131536303beb1a73af84291e218d904c7eddddae2275562c91
+updated: 2017-07-03T20:08:48.202257396Z
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -14,7 +14,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/hashicorp/consul
-  version: f4360770d8e7b852e2d05835b583d20799e58133
+  version: 2c7715154d8d4568524b76d2d4deb7ca6fd1b285
   subpackages:
   - api
   - testutil
@@ -58,7 +58,7 @@ imports:
 - name: github.com/samalba/dockerclient
   version: a3036261847103270e9f732509f43b5f98710ace
 - name: github.com/Sirupsen/logrus
-  version: be52937128b38f1d99787bb476c789e2af1147f1
+  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 - name: golang.org/x/net
   version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
   subpackages:
