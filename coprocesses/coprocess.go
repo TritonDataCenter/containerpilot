@@ -143,6 +143,5 @@ func (c *Coprocess) Stop() {
 	c.restart = false
 	if c.cmd != nil {
 		c.cmd.Kill()
-		c.cmd.CloseLogs()
 	}
 }

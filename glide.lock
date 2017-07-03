@@ -1,5 +1,5 @@
-hash: 874e4f3d7d988b377f35781a0bc6b063efe4c70422072bc4a0ab8861fc2d4e7b
-updated: 2016-11-18T13:01:24.244820685-06:00
+hash: 833fd3f2a02483bc140e96a2ed74c57b46995a645c9767fc9de5d355c0eeb93c
+updated: 2017-07-03T20:29:44.437809506Z
 imports:
 - name: github.com/beorn7/perks
   version: b965b613227fddccbfffe13eae360ed3fa822f8d
@@ -20,7 +20,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/hashicorp/consul
-  version: a9455cd4fc2809570ff1855c37d6ffc2449bd42f
+  version: 21f2d5ad0c02af6c4b32d8fd04f7c81e9b002d41
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
@@ -54,7 +54,7 @@ imports:
 - name: github.com/samalba/dockerclient
   version: a3036261847103270e9f732509f43b5f98710ace
 - name: github.com/Sirupsen/logrus
-  version: be52937128b38f1d99787bb476c789e2af1147f1
+  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 - name: golang.org/x/net
   version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
   subpackages:
