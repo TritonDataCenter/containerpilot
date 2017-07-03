@@ -76,6 +76,7 @@ func (l *LogConfig) init() error {
 type DefaultLogFormatter struct {
 }
 
+//RFC3339 formatter
 type RFC3339logWriter struct {
 }
 
