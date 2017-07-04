@@ -76,11 +76,10 @@ func (l *LogConfig) init() error {
 type DefaultLogFormatter struct {
 }
 
-//RFC3339 formatter
+// RFC3339logWriter io.Writer that outputs RFC3339 dates
 type RFC3339logWriter struct {
 }
 
-// Define new time io.writer that outputs RFC3339 dates
 func (writer RFC3339logWriter) Write(bytes []byte) (int, error) {
 	return fmt.Print(time.Now().UTC().Format(time.RFC3339Nano) + " " + string(bytes))
 }
