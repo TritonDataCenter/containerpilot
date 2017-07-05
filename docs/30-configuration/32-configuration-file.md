@@ -53,7 +53,7 @@ The following is a completed example of the JSON5 file configuration schema, wit
       health: {
         exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost/app",
         interval: 5,
-        tll: 10,
+        ttl: 10,
         timeout: "5s",
       },
       tags: [
@@ -150,7 +150,7 @@ The following is a completed example of the JSON5 file configuration schema, wit
       }
     }
   ],
-  watches: {
+  watches: [
     {
       name: "app",
       interval: 10
@@ -159,7 +159,7 @@ The following is a completed example of the JSON5 file configuration schema, wit
       name: "nginx",
       interval: 30
     }
-  },
+  ],
   control: {
     socket: "/var/run/containerpilot.socket"
   },
