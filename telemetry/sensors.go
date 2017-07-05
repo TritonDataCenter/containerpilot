@@ -41,12 +41,8 @@ func (s *Sensor) PollAction() {
 	}
 }
 
-// PollStop closes the Sensor's logs
-func (s *Sensor) PollStop() {
-	if s.checkCmd != nil {
-		s.checkCmd.CloseLogs()
-	}
-}
+// PollStop is a no-op
+func (s *Sensor) PollStop() {}
 
 // wrapping this func call makes it easier to test
 func (s *Sensor) observe() (string, error) {

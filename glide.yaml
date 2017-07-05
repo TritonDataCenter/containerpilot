@@ -3,7 +3,7 @@ homepage: https://www.joyent.com/containerpilot
 license: MPL-2.0
 import:
 - package: github.com/Sirupsen/logrus
-  version: ~0.9.0
+  version: 1.0.0
 - package: github.com/beorn7/perks
   version: b965b613227fddccbfffe13eae360ed3fa822f8d
   subpackages:

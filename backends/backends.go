@@ -73,12 +73,8 @@ func (b *Backend) PollAction() {
 	}
 }
 
-// PollStop closes the Backends logs
-func (b *Backend) PollStop() {
-	if b.onChangeCmd != nil {
-		b.onChangeCmd.CloseLogs()
-	}
-}
+// PollStop is a no-op
+func (b *Backend) PollStop() {}
 
 // CheckForUpstreamChanges checks the service discovery endpoint for any changes
 // in a dependent backend. Returns true when there has been a change.

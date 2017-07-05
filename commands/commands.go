@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -25,8 +24,7 @@ type Command struct {
 	Timeout         string
 	TimeoutDuration time.Duration
 	ticker          *time.Ticker
-	logger          io.WriteCloser
-	logFields       log.Fields
+	logger          *log.Entry
 }
 
 // NewCommand parses JSON config into a Command
@@ -45,9 +43,11 @@ func NewCommand(rawArgs interface{}, timeoutFmt string, fields log.Fields) (*Com
 		Args:            args,
 		Timeout:         timeoutFmt,
 		TimeoutDuration: timeout,
-		logger:          log.StandardLogger().Writer(),
-		logFields:       fields,
 	} // Cmd and ticker all created at RunAndWait or RunWithTimeout
+
+	if fields != nil {
+		cmd.logger = log.WithFields(fields)
+	}
 	return cmd, nil
 }
 
@@ -73,7 +73,7 @@ func RunAndWait(c *Command) (int, error) {
 	}
 	log.Debugf("%s.RunAndWait start", c.Name)
 	c.setUpCmd()
-	if c.logFields == nil {
+	if c.logger == nil {
 		c.Cmd.Stdout = os.Stdout
 		c.Cmd.Stderr = os.Stderr
 	}
@@ -169,11 +169,11 @@ func RunWithTimeout(c *Command) error {
 func (c *Command) setUpCmd() {
 	cmd := ArgsToCmd(c.Exec, c.Args)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	if c.logFields == nil {
+	if c.logger == nil {
 		cmd.Stderr = os.Stderr
 	} else {
-		cmd.Stdout = c.logger
-		cmd.Stderr = c.logger
+		cmd.Stdout = c.logger.Writer()
+		cmd.Stderr = c.logger.Writer()
 	}
 	c.Cmd = cmd
 }
@@ -248,11 +248,4 @@ func (c *Command) waitForTimeout() error {
 
 	log.Debugf("%s.run complete", c.Name)
 	return nil
-}
-
-// CloseLogs closes logs, duh
-func (c *Command) CloseLogs() {
-	if c.logger != nil {
-		c.logger.Close()
-	}
 }

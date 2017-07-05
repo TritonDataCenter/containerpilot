@@ -79,7 +79,6 @@ func (t *Task) PollStop() {
 	log.Debugf("task[%s].PollStop", t.Name)
 	if t.cmd != nil {
 		t.cmd.Kill()
-		t.cmd.CloseLogs()
 	}
 }
 

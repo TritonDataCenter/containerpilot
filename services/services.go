@@ -152,12 +152,8 @@ func (s *Service) PollAction() {
 	}
 }
 
-// PollStop closes the Service's logs
-func (s *Service) PollStop() {
-	if s.healthCheckCmd != nil {
-		s.healthCheckCmd.CloseLogs()
-	}
-}
+// PollStop is a no-op
+func (s *Service) PollStop() {}
 
 // SendHeartbeat sends a heartbeat for this service
 func (s *Service) SendHeartbeat() {
