@@ -1,5 +1,5 @@
-hash: 4b8c67e1b2aaaea33326e14e86e182763cad4255d56133d414de5ca596d8621b
-updated: 2017-07-05T10:37:07.47857606-04:00
+hash: 389075fdd1b1f3311d9db24221f793ad7351b0198a69683ca2f885666c375297
+updated: 2017-07-05T11:25:56.783852009-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -26,7 +26,7 @@ imports:
   subpackages:
   - coordinate
 - name: github.com/matttproud/golang_protobuf_extensions
-  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
@@ -34,31 +34,29 @@ imports:
 - name: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
 - name: github.com/prometheus/client_golang
-  version: 90c15b5efa0dc32a7d259234e02ac9a99e6d3b82
+  version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
 - name: github.com/prometheus/client_model
-  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+  version: 6f3806018612930941127f2a7c6c453ba2c527d2
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: 40456948a47496dc22168e6af39297a2f8fbf38c
+  version: 0866df4b85a18d652b6965be022d007cdf076822
   subpackages:
   - expfmt
-  - internal/bitbucket.org/ww/goautoneg
   - model
+  - internal/bitbucket.org/ww/goautoneg
 - name: github.com/prometheus/procfs
-  version: 406e5b7bfd8201a36e2bb5f7bdae0b03380c2ce8
+  version: e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2
+  subpackages:
+  - xfs
 - name: github.com/samalba/dockerclient
   version: a3036261847103270e9f732509f43b5f98710ace
 - name: github.com/sirupsen/logrus
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
-- name: golang.org/x/net
-  version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
-  subpackages:
-  - context
 - name: golang.org/x/sys
-  version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
+  version: 94b76065f2d2081d0fef24a6e67c571f51a6408a
   subpackages:
   - unix
 devImports: []
