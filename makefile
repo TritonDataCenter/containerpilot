@@ -62,7 +62,7 @@ release: build
 
 ## remove build/test artifacts, test fixtures, and vendor directories
 clean:
-	rm -rf build release cover vendor
+	rm -rf build release cover vendor .glide
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	./scripts/test.sh clean

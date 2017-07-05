@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	log "github.com/sirupsen/logrus"
 )
 
 // SocketType is the default listener type

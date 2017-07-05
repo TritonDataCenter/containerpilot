@@ -3,8 +3,8 @@ package main // import "github.com/joyent/containerpilot"
 import (
 	"runtime"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/core"
+	log "github.com/sirupsen/logrus"
 )
 
 // Main executes the containerpilot CLI

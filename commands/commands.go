@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	log "github.com/sirupsen/logrus"
 )
 
 // Command wraps an os/exec.Cmd with a timeout, logging, and arg parsing.

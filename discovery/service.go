@@ -3,8 +3,8 @@ package discovery
 import (
 	"fmt"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/consul/api"
+	log "github.com/sirupsen/logrus"
 )
 
 // ServiceDefinition is how a job communicates with the Consul service
