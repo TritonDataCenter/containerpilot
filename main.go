@@ -5,7 +5,7 @@ import (
 
 	"github.com/joyent/containerpilot/core"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	// Import backends so that they initialize
 	_ "github.com/joyent/containerpilot/discovery/consul"

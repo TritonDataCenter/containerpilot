@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var validName = regexp.MustCompile(`^[a-z][a-zA-Z0-9\-]+$`)

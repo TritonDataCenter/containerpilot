@@ -1,6 +1,6 @@
 package discovery
 
-import log "github.com/Sirupsen/logrus"
+import log "github.com/sirupsen/logrus"
 
 // ServiceBackend is an interface
 // which all service discovery backends must implement

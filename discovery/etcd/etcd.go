@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/coreos/etcd/client"
 	"github.com/joyent/containerpilot/utils"
 	"golang.org/x/net/context"
