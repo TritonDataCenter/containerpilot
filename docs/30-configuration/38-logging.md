@@ -8,7 +8,7 @@ The optional logging config adjusts the output format and verbosity of Container
 
 There are two sources of log data with ContainerPilot. First, ContainerPilot logs information about its own state, such as when jobs fail to run or events are triggered. Please note that `DEBUG` logging includes every event that's emitted by every job, and this can be quite a lot of information.
 
-The second source of logs are the processes run by jobs, sensors, and health checks. ContainerPilot attaches to stdout and stderr for every process it starts, and streams these logs to the logging framework. Because these logs are unstructured, `stdout` creates `INFO` logs, and `stderr` creates `DEBUG` logs.
+The second source of logs are the processes run by jobs and their health checks. ContainerPilot attaches to stdout and stderr for every process it starts, and streams these logs to the logging framework. These logs will be emitted at `INFO` level, with one log entry per line emitted to `stdout` or `stderr`. The child process should terminate its output with newlines.
 
 Logging Format Examples:
 
