@@ -2,41 +2,17 @@ package: github.com/joyent/containerpilot
 homepage: https://www.joyent.com/containerpilot
 license: MPL-2.0
 import:
-- package: github.com/Sirupsen/logrus
+- package: github.com/sirupsen/logrus
   version: 1.0.0
 - package: github.com/hashicorp/consul
   version: ~0.8.4
   subpackages:
   - api
-- package: github.com/matttproud/golang_protobuf_extensions
-  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
-  subpackages:
-  - pbutil
 - package: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
 - package: github.com/prometheus/client_golang
-  version: 90c15b5efa0dc32a7d259234e02ac9a99e6d3b82
+  version: 0.8.0
   subpackages:
   - prometheus
-- package: github.com/prometheus/client_model
-  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
-  subpackages:
-  - go
-- package: github.com/prometheus/common
-  version: 40456948a47496dc22168e6af39297a2f8fbf38c
-  subpackages:
-  - expfmt
-  - internal/bitbucket.org/ww/goautoneg
-  - model
-- package: github.com/prometheus/procfs
-  version: 406e5b7bfd8201a36e2bb5f7bdae0b03380c2ce8
-- package: golang.org/x/net
-  version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
-  subpackages:
-  - context
-- package: golang.org/x/sys
-  version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
-  subpackages:
-  - unix
 - package: github.com/flynn/json5
   version: 7620272ed63390e979cf5882d2fa0506fe2a8db5

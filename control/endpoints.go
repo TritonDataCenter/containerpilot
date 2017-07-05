@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/events"
+	log "github.com/sirupsen/logrus"
 )
 
 // Endpoints wraps the EventBus so we can bridge data across the App and

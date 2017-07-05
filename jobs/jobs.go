@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
+	log "github.com/sirupsen/logrus"
 )
 
 // Some magic numbers used internally by restart limits

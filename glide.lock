@@ -1,5 +1,5 @@
-hash: c78fd9afa84fae131536303beb1a73af84291e218d904c7eddddae2275562c91
-updated: 2017-07-03T20:08:48.202257396Z
+hash: 389075fdd1b1f3311d9db24221f793ad7351b0198a69683ca2f885666c375297
+updated: 2017-07-05T11:25:56.783852009-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -10,61 +10,53 @@ imports:
 - name: github.com/flynn/json5
   version: 7620272ed63390e979cf5882d2fa0506fe2a8db5
 - name: github.com/golang/protobuf
-  version: 2bba0603135d7d7f5cb73b2125beeda19c09f4ef
+  version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
   subpackages:
   - proto
 - name: github.com/hashicorp/consul
   version: 2c7715154d8d4568524b76d2d4deb7ca6fd1b285
   subpackages:
   - api
-  - testutil
-  - testutil/retry
 - name: github.com/hashicorp/go-cleanhttp
   version: 3573b8b52aa7b37b9358d966a898feb387f62437
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
-- name: github.com/hashicorp/go-uuid
-  version: 64130c7a86d732268a38cb04cfbaf0cc987fda98
 - name: github.com/hashicorp/serf
-  version: 19f2c401e122352c047a84d6584dd51e2fb8fcc4
+  version: 91fd53b1d3e624389ed9a295a3fa380e5c7b9dfc
   subpackages:
   - coordinate
 - name: github.com/matttproud/golang_protobuf_extensions
-  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
-- name: github.com/pkg/errors
-  version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/prometheus/client_golang
-  version: 90c15b5efa0dc32a7d259234e02ac9a99e6d3b82
+  version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
 - name: github.com/prometheus/client_model
-  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+  version: 6f3806018612930941127f2a7c6c453ba2c527d2
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: 40456948a47496dc22168e6af39297a2f8fbf38c
+  version: 0866df4b85a18d652b6965be022d007cdf076822
   subpackages:
   - expfmt
-  - internal/bitbucket.org/ww/goautoneg
   - model
+  - internal/bitbucket.org/ww/goautoneg
 - name: github.com/prometheus/procfs
-  version: 406e5b7bfd8201a36e2bb5f7bdae0b03380c2ce8
+  version: e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2
+  subpackages:
+  - xfs
 - name: github.com/samalba/dockerclient
   version: a3036261847103270e9f732509f43b5f98710ace
-- name: github.com/Sirupsen/logrus
+- name: github.com/sirupsen/logrus
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
-- name: golang.org/x/net
-  version: 7f88271ea9913b72aca44fa7fc8af919eacc17ce
-  subpackages:
-  - context
 - name: golang.org/x/sys
-  version: 50c6bc5e4292a1d4e65c6e9be5f53be28bcbe28e
+  version: 94b76065f2d2081d0fef24a6e67c571f51a6408a
   subpackages:
   - unix
-testImports: []
+devImports: []

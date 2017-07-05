@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // EventBus manages the state of and transmits messages to all its Subscribers

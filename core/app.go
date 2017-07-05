@@ -16,7 +16,7 @@ import (
 	"github.com/joyent/containerpilot/telemetry"
 	"github.com/joyent/containerpilot/watches"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var (

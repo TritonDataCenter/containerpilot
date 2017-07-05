@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/joyent/containerpilot/commands"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 const taskMinDuration = time.Millisecond

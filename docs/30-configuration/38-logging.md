@@ -23,7 +23,7 @@ Logging Format Examples:
 2015/03/26 01:27:38 The ice breaks!
 ```
 
-`text` - [logrus TextFormatter](https://github.com/Sirupsen/logrus)
+`text` - [logrus TextFormatter](https://github.com/sirupsen/logrus)
 
 ```
 time="2015-03-26T01:27:38-04:00" level=debug msg="Started observing beach" animal=walrus number=8
@@ -35,7 +35,7 @@ time="2015-03-26T01:27:38-04:00" level=fatal msg="The ice breaks!" err=&{0x20822
 exit status 1
 ```
 
-`json` - [logrus JSONFormatter](https://github.com/Sirupsen/logrus)
+`json` - [logrus JSONFormatter](https://github.com/sirupsen/logrus)
 
 ```
 {"animal":"walrus","level":"info","msg":"A group of walrus emerges from the ocean","size":10,"time":"2014-03-10 19:57:38.562264131 -0400 EDT"}

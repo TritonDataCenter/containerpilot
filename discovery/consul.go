@@ -6,8 +6,8 @@ import (
 	"sort"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/consul/api"
+	log "github.com/sirupsen/logrus"
 )
 
 // Consul wraps the service discovery backend for the Hashicorp Consul client
