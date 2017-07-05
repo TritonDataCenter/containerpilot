@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseEnvironment(t *testing.T) {
 	parsed := parseEnvironment([]string{})
-	assert.Equal(t, parsed, Environment{}, "expected environment '%v' got '%v'")
+	assert.Equal(t, parsed, Environment{})
 
 	parsed = parseEnvironment([]string{
 		"VAR1=test",
@@ -20,7 +20,7 @@ func TestParseEnvironment(t *testing.T) {
 	assert.Equal(t, parsed, Environment{
 		"VAR1": "test",
 		"VAR2": "test2",
-	}, "expected environment '%v' got '%v'")
+	})
 }
 
 func TestTemplate(t *testing.T) {

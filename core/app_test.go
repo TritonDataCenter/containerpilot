@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/tests/assert"
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 

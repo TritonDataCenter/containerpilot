@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/assert"
 )
 
 func init() {

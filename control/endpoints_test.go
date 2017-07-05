@@ -9,8 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/tests/assert"
 )
 
 func TestPutEnviron(t *testing.T) {
@@ -28,31 +29,31 @@ func TestPutEnviron(t *testing.T) {
 	t.Run("POST value", func(t *testing.T) {
 		status, result := testFunc(t, fmt.Sprintf("{\"%s\": \"updated\"}\n", t.Name()))
 		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
-		assert.Equal(t, result, "updated", "env var should be '%s' but was '%s'")
+		assert.Equal(t, result, "updated", "env var was not updated")
 	})
 
 	t.Run("POST empty", func(t *testing.T) {
 		status, result := testFunc(t, fmt.Sprintf("{\"%s\": \"\"}\n", t.Name()))
 		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
-		assert.Equal(t, result, "", "env var should be '%s' (empty) but got '%s'")
+		assert.Equal(t, result, "", "env var should be cleared")
 	})
 
 	t.Run("POST null", func(t *testing.T) {
 		status, result := testFunc(t, fmt.Sprintf("{\"%s\": null}\n", t.Name()))
 		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
-		assert.Equal(t, result, "", "env var should be '%s' (empty) but got '%s'")
+		assert.Equal(t, result, "", "env var should be cleared")
 	})
 
 	t.Run("POST string null", func(t *testing.T) {
 		status, result := testFunc(t, fmt.Sprintf("{\"%s\": \"null\"}\n", t.Name()))
 		assert.Equal(t, status, http.StatusOK, "status was not 200OK")
-		assert.Equal(t, result, "null", "env var should be '%s' but got '%s'")
+		assert.Equal(t, result, "null", "env var should not be cleared")
 	})
 
 	t.Run("POST bad JSON", func(t *testing.T) {
 		status, result := testFunc(t, "{{\n")
 		assert.Equal(t, status, http.StatusUnprocessableEntity, "status was not 422")
-		assert.Equal(t, result, "original", "env var should be '%s' but got '%s'")
+		assert.Equal(t, result, "original", "env var should not be updated")
 	})
 }
 
@@ -76,7 +77,7 @@ func TestPostHandler(t *testing.T) {
 				return nil, 200
 			})
 		assert.Equal(t, status, 200, "expected HTTP 200 OK")
-		assert.Equal(t, result, "\n", "expected '%q' but got '%q'")
+		assert.Equal(t, result, "\n")
 	})
 
 	t.Run("POST JSON ok", func(t *testing.T) {
@@ -86,7 +87,7 @@ func TestPostHandler(t *testing.T) {
 		})
 		assert.Equal(t, status, 200, "expected HTTP 200 OK")
 		assert.Equal(t, result, "{\"key\":\"val\"}\n",
-			"expected JSON body '%q', but got '%q'")
+			"expected JSON body in reply")
 	})
 
 	t.Run("GET bad method", func(t *testing.T) {
@@ -96,7 +97,7 @@ func TestPostHandler(t *testing.T) {
 				return nil, 200
 			})
 		assert.Equal(t, status, 405, "expected HTTP405 method not allowed")
-		assert.Equal(t, result, "Method Not Allowed\n", "expected '%q' but got '%q'")
+		assert.Equal(t, result, "Method Not Allowed\n")
 	})
 }
 
@@ -114,7 +115,7 @@ func TestPostMetric(t *testing.T) {
 				got[result]++
 			}
 		}
-		assert.Equal(t, expected, got, "got %v but expected: %v")
+		assert.Equal(t, expected, got)
 		return status
 	}
 
@@ -154,7 +155,7 @@ func TestPostEnableMaintenanceMode(t *testing.T) {
 				got[result]++
 			}
 		}
-		assert.Equal(t, expected, got, "got %v but expected: %v")
+		assert.Equal(t, expected, got)
 		return status
 	}
 
@@ -187,7 +188,7 @@ func TestPostDisableMaintenanceMode(t *testing.T) {
 				got[result]++
 			}
 		}
-		assert.Equal(t, expected, got, "got %v but expected: %v")
+		assert.Equal(t, expected, got)
 		return status
 	}
 

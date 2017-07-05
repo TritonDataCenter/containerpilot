@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/assert"
 	"github.com/joyent/containerpilot/tests/mocks"
 	"github.com/joyent/containerpilot/watches"
 )
@@ -87,11 +88,8 @@ func TestStatusServerGet(t *testing.T) {
 	}
 
 	assert.Equal(t, out.Watches, []string{"watch1", "watch2"},
-		"expected watches to be '%#v' but was '%#v'")
-	assert.Equal(t, len(out.Services), 1,
-		"expected there to be %v services but got %v")
-	assert.Equal(t, out.Services[0].Port, 80,
-		"expected job's port to be '%v' but got '%v'")
-	assert.Equal(t, out.Services[0].Status, "unknown",
-		"expected job's status to be '%v' but got '%v'")
+		"unexpected value for 'watches'")
+	assert.Equal(t, len(out.Services), 1, "unexpected count of services")
+	assert.Equal(t, out.Services[0].Port, 80, "unexpected job port")
+	assert.Equal(t, out.Services[0].Status, "unknown", "unexpected job status")
 }
