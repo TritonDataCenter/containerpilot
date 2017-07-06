@@ -8,12 +8,23 @@ import (
 	"os"
 	"time"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/joyent/containerpilot/events"
 )
 
 // SocketType is the default listener type
 var SocketType = "unix"
+
+var collector *prometheus.CounterVec
+
+func init() {
+	collector = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "containerpilot_control_http_requests",
+		Help: "count of requests to control socket, partitioned by path and HTTP code",
+	}, []string{"code", "path"})
+}
 
 // HTTPServer contains the state of the HTTP Server used by ContainerPilot's
 // HTTP transport control plane. Currently this is listening via a UNIX socket

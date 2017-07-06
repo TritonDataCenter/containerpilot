@@ -27,6 +27,8 @@ func (pw PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		failedStatus := http.StatusMethodNotAllowed
 		http.Error(w, http.StatusText(failedStatus), failedStatus)
+		collector.WithLabelValues(
+			string(http.StatusMethodNotAllowed), r.URL.Path).Add(1)
 		return
 	}
 	resp, status := pw(r)
@@ -43,6 +45,7 @@ func (pw PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, http.StatusText(status), status)
 	}
+	collector.WithLabelValues(string(status), r.URL.Path).Add(1)
 }
 
 // PutEnviron handles incoming HTTP POST requests containing JSON environment
