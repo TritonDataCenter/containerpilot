@@ -81,7 +81,7 @@ type RFC3339logWriter struct {
 }
 
 func (writer RFC3339logWriter) Write(bytes []byte) (int, error) {
-	return fmt.Print(time.Now().UTC().Format(time.RFC3339Nano) + " " + string(bytes))
+	return fmt.Print(time.Now().Format(time.RFC3339Nano) + " " + string(bytes))
 }
 
 // Format formats the logrus entry by passing it to the "log" package
