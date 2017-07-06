@@ -82,9 +82,5 @@ func (cfg *MetricConfig) Validate() error {
 	// we're going to unregister before every attempt to register
 	// so that we can reload config
 	prometheus.Unregister(cfg.collector)
-	if err := prometheus.Register(cfg.collector); err != nil {
-		return err
-	}
-
-	return nil
+	return prometheus.Register(cfg.collector)
 }
