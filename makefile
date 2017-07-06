@@ -7,7 +7,7 @@ SHELL := /bin/bash
 
 IMPORT_PATH := github.com/joyent/containerpilot
 VERSION ?= dev-build-not-for-release
-LDFLAGS := -X ${IMPORT_PATH}/version.GitHash='$(shell git rev-parse --short HEAD)' -X ${IMPORT_PATH}/version.Version='${VERSION}'
+LDFLAGS := -X ${IMPORT_PATH}/version.GitHash=$(shell git rev-parse --short HEAD) -X ${IMPORT_PATH}/version.Version=${VERSION}
 
 ROOT := $(shell pwd)
 RUNNER := -v ${ROOT}:/go/src/${IMPORT_PATH} -w /go/src/${IMPORT_PATH} containerpilot_build
