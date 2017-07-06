@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/joyent/containerpilot/events"
 	log "github.com/sirupsen/logrus"
@@ -28,7 +29,7 @@ func (pw PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		failedStatus := http.StatusMethodNotAllowed
 		http.Error(w, http.StatusText(failedStatus), failedStatus)
 		collector.WithLabelValues(
-			string(http.StatusMethodNotAllowed), r.URL.Path).Add(1)
+			strconv.Itoa(http.StatusMethodNotAllowed), r.URL.Path).Inc()
 		return
 	}
 	resp, status := pw(r)
@@ -45,7 +46,7 @@ func (pw PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, http.StatusText(status), status)
 	}
-	collector.WithLabelValues(string(status), r.URL.Path).Add(1)
+	collector.WithLabelValues(strconv.Itoa(status), r.URL.Path).Inc()
 }
 
 // PutEnviron handles incoming HTTP POST requests containing JSON environment
@@ -129,5 +130,6 @@ func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
 func GetPing(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	w.WriteHeader(http.StatusOK)
+	collector.WithLabelValues("200", r.URL.Path).Inc()
 	io.WriteString(w, "\n")
 }

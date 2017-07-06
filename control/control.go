@@ -24,6 +24,7 @@ func init() {
 		Name: "containerpilot_control_http_requests",
 		Help: "count of requests to control socket, partitioned by path and HTTP code",
 	}, []string{"code", "path"})
+	prometheus.MustRegister(collector)
 }
 
 // HTTPServer contains the state of the HTTP Server used by ContainerPilot's
