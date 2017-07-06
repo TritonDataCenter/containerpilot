@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/config/decoding"
 )
 
 type parsedConfig struct {
@@ -61,7 +61,7 @@ func getTLSConfig(parsed *parsedConfig) api.TLSConfig {
 
 func configFromMap(raw map[string]interface{}) (*api.Config, error) {
 	parsed := &parsedConfig{}
-	if err := utils.DecodeRaw(raw, parsed); err != nil {
+	if err := decoding.DecodeRaw(raw, parsed); err != nil {
 		return nil, err
 	}
 	config := &api.Config{

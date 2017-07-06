@@ -1,7 +1,9 @@
-package utils
+package decoding
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -16,6 +18,26 @@ func DecodeRaw(raw interface{}, result interface{}) error {
 		return err
 	}
 	return decoder.Decode(raw)
+}
+
+// DecodeArray converts an interface to a slice of interfaces{}
+func DecodeArray(raw interface{}) []interface{} {
+	if raw == nil {
+		return nil
+	}
+	var arr []interface{}
+	switch reflect.TypeOf(raw).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(raw)
+		for i := 0; i < s.Len(); i++ {
+			v := s.Index(i)
+			if !v.IsNil() {
+				arr = append(arr, v.Interface())
+			}
+		}
+		return arr
+	}
+	return nil
 }
 
 // ToStringArray converts the given interface to a []string if possible

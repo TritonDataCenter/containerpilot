@@ -1,4 +1,4 @@
-package utils
+package services
 
 import (
 	"bytes"
@@ -9,12 +9,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/joyent/containerpilot/config/decoding"
 	log "github.com/sirupsen/logrus"
 )
 
 // IPFromInterfaces ...
 func IPFromInterfaces(raw interface{}) (string, error) {
-	interfaces, ifaceErr := ToStringArray(raw)
+	interfaces, ifaceErr := decoding.ToStringArray(raw)
 	if ifaceErr != nil {
 		return "", ifaceErr
 	}

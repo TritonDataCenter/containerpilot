@@ -1,13 +1,13 @@
-package config
+package logging
 
 import (
 	"bytes"
 	"fmt"
 	"io"
-	"time"
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,12 +26,13 @@ var defaultLog = &LogConfig{
 }
 
 func init() {
-	if err := defaultLog.init(); err != nil {
+	if err := defaultLog.Init(); err != nil {
 		log.Println(err)
 	}
 }
 
-func (l *LogConfig) init() error {
+// Init initializes the logger and sets default values if not provided
+func (l *LogConfig) Init() error {
 	// Set defaults
 	if l.Level == "" {
 		l.Level = defaultLog.Level
@@ -86,7 +87,7 @@ func (writer RFC3339logWriter) Write(bytes []byte) (int, error) {
 
 // Format formats the logrus entry by passing it to the "log" package
 func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	
+
 	b := &bytes.Buffer{}
 	logger := log.New(new(RFC3339logWriter), "", 0)
 	logger.Println(entry.Message)

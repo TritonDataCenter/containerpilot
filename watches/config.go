@@ -3,8 +3,9 @@ package watches
 import (
 	"fmt"
 
+	"github.com/joyent/containerpilot/config/decoding"
+	"github.com/joyent/containerpilot/config/services"
 	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/utils"
 )
 
 // Config configures the watch
@@ -23,7 +24,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 	if raw == nil {
 		return watches, nil
 	}
-	if err := utils.DecodeRaw(raw, &watches); err != nil {
+	if err := decoding.DecodeRaw(raw, &watches); err != nil {
 		return watches, fmt.Errorf("Watch configuration error: %v", err)
 	}
 	for _, watch := range watches {
@@ -36,7 +37,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 
 // Validate ensures Config meets all requirements
 func (cfg *Config) Validate(disc discovery.Backend) error {
-	if err := utils.ValidateServiceName(cfg.Name); err != nil {
+	if err := services.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}
 

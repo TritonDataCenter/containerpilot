@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/joyent/containerpilot/commands"
+	"github.com/joyent/containerpilot/config/decoding"
+	"github.com/joyent/containerpilot/config/services"
+	"github.com/joyent/containerpilot/config/timing"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -81,7 +83,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 	if raw == nil {
 		return jobs, nil
 	}
-	if err := utils.DecodeRaw(raw, &jobs); err != nil {
+	if err := decoding.DecodeRaw(raw, &jobs); err != nil {
 		return nil, fmt.Errorf("job configuration error: %v", err)
 	}
 	stopDependencies := make(map[string]string)
@@ -137,7 +139,7 @@ func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
 	}
 	// we only need to validate the name if we're doing discovery;
 	// we'll just take the name of the exec otherwise
-	if err := utils.ValidateServiceName(cfg.Name); err != nil {
+	if err := services.ValidateServiceName(cfg.Name); err != nil {
 		return err
 	}
 	return cfg.addDiscoveryConfig(disc)
@@ -166,7 +168,7 @@ func (cfg *Config) validateWhen() error {
 }
 
 func (cfg *Config) validateFrequency() error {
-	freq, err := utils.ParseDuration(cfg.When.Frequency)
+	freq, err := timing.ParseDuration(cfg.When.Frequency)
 	if err != nil {
 		return fmt.Errorf("unable to parse job[%s].when.interval '%s': %v",
 			cfg.Name, cfg.When.Frequency, err)
@@ -184,7 +186,7 @@ func (cfg *Config) validateFrequency() error {
 
 func (cfg *Config) validateWhenEvent() error {
 
-	whenTimeout, err := utils.GetTimeout(cfg.When.Timeout)
+	whenTimeout, err := timing.GetTimeout(cfg.When.Timeout)
 	if err != nil {
 		return fmt.Errorf("unable to parse job[%s].when.timeout: %v",
 			cfg.Name, err)
@@ -208,7 +210,7 @@ func (cfg *Config) validateWhenEvent() error {
 }
 
 func (cfg *Config) validateStoppingTimeout() error {
-	stoppingTimeout, err := utils.GetTimeout(cfg.StopTimeout)
+	stoppingTimeout, err := timing.GetTimeout(cfg.StopTimeout)
 	if err != nil {
 		return fmt.Errorf("unable to parse job[%s].stopTimeout '%s': %v",
 			cfg.Name, cfg.StopTimeout, err)
@@ -225,7 +227,7 @@ func (cfg *Config) validateExec() error {
 		cfg.execTimeout = cfg.freqInterval
 	}
 	if cfg.ExecTimeout != "" {
-		execTimeout, err := utils.GetTimeout(cfg.ExecTimeout)
+		execTimeout, err := timing.GetTimeout(cfg.ExecTimeout)
 		if err != nil {
 			return fmt.Errorf("unable to parse job[%s].timeout '%s': %v",
 				cfg.Name, cfg.ExecTimeout, err)
@@ -272,7 +274,7 @@ func (cfg *Config) validateHealthCheck() error {
 
 	var checkTimeout time.Duration
 	if cfg.Health.CheckTimeout != "" {
-		parsedTimeout, err := utils.GetTimeout(cfg.Health.CheckTimeout)
+		parsedTimeout, err := timing.GetTimeout(cfg.Health.CheckTimeout)
 		if err != nil {
 			return fmt.Errorf("could not parse job[%s].health.timeout '%s': %v",
 				cfg.Name, cfg.Health.CheckTimeout, err)
@@ -342,11 +344,11 @@ func (cfg *Config) validateRestarts() error {
 // addDiscoveryConfig validates the configuration for service discovery
 // and attaches the discovery.ServiceDefinition to the Config
 func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
-	interfaces, ifaceErr := utils.ToStringArray(cfg.Interfaces)
+	interfaces, ifaceErr := decoding.ToStringArray(cfg.Interfaces)
 	if ifaceErr != nil {
 		return ifaceErr
 	}
-	ipAddress, err := utils.GetIP(interfaces)
+	ipAddress, err := services.GetIP(interfaces)
 	if err != nil {
 		return err
 	}
