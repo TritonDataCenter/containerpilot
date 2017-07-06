@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/joyent/containerpilot/events"
+	"github.com/joyent/containerpilot/version"
 )
 
 // Telemetry represents the service to advertise for finding the metrics
@@ -32,7 +33,7 @@ func NewTelemetry(cfg *Config) *Telemetry {
 	}
 	t := &Telemetry{
 		Metrics: []*Metric{},
-		Status:  &Status{},
+		Status:  &Status{Version: version.Version},
 	}
 	t.addr = cfg.addr
 	router := http.NewServeMux()

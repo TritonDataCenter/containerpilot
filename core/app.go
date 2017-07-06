@@ -19,13 +19,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	// Version is the version for this build, set at build time via LDFLAGS
-	Version string
-	// GitHash is the short-form commit hash of this build, set at build time
-	GitHash string
-)
-
 // App encapsulates the state of ContainerPilot after the initial setup.
 type App struct {
 	ControlServer *control.HTTPServer

@@ -7,6 +7,7 @@ import (
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/version"
 )
 
 // Config represents the service to advertise for finding the metrics
@@ -67,6 +68,9 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 
 // ToJobConfig ...
 func (cfg *Config) ToJobConfig() *jobs.Config {
+	if version.Version != "" {
+		cfg.Tags = append(cfg.Tags, version.Version)
+	}
 	service := &jobs.Config{
 		Name: "containerpilot", // TODO: hard-coded?
 		Health: &jobs.HealthConfig{
