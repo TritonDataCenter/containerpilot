@@ -1,4 +1,4 @@
-package utils
+package services
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 
 var validName = regexp.MustCompile(`^[a-z][a-zA-Z0-9\-]+$`)
 
-// ValidateServiceName checks if the service name passed as an argument
+// ValidateName checks if the service name passed as an argument
 // is is alpha-numeric with dashes. This ensures compliance with both DNS
 // and discovery backends.
-func ValidateServiceName(name string) error {
+func ValidateName(name string) error {
 	if name == "" {
 		return fmt.Errorf("'name' must not be blank")
 	}
