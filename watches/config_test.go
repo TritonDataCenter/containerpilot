@@ -5,8 +5,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/assert"
 )
 
 func TestWatchesParse(t *testing.T) {
@@ -16,25 +17,17 @@ func TestWatchesParse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, watches[0].serviceName, "upstreamA",
-		"expected %v for serviceName got %v")
-	assert.Equal(t, watches[0].Name, "watch.upstreamA",
-		"expected %v for Name got %v")
-	assert.Equal(t, watches[0].Poll, 11,
-		"expected %v for Poll got %v")
-	assert.Equal(t, watches[0].Tag, "dev",
-		"expected %v for Tag got %v")
-	assert.Equal(t, watches[0].DC, "",
-		"expected %v for DC got %v")
+	assert := assert.New(t)
+	assert.Equal(watches[0].serviceName, "upstreamA", "config for serviceName")
+	assert.Equal(watches[0].Name, "watch.upstreamA", "config for Name")
+	assert.Equal(watches[0].Poll, 11, "config for Poll")
+	assert.Equal(watches[0].Tag, "dev", "config for Tag")
+	assert.Equal(watches[0].DC, "", "config for DC")
 
-	assert.Equal(t, watches[1].serviceName, "upstreamB",
-		"expected %v for serviceName got %v")
-	assert.Equal(t, watches[1].Name, "watch.upstreamB",
-		"expected %v for Name got %v")
-	assert.Equal(t, watches[1].Poll, 79,
-		"expected %v for Poll got %v")
-	assert.Equal(t, watches[1].DC, "us-east-1",
-		"expected %v for DC got %v")
+	assert.Equal(watches[1].serviceName, "upstreamB", "config for serviceName")
+	assert.Equal(watches[1].Name, "watch.upstreamB", "config for Name")
+	assert.Equal(watches[1].Poll, 79, "config for Poll")
+	assert.Equal(watches[1].DC, "us-east-1", "config for DC")
 }
 
 func TestWatchesConfigError(t *testing.T) {

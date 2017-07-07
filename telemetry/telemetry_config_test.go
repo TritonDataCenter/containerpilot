@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/assert"
-	"github.com/joyent/containerpilot/tests/mocks"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/joyent/containerpilot/tests"
+	"github.com/joyent/containerpilot/tests/mocks"
 )
 
 func TestTelemetryConfigParse(t *testing.T) {
@@ -19,7 +19,9 @@ func TestTelemetryConfigParse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse telemetry JSON: %s", err)
 	}
-	assert.Equal(t, len(telem.MetricConfigs), 1, "expected 1 metric but got: %v")
+	if len(telem.MetricConfigs) != 1 {
+		t.Fatalf("expected 1 metric but got %+v", telem.MetricConfigs)
+	}
 	metric := telem.MetricConfigs[0]
 	if _, ok := metric.collector.(prometheus.Counter); !ok {
 		t.Fatalf("incorrect collector; expected Counter but got %v", metric.collector)

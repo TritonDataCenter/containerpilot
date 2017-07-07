@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/assert"
 	"github.com/joyent/containerpilot/tests/mocks"
 )
 
@@ -17,147 +18,123 @@ import (
 
 func TestJobConfigServiceWithPreStart(t *testing.T) {
 	jobs := loadTestConfig(t)
+	assert := assert.New(t)
 
 	// job0 is the main application
 	job0 := jobs[0]
-	assert.Equal(t, job0.Name, "serviceA",
-		"expected '%v' for job0.Name but got '%v'")
-	assert.Equal(t, job0.Exec, "/bin/serviceA.sh",
-		"expected '%v' for job0.Exec but got '%v'")
-	assert.Equal(t, job0.exec.Exec, "/bin/serviceA.sh",
-		"expected '%v' for job0.exec.Exec but got '%v'")
-	assert.Equal(t, len(job0.exec.Args), 0,
-		"expected '%v' for len(job0.exec.Args) but got '%v'")
-	assert.Equal(t, job0.Port, 8080,
-		"expected '%v' for job0.Port but got '%v'")
-	assert.Equal(t, job0.Tags, []string{"tag1", "tag2"},
-		"expected '%v' for job0.Tags but got '%v'")
-	assert.Equal(t, job0.restartLimit, 0,
-		"expected '%v' for job0.restartLimit but got '%v'")
-	assert.Equal(t, job0.whenEvent, events.Event{events.ExitSuccess, "preStart"},
-		"expected '%v' for serviceA.whenEvent got '%v'")
-	assert.Equal(t, job0.healthCheckExec.Exec, "/bin/healthCheckA.sh",
-		"expected %v for job0.healthCheckExec.Exec got %v")
-	assert.Equal(t, job0.healthCheckExec.Args, []string{"A1", "A2"},
-		"expected %v for job0.healthCheckExec.Args got %v")
-	if job0.Restarts != nil {
-		t.Fatalf("expected nil for job0.Restarts but got '%v'", job0.Restarts)
-	}
+	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
+	assert.Equal(job0.Exec, "/bin/serviceA.sh", "config for job0.Exec")
+	assert.Equal(job0.exec.Exec, "/bin/serviceA.sh",
+		"config for job.0.Exec.exec")
+	assert.Equal(len(job0.exec.Args), 0, "config for job0.exec.Args")
+	assert.Equal(job0.Port, 8080, "config for job0.Port")
+	assert.Equal(job0.Tags, []string{"tag1", "tag2"},
+		"config for job0.Tags")
+	assert.Equal(job0.restartLimit, 0, "config for job0.restartLimit")
+	assert.Equal(job0.whenEvent, events.Event{events.ExitSuccess, "preStart"},
+		"config for serviceA.whenEvent")
+	assert.Equal(job0.healthCheckExec.Exec, "/bin/healthCheckA.sh",
+		"config for job0.healthCheckExec.Exec")
+	assert.Equal(job0.healthCheckExec.Args, []string{"A1", "A2"},
+		"config for job0.healthCheckExec.Args")
+	assert.Nil(job0.Restarts, "config for job0.Restarts")
 
 	// job1 is the preStart
 	job1 := jobs[1]
-	assert.Equal(t, job1.Name, "preStart",
-		"expected '%v' for preStart.Name got '%v'")
-	assert.Equal(t, job1.exec.Exec, "/bin/to/preStart.sh",
-		"expected '%v' for preStart.exec.Exec got '%v")
-	assert.Equal(t, job1.whenEvent, events.GlobalStartup,
-		"expected '%v' for job1.whenEvent got '%v'")
-	assert.Equal(t, job1.Port, 0,
-		"expected '%v' for job1.Port but got '%v'")
-	assert.Equal(t, job1.restartLimit, 0,
-		"expected '%v' for job1.restartLimit got '%v'")
-	if job1.Restarts != nil {
-		t.Fatalf("expected nil for job1.Restarts but got '%v'", job1.Restarts)
-	}
-	if job1.serviceDefinition != nil {
-		t.Fatalf("expected nil for job1.serviceDefinition but got '%v'",
-			job1.serviceDefinition)
-	}
-
+	assert.Equal(job1.Name, "preStart", "config for preStart.Name")
+	assert.Equal(job1.exec.Exec, "/bin/to/preStart.sh",
+		"config for preStart.exec.Exec")
+	assert.Equal(job1.whenEvent, events.GlobalStartup,
+		"config for job1.whenEvent")
+	assert.Equal(job1.Port, 0, "config for job1.Port")
+	assert.Equal(job1.restartLimit, 0, "config for job1.restartLimit")
+	assert.Nil(job1.Restarts, "config for job1.Restarts")
+	assert.Nil(job1.serviceDefinition, "config for job1.serviceDefinition")
 }
 
 func TestJobConfigServiceWithArrayExec(t *testing.T) {
 	jobs := loadTestConfig(t)
+	assert := assert.New(t)
+
 	job0 := jobs[0]
-	assert.Equal(t, job0.Name, "serviceB",
-		"expected '%v' for job0.Name but got '%v'")
-	assert.Equal(t, job0.Port, 5000,
-		"expected '%v' for job0.Port but got '%v'")
-	assert.Equal(t, len(job0.Tags), 0,
-		"expected '%v' for len(job0.Tags) but got '%v'")
-	assert.Equal(t, job0.Exec, []interface{}{"/bin/serviceB", "B"},
-		"expected '%v' for job0.Exec but got '%v'")
-	assert.Equal(t, job0.healthCheckExec.Exec, "/bin/healthCheckB.sh",
-		"expected %v for exec.Exec got %v")
-	assert.Equal(t, job0.healthCheckExec.Args, []string{"B1", "B2"},
-		"expected %v for exec.Args got %v")
-	if job0.Restarts != nil {
-		t.Fatalf("expected nil for job0.Restarts but got '%v'", job0.Restarts)
-	}
+	assert.Equal(job0.Name, "serviceB", "config for job0.Name")
+	assert.Equal(job0.Port, 5000, "config for job0.Port")
+	assert.Equal(len(job0.Tags), 0, "# of tags in job0.Tags")
+	assert.Equal(job0.Exec, []interface{}{"/bin/serviceB", "B"},
+		"config for job0.Exec")
+	assert.Equal(job0.healthCheckExec.Exec, "/bin/healthCheckB.sh",
+		"config for job0.healthCheckExec.Exec")
+	assert.Equal(job0.healthCheckExec.Args, []string{"B1", "B2"},
+		"config for job0.healthCheckExec.Args")
+	assert.Nil(job0.Restarts, "config for job0.Restarts")
 }
 
 func TestJobConfigServiceWithStopping(t *testing.T) {
 	jobs := loadTestConfig(t)
+	assert := assert.New(t)
 
 	// job0 is the main application
 	job0 := jobs[0]
-	assert.Equal(t, job0.Name, "serviceA",
-		"expected '%v' for job0.Name but got '%v'")
-	assert.Equal(t, job0.Name, "serviceA",
-		"expected '%v' for serviceA.Name got '%v'")
-	assert.Equal(t, job0.stoppingWaitEvent, events.Event{events.Stopped, "preStop"},
-		"expected no stopping event for serviceA got '%v'")
+	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
+	assert.Equal(job0.stoppingWaitEvent, events.Event{events.Stopped, "preStop"},
+		"expected no stopping event for serviceA")
 
 	// job1 is its preStart
 	job1 := jobs[1]
-	assert.Equal(t, job1.Name, "preStart",
-		"expected '%v' for preStart.Name got '%v'")
+	assert.Equal(job1.Name, "preStart", "config for job1.Name")
 
 	// job2 is its preStop
 	job2 := jobs[2]
-	assert.Equal(t, job2.Name, "preStop",
-		"expected '%v' for preStop.Name got '%v'")
-	assert.Equal(t, job2.exec.Exec, "/bin/to/preStop.sh",
-		"expected '%v' for preStop.exec.Exec got '%v")
-	assert.Equal(t, job2.whenEvent, events.Event{events.Stopping, "serviceA"},
-		"expected '%v' for preStop.whenEvent got '%v")
+	assert.Equal(job2.Name, "preStop", "config for job2.Name")
+	assert.Equal(job2.exec.Exec, "/bin/to/preStop.sh",
+		"config for preStop.exec.Exec")
+	assert.Equal(job2.whenEvent, events.Event{events.Stopping, "serviceA"},
+		"config for preStop.whenEvent")
 
 	// job3 is its post-stop
 	job3 := jobs[3]
-	assert.Equal(t, job3.Name, "postStop",
-		"expected '%v' for postStop.Name got '%v'")
-	assert.Equal(t, job3.exec.Exec, "/bin/to/postStop.sh",
-		"expected '%v' for postStop.exec.Exec got '%v")
-	assert.Equal(t, job3.whenEvent, events.Event{events.Stopped, "serviceA"},
-		"expected '%v' for postStop.whenEvent got '%v")
+	assert.Equal(job3.Name, "postStop", "config for job3.Name")
+	assert.Equal(job3.exec.Exec, "/bin/to/postStop.sh",
+		"config for postStop.exec.Exec")
+	assert.Equal(job3.whenEvent, events.Event{events.Stopped, "serviceA"},
+		"config for postStop.whenEvent")
 }
 
 func TestJobConfigServiceNonAdvertised(t *testing.T) {
 	job := loadTestConfig(t)[0]
-	assert.Equal(t, job.Name, "coprocessC", "expected '%v' for job.Name but got '%v'")
-	assert.Equal(t, job.Port, 0, "expected '%v' for job.Port but got '%v'")
-	assert.Equal(t, job.whenEvent, events.GlobalStartup,
-		"expected '%v' for job.whenEvent but got '%v'")
-	assert.Equal(t, job.Restarts, "unlimited", "expected '%v' for job.Restarts but got '%v'")
+	assert := assert.New(t)
+	assert.Equal(job.Name, "coprocessC", "config for job.Name")
+	assert.Equal(job.Port, 0, "config for job.Port")
+	assert.Equal(job.whenEvent, events.GlobalStartup,
+		"config for job.whenEvent")
+	assert.Equal(job.Restarts, "unlimited", "config for job.Restarts")
 }
 
 func TestJobConfigPeriodicTask(t *testing.T) {
 	job := loadTestConfig(t)[0]
-	assert.Equal(t, job.Name, "taskD", "expected '%v' for job.Name but got '%v'")
-	assert.Equal(t, job.Port, 0, "expected '%v' for job.Port but got '%v'")
-	assert.Equal(t, job.When.Frequency, "1s", "expected '%v' for job.When but got '%v'")
-	if job.Restarts != nil {
-		t.Fatalf("expected nil for job.Restarts but got '%v'", job.Restarts)
-	}
+	assert := assert.New(t)
+	assert.Equal(job.Name, "taskD", "config for job.Name")
+	assert.Equal(job.Port, 0, "config for job.Port")
+	assert.Equal(job.When.Frequency, "1s", "config for job.When")
+	assert.Nil(job.Restarts, "config for job.Restarts")
 }
 
 func TestJobConfigConsulExtras(t *testing.T) {
 	job := loadTestConfig(t)[0]
-	assert.Equal(t, job.Name, "serviceA", "expected '%v' for job.Name but got '%v'")
-	assert.Equal(t, job.Port, 8080, "expected '%v' for job.Port but got '%v'")
-	assert.Equal(t, job.ConsulExtras.DeregisterCriticalServiceAfter,
-		"10m", "expected %v got %v")
-	assert.Equal(t, job.ConsulExtras.EnableTagOverride,
-		true, "expected %v got %v")
-	if job.Restarts != nil {
-		t.Fatalf("expected nil for job.Restarts but got '%v'", job.Restarts)
-	}
-
+	assert := assert.New(t)
+	assert.Equal(job.Name, "serviceA", "config for job.Name")
+	assert.Equal(job.Port, 8080, "config for job.Port")
+	assert.Equal(job.ConsulExtras.DeregisterCriticalServiceAfter,
+		"10m", "config for job.ConsulExtras.DeregisterCriticalServiceAfter")
+	assert.True(job.ConsulExtras.EnableTagOverride,
+		"config for job.ConsulExtras.EnableTagOverride")
+	assert.Nil(job.Restarts, "config for job.Restarts")
 }
 
 func TestJobConfigSmokeTest(t *testing.T) {
 	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRawToSlice(string(data))
+	assert := assert.New(t)
 
 	jobs, err := NewConfigs(testCfg, noop)
 	if err != nil {
@@ -165,84 +142,74 @@ func TestJobConfigSmokeTest(t *testing.T) {
 	}
 
 	if len(jobs) != 7 {
-		t.Fatalf("expected 7 jobs but got %v", jobs)
+		t.Fatalf("expected 7 jobs ", jobs)
 	}
 	job0 := jobs[0]
-	assert.Equal(t, job0.Name, "serviceA", "expected '%v' for job0.Name but got '%v'")
-	assert.Equal(t, job0.Exec, "/bin/serviceA", "expected '%v' for job0.Exec but got '%v'")
 
-	assert.Equal(t, job0.Port, 8080, "expected '%v' for job0.Port but got '%v'")
-	assert.Equal(t, job0.Tags, []string{"tag1", "tag2"}, "expected '%v' for job0.Tags but got '%v'")
-	if job0.Restarts != nil {
-		t.Fatalf("expected nil for job0.Restarts but got '%v'", job0.Restarts)
-	}
+	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
+	assert.Equal(job0.Exec, "/bin/serviceA", "config for job0.Exec")
+
+	assert.Equal(job0.Port, 8080, "config for job0.Port")
+	assert.Equal(job0.Tags, []string{"tag1", "tag2"}, "config for job0.Tags")
+	assert.Nil(job0.Restarts, "config for job0.Restarts")
 
 	job1 := jobs[1]
-	assert.Equal(t, job1.Name, "serviceB", "expected '%v' for job1.Name but got '%v'")
-	assert.Equal(t, job1.Port, 5000, "expected '%v' for job1.Port but got '%v'")
-	assert.Equal(t, len(job1.Tags), 0, "expected '%v' for len(job1.Tags) but got '%v'")
-	assert.Equal(t, job1.Exec, []interface{}{"/bin/serviceB", "B"}, "expected '%v' for job1.Exec but got '%v'")
-	if job1.Restarts != nil {
-		t.Fatalf("expected nil for job1.Restarts but got '%v'", job1.Restarts)
-	}
+	assert.Equal(job1.Name, "serviceB", "config for job1.Name")
+	assert.Equal(job1.Port, 5000, "config for job1.Port")
+	assert.Equal(len(job1.Tags), 0, "config for len(job1.Tags)")
+	assert.Equal(job1.Exec, []interface{}{"/bin/serviceB", "B"}, "config for job1.Exec")
+	assert.Nil(job1.Restarts, "config for job1.Restarts")
 
 	job2 := jobs[2]
-	assert.Equal(t, job2.Name, "coprocessC", "expected '%v' for job2.Name but got '%v'")
-	assert.Equal(t, job2.Port, 0, "expected '%v' for job2.Port but got '%v'")
-	assert.Equal(t, job2.When, &WhenConfig{}, "expected '%v' for job2.When but got '%v'")
-	assert.Equal(t, job2.Restarts, "unlimited", "expected '%v' for job2.Restarts but got '%v'")
+	assert.Equal(job2.Name, "coprocessC", "config for job2.Name")
+	assert.Equal(job2.Port, 0, "config for job2.Port")
+	assert.Equal(job2.When, &WhenConfig{}, "config for job2.When")
+	assert.Equal(job2.Restarts, "unlimited", "config for job2.Restarts")
 
 	job3 := jobs[3]
-	assert.Equal(t, job3.Name, "taskD", "expected '%v' for job3.Name but got '%v'")
-	assert.Equal(t, job3.Port, 0, "expected '%v' for job3.Port but got '%v'")
-	assert.Equal(t, job3.When.Frequency, "1s", "expected '%v' for job3.When but got '%v'")
-	if job3.Restarts != nil {
-		t.Fatalf("expected nil for job3.Restarts but got '%v'", job3.Restarts)
-	}
+	assert.Equal(job3.Name, "taskD", "config for job3.Name")
+	assert.Equal(job3.Port, 0, "config for job3.Port")
+	assert.Equal(job3.When.Frequency, "1s", "config for job3.When")
+	assert.Nil(job3.Restarts, "config for job3.Restarts")
 
 	job4 := jobs[4]
-	assert.Equal(t, job4.Name, "preStart", "expected '%v' for job4.Name but got '%v'")
-	assert.Equal(t, job4.Port, 0, "expected '%v' for job4.Port but got '%v'")
-	assert.Equal(t, job4.When, &WhenConfig{}, "expected '%v' for job4.When but got '%v'")
-	if job4.Restarts != nil {
-		t.Fatalf("expected nil for job4.Restarts but got '%v'", job4.Restarts)
-	}
+	assert.Equal(job4.Name, "preStart", "config for job4.Name")
+	assert.Equal(job4.Port, 0, "config for job4.Port")
+	assert.Equal(job4.When, &WhenConfig{}, "config for job4.When")
+	assert.Nil(job4.Restarts, "config for job4.Restarts")
 
 	job5 := jobs[5]
-	assert.Equal(t, job5.Name, "preStop", "expected '%v' for job5.Name but got '%v'")
-	assert.Equal(t, job5.Port, 0, "expected '%v' for job5.Port but got '%v'")
-	assert.Equal(t, job5.When, &WhenConfig{Source: "serviceA", Once: "stopping"},
-		"expected '%v' for job5.When but got '%v'")
-	if job5.Restarts != nil {
-		t.Fatalf("expected nil for job5.Restarts but got '%v'", job5.Restarts)
-	}
+	assert.Equal(job5.Name, "preStop", "config for job5.Name")
+	assert.Equal(job5.Port, 0, "config for job5.Port")
+	assert.Equal(job5.When, &WhenConfig{Source: "serviceA", Once: "stopping"},
+		"config for job5.When")
+	assert.Nil(job5.Restarts, "config for job5.Restarts")
 
 	job6 := jobs[6]
-	assert.Equal(t, job6.Name, "postStop", "expected '%v' for job6.Name but got '%v'")
-	assert.Equal(t, job6.Port, 0, "expected '%v' for job6.Port but got '%v'")
-	assert.Equal(t, job6.When, &WhenConfig{Source: "serviceA", Once: "stopped"},
-		"expected '%v' for job6.When but got '%v'")
-	if job6.Restarts != nil {
-		t.Fatalf("expected nil for job6.Restarts but got '%v'", job6.Restarts)
-	}
+	assert.Equal(job6.Name, "postStop", "config for job6.Name")
+	assert.Equal(job6.Port, 0, "config for job6.Port")
+	assert.Equal(job6.When, &WhenConfig{Source: "serviceA", Once: "stopped"},
+		"config for job6.When")
+	assert.Nil(job6.Restarts, "config for job6.Restarts")
 }
 
 // ---------------------------------------------------------------------
 // Error condition tests
 
 func TestJobConfigValidateName(t *testing.T) {
+	assert := assert.New(t)
 
 	cfgA := `[{name: "", port: 80, health: {exec: "myhealth", interval: 1, ttl: 3}}]`
 	_, err := NewConfigs(tests.DecodeRawToSlice(cfgA), noop)
-	assert.Error(t, err, "'name' must not be blank")
+	assert.Error(err, "'name' must not be blank")
 
 	cfgB := `[{name: "", exec: "myexec", port: 80, health: {exec: "myhealth", interval: 1, ttl: 3}}]`
 	_, err = NewConfigs(tests.DecodeRawToSlice(cfgB), noop)
-	assert.Error(t, err, "'name' must not be blank")
+	assert.Error(err, "'name' must not be blank")
 
 	cfgC := `[{name: "", exec: "myexec"}]`
 	_, err = NewConfigs(tests.DecodeRawToSlice(cfgC), nil)
-	assert.Error(t, err, "'name' must not be blank")
+	assert.Error(err, "'name' must not be blank")
 
 	// invalid name is permitted if there's no 'port' config
 	cfgD := `[{name: "myjob_invalid_name", exec: "myexec"}]`
@@ -253,19 +220,20 @@ func TestJobConfigValidateName(t *testing.T) {
 }
 
 func TestJobConfigValidateDiscovery(t *testing.T) {
+	assert := assert.New(t)
 
 	cfgA := `[{name: "myName", port: 80}]`
 	_, err := NewConfigs(tests.DecodeRawToSlice(cfgA), noop)
-	assert.Error(t, err, "job[myName].health must be set if 'port' is set")
+	assert.Error(err, "job[myName].health must be set if 'port' is set")
 
 	cfgB := `[{name: "myName", port: 80, health: {interval: 1}}]`
 	_, err = NewConfigs(tests.DecodeRawToSlice(cfgB), noop)
-	assert.Error(t, err, "job[myName].health.ttl must be > 0")
+	assert.Error(err, "job[myName].health.ttl must be > 0")
 
 	// no health check shouldn't return an error
 	cfgD := `[{name: "myName", port: 80, health: {interval: 1, ttl: 1}}]`
 	if _, err = NewConfigs(tests.DecodeRawToSlice(cfgD), noop); err != nil {
-		t.Fatalf("expected no error but got %v", err)
+		t.Fatalf("expected no error", err)
 	}
 }
 
@@ -319,6 +287,7 @@ func TestJobConfigValidateFrequency(t *testing.T) {
 }
 
 func TestJobConfigValidateExec(t *testing.T) {
+	assert := assert.New(t)
 
 	testCfg := tests.DecodeRawToSlice(`[
 	{
@@ -330,12 +299,12 @@ func TestJobConfigValidateExec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, cfg[0].exec.Exec, "/bin/serviceA",
-		"expected %v for serviceA.exec.Exec got %v")
-	assert.Equal(t, cfg[0].exec.Args, []string{"A1", "A2"},
-		"expected %v for serviceA.exec.Args got %v")
-	assert.Equal(t, cfg[0].execTimeout, time.Duration(time.Millisecond),
-		"expected %v for serviceA.execTimeout got %v")
+	assert.Equal(cfg[0].exec.Exec, "/bin/serviceA",
+		"config for serviceA.exec.Exec")
+	assert.Equal(cfg[0].exec.Args, []string{"A1", "A2"},
+		"config for serviceA.exec.Args")
+	assert.Equal(cfg[0].execTimeout, time.Duration(time.Millisecond),
+		"config for serviceA.execTimeout")
 
 	testCfg = tests.DecodeRawToSlice(`[
 	{
@@ -347,12 +316,12 @@ func TestJobConfigValidateExec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, cfg[0].exec.Exec, "/bin/serviceB",
-		"expected %v for serviceB.exec.Exec got %v")
-	assert.Equal(t, cfg[0].exec.Args, []string{"B1", "B2"},
-		"expected %v for serviceB.exec.Args got %v")
-	assert.Equal(t, cfg[0].execTimeout, time.Duration(time.Millisecond),
-		"expected %v for serviceB.execTimeout got %v")
+	assert.Equal(cfg[0].exec.Exec, "/bin/serviceB",
+		"config for serviceB.exec.Exec")
+	assert.Equal(cfg[0].exec.Args, []string{"B1", "B2"},
+		"config for serviceB.exec.Args")
+	assert.Equal(cfg[0].execTimeout, time.Duration(time.Millisecond),
+		"config for serviceB.execTimeout")
 
 	testCfg = tests.DecodeRawToSlice(`[
 	{
@@ -407,15 +376,16 @@ func TestJobConfigValidateRestarts(t *testing.T) {
 	{ name: "J", exec: "/bin/coprocessJ"}]`)
 
 	cfg, _ := NewConfigs(testCfg, nil)
-	expectMsg := "expected restarts=%v got %v"
+	expectMsg := "expected restartLimit"
 
-	assert.Equal(t, cfg[0].restartLimit, -1, expectMsg)
-	assert.Equal(t, cfg[1].restartLimit, 0, expectMsg)
-	assert.Equal(t, cfg[2].restartLimit, 1, expectMsg)
-	assert.Equal(t, cfg[3].restartLimit, 1, expectMsg)
-	assert.Equal(t, cfg[4].restartLimit, 0, expectMsg)
-	assert.Equal(t, cfg[5].restartLimit, 0, expectMsg)
-	assert.Equal(t, cfg[6].restartLimit, 0, expectMsg)
+	assert := assert.New(t)
+	assert.Equal(cfg[0].restartLimit, -1, expectMsg)
+	assert.Equal(cfg[1].restartLimit, 0, expectMsg)
+	assert.Equal(cfg[2].restartLimit, 1, expectMsg)
+	assert.Equal(cfg[3].restartLimit, 1, expectMsg)
+	assert.Equal(cfg[4].restartLimit, 0, expectMsg)
+	assert.Equal(cfg[5].restartLimit, 0, expectMsg)
+	assert.Equal(cfg[6].restartLimit, 0, expectMsg)
 }
 
 func TestHealthChecksConfigError(t *testing.T) {

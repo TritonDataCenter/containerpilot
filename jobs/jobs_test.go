@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/tests/assert"
 )
 
 func TestJobRunSafeClose(t *testing.T) {
@@ -167,7 +168,7 @@ func TestJobMaintenance(t *testing.T) {
 	t.Run("enter maintenance", func(t *testing.T) {
 		status := testFunc(t, statusUnknown, events.GlobalEnterMaintenance)
 		assert.Equal(t, status, statusMaintenance,
-			"expected job in '%v' status after entering maintenance but got '%v'")
+			"job status after entering maintenance mode")
 	})
 
 	// in-flight health checks should not bump the Job out of maintenance
@@ -175,7 +176,7 @@ func TestJobMaintenance(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
 			events.Event{events.ExitSuccess, "check.myjob"})
 		assert.Equal(t, status, statusMaintenance,
-			"expected job in '%v' status after passing check while in maintenance but got '%v'")
+			"job status after passing check while in maintenance")
 	})
 
 	// in-flight health checks should not bump the Job out of maintenance
@@ -183,20 +184,20 @@ func TestJobMaintenance(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
 			events.Event{events.ExitFailed, "check.myjob"})
 		assert.Equal(t, status, statusMaintenance,
-			"expected job in '%v' status after failed check while in maintenance but got '%v'")
+			"job status after failed check while in maintenance")
 	})
 
 	t.Run("exit maintenance", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance, events.GlobalExitMaintenance)
 		assert.Equal(t, status, statusUnknown,
-			"expected job in '%v' status after exiting maintenance but got '%v'")
+			"job status after exiting maintenance")
 	})
 
 	t.Run("now healthy", func(t *testing.T) {
 		status := testFunc(t, statusUnknown,
 			events.Event{events.ExitSuccess, "check.myjob"})
 		assert.Equal(t, status, statusHealthy,
-			"expected job in '%v' status after passing check out of maintenance but got '%v'")
+			"job status after passing check out of maintenance")
 	})
 }
 
@@ -214,16 +215,16 @@ func TestJobProcessEvent(t *testing.T) {
 			statusLock:   &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.False(t, got, "processEvent returned %v after 1st startEvent, expected %v")
+		assert.False(t, got, "processEvent after 1st startEvent")
 
 		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.False(t, got, "processEvent returned %v after 2nd startEvent, expected %v")
+		assert.False(t, got, "processEvent after 2nd startEvent")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent returned %v after exit, expected %v")
+		assert.False(t, got, "processEvent after exit")
 
 		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.False(t, got, "processEvent returned %v after 3rd startEvent, expected %v")
+		assert.False(t, got, "processEvent after 3rd startEvent")
 	})
 
 	t.Run("start one startEvent, with 2 restarts", func(t *testing.T) {
@@ -241,19 +242,19 @@ func TestJobProcessEvent(t *testing.T) {
 			statusLock:     &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.False(t, got, "processEvent returned %v after 1st startEvent, expected %v")
+		assert.False(t, got, "processEvent after 1st startEvent")
 
 		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.True(t, got, "processEvent returned %v after 2nd startEvent, expected %v")
+		assert.True(t, got, "processEvent after 2nd startEvent")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
+		assert.False(t, got, "processEvent after 1st exit")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent returned %v after 2nd exit, expected %v")
+		assert.False(t, got, "processEvent after 2nd exit")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.True(t, got, "processEvent returned %v after 3rd exit, expected %v")
+		assert.True(t, got, "processEvent after 3rd exit")
 	})
 
 	t.Run("restart each exit", func(t *testing.T) {
@@ -267,13 +268,13 @@ func TestJobProcessEvent(t *testing.T) {
 			statusLock:     &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
+		assert.False(t, got, "processEvent after 1st exit")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent returned %v after 2nd exit, expected %v")
+		assert.False(t, got, "processEvent after 2nd exit")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent returned %v after 3rd exit, expected %v")
+		assert.False(t, got, "processEvent after 3rd exit")
 	})
 
 	t.Run("restart once on exit", func(t *testing.T) {
@@ -287,10 +288,10 @@ func TestJobProcessEvent(t *testing.T) {
 			statusLock:     &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent returned %v after 1st exit, expected %v")
+		assert.False(t, got, "processEvent after 1st exit")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.True(t, got, "processEvent returned %v after 2nd exit, expected %v")
+		assert.True(t, got, "processEvent after 2nd exit")
 	})
 
 }

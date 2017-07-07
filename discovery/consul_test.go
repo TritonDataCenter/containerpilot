@@ -6,7 +6,7 @@ import (
 
 	consul "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
-	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConsulObjectParse(t *testing.T) {
@@ -50,25 +50,25 @@ func TestCheckForChanges(t *testing.T) {
 
 	t0 := []*consul.ServiceEntry{}
 	didChange := c.compareAndSwap("test", t0)
-	assert.False(t, didChange, "got '%v' for 'didChange' after t0, expected '%v'")
+	assert.False(t, didChange, "value for 'didChange' after t0")
 
 	t1 := []*consul.ServiceEntry{
 		{Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}},
 		{Service: &consul.AgentService{Address: "1.2.3.5", Port: 80}},
 	}
 	didChange = c.compareAndSwap("test", t1)
-	assert.True(t, didChange, "got '%v' for 'didChange' after t1, expected '%v'")
+	assert.True(t, didChange, "value for 'didChange' after t1")
 
 	didChange = c.compareAndSwap("test", t0)
-	assert.True(t, didChange, "got '%v' for 'didChange' after t0 (again), expected '%v'")
+	assert.True(t, didChange, "value for 'didChange' after t0 (again)")
 
 	didChange = c.compareAndSwap("test", t1)
-	assert.True(t, didChange, "got '%v' for 'didChange' after t1 (again), expected '%v'")
+	assert.True(t, didChange, "value for 'didChange' after t1 (again)")
 
 	t3 := []*consul.ServiceEntry{
 		{Service: &consul.AgentService{Address: "1.2.3.4", Port: 80}}}
 	didChange = c.compareAndSwap("test", t3)
-	assert.True(t, didChange, "got '%v' for 'didChange' after t3, expected '%v'")
+	assert.True(t, didChange, "value for 'didChange' after t3")
 }
 
 /*

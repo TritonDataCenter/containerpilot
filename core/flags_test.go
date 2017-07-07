@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/joyent/containerpilot/tests/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInvalidConfigNoConfigFlag(t *testing.T) {
