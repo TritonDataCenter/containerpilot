@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/joyent/containerpilot/config/decode"
+	"github.com/joyent/containerpilot/config/services"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/utils"
 	"github.com/joyent/containerpilot/version"
 )
 
@@ -31,7 +32,7 @@ func NewConfig(raw interface{}, disc discovery.Backend) (*Config, error) {
 		return nil, nil
 	}
 	cfg := &Config{Port: 9090} // default values
-	if err := utils.DecodeRaw(raw, cfg); err != nil {
+	if err := decode.ToStruct(raw, cfg); err != nil {
 		return nil, fmt.Errorf("telemetry configuration error: %v", err)
 	}
 	if err := cfg.Validate(disc); err != nil {
@@ -52,7 +53,7 @@ func NewConfig(raw interface{}, disc discovery.Backend) (*Config, error) {
 
 // Validate ...
 func (cfg *Config) Validate(disc discovery.Backend) error {
-	ipAddress, err := utils.IPFromInterfaces(cfg.Interfaces)
+	ipAddress, err := services.IPFromInterfaces(cfg.Interfaces)
 	if err != nil {
 		return err
 	}

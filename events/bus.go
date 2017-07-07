@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -56,6 +57,16 @@ func (bus *EventBus) mod(p int) int {
 	return p % len(bus.buf)
 }
 
+var collector *prometheus.CounterVec
+
+func init() {
+	collector = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "containerpilot_events",
+		Help: "count of ContainerPilot events, partitioned by type and source",
+	}, []string{"code", "source"})
+	prometheus.MustRegister(collector)
+}
+
 // NewEventBus initializes an EventBus. We need this rather than a struct
 // literal so that we know our channels are non-nil (which block sends).
 func NewEventBus() *EventBus {
@@ -100,6 +111,7 @@ func (bus *EventBus) Publish(event Event) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
 	log.Debugf("event: %v", event)
+	collector.WithLabelValues(event.Code.String(), event.Source).Inc()
 	for subscriber := range bus.registry {
 		// sending to an unsubscribed Subscriber shouldn't be a runtime
 		// error, so this is in intentionally allowed to panic here

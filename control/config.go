@@ -3,7 +3,7 @@ package control
 import (
 	"fmt"
 
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/config/decode"
 )
 
 // DefaultSocket is the default location of the unix domain socket file
@@ -23,7 +23,7 @@ func NewConfig(raw interface{}) (*Config, error) {
 		return cfg, nil
 	}
 
-	if err := utils.DecodeRaw(raw, cfg); err != nil {
+	if err := decode.ToStruct(raw, cfg); err != nil {
 		return nil, fmt.Errorf("control config parsing error: %v", err)
 	}
 

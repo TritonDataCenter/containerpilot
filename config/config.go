@@ -6,22 +6,23 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"reflect"
 	"strings"
 
 	"github.com/flynn/json5"
 
+	"github.com/joyent/containerpilot/config/decode"
+	"github.com/joyent/containerpilot/config/logger"
+	"github.com/joyent/containerpilot/config/template"
 	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/utils"
 	"github.com/joyent/containerpilot/watches"
 )
 
 type rawConfig struct {
 	consul      interface{}
-	logConfig   *LogConfig
+	logConfig   *logger.Config
 	stopTimeout int
 	jobs        []interface{}
 	watches     []interface{}
@@ -32,7 +33,7 @@ type rawConfig struct {
 // Config contains the parsed config elements
 type Config struct {
 	Discovery   discovery.Backend
-	LogConfig   *LogConfig
+	LogConfig   *logger.Config
 	StopTimeout int
 	Jobs        []*jobs.Config
 	Watches     []*watches.Config
@@ -48,7 +49,7 @@ const (
 // InitLogging configure logrus with the new log config if available
 func (cfg *Config) InitLogging() error {
 	if cfg.LogConfig != nil {
-		return cfg.LogConfig.init()
+		return cfg.LogConfig.Init()
 	}
 	return nil
 }
@@ -114,11 +115,11 @@ func loadConfigFile(configFlag string) ([]byte, error) {
 }
 
 func renderConfigTemplate(configData []byte) ([]byte, error) {
-	template, err := ApplyTemplate(configData)
+	templ, err := template.Apply(configData)
 	if err != nil {
 		err = fmt.Errorf("could not apply template to config: %v", err)
 	}
-	return template, err
+	return templ, err
 }
 
 // newConfig unmarshals the textual configuration data into the
@@ -229,43 +230,24 @@ func highlightError(data []byte, pos int64) (int, int, string) {
 	return line, int(col), fmt.Sprintf("%s%s%s", prevLine, thisLine, highlight)
 }
 
-func decodeArray(raw interface{}) []interface{} {
-	if raw == nil {
-		return nil
-	}
-	var arr []interface{}
-	switch reflect.TypeOf(raw).Kind() {
-	case reflect.Slice:
-		s := reflect.ValueOf(raw)
-		for i := 0; i < s.Len(); i++ {
-			v := s.Index(i)
-			if !v.IsNil() {
-				arr = append(arr, v.Interface())
-			}
-		}
-		return arr
-	}
-	return nil
-}
-
 // We can't use mapstructure to decode our config map since we want the values
 // to also be raw interface{} types. mapstructure can only decode
 // into concrete structs and primitives
 func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
-	var logConfig LogConfig
+	var logConfig logger.Config
 	var stopTimeout int
-	if err := utils.DecodeRaw(configMap["logging"], &logConfig); err != nil {
+	if err := decode.ToStruct(configMap["logging"], &logConfig); err != nil {
 		return err
 	}
-	if err := utils.DecodeRaw(configMap["stopTimeout"], &stopTimeout); err != nil {
+	if err := decode.ToStruct(configMap["stopTimeout"], &stopTimeout); err != nil {
 		return err
 	}
 	result.consul = configMap["consul"]
 	result.stopTimeout = stopTimeout
 	result.logConfig = &logConfig
 	result.control = configMap["control"]
-	result.jobs = decodeArray(configMap["jobs"])
-	result.watches = decodeArray(configMap["watches"])
+	result.jobs = decode.ToSlice(configMap["jobs"])
+	result.watches = decode.ToSlice(configMap["watches"])
 	result.telemetry = configMap["telemetry"]
 
 	delete(configMap, "consul")

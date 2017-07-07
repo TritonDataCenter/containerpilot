@@ -25,6 +25,12 @@
       }
     }
   ],
+  watches: [
+    {
+      name: "otherapp",
+      interval: 1
+    }
+  ],
   telemetry: {
     port: 9090,
     metrics: [

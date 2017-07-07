@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/config/decode"
 )
 
 // ParseArgs parses the executable and its arguments from supported
@@ -17,7 +17,7 @@ func ParseArgs(raw interface{}) (executable string, args []string, err error) {
 			args = strings.Split(strings.TrimSpace(t), " ")
 		}
 	default:
-		args, err = utils.ToStringArray(raw)
+		args, err = decode.ToStrings(raw)
 	}
 	if len(args) == 0 {
 		err = errors.New("received zero-length argument")
