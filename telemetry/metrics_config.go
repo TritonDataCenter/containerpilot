@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/joyent/containerpilot/utils"
+	"github.com/joyent/containerpilot/config/decode"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -24,7 +24,7 @@ type MetricConfig struct {
 // NewMetricConfigs creates new metrics from a raw config
 func NewMetricConfigs(raw []interface{}) ([]*MetricConfig, error) {
 	var metrics []*MetricConfig
-	if err := utils.DecodeRaw(raw, &metrics); err != nil {
+	if err := decode.ToStruct(raw, &metrics); err != nil {
 		return nil, fmt.Errorf("MetricConfig configuration error: %v", err)
 	}
 	for _, metric := range metrics {
@@ -82,9 +82,5 @@ func (cfg *MetricConfig) Validate() error {
 	// we're going to unregister before every attempt to register
 	// so that we can reload config
 	prometheus.Unregister(cfg.collector)
-	if err := prometheus.Register(cfg.collector); err != nil {
-		return err
-	}
-
-	return nil
+	return prometheus.Register(cfg.collector)
 }

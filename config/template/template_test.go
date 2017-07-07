@@ -1,4 +1,4 @@
-package config
+package template
 
 import (
 	"io/ioutil"

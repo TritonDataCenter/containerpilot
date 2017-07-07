@@ -37,7 +37,7 @@ help:
 
 ## build the ContainerPilot binary
 build: build/containerpilot
-build/containerpilot:  build/containerpilot_build build/glide-installed */*.go *.go
+build/containerpilot:  build/containerpilot_build build/glide-installed */*/*.go */*.go */*/*.go *.go
 	$(docker) go build -o build/containerpilot -ldflags "$(LDFLAGS)"
 	@rm -rf src || true
 

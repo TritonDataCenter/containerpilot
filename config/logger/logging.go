@@ -1,4 +1,4 @@
-package config
+package logger
 
 import (
 	"bytes"
@@ -7,30 +7,32 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-// LogConfig configures the log levels
-type LogConfig struct {
+// Config configures the log levels
+type Config struct {
 	Level  string `json:"level"`
 	Format string `json:"format"`
 	Output string `json:"output"`
 }
 
-var defaultLog = &LogConfig{
+var defaultLog = &Config{
 	Level:  "INFO",
 	Format: "default",
 	Output: "stdout",
 }
 
 func init() {
-	if err := defaultLog.init(); err != nil {
+	if err := defaultLog.Init(); err != nil {
 		log.Println(err)
 	}
 }
 
-func (l *LogConfig) init() error {
+// Init initializes the logger and sets default values if not provided
+func (l *Config) Init() error {
 	// Set defaults
 	if l.Level == "" {
 		l.Level = defaultLog.Level
@@ -75,10 +77,19 @@ func (l *LogConfig) init() error {
 type DefaultLogFormatter struct {
 }
 
+// RFC3339logWriter io.Writer that outputs RFC3339 dates
+type RFC3339logWriter struct {
+}
+
+func (writer RFC3339logWriter) Write(bytes []byte) (int, error) {
+	return fmt.Print(time.Now().Format(time.RFC3339Nano) + " " + string(bytes))
+}
+
 // Format formats the logrus entry by passing it to the "log" package
 func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+
 	b := &bytes.Buffer{}
-	logger := log.New(b, "", log.LstdFlags)
+	logger := log.New(new(RFC3339logWriter), "", 0)
 	logger.Println(entry.Message)
 	// Panic and Fatal are handled by logrus automatically
 	return b.Bytes(), nil

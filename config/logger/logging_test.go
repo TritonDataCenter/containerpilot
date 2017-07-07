@@ -1,4 +1,4 @@
-package config
+package logger
 
 import (
 	"os"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoggingBootstrap(t *testing.T) {
-	defaultLog.init()
+	defaultLog.Init()
 	std := logrus.StandardLogger()
 	if std.Level != logrus.InfoLevel {
 		t.Errorf("Expected INFO level logs, but got: %s", std.Level)
@@ -23,12 +23,12 @@ func TestLoggingBootstrap(t *testing.T) {
 }
 
 func TestLoggingConfigInit(t *testing.T) {
-	testLog := &LogConfig{
+	testLog := &Config{
 		Level:  "DEBUG",
 		Format: "text",
 		Output: "stderr",
 	}
-	testLog.init()
+	testLog.Init()
 	std := logrus.StandardLogger()
 	if std.Level != logrus.DebugLevel {
 		t.Errorf("Expected 'debug' level logs, but got: %s", std.Level)
@@ -40,7 +40,7 @@ func TestLoggingConfigInit(t *testing.T) {
 		t.Errorf("Expected *logrus.TextFormatter got: %v", reflect.TypeOf(std.Formatter))
 	}
 	// Reset to defaults
-	defaultLog.init()
+	defaultLog.Init()
 }
 
 func TestDefaultFormatterEmptyMessage(t *testing.T) {
@@ -57,7 +57,7 @@ func TestDefaultFormatterEmptyMessage(t *testing.T) {
 }
 
 func TestDefaultFormatterPanic(t *testing.T) {
-	defaultLog.init()
+	defaultLog.Init()
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Expected panic but did not")

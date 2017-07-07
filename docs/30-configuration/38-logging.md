@@ -12,15 +12,15 @@ The second source of logs are the processes run by jobs and their health checks.
 
 Logging Format Examples:
 
-`default` - Go log package with [LstdFlags](https://golang.org/pkg/log/)
+`default` - Uses the Go stdlib [log](https://golang.org/pkg/log/) package but with [RFC3339](https://golang.org/pkg/time/#pkg-constants) date format. Note that this format does not include any annotations about the origin of the log line, including the log level.
 
 ```
-2015/03/26 01:27:38 Started observing beach
-2015/03/26 01:27:38 A group of walrus emerges from the ocean
-2015/03/26 01:27:38 The group's number increased tremendously!
-2015/03/26 01:27:38 Temperature changes
-2015/03/26 01:27:38 It's over 9000!
-2015/03/26 01:27:38 The ice breaks!
+2015-03-26T01:27:38-04:00 Started observing beach
+2015-03-26T01:27:38-04:00 A group of walrus emerges from the ocean
+2015-03-26T01:27:38-04:00 The group's number increased tremendously!
+2015-03-26T01:27:38-04:00 Temperature changes
+2015-03-26T01:27:38-04:00 It's over 9000!
+2015-03-26T01:27:38-04:00 The ice breaks!
 ```
 
 `text` - [logrus TextFormatter](https://github.com/sirupsen/logrus)
