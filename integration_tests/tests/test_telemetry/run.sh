@@ -25,11 +25,20 @@ IP=$(docker inspect -f '{{ .NetworkSettings.Networks.testtelemetry_default.IPAdd
 set +e
 for i in {20..1}; do
     sleep 1 # sleep has to be before b/c we want exit code
-    docker exec -it "${APP_ID}" curl -s "${IP}:9090/metrics" | grep 'containerpilot_app_some_counter 42' && break
+    metrics=$(docker exec -it "${APP_ID}" curl -s "${IP}:9090/metrics")
+    echo "$metrics" | grep 'containerpilot_app_some_counter 42' && break
 done
 result=$?
 set -e
 if [ $result -ne 0 ]; then exit $result; fi
+
+# check last /metrics scrape for the rest of the events
+echo "$metrics" | grep 'containerpilot_events' || \
+    ( echo 'no containerpilot_events metrics' && exit 1 )
+echo "$metrics" | grep 'containerpilot_control_http_requests' || \
+    ( echo 'no containerpilot_control_http_requests metrics' && exit 1 )
+echo "$metrics" | grep 'containerpilot_watch_instances' || \
+    ( echo 'no containerpilot_watch_instances metrics' && exit 1 )
 
 # Check the status endpoint too
 docker exec -it "${APP_ID}" curl -s "${IP}:9090/status" | grep 'app'

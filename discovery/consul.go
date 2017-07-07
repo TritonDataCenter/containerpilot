@@ -7,8 +7,19 @@ import (
 	"sync"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
+
+var collector *prometheus.GaugeVec
+
+func init() {
+	collector = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "containerpilot_watch_instances",
+		Help: "gauge of instances found for each ContainerPilot watch, partitioned by service",
+	}, []string{"service"})
+	prometheus.MustRegister(collector)
+}
 
 // Consul wraps the service discovery backend for the Hashicorp Consul client
 // and tracks the state of all watched dependencies.
@@ -80,6 +91,7 @@ func (c *Consul) CheckForUpstreamChanges(backendName, backendTag, dc string) (di
 		log.Warnf("failed to query %v: %s [%v]", backendName, err, meta)
 		return false, false
 	}
+	collector.WithLabelValues(backendName).Set(float64(len(instances)))
 	isHealthy = len(instances) > 0
 	didChange = c.compareAndSwap(backendName, instances)
 	return didChange, isHealthy
