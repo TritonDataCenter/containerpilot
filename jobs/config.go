@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/joyent/containerpilot/commands"
-	"github.com/joyent/containerpilot/config/decoding"
+	"github.com/joyent/containerpilot/config/decode"
 	"github.com/joyent/containerpilot/config/services"
 	"github.com/joyent/containerpilot/config/timing"
 	"github.com/joyent/containerpilot/discovery"
@@ -83,7 +83,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 	if raw == nil {
 		return jobs, nil
 	}
-	if err := decoding.ToStruct(raw, &jobs); err != nil {
+	if err := decode.ToStruct(raw, &jobs); err != nil {
 		return nil, fmt.Errorf("job configuration error: %v", err)
 	}
 	stopDependencies := make(map[string]string)
@@ -344,7 +344,7 @@ func (cfg *Config) validateRestarts() error {
 // addDiscoveryConfig validates the configuration for service discovery
 // and attaches the discovery.ServiceDefinition to the Config
 func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
-	interfaces, ifaceErr := decoding.ToStrings(cfg.Interfaces)
+	interfaces, ifaceErr := decode.ToStrings(cfg.Interfaces)
 	if ifaceErr != nil {
 		return ifaceErr
 	}

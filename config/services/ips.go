@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/joyent/containerpilot/config/decoding"
+	"github.com/joyent/containerpilot/config/decode"
 	log "github.com/sirupsen/logrus"
 )
 
 // IPFromInterfaces ...
 func IPFromInterfaces(raw interface{}) (string, error) {
-	interfaces, ifaceErr := decoding.ToStrings(raw)
+	interfaces, ifaceErr := decode.ToStrings(raw)
 	if ifaceErr != nil {
 		return "", ifaceErr
 	}

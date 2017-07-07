@@ -3,7 +3,7 @@ package watches
 import (
 	"fmt"
 
-	"github.com/joyent/containerpilot/config/decoding"
+	"github.com/joyent/containerpilot/config/decode"
 	"github.com/joyent/containerpilot/config/services"
 	"github.com/joyent/containerpilot/discovery"
 )
@@ -24,7 +24,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 	if raw == nil {
 		return watches, nil
 	}
-	if err := decoding.ToStruct(raw, &watches); err != nil {
+	if err := decode.ToStruct(raw, &watches); err != nil {
 		return watches, fmt.Errorf("Watch configuration error: %v", err)
 	}
 	for _, watch := range watches {

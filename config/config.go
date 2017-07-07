@@ -10,9 +10,9 @@ import (
 
 	"github.com/flynn/json5"
 
-	"github.com/joyent/containerpilot/config/decoding"
-	"github.com/joyent/containerpilot/config/logging"
-	"github.com/joyent/containerpilot/config/templating"
+	"github.com/joyent/containerpilot/config/decode"
+	"github.com/joyent/containerpilot/config/logger"
+	"github.com/joyent/containerpilot/config/template"
 	"github.com/joyent/containerpilot/control"
 	"github.com/joyent/containerpilot/discovery"
 	"github.com/joyent/containerpilot/jobs"
@@ -22,7 +22,7 @@ import (
 
 type rawConfig struct {
 	consul      interface{}
-	logConfig   *logging.Config
+	logConfig   *logger.Config
 	stopTimeout int
 	jobs        []interface{}
 	watches     []interface{}
@@ -33,7 +33,7 @@ type rawConfig struct {
 // Config contains the parsed config elements
 type Config struct {
 	Discovery   discovery.Backend
-	LogConfig   *logging.Config
+	LogConfig   *logger.Config
 	StopTimeout int
 	Jobs        []*jobs.Config
 	Watches     []*watches.Config
@@ -115,11 +115,11 @@ func loadConfigFile(configFlag string) ([]byte, error) {
 }
 
 func renderConfigTemplate(configData []byte) ([]byte, error) {
-	template, err := templating.Apply(configData)
+	templ, err := template.Apply(configData)
 	if err != nil {
 		err = fmt.Errorf("could not apply template to config: %v", err)
 	}
-	return template, err
+	return templ, err
 }
 
 // newConfig unmarshals the textual configuration data into the
@@ -234,20 +234,20 @@ func highlightError(data []byte, pos int64) (int, int, string) {
 // to also be raw interface{} types. mapstructure can only decode
 // into concrete structs and primitives
 func decodeConfig(configMap map[string]interface{}, result *rawConfig) error {
-	var logConfig logging.Config
+	var logConfig logger.Config
 	var stopTimeout int
-	if err := decoding.ToStruct(configMap["logging"], &logConfig); err != nil {
+	if err := decode.ToStruct(configMap["logging"], &logConfig); err != nil {
 		return err
 	}
-	if err := decoding.ToStruct(configMap["stopTimeout"], &stopTimeout); err != nil {
+	if err := decode.ToStruct(configMap["stopTimeout"], &stopTimeout); err != nil {
 		return err
 	}
 	result.consul = configMap["consul"]
 	result.stopTimeout = stopTimeout
 	result.logConfig = &logConfig
 	result.control = configMap["control"]
-	result.jobs = decoding.ToSlice(configMap["jobs"])
-	result.watches = decoding.ToSlice(configMap["watches"])
+	result.jobs = decode.ToSlice(configMap["jobs"])
+	result.watches = decode.ToSlice(configMap["watches"])
 	result.telemetry = configMap["telemetry"]
 
 	delete(configMap, "consul")
