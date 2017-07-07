@@ -7,8 +7,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// DecodeRaw decodes a raw interface into the target structure
-func DecodeRaw(raw interface{}, result interface{}) error {
+// ToStruct decodes a raw interface{} into the target struct
+func ToStruct(raw interface{}, result interface{}) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		ErrorUnused:      true,
 		WeaklyTypedInput: true,
@@ -20,8 +20,8 @@ func DecodeRaw(raw interface{}, result interface{}) error {
 	return decoder.Decode(raw)
 }
 
-// DecodeArray converts an interface to a slice of interfaces{}
-func DecodeArray(raw interface{}) []interface{} {
+// ToSlice converts an interface{} to a slice of interfaces{}
+func ToSlice(raw interface{}) []interface{} {
 	if raw == nil {
 		return nil
 	}
@@ -40,8 +40,10 @@ func DecodeArray(raw interface{}) []interface{} {
 	return nil
 }
 
-// ToStringArray converts the given interface to a []string if possible
-func ToStringArray(raw interface{}) ([]string, error) {
+// ToStrings converts the given interface{} to a []string, or returns an error.
+// In the case where the argument is a string already, will wrap the arg in
+// a slice.
+func ToStrings(raw interface{}) ([]string, error) {
 	if raw == nil {
 		return nil, nil
 	}
@@ -53,7 +55,7 @@ func ToStringArray(raw interface{}) ([]string, error) {
 	case []interface{}:
 		return interfaceToStringArray(t), nil
 	default:
-		return nil, fmt.Errorf("Unexpected argument type: %T", t)
+		return nil, fmt.Errorf("unexpected argument type: %T", t)
 	}
 }
 

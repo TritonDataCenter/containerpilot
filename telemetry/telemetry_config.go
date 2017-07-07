@@ -31,7 +31,7 @@ func NewConfig(raw interface{}, disc discovery.Backend) (*Config, error) {
 		return nil, nil
 	}
 	cfg := &Config{Port: 9090} // default values
-	if err := decoding.DecodeRaw(raw, cfg); err != nil {
+	if err := decoding.ToStruct(raw, cfg); err != nil {
 		return nil, fmt.Errorf("telemetry configuration error: %v", err)
 	}
 	if err := cfg.Validate(disc); err != nil {

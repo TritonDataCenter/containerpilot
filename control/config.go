@@ -23,7 +23,7 @@ func NewConfig(raw interface{}) (*Config, error) {
 		return cfg, nil
 	}
 
-	if err := decoding.DecodeRaw(raw, cfg); err != nil {
+	if err := decoding.ToStruct(raw, cfg); err != nil {
 		return nil, fmt.Errorf("control config parsing error: %v", err)
 	}
 

@@ -61,7 +61,7 @@ func getTLSConfig(parsed *parsedConfig) api.TLSConfig {
 
 func configFromMap(raw map[string]interface{}) (*api.Config, error) {
 	parsed := &parsedConfig{}
-	if err := decoding.DecodeRaw(raw, parsed); err != nil {
+	if err := decoding.ToStruct(raw, parsed); err != nil {
 		return nil, err
 	}
 	config := &api.Config{

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestValidateServiceName(t *testing.T) {
+func TestValidateName(t *testing.T) {
 
 	var validNames = []string{
 		"myService",
@@ -12,7 +12,7 @@ func TestValidateServiceName(t *testing.T) {
 		"my-service-123",
 	}
 	for _, name := range validNames {
-		if err := ValidateServiceName(name); err != nil {
+		if err := ValidateName(name); err != nil {
 			t.Errorf("expected no error for name '%v' but got %v", name, err)
 		}
 	}
@@ -23,7 +23,7 @@ func TestValidateServiceName(t *testing.T) {
 		"my%service",
 	}
 	for _, name := range invalidNames {
-		if err := ValidateServiceName(name); err == nil {
+		if err := ValidateName(name); err == nil {
 			t.Errorf("expected error for name '%v' but got nil", name)
 		}
 	}

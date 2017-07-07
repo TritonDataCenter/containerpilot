@@ -15,7 +15,7 @@ import (
 
 // IPFromInterfaces ...
 func IPFromInterfaces(raw interface{}) (string, error) {
-	interfaces, ifaceErr := decoding.ToStringArray(raw)
+	interfaces, ifaceErr := decoding.ToStrings(raw)
 	if ifaceErr != nil {
 		return "", ifaceErr
 	}

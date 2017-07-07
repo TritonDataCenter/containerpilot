@@ -83,7 +83,7 @@ func NewConfigs(raw []interface{}, disc discovery.Backend) ([]*Config, error) {
 	if raw == nil {
 		return jobs, nil
 	}
-	if err := decoding.DecodeRaw(raw, &jobs); err != nil {
+	if err := decoding.ToStruct(raw, &jobs); err != nil {
 		return nil, fmt.Errorf("job configuration error: %v", err)
 	}
 	stopDependencies := make(map[string]string)
@@ -139,7 +139,7 @@ func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
 	}
 	// we only need to validate the name if we're doing discovery;
 	// we'll just take the name of the exec otherwise
-	if err := services.ValidateServiceName(cfg.Name); err != nil {
+	if err := services.ValidateName(cfg.Name); err != nil {
 		return err
 	}
 	return cfg.addDiscoveryConfig(disc)
@@ -344,7 +344,7 @@ func (cfg *Config) validateRestarts() error {
 // addDiscoveryConfig validates the configuration for service discovery
 // and attaches the discovery.ServiceDefinition to the Config
 func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
-	interfaces, ifaceErr := decoding.ToStringArray(cfg.Interfaces)
+	interfaces, ifaceErr := decoding.ToStrings(cfg.Interfaces)
 	if ifaceErr != nil {
 		return ifaceErr
 	}

@@ -17,7 +17,7 @@ func ParseArgs(raw interface{}) (executable string, args []string, err error) {
 			args = strings.Split(strings.TrimSpace(t), " ")
 		}
 	default:
-		args, err = decoding.ToStringArray(raw)
+		args, err = decoding.ToStrings(raw)
 	}
 	if len(args) == 0 {
 		err = errors.New("received zero-length argument")

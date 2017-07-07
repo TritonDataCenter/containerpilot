@@ -12,14 +12,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// LogConfig configures the log levels
-type LogConfig struct {
+// Config configures the log levels
+type Config struct {
 	Level  string `json:"level"`
 	Format string `json:"format"`
 	Output string `json:"output"`
 }
 
-var defaultLog = &LogConfig{
+var defaultLog = &Config{
 	Level:  "INFO",
 	Format: "default",
 	Output: "stdout",
@@ -32,7 +32,7 @@ func init() {
 }
 
 // Init initializes the logger and sets default values if not provided
-func (l *LogConfig) Init() error {
+func (l *Config) Init() error {
 	// Set defaults
 	if l.Level == "" {
 		l.Level = defaultLog.Level

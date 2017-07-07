@@ -23,7 +23,7 @@ func TestLoggingBootstrap(t *testing.T) {
 }
 
 func TestLoggingConfigInit(t *testing.T) {
-	testLog := &LogConfig{
+	testLog := &Config{
 		Level:  "DEBUG",
 		Format: "text",
 		Output: "stderr",

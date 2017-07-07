@@ -141,8 +141,8 @@ func (c *Template) Execute() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// ApplyTemplate creates and renders a template from the given config template
-func ApplyTemplate(config []byte) ([]byte, error) {
+// Apply creates and renders a template from the given config template
+func Apply(config []byte) ([]byte, error) {
 	template, err := NewTemplate(config)
 	if err != nil {
 		return nil, err
