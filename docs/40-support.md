@@ -37,7 +37,7 @@ ContainerPilot does not coordinate between instances of ContainerPilot except th
 
 The ContainerPilot configuration syntax will follow a semver approach. Fixing a bug in an existing feature will be a patch version bump. Adding a new configuration feature will result in a minor version bump. Existing features will not have their behavior or configuration syntax changed.
 
-The core behavior of behavior hooks fired by job exec, job health check, or sensor exec is to fork/exec the hook, forward stdout/stderr to ContainerPilot's own stdout/stderr, and interpret a non-zero exit code as an error which fires `ExitFailed` event, and a zero exit code as a success which fires an `ExitSuccess` event. This behavior is guaranteed to be stable for this major version (3.x).
+The core behavior of behavior hooks fired by job `exec` or health check `exec` is to fork/exec the hook, forward stdout/stderr to ContainerPilot's own stdout/stderr, and interpret a non-zero exit code as an error which fires `ExitFailed` event, and a zero exit code as a success which fires an `ExitSuccess` event. This behavior is guaranteed to be stable for this major version (3.x).
 
 ##### The internal ContainerPilot APIs with its golang packages
 

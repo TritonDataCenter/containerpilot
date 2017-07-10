@@ -102,7 +102,7 @@ The following fields define when a job starts, stops, restarts, and times out.
 
 ##### `when`
 
-The `when` field defines an event that starts the job's `exec`. By default, a job's `exec` process starts as soon as ContainerPilot has finished startup. Many jobs will want to have a configuration that determines some specific event to wait for, using the `when` field.
+The `when` field defines a hook for an event that starts the job's `exec`. By default, a job's `exec` process starts as soon as ContainerPilot has finished startup. Many jobs will want to have a configuration that determines some specific event to wait for, using the `when` field.
 
 - `source` is the source of the event that triggers the job.
 - `once` names an event that triggers the start of the job one time only.
