@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/joyent/containerpilot/subcommands"
+	"github.com/joyent/containerpilot/version"
 )
 
 // MultiFlag provides a custom CLI flag that stores its unique values into a
@@ -95,8 +96,8 @@ func GetArgs() (subcommands.Handler, subcommands.Params) {
 
 	if versionFlag {
 		return subcommands.VersionHandler, subcommands.Params{
-			Version: Version,
-			GitHash: GitHash,
+			Version: version.Version,
+			GitHash: version.GitHash,
 		}
 	}
 	if configPath == "" {

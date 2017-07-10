@@ -3,15 +3,17 @@ package telemetry
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/watches"
 	"net/http"
 	"strings"
+
+	"github.com/joyent/containerpilot/jobs"
+	"github.com/joyent/containerpilot/watches"
 )
 
 // Status persists all the data the telemetry server needs to serve
 // the '/status' endpoint
 type Status struct {
+	Version  string
 	jobs     []*jobs.Job
 	Services []jobStatusResponse
 	Watches  []string
