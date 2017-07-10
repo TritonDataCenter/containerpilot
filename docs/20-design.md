@@ -28,7 +28,7 @@ For more on this topic, see Casey Bisson's article on the ContainerSummit websit
 
 In theory it's possible for ContainerPilot to fire an event immediately after it `fork/exec`'s a job's process. But in practice this is not a useful event for an application developer and will cause hard-to-debug race conditions in your configuration. Processes like servers need to bind to an address before they can be considered "started." Other processes need to do other work during start like loading and interpreting byte code. A short-lived task might even complete all its work and exit before an event could be handled, leading to an unsolvable race condition.
 
-If ContainerPilot were to emit a `started` event then the job that emits the event will almost never be ready to do work when the event is handled. This means that jobs that depend on that job will need to implement some kind of health checking and retry logic anyways, and we would gain nothing at the cost of making configuration very confusing and error prone. Jobs that are dependent on another job should listen for the `healthy` event from their dependencies.
+If ContainerPilot were to emit a `started` event then the job that emits the event will almost never be ready to do work when the event is handled. This means that jobs that depend on that job will need to implement some kind of health checking and retry logic anyways, and we would gain nothing at the cost of making configuration very confusing and error prone. Jobs that are dependent on another job should set a `when` hook for the `healthy` event from their dependencies.
 
 
 ## Why Consul and not etcd or Zookeeper?

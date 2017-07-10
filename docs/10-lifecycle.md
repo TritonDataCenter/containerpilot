@@ -29,7 +29,7 @@ A watch is a configuration of a service to monitor in Consul. The watch monitors
 
 ## How do events trigger jobs?
 
-By default, a job's `exec` process starts as soon as ContainerPilot has finished startup. Many jobs will want to have a configuration that determines some specific event to wait for, using the `when` field. This field expects a `source` (the name of the event source) and either `once` (trigger one-time only) or `each` (trigger each time this event happens).
+By default, a job's `exec` process starts as soon as ContainerPilot has finished startup. Many jobs will want to have a configuration that hooks a specific event using the `when` field. This field expects a `source` (the name of the event source) and either `once` (trigger one-time only) or `each` (trigger each time this event happens).
 
 For example, if we want a job to run only once `myDb` is healthy (but not each time its health changes), we might use the following configuration:
 
