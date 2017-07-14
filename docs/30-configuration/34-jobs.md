@@ -148,7 +148,7 @@ jobs: [
 
 The `restarts` field is the number of times the process will be restarted if it exits. This field supports any non-negative numeric value (ex. `0` or `1`) or the strings `"unlimited"` or `"never"`. This value is optional and defaults to `"never"`.
 
-It's important to understand how this field compares to the `when` field. A restart is run only when the job receives its own `exitSuccess` or `exitFailure` event. The `when` field is for triggering on other events. In the example below the `app` job is first started when the `db` job is `healthy`, but it will restart whenever it exits.
+It's important to understand how this field compares to the `when` field. A restart is run only when the job receives its own `exitSuccess` or `exitFailure` event. The `when` field is for triggering on other events. In the example below the `app` job is first started when the `db` job is `healthy`, but it will restart whenever it exits. Using `restarts` with the `each` option of `when` is not recommended because each time the `each` event triggers, it will spawn an `exec` that can restart after exit. In the case of `restarts: "unlimited"` this will use up all the resources in your container!
 
 ```json5
 jobs: [

@@ -306,6 +306,9 @@ func (cfg *Config) validateRestarts() error {
 		cfg.restartLimit = 0
 		return nil
 	}
+	if cfg.When.Each != "" {
+		log.Warnf("job[%s].restarts field and job[%s].when.each field are both set and this may result in spawning infinite processes")
+	}
 
 	const msg = `job[%s].restarts field '%v' invalid: accepts positive integers, "unlimited", or "never"`
 

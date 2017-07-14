@@ -203,31 +203,28 @@ func TestJobMaintenance(t *testing.T) {
 
 func TestJobProcessEvent(t *testing.T) {
 
-	t.Run("start each startEvent", func(t *testing.T) {
+	t.Run("start once with no restarts", func(t *testing.T) {
+		// expects testJob to exec 1 time, once upstream changes
 		// when: {
 		//   source: "upstream",
-		//   each: "changed"
+		//   once: "changed"
 		// }
 		job := &Job{
 			Name:         "testJob",
 			startEvent:   events.Event{events.StatusChanged, "upstream"},
-			startsRemain: unlimited,
+			startsRemain: 1,
 			statusLock:   &sync.RWMutex{},
 		}
 		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
 		assert.False(t, got, "processEvent after 1st startEvent")
-
-		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.False(t, got, "processEvent after 2nd startEvent")
-
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent after exit")
-
-		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.False(t, got, "processEvent after 3rd startEvent")
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, 0)
+		assert.Equal(t, job.startEvent, events.NonEvent)
 	})
 
-	t.Run("start one startEvent, with 2 restarts", func(t *testing.T) {
+	t.Run("start once only with 2 restarts", func(t *testing.T) {
+		// expects testJob to start 1 time, once upstream changes.
+		// restarts twice but ignores subsequent upstream changes.
 		// when: {
 		//   source: "upstream",
 		//   once: "changed"
@@ -243,38 +240,112 @@ func TestJobProcessEvent(t *testing.T) {
 		}
 		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
 		assert.False(t, got, "processEvent after 1st startEvent")
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, 0)
+		assert.Equal(t, job.startEvent, events.NonEvent)
 
 		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
-		assert.True(t, got, "processEvent after 2nd startEvent")
+		assert.False(t, got, "processEvent after 2nd startEvent")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.False(t, got, "processEvent after 1st exit")
+		assert.Equal(t, job.restartsRemain, 1)
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.False(t, got, "processEvent after 2nd exit")
+		assert.Equal(t, job.restartsRemain, 0)
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.True(t, got, "processEvent after 3rd exit")
 	})
 
-	t.Run("restart each exit", func(t *testing.T) {
+	t.Run("start once unlimited restarts", func(t *testing.T) {
+		// expects testJob to start 1 time, once upstream changes.
+		// restarts an unlimited number of times but ignores subsequent
+		// upstream changes.
+		// when: {
+		//   source: "upstream",
+		//   once: "changed"
+		// },
+		// restarts: "unlimited"
+		job := &Job{
+			Name:           "testJob",
+			startEvent:     events.Event{events.StatusChanged, "upstream"},
+			startsRemain:   1,
+			restartLimit:   -1,
+			restartsRemain: -1,
+			statusLock:     &sync.RWMutex{},
+		}
+		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent after 1st startEvent")
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, 0)
+		assert.Equal(t, job.startEvent, events.NonEvent)
+
+		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent after 2nd startEvent")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent after 1st exit")
+		assert.Equal(t, job.restartsRemain, -2)
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent after 2nd exit")
+		assert.Equal(t, job.restartsRemain, -3)
+	})
+
+	t.Run("start each with no restarts", func(t *testing.T) {
+		// when: {
+		//   source: "upstream",
+		//   each: "changed"
+		// },
+		// restarts: "none"
+		job := &Job{
+			Name:         "testJob",
+			startEvent:   events.Event{events.StatusChanged, "upstream"},
+			startsRemain: unlimited,
+			statusLock:   &sync.RWMutex{},
+		}
+		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent after 1st startEvent")
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, unlimited)
+		assert.Equal(t, job.startEvent, events.Event{events.StatusChanged, "upstream"})
+
+		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent after 2nd startEvent")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent after exit")
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, unlimited)
+		assert.Equal(t, job.startEvent, events.Event{events.StatusChanged, "upstream"})
+
+		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		assert.False(t, got, "processEvent after 3rd startEvent")
+	})
+
+	t.Run("global start with unlimited restarts", func(t *testing.T) {
 		// restarts: "unlimited"
 		job := &Job{
 			Name:           "testJob",
 			startEvent:     events.GlobalStartup,
-			startsRemain:   0,
+			startsRemain:   1,
 			restartLimit:   unlimited,
 			restartsRemain: unlimited,
 			statusLock:     &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got := job.processEvent(nil, events.GlobalStartup)
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, 0)
+		assert.Equal(t, job.startEvent, events.NonEvent)
+
+		// should return False after each exit which means we don't stop job
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.False(t, got, "processEvent after 1st exit")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.False(t, got, "processEvent after 2nd exit")
-
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
-		assert.False(t, got, "processEvent after 3rd exit")
 	})
 
 	t.Run("restart once on exit", func(t *testing.T) {
@@ -282,16 +353,51 @@ func TestJobProcessEvent(t *testing.T) {
 		job := &Job{
 			Name:           "testJob",
 			startEvent:     events.GlobalStartup,
-			startsRemain:   0,
+			startsRemain:   1,
 			restartLimit:   1,
 			restartsRemain: 1,
 			statusLock:     &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got := job.processEvent(nil, events.GlobalStartup)
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, 0)
+		assert.Equal(t, job.startEvent, events.NonEvent)
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.False(t, got, "processEvent after 1st exit")
 
 		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
 		assert.True(t, got, "processEvent after 2nd exit")
+	})
+
+	t.Run("start each startEvent with unlimited restarts", func(t *testing.T) {
+		// when: {
+		//   source: "upstream",
+		//   each: "changed"
+		// },
+		// restart: "unlimited"
+		startEvent := events.Event{events.StatusChanged, "upstream"}
+		job := &Job{
+			Name:           "testJob",
+			startEvent:     startEvent,
+			startsRemain:   unlimited,
+			restartsRemain: unlimited,
+			statusLock:     &sync.RWMutex{},
+		}
+		got := job.processEvent(nil, startEvent)
+		assert.False(t, got, "processEvent after 1st startEvent")
+		assert.Equal(t, job.Status, statusUnknown)
+		assert.Equal(t, job.startsRemain, unlimited)
+		assert.Equal(t, job.startEvent, startEvent)
+
+		got = job.processEvent(nil, startEvent)
+		assert.False(t, got, "processEvent after 2nd startEvent")
+
+		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		assert.False(t, got, "processEvent after exit")
+
+		got = job.processEvent(nil, startEvent)
+		assert.False(t, got, "processEvent after 3rd startEvent")
 	})
 
 }
