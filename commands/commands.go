@@ -92,18 +92,6 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 			bus.Publish(events.Event{events.Error, err.Error()})
 			return
 		}
-		// See https://golang.org/src/syscall/exec_linux.go
-		// SysProcAttr.Setpgid:
-		// "Set process group ID to Pgid, or, if Pgid == 0, to new pid"
-		// So in the case where ContainerPilot is PID1 this will fail
-		// to reap zombies unless we pass the PID and not the PGID to
-		// the syscall.Wait4 in reapChildren
-		pgid := c.Cmd.SysProcAttr.Pgid
-		if pgid == 0 {
-			pgid = c.Cmd.Process.Pid
-		}
-		defer reapChildren(pgid)
-
 		// blocks this goroutine here; if the context gets cancelled
 		// we'll return from wait() and do all the cleanup
 		if err := c.wait(); err != nil {
