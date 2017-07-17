@@ -11,6 +11,10 @@
         ttl: 5
       },
       tags: ["application"]
+    },
+    {
+      name: "slow-zombies",
+      exec: "/bin/sh /slow-zombie.sh"
     }
   ]
 }
