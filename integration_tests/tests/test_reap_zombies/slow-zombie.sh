@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
-# TODO: figure out how to exercise this test case
-echo "slow zombie"
+/slow-child.sh &
+tail -F # need to make sure job is long-lived

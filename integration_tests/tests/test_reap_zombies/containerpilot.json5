@@ -6,7 +6,7 @@
       port: 8000,
       exec: ["tail", "-f"],
       health: {
-        exec: "/bin/sh /zombie.sh",
+        exec: "/zombie.sh",
         interval: 1,
         ttl: 5
       },
@@ -14,7 +14,7 @@
     },
     {
       name: "slow-zombies",
-      exec: "/bin/sh /slow-zombie.sh"
+      exec: "/slow-zombie.sh"
     }
   ]
 }

@@ -18,4 +18,5 @@ services:
       - './containerpilot.json5:/etc/containerpilot.json5'
       - './zombie.sh:/zombie.sh'
       - './slow-zombie.sh:/slow-zombie.sh'
+      - './slow-child.sh:/slow-child.sh'
     command: /bin/containerpilot -config /etc/containerpilot.json5
