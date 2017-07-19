@@ -306,22 +306,23 @@ func (cfg *Config) validateRestarts() error {
 		cfg.restartLimit = 0
 		return nil
 	}
-	if cfg.When.Each == "unlimited" {
-		return fmt.Errorf("job[%s].restarts field 'unlimited' invalid when job[%s].when.each is set because it may result in infinite processes", cfg.Name, cfg.Name)
-	}
-
-	const msg = `job[%s].restarts field '%v' invalid: accepts positive integers, "unlimited", or "never"`
+	const msg = `job[%s].restarts field '%v' invalid: %v`
 
 	switch t := cfg.Restarts.(type) {
 	case string:
 		if t == "unlimited" {
+			if cfg.When.Each != "" {
+				return fmt.Errorf(msg, cfg.Name, cfg.Restarts,
+					`may not be used when 'job.when.each' is set because it may result in infinite processes`)
+			}
 			cfg.restartLimit = unlimited
 		} else if t == "never" {
 			cfg.restartLimit = 0
 		} else if i, err := strconv.Atoi(t); err == nil && i >= 0 {
 			cfg.restartLimit = i
 		} else {
-			return fmt.Errorf(msg, cfg.Name, cfg.Restarts)
+			return fmt.Errorf(msg, cfg.Name, cfg.Restarts,
+				`accepts positive integers, "unlimited", or "never"`)
 		}
 	case float64, int:
 		// mapstructure can figure out how to decode strings into int fields
@@ -335,10 +336,12 @@ func (cfg *Config) validateRestarts() error {
 		} else if i, ok := t.(float64); ok && i >= 0 {
 			cfg.restartLimit = int(i)
 		} else {
-			return fmt.Errorf(msg, cfg.Name, cfg.Restarts)
+			return fmt.Errorf(msg, cfg.Name, cfg.Restarts,
+				`number must be positive integer`)
 		}
 	default:
-		return fmt.Errorf(msg, cfg.Name, cfg.Restarts)
+		return fmt.Errorf(msg, cfg.Name, cfg.Restarts,
+			`accepts positive integers, "unlimited", or "never"`)
 	}
 
 	return nil
