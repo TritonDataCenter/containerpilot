@@ -350,21 +350,26 @@ func TestJobConfigValidateExec(t *testing.T) {
 
 func TestJobConfigValidateRestarts(t *testing.T) {
 
-	expectErr := func(test, name, val string) {
-		errMsg := fmt.Sprintf(`job[%s].restarts field '%s' invalid: accepts positive integers, "unlimited", or "never"`, name, val)
+	expectErr := func(test, name, val, msg string) {
+		errMsg := fmt.Sprintf(`job[%s].restarts field '%s' invalid: %s`, name, val, msg)
 		testCfg := tests.DecodeRawToSlice(test)
 		_, err := NewConfigs(testCfg, nil)
-		assert.Error(t, err, errMsg)
+		assert.Equal(t, err.Error(), errMsg)
 	}
 	expectErr(
-		`[{name: "A", exec: "/bin/coprocessA", "restarts": "invalid"}]`,
-		"A", "invalid")
+		`[{name: "A", exec: "/bin/coprocessA", restarts: "invalid"}]`,
+		"A", "invalid", `accepts positive integers, "unlimited", or "never"`)
 	expectErr(
-		`[{name: "B", exec: "/bin/coprocessB", "restarts": "-1"}]`,
-		"B", "-1")
+		`[{name: "B", exec: "/bin/coprocessB", restarts: "-1"}]`,
+		"B", "-1", `accepts positive integers, "unlimited", or "never"`)
 	expectErr(
-		`[{name: "C", exec: "/bin/coprocessC", "restarts": -1 }]`,
-		"C", "-1")
+		`[{name: "C", exec: "/bin/coprocessC", restarts: -1 }]`,
+		"C", "-1", `number must be positive integer`)
+	expectErr(
+		`[{name: "D", exec: "/bin/coprocessD", restarts: "unlimited",
+         when: { each: "healthy", source: "other"} }]`,
+		"D", "unlimited",
+		`may not be used when 'job.when.each' is set because it may result in infinite processes`)
 
 	testCfg := tests.DecodeRawToSlice(`[
 	{ name: "D", exec: "/bin/coprocessD", "restarts": "unlimited" },

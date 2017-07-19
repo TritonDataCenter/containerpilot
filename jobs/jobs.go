@@ -238,6 +238,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 		if !job.restartPermitted() {
 			log.Debugf("interval expired but restart not permitted: %v",
 				job.Name)
+			job.startEvent = events.NonEvent
 			return true
 		}
 		job.restartsRemain--
@@ -266,6 +267,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 			// the whole process gets SIGKILL
 			break
 		}
+		job.startEvent = events.NonEvent
 		return true
 	case events.GlobalEnterMaintenance:
 		job.MarkForMaintenance()
@@ -286,16 +288,18 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 			break
 		}
 		log.Debugf("job exited but restart not permitted: %v", job.Name)
+		job.startEvent = events.NonEvent
 		return true
 	case job.startEvent:
 		if job.startsRemain == 0 {
+			job.startEvent = events.NonEvent
 			return true
 		}
 		if job.startsRemain != unlimited {
 			// if we have unlimited restarts we want to make sure we don't
 			// decrement forever and then wrap-around
 			job.startsRemain--
-			if job.startsRemain == 0 && job.restartsRemain == 0 {
+			if job.startsRemain == 0 || job.restartsRemain == 0 {
 				// prevent ourselves from receiving the start event again
 				// if it fires while we're still running the job's exec
 				job.startEvent = events.NonEvent
