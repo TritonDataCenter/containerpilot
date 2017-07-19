@@ -6,20 +6,17 @@ set -e
 # We can't test any more precisely than this without racing the kernel
 # reparenting mechanism.
 
-docker-compose up -d consul app > /dev/null 2>&1
+docker-compose up -d consul zombies > /dev/null 2>&1
 
-# Wait for consul to elect a leader
-docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
-if [ ! $? -eq 0 ] ; then exit 1 ; fi
-
-APP_ID="$(docker-compose ps -q app)"
+ID="$(docker-compose ps -q zombies)"
 sleep 6
 
-PTREE=$(docker exec "$APP_ID" ps -o stat,ppid,pid,comm)
+PTREE=$(docker exec "$ID" ps -o stat,ppid,pid,args)
 
 set +e
 REPARENTED_ZOMBIES=$(echo "$PTREE" | awk -F' +' '/^Z/{print $2}' | grep -c "^1$")
 TOTAL_ZOMBIES=$(echo "$PTREE" | grep -c "^Z")
+ENOCHILD=$(docker logs "$ID" | grep -c "no child processes")
 set -e
 
 if [ "$REPARENTED_ZOMBIES" -gt 1 ] || [ "$TOTAL_ZOMBIES" -gt 2 ]; then
@@ -27,7 +24,13 @@ if [ "$REPARENTED_ZOMBIES" -gt 1 ] || [ "$TOTAL_ZOMBIES" -gt 2 ]; then
     echo "- got $REPARENTED_ZOMBIES reparented zombies" >&2
     echo "- got $TOTAL_ZOMBIES total zombies" >&2
     echo "$PTREE" >&2
-    docker logs "${APP_ID}" > app.log
+    docker logs "${ID}" > zombies.log
+    exit 1
+fi
+if [ "$ENOCHILD" -gt 0 ]; then
+    echo "Got 'no child processes' error(s):"
+    docker logs "${ID}" > zombies.log
+    grep 'no child processes' zombies.log
     exit 1
 fi
 exit 0
