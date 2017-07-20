@@ -4,7 +4,7 @@
     // so that we exercise the parsing for arrays
     name: "serviceB",
     port: 5000,
-    interfaces: ["ethwe","eth0", "inet"],
+    interfaces: ["ethwe","eth0", "inet", "lo0"],
     exec: ["/bin/serviceB", "B"],
     health: {
       exec: ["/bin/healthCheckB.sh", "B1", "B2"],

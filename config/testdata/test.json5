@@ -7,7 +7,7 @@
       // "coprocess", "task", "prestart", etc. to make their role clear
       name: "serviceA",
       port: 8080,
-      interfaces: "inet",
+      interfaces: ["inet", "lo0"],
       exec: "/bin/serviceA",
       when: {
         source: "preStart",
@@ -23,7 +23,7 @@
     {
       name: "serviceB",
       port: 5000,
-      interfaces: ["ethwe","eth0", "inet"],
+      interfaces: ["ethwe","eth0", "inet", "lo0"],
       exec: ["/bin/serviceB", "B"],
       health:{
         exec: ["/bin/to/healthcheck/for/service/B.sh", "B"],
@@ -94,7 +94,7 @@
   ],
   telemetry: {
     port: 9000,
-    interfaces: ["inet"],
+    interfaces: ["inet", "lo0"],
     tags: ["dev"],
     metrics: [
       {

@@ -29,7 +29,7 @@ func TestTelemetryConfigParse(t *testing.T) {
 }
 
 func TestTelemetryConfigBadMetric(t *testing.T) {
-	testCfg := tests.DecodeRaw(`{"metrics": [{}], "interfaces": ["inet"]}`)
+	testCfg := tests.DecodeRaw(`{"metrics": [{}], "interfaces": ["inet", "lo0"]}`)
 	_, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	expected := "invalid metric type"
 	if err == nil || !strings.Contains(err.Error(), expected) {

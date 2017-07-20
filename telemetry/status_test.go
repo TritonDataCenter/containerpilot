@@ -43,7 +43,8 @@ func TestStatusServerGet(t *testing.T) {
 		tests.DecodeRawToSlice(
 			`[{name: "myjob1", exec: "sleep 10"},
              {name: "myjob2", exec: "sleep 10",
-             port: 80, health: { exec: "true", interval: 1, ttl: 2}}]`),
+             port: 80, interfaces: ["inet", "lo0"],
+             health: { exec: "true", interval: 1, ttl: 2}}]`),
 		noop)
 	if err != nil {
 		t.Fatal(err)

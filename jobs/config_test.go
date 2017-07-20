@@ -222,16 +222,16 @@ func TestJobConfigValidateName(t *testing.T) {
 func TestJobConfigValidateDiscovery(t *testing.T) {
 	assert := assert.New(t)
 
-	cfgA := `[{name: "myName", port: 80}]`
+	cfgA := `[{name: "myName", port: 80, interfaces: ["inet", "lo0"]}]`
 	_, err := NewConfigs(tests.DecodeRawToSlice(cfgA), noop)
 	assert.Error(err, "job[myName].health must be set if 'port' is set")
 
-	cfgB := `[{name: "myName", port: 80, health: {interval: 1}}]`
+	cfgB := `[{name: "myName", port: 80, interfaces: ["inet", "lo0"], health: {interval: 1}}]`
 	_, err = NewConfigs(tests.DecodeRawToSlice(cfgB), noop)
 	assert.Error(err, "job[myName].health.ttl must be > 0")
 
 	// no health check shouldn't return an error
-	cfgD := `[{name: "myName", port: 80, health: {interval: 1, ttl: 1}}]`
+	cfgD := `[{name: "myName", port: 80, interfaces: ["inet", "lo0"], health: {interval: 1, ttl: 1}}]`
 	if _, err = NewConfigs(tests.DecodeRawToSlice(cfgD), noop); err != nil {
 		t.Fatalf("expected no error", err)
 	}
