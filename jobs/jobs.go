@@ -164,11 +164,7 @@ func (job *Job) StartJob(ctx context.Context) {
 // Kill sends SIGTERM to the Job's executable, if any
 func (job *Job) Kill() {
 	if job.exec != nil {
-		if job.exec.Cmd != nil {
-			if job.exec.Cmd.Process != nil {
-				job.exec.Cmd.Process.Kill()
-			}
-		}
+		job.exec.Kill()
 	}
 }
 
