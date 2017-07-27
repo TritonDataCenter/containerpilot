@@ -117,7 +117,7 @@ func (c *Command) Kill() {
 	}
 }
 
-// Kill sends a terminate signal to the underlying process if it still exists,
+// Term sends a terminate signal to the underlying process if it still exists,
 // as well as all its children
 func (c *Command) Term() {
 	log.Debugf("%s.term", c.Name)
