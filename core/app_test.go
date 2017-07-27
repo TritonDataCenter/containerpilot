@@ -67,7 +67,7 @@ func TestMetricServiceCreation(t *testing.T) {
 	f := testCfgToTempFile(t, `{
     "consul": "consul:8500",
     "telemetry": {
-      "interfaces": ["inet"],
+      "interfaces": ["inet", "lo0"],
       "port": 9090
     }
   }`)

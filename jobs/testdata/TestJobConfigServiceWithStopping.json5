@@ -2,6 +2,7 @@
   {
     name: "serviceA",
     port: 8080,
+    interfaces: ["inet", "lo0"],
     exec: "/bin/serviceA.sh",
     when: {
       source: "preStart",

@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // ------------------------------------------
@@ -43,26 +45,34 @@ func getLocalhostIfaceName() string {
 
 func TestGetIp(t *testing.T) {
 
-	if ip, _ := GetIP([]string{}); ip == "" {
-		t.Errorf("Expected default interface to yield an IP, but got nothing.")
-	}
-	if ip, _ := GetIP(nil); ip == "" {
-		t.Errorf("Expected default interface to yield an IP, but got nothing.")
-	}
-	if ip, _ := GetIP([]string{"inet"}); ip == "" {
-		t.Errorf("Expected to find IP for inet, but found nothing.")
-	}
-	if ip, _ := GetIP([]string{"inet", lo}); ip == "127.0.0.1" {
-		t.Errorf("Expected to find inet ip, but found loopback instead")
-	}
-	if ip, _ := GetIP([]string{lo, "inet"}); ip != "127.0.0.1" {
-		t.Errorf("Expected to find loopback ip, but found: %s", ip)
-	}
-	if ip, err := GetIP([]string{"interface-does-not-exist"}); err == nil {
-		t.Errorf("Expected interface not found, but instead got an IP: %s", ip)
-	}
-	if ip, _ := GetIP([]string{"static:192.168.1.100", lo}); ip != "192.168.1.100" {
-		t.Errorf("Expected to find static ip 192.168.1.100, but found: %s", ip)
+	ip, _ := GetIP([]string{lo, "inet"})
+	assert.Equal(t, ip, "127.0.0.1", "expected to find loopback IP")
+
+	ip, err := GetIP([]string{"interface-does-not-exist"})
+	assert.Error(t, err, "expected interface not found, but instead got an IP")
+
+	ip, _ = GetIP([]string{"static:192.168.1.100", lo})
+	assert.Equal(t, ip, "192.168.1.100", "expected to find static IP")
+
+	// these tests can't pass if the test runner doesn't have a valid inet
+	// address, so we'll skip these tests in that environment.
+	interfaces, _ := net.Interfaces()
+	allIps, _ := getinterfaceIPs(interfaces)
+	for _, ip := range allIps {
+		if ip.IsIPv4() && !ip.IP.IsLoopback() {
+			if ip, err := GetIP([]string{}); ip == "" {
+				t.Errorf("expected default interface to yield an IP, but got nothing: %v", err)
+			}
+			if ip, _ := GetIP(nil); ip == "" {
+				t.Errorf("expected default interface to yield an IP, but got nothing.")
+			}
+			if ip, _ := GetIP([]string{"inet"}); ip == "" {
+				t.Errorf("expected to find IP for inet, but found nothing.")
+			}
+			if ip, _ := GetIP([]string{"inet", lo}); ip == "127.0.0.1" {
+				t.Errorf("expected to find inet ip, but found loopback instead")
+			}
+		}
 	}
 }
 

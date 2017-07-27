@@ -1,6 +1,6 @@
 {
   port: 8000,
-  interfaces: ["inet"],
+  interfaces: ["inet", "lo0"],
   metrics: [
     {
       namespace: "telemetry",
