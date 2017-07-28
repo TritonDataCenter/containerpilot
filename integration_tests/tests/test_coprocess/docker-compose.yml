@@ -9,10 +9,9 @@ app:
     links:
       - consul:consul
     environment:
-      - CONTAINERPILOT=file:///etc/containerpilot.json
+      - CONTAINERPILOT=file:///app-with-coprocess.json
     volumes:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
-      - './containerpilot.json:/etc/containerpilot.json'
       - './coprocess.sh:/bin/coprocess.sh'
 
 test:
