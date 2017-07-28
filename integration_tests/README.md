@@ -22,7 +22,7 @@ Fixtures Directory: `integration_tests/fixtures`
 
 - Folders in the fixtures directory will be built as docker images in alphabetical order
 - Each folder should contain a `Dockerfile` and any resources necessary to build the image
-- The resulting image will be named `cpfix_fixture_name`
+- The resulting image will be named `cpfix2_fixture_name`
 
 *Note*: Since fixtures are created in alpha order, they can have FROM directives for previously created images
 
@@ -51,7 +51,7 @@ This script can make some assumptions:
 - For each fixture:
   - Copy `build` into `integration_test/fixtures/fixture_name/build` so it can easily be sourced by the `Dockerfile`
   - `cd integration_tests/fixtures/fixture_name`
-  - `docker build -t cpfix_fixture_name .`
+  - `docker build -t cpfix2_fixture_name .`
 
 ### Run tests
 - Scan through all folders in `integration_tests/tests` in alpha order

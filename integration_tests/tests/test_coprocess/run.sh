@@ -5,7 +5,7 @@ function finish {
     result=$?
     if [ $result -ne 0 ]; then
         echo '----- APP LOGS ------'
-        docker logs $(docker ps -l -f "ancestor=cpfix_app" --format="{{.ID}}")
+        docker logs $(docker ps -l -f "ancestor=cpfix2_app" --format="{{.ID}}")
         echo '---------------------'
     fi
     # clean up after the test
@@ -20,7 +20,7 @@ docker-compose up -d
 docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
 if [ ! $? -eq 0 ] ; then exit 1 ; fi
 
-ID=$(docker ps -l -f "ancestor=cpfix_app" --format="{{.ID}}")
+ID=$(docker ps -l -f "ancestor=cpfix2_app" --format="{{.ID}}")
 
 # verify the coprocess is running
 docker exec -it ${ID} ps -ef | grep coprocess
