@@ -102,6 +102,15 @@ func (a *App) Run() {
 		a.handleSignals()
 		a.handlePolling()
 		if !a.Bus.Wait() {
+			if a.StopTimeout > 0 {
+				log.Debugf("killing all processes in %v seconds", a.StopTimeout)
+				tick := time.NewTimer(time.Duration(a.StopTimeout) * time.Second)
+				<-tick.C
+			}
+			for _, job := range a.Jobs {
+				log.Infof("killing processes for job %#v", job.Name)
+				job.Kill()
+			}
 			break
 		}
 		if err := a.reload(); err != nil {
@@ -116,19 +125,6 @@ func (a *App) Terminate() {
 	a.signalLock.Lock()
 	defer a.signalLock.Unlock()
 	a.Bus.Shutdown()
-	if a.StopTimeout > 0 {
-		time.AfterFunc(time.Duration(a.StopTimeout)*time.Second, func() {
-			for _, job := range a.Jobs {
-				log.Infof("killing processes for job %#v", job.Name)
-				job.Kill()
-			}
-		})
-		return
-	}
-	for _, job := range a.Jobs {
-		log.Infof("killing processes for job %#v", job.Name)
-		job.Kill()
-	}
 }
 
 // reload does the actual work of reloading the configuration and
