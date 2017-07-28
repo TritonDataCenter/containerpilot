@@ -37,7 +37,7 @@ docker_running() {
 if [ ! -d $FIXTURE_DIR ]; then die "Unable to find fixtures: $FIXTURE_DIR"; fi
 if [ ! -d $TESTS_DIR ];   then die "Unable to find tests: $TESTS_DIR"; fi
 
-export FIXTURE_PREFIX=${FIXTURE_PREFIX:-"cpfix_"}
+export FIXTURE_PREFIX=${FIXTURE_PREFIX:-"cpfix2_"}
 debug "FIXTURE_PREFIX=$FIXTURE_PREFIX"
 
 debug "ROOT_DIR=$ROOT_DIR"

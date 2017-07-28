@@ -1,12 +1,12 @@
 etcd:
-    image: "cpfix_etcd"
+    image: "cpfix2_etcd"
     mem_limit: 128m
     hostname: etcd
     ports:
       - 4001:4001
 
 app:
-    image: "cpfix_app"
+    image: "cpfix2_app"
     mem_limit: 128m
     links:
       - etcd:etcd
@@ -16,7 +16,7 @@ app:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
 nginx:
-    image: "cpfix_nginx"
+    image: "cpfix2_nginx"
     mem_limit: 128m
     links:
       - etcd:etcd
@@ -26,7 +26,7 @@ nginx:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
 test:
-    image: "cpfix_test_probe"
+    image: "cpfix2_test_probe"
     mem_limit: 128m
     links:
       - app:app

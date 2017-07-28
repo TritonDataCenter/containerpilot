@@ -1,5 +1,5 @@
 app:
-    image: "cpfix_app"
+    image: "cpfix2_app"
     mem_limit: 128m
     volumes:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'

@@ -1,5 +1,5 @@
 etcd:
-    image: "cpfix_etcd"
+    image: "cpfix2_etcd"
     mem_limit: 128m
     hostname: etcd
     ports:
