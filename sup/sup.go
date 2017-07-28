@@ -38,7 +38,7 @@ func handleSignals(pid int) {
 			case syscall.SIGTERM:
 				syscall.Kill(pid, syscall.SIGTERM)
 			case syscall.SIGCHLD:
-				reap()
+				go reap()
 			}
 		}
 	}()
