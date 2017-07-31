@@ -4,26 +4,28 @@ set -e
 
 function finish {
     local result=$?
-    if [ $result -ne 0 ]; then
-        echo '----- APP LOGS ------'
-        docker logs "$APP_ID" | tee app.log
-        echo '---------------------'
-    fi
+    if [[ "$result" -ne 0 ]]; then docker logs "$app" | tee app.log; fi
     exit $result
 }
 
 trap finish EXIT
 
-docker-compose up -d consul app
 
-# Wait for consul to elect a leader
-docker-compose run --no-deps test /go/bin/test_probe test_consul
+# start up consul and wait for leader election
+docker-compose up -d consul
+consul=$(docker-compose ps -q consul)
+docker exec -it "$consul" assert ready
 
-APP_ID="$(docker-compose ps -q app)"
-docker-compose run --no-deps test /go/bin/test_probe test_sigterm "$APP_ID"
+# start up app and wait for it to register
+docker-compose up -d app
+app=$(docker-compose ps -q app)
+docker exec -it "$consul" assert service app 1
 
-# verify preStop fired
-docker logs "$APP_ID" | grep "msg=\"'preStop fired on app stopping"
+# sigterm app container
+docker stop "$app"
 
-# # verify postStop fired
-docker logs "$APP_ID" | grep "msg=\"'postStop fired on app stopped"
+# and verify it's exited gracefully from consul, and that
+# both preStop and postStop jobs have executed
+docker exec -it "$consul" assert service app 1
+docker logs "$app" | grep "msg=\"'preStop fired on app stopping"
+docker logs "$app" | grep "msg=\"'postStop fired on app stopped"

@@ -3,7 +3,7 @@ version: "2.1"
 services:
 
   consul:
-    image: consul:latest
+    image: "cpfix_consul"
     mem_limit: 128m
     hostname: consul
     command: agent -dev -client 0.0.0.0 -bind 0.0.0.0

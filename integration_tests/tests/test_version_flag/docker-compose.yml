@@ -1,5 +1,5 @@
 app:
-    image: "cpfix_test_probe"
+    image: "cpfix_consul"
     mem_limit: 128m
     volumes:
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'

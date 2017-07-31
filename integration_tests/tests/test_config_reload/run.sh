@@ -3,13 +3,13 @@
 # to reload config
 
 docker-compose up -d consul app
-APP_ID=$(docker-compose ps -q app)
+app=$(docker-compose ps -q app)
 
 # single reload and verify config has reloaded
-docker exec "$APP_ID" /reload-containerpilot.sh single
+docker exec "$app" /reload-containerpilot.sh single
 for i in $(seq 0 10); do
     sleep 1
-    docker logs "$APP_ID" > app.log
+    docker logs "$app" > app.log
     reloads=$(grep -c "control: reloaded app via control plane" app.log)
     serves=$(grep -c "control: serving at /var/run/containerpilot.socket" app.log)
     if [[ "$reloads" -eq 1 ]] && [[ "$serves" -eq 2 ]]; then
@@ -26,11 +26,11 @@ if [[ "$reloads" -ne 1 ]] || [[ "$serves" -ne 2 ]]; then
 fi
 
 # slam reload endpoint to verify we don't deadlock
-docker exec "$APP_ID" /reload-containerpilot.sh multi
+docker exec "$app" /reload-containerpilot.sh multi
 for _ in $(seq 0 20)
 do
     # might take a little while for the control server to settle
-    docker exec "$APP_ID" /reload-containerpilot.sh single && break
+    docker exec "$app" /reload-containerpilot.sh single && break
     sleep 1
 done
 if [[ $? -ne 0 ]]; then
@@ -40,5 +40,3 @@ if [[ $? -ne 0 ]]; then
     cat app.log
     exit 1
 fi
-
-exit 0

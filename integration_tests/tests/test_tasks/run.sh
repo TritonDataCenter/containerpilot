@@ -2,14 +2,12 @@
 # test_tasks: runs multiple tasks with timeouts for a period of time and
 # then parses their logs to verify that they ran the expected number of times.
 
-
-# start up and wait for Consul to elect a leader
+# start up consul and wait for leader election
 docker-compose up -d consul
-docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
-if [ ! $? -eq 0 ] ; then exit 1 ; fi
+docker exec -it "$(docker-compose ps -q consul)" assert ready
+
 docker-compose up -d app
 APP_ID="$(docker-compose ps -q app)"
-
 
 sleep 3.5
 docker-compose stop app
