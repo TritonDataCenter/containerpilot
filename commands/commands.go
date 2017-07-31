@@ -71,8 +71,10 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		defer c.lock.Unlock()
 		if ctx.Err() == context.DeadlineExceeded {
 			log.Warnf("%s timeout after %s: '%s'", c.Name, c.Timeout, c.Args)
+			c.Kill()
+			return
 		}
-		c.Kill()
+		c.Term()
 	}()
 
 	go func() {
@@ -112,5 +114,15 @@ func (c *Command) Kill() {
 	if c.Cmd != nil && c.Cmd.Process != nil {
 		log.Debugf("killing command '%v' at pid: %d", c.Name, c.Cmd.Process.Pid)
 		syscall.Kill(-c.Cmd.Process.Pid, syscall.SIGKILL)
+	}
+}
+
+// Term sends a terminate signal to the underlying process if it still exists,
+// as well as all its children
+func (c *Command) Term() {
+	log.Debugf("%s.term", c.Name)
+	if c.Cmd != nil && c.Cmd.Process != nil {
+		log.Debugf("terminating command '%v' at pid: %d", c.Name, c.Cmd.Process.Pid)
+		syscall.Kill(-c.Cmd.Process.Pid, syscall.SIGTERM)
 	}
 }
