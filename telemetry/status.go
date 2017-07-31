@@ -15,7 +15,7 @@ import (
 type Status struct {
 	Version  string
 	jobs     []*jobs.Job
-	Services []jobStatusResponse
+	Services []*jobStatusResponse
 	Watches  []string
 }
 
@@ -62,7 +62,7 @@ func (t *Telemetry) MonitorJobs(jobs []*jobs.Job) {
 	if t != nil {
 		for _, job := range jobs {
 			if job.Service != nil && job.Service.Port != 0 {
-				service := jobStatusResponse{
+				service := &jobStatusResponse{
 					Name:    job.Name,
 					Address: job.Service.IPAddress,
 					Port:    job.Service.Port,

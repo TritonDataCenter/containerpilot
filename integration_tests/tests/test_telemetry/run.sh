@@ -41,7 +41,7 @@ echo "$metrics" | grep 'containerpilot_watch_instances' || \
     ( echo 'no containerpilot_watch_instances metrics' && exit 1 )
 
 # Check the status endpoint too
-docker exec -it "${APP_ID}" curl -s "${IP}:9090/status" | grep 'app'
+docker exec -it "${APP_ID}" /check.sh "${IP}"
 result=$?
 set -e
 if [ $result -ne 0 ]; then exit $result; fi

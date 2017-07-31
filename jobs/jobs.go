@@ -28,6 +28,7 @@ const (
 	statusHealthy
 	statusUnhealthy
 	statusMaintenance
+	statusAlwaysHealthy
 )
 
 func (i JobStatus) String() string {
@@ -38,6 +39,9 @@ func (i JobStatus) String() string {
 		return "unhealthy"
 	case 4:
 		return "maintenance"
+	case 5:
+		// for hardcoded "always healthy" jobs
+		return "healthy"
 	default:
 		// both idle and unknown return unknown for purposes of serialization
 		return "unknown"
@@ -97,7 +101,7 @@ func NewJob(cfg *Config) *Job {
 		// right now this hardcodes the telemetry service to
 		// be always "healthy", but maybe we want to have it verify itself
 		// before heartbeating in the future?
-		job.setStatus(statusHealthy)
+		job.setStatus(statusAlwaysHealthy)
 	}
 	return job
 }
@@ -129,7 +133,9 @@ func (job *Job) GetStatus() JobStatus {
 func (job *Job) setStatus(status JobStatus) {
 	job.statusLock.Lock()
 	defer job.statusLock.Unlock()
-	job.Status = status
+	if job.Status != statusAlwaysHealthy {
+		job.Status = status
+	}
 }
 
 // MarkForMaintenance marks this Job's service for maintenance
@@ -156,6 +162,7 @@ func (job *Job) HealthCheck(ctx context.Context) {
 
 // StartJob runs the Job's executable
 func (job *Job) StartJob(ctx context.Context) {
+	job.setStatus(statusUnknown)
 	if job.exec != nil {
 		job.exec.Run(ctx, job.Bus)
 	}
@@ -285,6 +292,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 		}
 		log.Debugf("job exited but restart not permitted: %v", job.Name)
 		job.startEvent = events.NonEvent
+		job.setStatus(statusUnknown)
 		return true
 	case job.startEvent:
 		if job.startsRemain == 0 {
@@ -301,7 +309,6 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 				job.startEvent = events.NonEvent
 			}
 		}
-		job.setStatus(statusUnknown)
 		job.StartJob(ctx)
 	}
 	return false

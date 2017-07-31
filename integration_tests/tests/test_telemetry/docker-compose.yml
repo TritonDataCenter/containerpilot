@@ -17,6 +17,7 @@ services:
       - 9090:9090
     volumes:
       - './containerpilot.json5:/etc/containerpilot.json5'
+      - './check.sh:/check.sh'
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
 
   test:
