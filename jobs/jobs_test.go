@@ -77,6 +77,43 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	}
 }
 
+// A Job should not timeout if started before the startupTimeout
+func TestJobRunStartupNoTimeout(t *testing.T) {
+	bus := events.NewEventBus()
+	cfg := &Config{Name: "myjob", Exec: "sleep 5",
+		When: &WhenConfig{Timeout: "500ms"}}
+	cfg.Validate(noop)
+	cfg.whenEvent = events.GlobalStartup
+
+	job := NewJob(cfg)
+	job.Subscribe(bus)
+	job.Run()
+	job.Bus.Publish(events.GlobalStartup)
+
+	time.Sleep(1000 * time.Millisecond)
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("panicked but should not: sent to closed Subscriber")
+		}
+	}()
+	bus.Publish(events.QuitByClose)
+	bus.Wait()
+	results := bus.DebugEvents()
+
+	got := map[events.Event]int{}
+	for _, result := range results {
+		got[result]++
+	}
+	if !reflect.DeepEqual(got, map[events.Event]int{
+		events.GlobalStartup:                     1,
+		{Code: events.Stopping, Source: "myjob"}: 1,
+		{Code: events.Stopped, Source: "myjob"}:  1,
+		events.QuitByClose:                       1,
+	}) {
+		t.Fatalf("expected timeout after startup but got:\n%v", results)
+	}
+}
+
 func TestJobRunRestarts(t *testing.T) {
 	runRestartsTest := func(restarts interface{}, expected int) {
 		bus := events.NewEventBus()

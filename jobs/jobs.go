@@ -61,9 +61,10 @@ type Job struct {
 	healthCheckName string
 
 	// starting events
-	startEvent   events.Event
-	startTimeout time.Duration
-	startsRemain int
+	startEvent        events.Event
+	startTimeout      time.Duration
+	startsRemain      int
+	startTimeoutEvent events.Event
 
 	// stopping events
 	stoppingWaitEvent events.Event
@@ -162,6 +163,7 @@ func (job *Job) HealthCheck(ctx context.Context) {
 
 // StartJob runs the Job's executable
 func (job *Job) StartJob(ctx context.Context) {
+	job.startTimeoutEvent = events.NonEvent
 	job.setStatus(statusUnknown)
 	if job.exec != nil {
 		job.exec.Run(ctx, job.Bus)
@@ -188,8 +190,11 @@ func (job *Job) Run() {
 			fmt.Sprintf("%s.heartbeat", job.Name))
 	}
 	if job.startTimeout > 0 {
-		events.NewEventTimeout(ctx, job.Rx, job.startTimeout,
-			fmt.Sprintf("%s.wait-timeout", job.Name))
+		timeoutName := fmt.Sprintf("%s.wait-timeout", job.Name)
+		events.NewEventTimeout(ctx, job.Rx, job.startTimeout, timeoutName)
+		job.startTimeoutEvent = events.Event{events.TimerExpired, timeoutName}
+	} else {
+		job.startTimeoutEvent = events.NonEvent
 	}
 
 	go func() {
@@ -213,7 +218,6 @@ func (job *Job) Run() {
 func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
 	heartbeatSource := fmt.Sprintf("%s.heartbeat", job.Name)
-	startTimeoutSource := fmt.Sprintf("%s.wait-timeout", job.Name)
 	var healthCheckName string
 	if job.healthCheckExec != nil {
 		healthCheckName = job.healthCheckExec.Name
@@ -231,7 +235,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 				job.SendHeartbeat()
 			}
 		}
-	case events.Event{events.TimerExpired, startTimeoutSource}:
+	case job.startTimeoutEvent:
 		job.Bus.Publish(events.Event{
 			Code: events.TimerExpired, Source: job.Name})
 		job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
