@@ -16,7 +16,8 @@ func TestJobRunSafeClose(t *testing.T) {
 	cfg := &Config{Name: "myjob", Exec: "sleep 10"} // don't want exec to finish
 	cfg.Validate(noop)
 	job := NewJob(cfg)
-	job.Run(bus)
+	job.Subscribe(bus)
+	job.Run()
 	bus.Publish(events.GlobalStartup)
 	job.Quit()
 	bus.Wait()
@@ -46,7 +47,8 @@ func TestJobRunStartupTimeout(t *testing.T) {
 		When: &WhenConfig{Source: "never", Once: "startup", Timeout: "100ms"}}
 	cfg.Validate(noop)
 	job := NewJob(cfg)
-	job.Run(bus)
+	job.Subscribe(bus)
+	job.Run()
 	job.Bus.Publish(events.GlobalStartup)
 
 	time.Sleep(200 * time.Millisecond)
@@ -88,7 +90,8 @@ func TestJobRunRestarts(t *testing.T) {
 		cfg.Validate(noop)
 		job := NewJob(cfg)
 
-		job.Run(bus)
+		job.Subscribe(bus)
+		job.Run()
 		job.Bus.Publish(events.GlobalStartup)
 		time.Sleep(100 * time.Millisecond) // TODO: we can't force this, right?
 		exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
@@ -125,7 +128,8 @@ func TestJobRunPeriodic(t *testing.T) {
 	}
 	cfg.Validate(noop)
 	job := NewJob(cfg)
-	job.Run(bus)
+	job.Subscribe(bus)
+	job.Run()
 	job.Bus.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 	exitFail := events.Event{Code: events.ExitFailed, Source: "myjob"}
@@ -159,7 +163,8 @@ func TestJobMaintenance(t *testing.T) {
 		cfg.Validate(noop)
 		job := NewJob(cfg)
 		job.setStatus(startingState)
-		job.Run(bus)
+		job.Subscribe(bus)
+		job.Run()
 		job.Bus.Publish(event)
 		job.Quit()
 		return job.GetStatus()

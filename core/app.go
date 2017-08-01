@@ -148,8 +148,15 @@ func (a *App) reload() error {
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
 func (a *App) handlePolling() {
+
+	// we need to subscribe to events before we Run all the jobs
+	// to avoid races where a job finishes and fires events before
+	// other jobs are even subscribed to listen for them.
 	for _, job := range a.Jobs {
-		job.Run(a.Bus)
+		job.Subscribe(a.Bus)
+	}
+	for _, job := range a.Jobs {
+		job.Run()
 	}
 	for _, watch := range a.Watches {
 		watch.Run(a.Bus)

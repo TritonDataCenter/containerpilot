@@ -176,9 +176,7 @@ func (job *Job) Kill() {
 }
 
 // Run executes the event loop for the Job
-func (job *Job) Run(bus *events.EventBus) {
-	job.Subscribe(bus)
-	job.Bus = bus
+func (job *Job) Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if job.frequency > 0 {

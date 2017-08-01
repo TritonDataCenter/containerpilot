@@ -20,6 +20,7 @@ type EventHandler struct {
 func (evh *EventHandler) Subscribe(bus *EventBus, isInternal ...bool) {
 	evh.wg.Add(1)
 	bus.Register(evh, isInternal...)
+	evh.Bus = bus
 }
 
 // Unsubscribe removes the EventHandler from the list of handlers
