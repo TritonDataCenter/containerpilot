@@ -1,30 +1,38 @@
 #!/bin/bash
+set -e
 
-# start up consul and wait for consul to elect a leader
+function finish {
+    local result=$?
+    if [ $result -ne 0 ]; then
+        app=$(docker-compose ps -q app)
+        echo '----- CONSUL LOGS ------'
+        docker logs "$consul" | tee consul.log
+        echo '----- NGINX LOGS ------'
+        docker logs "$nginx" | tee nginx.log
+        echo '----- APP LOGS ------'
+        docker logs "$app" | tee app.log
+        echo '---------------------'
+    fi
+    exit $result
+}
+
+trap finish EXIT
+
+
+# start up consul and wait for leader election
 docker-compose up -d consul
-docker-compose run --no-deps test /go/bin/test_probe test_consul
-if [ ! $? -eq 0 ] ; then exit 1 ; fi
+consul=$(docker-compose ps -q consul)
+docker exec -it "$consul" assert ready
 
-# start app and nginx, then wait a bit for them to converge
+# start app and nginx, wait for them to register
 docker-compose up -d app nginx
-sleep 5 # TODO: this is awful
+docker exec -it "$consul" assert service app 1
+docker exec -it "$consul" assert service nginx 1
 
-# run the test_probe against stack to make sure that App and Nginx
-# both show in Consul and that Nginx has a working route to App
-docker-compose run --no-deps test /go/bin/test_probe test_discovery
-result=$?
-
-if [ ! $result -eq 0 ]; then
-    APP_ID=$(docker ps -l -f "ancestor=cpfix_app" --format="{{.ID}}")
-    CONSUL_ID=$(docker ps -l -f "ancestor=consul" --format="{{.ID}}")
-    NGINX_ID=$(docker ps -l -f "ancestor=cpfix_nginx" --format="{{.ID}}")
-    echo '----- CONSUL LOGS ------'
-    docker logs "${CONSUL_ID}" | tee consul.log
-    echo '----- NGINX LOGS ------'
-    docker logs "${NGINX_ID}" | tee nginx.log
-    echo '----- APP LOGS ------'
-    docker logs "${APP_ID}" | tee app.log
-    echo '---------------------'
-fi
-
-exit $result
+# test that nginx config has been updated
+nginx=$(docker-compose ps -q nginx)
+for _ in $(seq 0 10); do
+    docker exec -it "$nginx" curl -s -o /dev/null --fail "http://localhost:80/app/"
+    [ $? -eq 0 ] && exit 0
+    sleep 1
+done || (echo "no route for /app/" && exit 1)

@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# wait up to 10 seconds for Consul to elect a leader.
+# return 1 on failure.
+assert_ready() {
+    for _ in $(seq 0 10); do
+        curl -s --fail -o /dev/null \
+             "http://localhost:8500/v1/status/leader"
+        [ $? -eq 0 ] && exit 0
+        sleep 1
+    done || (echo "failed to get a leader" && exit 1)
+}
+
+# wait up to 30 seconds for Consul to have 'count' healthy instance
+# of 'service'. return 1 on failure.
+assert_service() {
+    service="$1"
+    count="$2"
+    for _ in $(seq 0 30); do
+        got=$(curl -s --fail \
+                 "http://localhost:8500/v1/health/service/${service}?passing" \
+                  | jq '. | length')
+        [ "$got" -eq "$count" ] && exit 0
+        sleep 1
+    done || (echo "failed to get $count instances of $service" && exit 1)
+}
+
+# ---------------------------------------------------
+# parse arguments
+
+while true; do
+    case $1 in
+        ready ) assert_ready; break;;
+        service)
+            shift
+            assert_service "$@"
+            break;;
+        *)
+            echo "requires assertion argument"
+            exit 1
+            break;;
+    esac
+done

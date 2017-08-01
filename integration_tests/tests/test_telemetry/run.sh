@@ -1,36 +1,24 @@
 #!/bin/bash
 set -e
 
-function finish {
-    result=$?
-    docker-compose rm -f
-    exit $result
-}
-trap finish EXIT
 
-
-# start up consul and app
+# start up consul and wait for leader election
 docker-compose up -d consul
+consul=$(docker-compose ps -q consul)
+docker exec -it "$consul" assert ready
 
-# Wait for consul to elect a leader
-docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
-if [ ! $? -eq 0 ] ; then exit 1 ; fi
-
+# start up app
 docker-compose up -d app
 
-APP_ID="$(docker-compose ps -q app)"
-IP=$(docker inspect -f '{{ .NetworkSettings.Networks.testtelemetry_default.IPAddress }}' "${APP_ID}")
+app="$(docker-compose ps -q app)"
+IP=$(docker inspect -f '{{ .NetworkSettings.Networks.testtelemetry_default.IPAddress }}' "$app")
 
 # This interface takes a while to converge
-set +e
-for i in {20..1}; do
-    sleep 1 # sleep has to be before b/c we want exit code
-    metrics=$(docker exec -it "${APP_ID}" curl -s "${IP}:9090/metrics")
+for _ in $(seq 0 20); do
+    sleep 1
+    metrics=$(docker exec -it "$app" curl -s "${IP}:9090/metrics")
     echo "$metrics" | grep 'containerpilot_app_some_counter 42' && break
-done
-result=$?
-set -e
-if [ $result -ne 0 ]; then exit $result; fi
+done || (echo "did not get expected metrics output" && exit 1)
 
 # check last /metrics scrape for the rest of the events
 echo "$metrics" | grep 'containerpilot_events' || \
@@ -41,22 +29,9 @@ echo "$metrics" | grep 'containerpilot_watch_instances' || \
     ( echo 'no containerpilot_watch_instances metrics' && exit 1 )
 
 # Check the status endpoint too
-docker exec -it "${APP_ID}" /check.sh "${IP}"
-result=$?
-set -e
-if [ $result -ne 0 ]; then exit $result; fi
-
+docker exec -it "$app" /check.sh "${IP}"
 
 # Make we register and tear down telemetry service in Consul
-CONSUL_ID="$(docker-compose ps -q consul)"
-set +e
-for i in {5..1}; do
-    sleep 1
-    docker exec -it "${CONSUL_ID}" curl -s --fail localhost:8500/v1/catalog/service/containerpilot | grep 'containerpilot' && break
-done
-result=$?
-set -e
-if [ $result -ne 0 ]; then exit $result; fi
-
+docker exec -it "$consul" assert service containerpilot 1
 docker-compose stop app
-docker exec -it "${CONSUL_ID}" curl -s --fail localhost:8500/v1/catalog/service/containerpilot | grep -v 'containerpilot'
+docker exec -it "$consul" curl -s --fail localhost:8500/v1/catalog/service/containerpilot | grep -v 'containerpilot'

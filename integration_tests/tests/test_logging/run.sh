@@ -1,20 +1,20 @@
 #!/bin/bash
 
+function finish {
+    result=$?
+    if [[ "$result" -ne 0 ]]; then docker logs "$app" | tee app.log; fi
+    exit $result
+}
+trap finish EXIT
+
+
+# start up app & consul and wait for leader election
 docker-compose up -d consul app
+docker exec -it "$(docker-compose ps -q consul)" assert ready
 
-# Wait for consul to elect a leader
-docker-compose run --no-deps test /go/bin/test_probe test_consul > /dev/null 2>&1
-if [ ! $? -eq 0 ] ; then exit 1 ; fi
-
-APP_ID="$(docker-compose ps -q app)"
-logs=$(docker logs "$APP_ID")
+app=$(docker-compose ps -q app)
+logs=$(docker logs "$app")
 result=1
 if [[ $logs == *"loaded config:"* ]]; then
     result=0
 fi
-
-if [ $result -ne 0 ]; then
-  echo "==== APP LOGS ===="
-  docker logs "${APP_ID}" | tee app.log
-fi
-exit $result

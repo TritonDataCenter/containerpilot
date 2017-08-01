@@ -6,9 +6,9 @@ logFail() {
 }
 
 docker-compose run -d app
-TEST_ID=$(docker ps -a | awk -F' +' '/testnocommand/{print $1}')
-docker logs "$TEST_ID" | grep -qv panic
+id=$(docker-compose ps -q app)
+docker logs "$id" | grep -qv panic
 result=$?
-docker stop "$TEST_ID" || logFail 'should still be running'
+docker stop "$id" || logFail 'should still be running'
 
 exit $result

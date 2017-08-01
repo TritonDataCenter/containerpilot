@@ -6,9 +6,11 @@ set -e
 # We can't test any more precisely than this without racing the kernel
 # reparenting mechanism.
 
-docker-compose up -d consul zombies > /dev/null 2>&1
+docker-compose up -d consul zombies
+consul=$(docker-compose ps -q consul)
+docker exec -it "$consul" assert ready
 
-ID="$(docker-compose ps -q zombies)"
+ID=$(docker-compose ps -q zombies)
 sleep 6
 
 PTREE=$(docker exec "$ID" ps -o stat,ppid,pid,args)
@@ -29,7 +31,7 @@ if [ "$REPARENTED_ZOMBIES" -gt 1 ] || [ "$TOTAL_ZOMBIES" -gt 2 ]; then
 fi
 if [ "$ENOCHILD" -gt 0 ]; then
     echo "Got 'no child processes' error(s):"
-    docker logs "${ID}" > zombies.log
+    docker logs "$ID" > zombies.log
     grep 'no child processes' zombies.log
     exit 1
 fi
