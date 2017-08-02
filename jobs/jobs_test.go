@@ -16,7 +16,8 @@ func TestJobRunSafeClose(t *testing.T) {
 	cfg := &Config{Name: "myjob", Exec: "sleep 10"} // don't want exec to finish
 	cfg.Validate(noop)
 	job := NewJob(cfg)
-	job.Run(bus)
+	job.Subscribe(bus)
+	job.Run()
 	bus.Publish(events.GlobalStartup)
 	job.Quit()
 	bus.Wait()
@@ -46,7 +47,8 @@ func TestJobRunStartupTimeout(t *testing.T) {
 		When: &WhenConfig{Source: "never", Once: "startup", Timeout: "100ms"}}
 	cfg.Validate(noop)
 	job := NewJob(cfg)
-	job.Run(bus)
+	job.Subscribe(bus)
+	job.Run()
 	job.Bus.Publish(events.GlobalStartup)
 
 	time.Sleep(200 * time.Millisecond)
@@ -75,6 +77,43 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	}
 }
 
+// A Job should not timeout if started before the startupTimeout
+func TestJobRunStartupNoTimeout(t *testing.T) {
+	bus := events.NewEventBus()
+	cfg := &Config{Name: "myjob", Exec: "sleep 5",
+		When: &WhenConfig{Timeout: "500ms"}}
+	cfg.Validate(noop)
+	cfg.whenEvent = events.GlobalStartup
+
+	job := NewJob(cfg)
+	job.Subscribe(bus)
+	job.Run()
+	job.Bus.Publish(events.GlobalStartup)
+
+	time.Sleep(1000 * time.Millisecond)
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("panicked but should not: sent to closed Subscriber")
+		}
+	}()
+	bus.Publish(events.QuitByClose)
+	bus.Wait()
+	results := bus.DebugEvents()
+
+	got := map[events.Event]int{}
+	for _, result := range results {
+		got[result]++
+	}
+	if !reflect.DeepEqual(got, map[events.Event]int{
+		events.GlobalStartup:                     1,
+		{Code: events.Stopping, Source: "myjob"}: 1,
+		{Code: events.Stopped, Source: "myjob"}:  1,
+		events.QuitByClose:                       1,
+	}) {
+		t.Fatalf("expected timeout after startup but got:\n%v", results)
+	}
+}
+
 func TestJobRunRestarts(t *testing.T) {
 	runRestartsTest := func(restarts interface{}, expected int) {
 		bus := events.NewEventBus()
@@ -88,7 +127,8 @@ func TestJobRunRestarts(t *testing.T) {
 		cfg.Validate(noop)
 		job := NewJob(cfg)
 
-		job.Run(bus)
+		job.Subscribe(bus)
+		job.Run()
 		job.Bus.Publish(events.GlobalStartup)
 		time.Sleep(100 * time.Millisecond) // TODO: we can't force this, right?
 		exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
@@ -125,7 +165,8 @@ func TestJobRunPeriodic(t *testing.T) {
 	}
 	cfg.Validate(noop)
 	job := NewJob(cfg)
-	job.Run(bus)
+	job.Subscribe(bus)
+	job.Run()
 	job.Bus.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 	exitFail := events.Event{Code: events.ExitFailed, Source: "myjob"}
@@ -159,7 +200,8 @@ func TestJobMaintenance(t *testing.T) {
 		cfg.Validate(noop)
 		job := NewJob(cfg)
 		job.setStatus(startingState)
-		job.Run(bus)
+		job.Subscribe(bus)
+		job.Run()
 		job.Bus.Publish(event)
 		job.Quit()
 		return job.GetStatus()

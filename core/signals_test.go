@@ -43,7 +43,8 @@ func getSignalTestConfig(t *testing.T) *App {
 func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
 	bus := app.Bus
-	app.Jobs[0].Run(bus)
+	app.Jobs[0].Subscribe(bus)
+	app.Jobs[0].Run()
 
 	app.Terminate()
 	bus.Wait()
