@@ -114,7 +114,7 @@ If the `interval` field is set it is the only field permitted under `when`. Othe
 
 ##### `timeout`
 
-The `timeout` field under is optional and is the amount of time to wait after the job starts before it is killed. Processes killed this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state and a heartbeat will not be sent.
+The `timeout` field is optional and is the amount of time to wait after the job starts before it is killed. Processes killed this way are terminated immediately (`SIGKILL`) without an opportunity to clean up their state and a heartbeat will not be sent.
 
 For long-running jobs like servers, you will generally want to omit this field. If this field is omitted and the job does not have a [`when.frequency` field](#when), then the job will never timeout. If the field is omitted and the job does have a `when.frequency` field, then the timeout will default to the frequency.
 
