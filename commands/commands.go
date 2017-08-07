@@ -59,7 +59,7 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 	c.lock.Lock()
 	log.Debugf("%s.Run start", c.Name)
 
-	cmd := ArgsToCmd(c.Exec, c.Args)
+	cmd := exec.Command(c.Exec, c.Args...)
 	if c.logger.Logger != nil {
 		cmd.Stdout = c.logger.Writer()
 		cmd.Stderr = c.logger.Writer()

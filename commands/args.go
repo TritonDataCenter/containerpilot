@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"os/exec"
 	"strings"
 
 	"github.com/joyent/containerpilot/config/decode"
@@ -29,12 +28,4 @@ func ParseArgs(raw interface{}) (executable string, args []string, err error) {
 		args = args[1:]
 	}
 	return executable, args, err
-}
-
-// ArgsToCmd creates a command from a list of arguments
-func ArgsToCmd(executable string, args []string) *exec.Cmd {
-	if len(args) == 0 {
-		return exec.Command(executable)
-	}
-	return exec.Command(executable, args...)
 }
