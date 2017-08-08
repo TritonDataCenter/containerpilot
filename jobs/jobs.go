@@ -12,41 +12,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Some magic numbers used internally by restart limits
+type processEventStatus bool
+
+// Some magic numbers used internally by processEvent
 const (
-	unlimited       = -1
-	eventBufferSize = 1000
+	unlimited                          = -1
+	eventBufferSize                    = 1000
+	jobContinue     processEventStatus = false
+	jobHalt         processEventStatus = true
 )
-
-// JobStatus is an enum of job health status
-type JobStatus int
-
-// JobStatus enum
-const (
-	statusIdle JobStatus = iota // will be default value before starting
-	statusUnknown
-	statusHealthy
-	statusUnhealthy
-	statusMaintenance
-	statusAlwaysHealthy
-)
-
-func (i JobStatus) String() string {
-	switch i {
-	case 2:
-		return "healthy"
-	case 3:
-		return "unhealthy"
-	case 4:
-		return "maintenance"
-	case 5:
-		// for hardcoded "always healthy" jobs
-		return "healthy"
-	default:
-		// both idle and unknown return unknown for purposes of serialization
-		return "unknown"
-	}
-}
 
 // Job manages the state of a job and its start/stop conditions
 type Job struct {
@@ -139,37 +113,6 @@ func (job *Job) setStatus(status JobStatus) {
 	}
 }
 
-// MarkForMaintenance marks this Job's service for maintenance
-func (job *Job) MarkForMaintenance() {
-	job.setStatus(statusMaintenance)
-	if job.Service != nil {
-		job.Service.MarkForMaintenance()
-	}
-}
-
-// Deregister will deregister this instance of Job's service
-func (job *Job) Deregister() {
-	if job.Service != nil {
-		job.Service.Deregister()
-	}
-}
-
-// HealthCheck runs the Job's health check executable
-func (job *Job) HealthCheck(ctx context.Context) {
-	if job.healthCheckExec != nil {
-		job.healthCheckExec.Run(ctx, job.Bus)
-	}
-}
-
-// StartJob runs the Job's executable
-func (job *Job) StartJob(ctx context.Context) {
-	job.startTimeoutEvent = events.NonEvent
-	job.setStatus(statusUnknown)
-	if job.exec != nil {
-		job.exec.Run(ctx, job.Bus)
-	}
-}
-
 // Kill sends SIGTERM to the Job's executable, if any
 func (job *Job) Kill() {
 	if job.exec != nil {
@@ -205,7 +148,7 @@ func (job *Job) Run() {
 				if !ok {
 					return
 				}
-				if job.processEvent(ctx, event) {
+				if job.processEvent(ctx, event) == jobHalt {
 					return
 				}
 			case <-ctx.Done():
@@ -215,110 +158,165 @@ func (job *Job) Run() {
 	}()
 }
 
-func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
+func (job *Job) processEvent(ctx context.Context, event events.Event) processEventStatus {
 	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
 	heartbeatSource := fmt.Sprintf("%s.heartbeat", job.Name)
-	var healthCheckName string
+	healthCheckName := fmt.Sprintf("check.%s", job.Name)
 	if job.healthCheckExec != nil {
 		healthCheckName = job.healthCheckExec.Name
 	}
 
 	switch event {
-	case events.Event{events.TimerExpired, heartbeatSource}:
-		status := job.GetStatus()
-		if status != statusMaintenance && status != statusIdle {
-			if job.healthCheckExec != nil {
-				job.HealthCheck(ctx)
-			} else if job.Service != nil {
-				// this is the case for non-checked but advertised
-				// services like the telemetry endpoint
-				job.SendHeartbeat()
-			}
-		}
+	case events.Event{Code: events.TimerExpired, Source: heartbeatSource}:
+		return job.onHeartbeatTimerExpired(ctx)
 	case job.startTimeoutEvent:
-		job.Bus.Publish(events.Event{
-			Code: events.TimerExpired, Source: job.Name})
-		job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
-	case events.Event{events.TimerExpired, runEverySource}:
-		if !job.restartPermitted() {
-			log.Debugf("interval expired but restart not permitted: %v",
-				job.Name)
-			job.startEvent = events.NonEvent
-			return true
-		}
-		job.restartsRemain--
-		job.StartJob(ctx)
-	case events.Event{events.ExitFailed, healthCheckName}:
-		if job.GetStatus() != statusMaintenance {
-			job.setStatus(statusUnhealthy)
-			job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
-		}
-	case events.Event{events.ExitSuccess, healthCheckName}:
-		if job.GetStatus() != statusMaintenance {
-			job.setStatus(statusHealthy)
-			job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
-			job.SendHeartbeat()
-		}
+		return job.onStartTimeoutExpired(ctx)
+	case events.Event{Code: events.TimerExpired, Source: runEverySource}:
+		return job.onRunEveryTimerExpired(ctx)
+	case events.Event{Code: events.ExitFailed, Source: healthCheckName}:
+		return job.onHealthCheckFailed(ctx)
+	case events.Event{Code: events.ExitSuccess, Source: healthCheckName}:
+		return job.onHealthCheckPassed(ctx)
 	case
-		events.Event{events.Quit, job.Name},
+		events.Event{Code: events.Quit, Source: job.Name},
 		events.QuitByClose,
 		events.GlobalShutdown:
-		job.restartsRemain = 0 // no more restarts
-		if (job.startEvent.Code == events.Stopping ||
-			job.startEvent.Code == events.Stopped) &&
-			job.exec != nil {
-			// "pre-stop" and "post-stop" style jobs ignore the global
-			// shutdown and return on their ExitSuccess/ExitFailed.
-			// if the stop timeout on the global shutdown is exceeded
-			// the whole process gets SIGKILL
-			if job.startsRemain == unlimited {
-				job.startsRemain = 1
-			}
-			break
-		}
-		job.startsRemain = 0
-		job.startEvent = events.NonEvent
-		return true
+		return job.onQuit(ctx)
 	case events.GlobalEnterMaintenance:
-		job.MarkForMaintenance()
+		return job.onEnterMaintenance(ctx)
 	case events.GlobalExitMaintenance:
 		job.setStatus(statusUnknown)
 	case
-		events.Event{events.ExitSuccess, job.Name},
-		events.Event{events.ExitFailed, job.Name}:
-		if job.frequency > 0 {
-			break // periodic jobs ignore previous events
-		}
-		if job.restartPermitted() {
-			job.restartsRemain--
-			job.StartJob(ctx)
-			break
-		}
-		if job.startsRemain != 0 {
-			break
-		}
-		log.Debugf("job exited but restart not permitted: %v", job.Name)
-		job.startEvent = events.NonEvent
-		job.setStatus(statusUnknown)
-		return true
+		events.Event{Code: events.ExitSuccess, Source: job.Name},
+		events.Event{Code: events.ExitFailed, Source: job.Name}:
+		return job.onExecExit(ctx)
 	case job.startEvent:
-		if job.startsRemain == 0 {
-			job.startEvent = events.NonEvent
-			return true
-		}
-		if job.startsRemain != unlimited {
-			// if we have unlimited restarts we want to make sure we don't
-			// decrement forever and then wrap-around
-			job.startsRemain--
-			if job.startsRemain == 0 || job.restartsRemain == 0 {
-				// prevent ourselves from receiving the start event again
-				// if it fires while we're still running the job's exec
-				job.startEvent = events.NonEvent
-			}
-		}
-		job.StartJob(ctx)
+		return job.onStartEvent(ctx)
 	}
-	return false
+	return jobContinue
+}
+
+// startJobExec runs the Job's executable and returns without waiting
+func (job *Job) startJobExec(ctx context.Context) {
+	job.startTimeoutEvent = events.NonEvent
+	job.setStatus(statusUnknown)
+	if job.exec != nil {
+		job.exec.Run(ctx, job.Bus)
+	}
+}
+
+func (job *Job) onHeartbeatTimerExpired(ctx context.Context) processEventStatus {
+	status := job.GetStatus()
+	if status != statusMaintenance && status != statusIdle {
+		if job.healthCheckExec != nil {
+			job.healthCheckExec.Run(ctx, job.Bus)
+		} else if job.Service != nil {
+			// this is the case for non-checked but advertised
+			// services like the telemetry endpoint
+			job.SendHeartbeat()
+		}
+	}
+	return jobContinue
+}
+
+func (job *Job) onStartTimeoutExpired(ctx context.Context) processEventStatus {
+	job.Bus.Publish(events.Event{
+		Code: events.TimerExpired, Source: job.Name})
+	job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
+	return jobContinue
+}
+
+func (job *Job) onRunEveryTimerExpired(ctx context.Context) processEventStatus {
+	if !job.restartPermitted() {
+		log.Debugf("interval expired but restart not permitted: %v",
+			job.Name)
+		job.startEvent = events.NonEvent
+		return jobHalt
+	}
+	job.restartsRemain--
+	job.startJobExec(ctx)
+	return jobContinue
+}
+
+func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
+	if job.GetStatus() != statusMaintenance {
+		job.setStatus(statusUnhealthy)
+		job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
+	}
+	return jobContinue
+}
+
+func (job *Job) onHealthCheckPassed(ctx context.Context) processEventStatus {
+	if job.GetStatus() != statusMaintenance {
+		job.setStatus(statusHealthy)
+		job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
+		job.SendHeartbeat()
+	}
+	return jobContinue
+}
+
+func (job *Job) onQuit(ctx context.Context) processEventStatus {
+	job.restartsRemain = 0 // no more restarts
+	if (job.startEvent.Code == events.Stopping ||
+		job.startEvent.Code == events.Stopped) &&
+		job.exec != nil {
+		// "pre-stop" and "post-stop" style jobs ignore the global
+		// shutdown and return on their ExitSuccess/ExitFailed.
+		// if the stop timeout on the global shutdown is exceeded
+		// the whole process gets SIGKILL
+		if job.startsRemain == unlimited {
+			job.startsRemain = 1
+		}
+		return jobContinue
+	}
+	job.startsRemain = 0
+	job.startEvent = events.NonEvent
+	return jobHalt
+}
+
+func (job *Job) onEnterMaintenance(ctx context.Context) processEventStatus {
+	job.setStatus(statusMaintenance)
+	if job.Service != nil {
+		job.Service.MarkForMaintenance()
+	}
+	return jobContinue
+}
+
+func (job *Job) onExecExit(ctx context.Context) processEventStatus {
+	if job.frequency > 0 {
+		return jobContinue // periodic jobs ignore previous events
+	}
+	if job.restartPermitted() {
+		job.restartsRemain--
+		job.startJobExec(ctx)
+		return jobContinue
+	}
+	if job.startsRemain != 0 {
+		return jobContinue
+	}
+	log.Debugf("job exited but restart not permitted: %v", job.Name)
+	job.startEvent = events.NonEvent
+	job.setStatus(statusUnknown)
+	return jobHalt
+}
+
+func (job *Job) onStartEvent(ctx context.Context) processEventStatus {
+	if job.startsRemain == 0 {
+		job.startEvent = events.NonEvent
+		return jobHalt
+	}
+	if job.startsRemain != unlimited {
+		// if we have unlimited restarts we want to make sure we don't
+		// decrement forever and then wrap-around
+		job.startsRemain--
+		if job.startsRemain == 0 || job.restartsRemain == 0 {
+			// prevent ourselves from receiving the start event again
+			// if it fires while we're still running the job's exec
+			job.startEvent = events.NonEvent
+		}
+	}
+	job.startJobExec(ctx)
+	return jobContinue
 }
 
 func (job *Job) restartPermitted() bool {
@@ -352,7 +350,9 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 		}
 	}
 	cancel()
-	job.Deregister()         // deregister from Consul
+	if job.Service != nil {
+		job.Service.Deregister() // deregister from Consul
+	}
 	job.Unsubscribe(job.Bus) // deregister from events
 	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 }
