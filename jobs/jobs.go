@@ -263,6 +263,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 		events.Event{events.Quit, job.Name},
 		events.QuitByClose,
 		events.GlobalShutdown:
+		job.restartsRemain = 0 // no more restarts
 		if (job.startEvent.Code == events.Stopping ||
 			job.startEvent.Code == events.Stopped) &&
 			job.exec != nil {
@@ -270,8 +271,12 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) bool {
 			// shutdown and return on their ExitSuccess/ExitFailed.
 			// if the stop timeout on the global shutdown is exceeded
 			// the whole process gets SIGKILL
+			if job.startsRemain == unlimited {
+				job.startsRemain = 1
+			}
 			break
 		}
+		job.startsRemain = 0
 		job.startEvent = events.NonEvent
 		return true
 	case events.GlobalEnterMaintenance:
