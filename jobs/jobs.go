@@ -12,10 +12,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Some magic numbers used internally by restart limits
+type processEventStatus bool
+
+// Some magic numbers used internally by processEvent
 const (
-	unlimited       = -1
-	eventBufferSize = 1000
+	unlimited                          = -1
+	eventBufferSize                    = 1000
+	jobContinue     processEventStatus = false
+	jobHalt         processEventStatus = true
 )
 
 // Job manages the state of a job and its start/stop conditions
@@ -153,13 +157,6 @@ func (job *Job) Run() {
 		}
 	}()
 }
-
-type processEventStatus bool
-
-const (
-	jobContinue processEventStatus = false
-	jobHalt     processEventStatus = true
-)
 
 func (job *Job) processEvent(ctx context.Context, event events.Event) processEventStatus {
 	runEverySource := fmt.Sprintf("%s.run-every", job.Name)
