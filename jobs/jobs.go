@@ -109,37 +109,6 @@ func (job *Job) setStatus(status JobStatus) {
 	}
 }
 
-// MarkForMaintenance marks this Job's service for maintenance
-func (job *Job) MarkForMaintenance() {
-	job.setStatus(statusMaintenance)
-	if job.Service != nil {
-		job.Service.MarkForMaintenance()
-	}
-}
-
-// Deregister will deregister this instance of Job's service
-func (job *Job) Deregister() {
-	if job.Service != nil {
-		job.Service.Deregister()
-	}
-}
-
-// HealthCheck runs the Job's health check executable
-func (job *Job) HealthCheck(ctx context.Context) {
-	if job.healthCheckExec != nil {
-		job.healthCheckExec.Run(ctx, job.Bus)
-	}
-}
-
-// StartJob runs the Job's executable
-func (job *Job) StartJob(ctx context.Context) {
-	job.startTimeoutEvent = events.NonEvent
-	job.setStatus(statusUnknown)
-	if job.exec != nil {
-		job.exec.Run(ctx, job.Bus)
-	}
-}
-
 // Kill sends SIGTERM to the Job's executable, if any
 func (job *Job) Kill() {
 	if job.exec != nil {
@@ -217,7 +186,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) processEve
 		events.GlobalShutdown:
 		return job.onQuit(ctx)
 	case events.GlobalEnterMaintenance:
-		job.MarkForMaintenance()
+		return job.onEnterMaintenance(ctx)
 	case events.GlobalExitMaintenance:
 		job.setStatus(statusUnknown)
 	case
@@ -230,11 +199,20 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) processEve
 	return jobContinue
 }
 
+// startJobExec runs the Job's executable and returns without waiting
+func (job *Job) startJobExec(ctx context.Context) {
+	job.startTimeoutEvent = events.NonEvent
+	job.setStatus(statusUnknown)
+	if job.exec != nil {
+		job.exec.Run(ctx, job.Bus)
+	}
+}
+
 func (job *Job) onHeartbeatTimerExpired(ctx context.Context) processEventStatus {
 	status := job.GetStatus()
 	if status != statusMaintenance && status != statusIdle {
 		if job.healthCheckExec != nil {
-			job.HealthCheck(ctx)
+			job.healthCheckExec.Run(ctx, job.Bus)
 		} else if job.Service != nil {
 			// this is the case for non-checked but advertised
 			// services like the telemetry endpoint
@@ -259,7 +237,7 @@ func (job *Job) onRunEveryTimerExpired(ctx context.Context) processEventStatus {
 		return jobHalt
 	}
 	job.restartsRemain--
-	job.StartJob(ctx)
+	job.startJobExec(ctx)
 	return jobContinue
 }
 
@@ -299,13 +277,21 @@ func (job *Job) onQuit(ctx context.Context) processEventStatus {
 	return jobHalt
 }
 
+func (job *Job) onEnterMaintenance(ctx context.Context) processEventStatus {
+	job.setStatus(statusMaintenance)
+	if job.Service != nil {
+		job.Service.MarkForMaintenance()
+	}
+	return jobContinue
+}
+
 func (job *Job) onExecExit(ctx context.Context) processEventStatus {
 	if job.frequency > 0 {
 		return jobContinue // periodic jobs ignore previous events
 	}
 	if job.restartPermitted() {
 		job.restartsRemain--
-		job.StartJob(ctx)
+		job.startJobExec(ctx)
 		return jobContinue
 	}
 	if job.startsRemain != 0 {
@@ -332,7 +318,7 @@ func (job *Job) onStartEvent(ctx context.Context) processEventStatus {
 			job.startEvent = events.NonEvent
 		}
 	}
-	job.StartJob(ctx)
+	job.startJobExec(ctx)
 	return jobContinue
 }
 
@@ -367,7 +353,9 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 		}
 	}
 	cancel()
-	job.Deregister()         // deregister from Consul
+	if job.Service != nil {
+		job.Service.Deregister() // deregister from Consul
+	}
 	job.Unsubscribe(job.Bus) // deregister from events
 	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 }
