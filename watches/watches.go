@@ -9,8 +9,6 @@ import (
 	"github.com/joyent/containerpilot/events"
 )
 
-const eventBufferSize = 1000
-
 // Watch represents an event to signal when something changes
 type Watch struct {
 	Name             string
@@ -33,7 +31,7 @@ func NewWatch(cfg *Config) *Watch {
 		poll:             cfg.Poll,
 		discoveryService: cfg.discoveryService,
 	}
-	watch.Rx = make(chan events.Event, eventBufferSize)
+	watch.InitRx()
 	return watch
 }
 

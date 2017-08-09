@@ -7,12 +7,25 @@ import "sync"
 // the various fields are (unfortunately) public and we can't use struct
 // literals for constructors. All task runner constructors will need to set
 // these fields explicitly:
-//   runner.Rx = make(chan Event)
+//
+//   runner.InitRx() // makes the Rx chan
 //   runner.Bus = &EventBus{}
+//
+// Note the Rx chan has to be buffered so as to not block Publishing of
+// events, and needs enough room for all Handlers to publish their exit
+// events, otherwise the calls to Receive can potentially block during
+// reloads and shutdown
 type EventHandler struct {
 	Bus *EventBus
 	Rx  chan Event
 	wg  sync.WaitGroup
+}
+
+const eventBufferSize = 1000
+
+// InitRx initializes the handler's receive channel.
+func (evh *EventHandler) InitRx() {
+	evh.Rx = make(chan Event, eventBufferSize)
 }
 
 // Subscribe adds the EventHandler to the list of handlers that

@@ -50,7 +50,7 @@ type TestSubscriber struct {
 
 func NewTestSubscriber(bus *EventBus) *TestSubscriber {
 	my := &TestSubscriber{lock: &sync.RWMutex{}, results: []Event{}}
-	my.Rx = make(chan Event, 1000)
+	my.InitRx()
 	my.Bus = bus
 	return my
 }
