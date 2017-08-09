@@ -16,10 +16,9 @@ type processEventStatus bool
 
 // Some magic numbers used internally by processEvent
 const (
-	unlimited                          = -1
-	eventBufferSize                    = 1000
-	jobContinue     processEventStatus = false
-	jobHalt         processEventStatus = true
+	unlimited                      = -1
+	jobContinue processEventStatus = false
+	jobHalt     processEventStatus = true
 )
 
 // Job manages the state of a job and its start/stop conditions
@@ -70,7 +69,7 @@ func NewJob(cfg *Config) *Job {
 		restartsRemain:    cfg.restartLimit,
 		frequency:         cfg.freqInterval,
 	}
-	job.Rx = make(chan events.Event, eventBufferSize)
+	job.InitRx()
 	job.statusLock = &sync.RWMutex{}
 	if job.Name == "containerpilot" {
 		// right now this hardcodes the telemetry service to

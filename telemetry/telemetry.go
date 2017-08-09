@@ -45,7 +45,7 @@ func NewTelemetry(cfg *Config) *Telemetry {
 		sensor := NewMetric(sensorCfg)
 		t.Metrics = append(t.Metrics, sensor)
 	}
-	t.Rx = make(chan events.Event, 10)
+	t.InitRx()
 	return t
 }
 

@@ -46,7 +46,7 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 	srv := &HTTPServer{
 		Addr: cfg.SocketPath,
 	}
-	srv.Rx = make(chan events.Event, 10)
+	srv.InitRx()
 	return srv, nil
 }
 
