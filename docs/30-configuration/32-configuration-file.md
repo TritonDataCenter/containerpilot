@@ -53,7 +53,7 @@ The following is a completed example of the JSON5 file configuration schema, wit
       health: {
         exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost/app",
         interval: 5,
-        ttl: 10,
+        ttl: 10,
         timeout: "5s",
       },
       tags: [
@@ -81,7 +81,7 @@ The following is a completed example of the JSON5 file configuration schema, wit
         once: "healthy"
       },
       exec: "/usr/local/bin/preStart-script.sh",
-      restart: "never"
+      restarts: "never"
     },
     {
       name: "preStop",
@@ -90,7 +90,7 @@ The following is a completed example of the JSON5 file configuration schema, wit
         once: "stopping"
       },
       exec: "/usr/local/bin/preStop-script.sh",
-      restart: "never",
+      restarts: "never",
     },
     {
       name: "postStop",
@@ -107,13 +107,13 @@ The following is a completed example of the JSON5 file configuration schema, wit
       // note we don't have a port here because we don't intend to
       // advertise one to the service discovery backend
       exec: "consul -agent -join consul",
-      restart: "always"
+      restarts: "unlimited"
     },
     {
       name: "consul-template",
       exec: ["consul-template", "-consul", "consul",
              "-template", "/tmp/template.ctmpl:/tmp/result"],
-      restart: "always",
+      restarts: "unlimited",
     },
     {
       name: "periodic-task1",
