@@ -4,6 +4,7 @@
 
 [![Build Status](https://travis-ci.org/joyent/containerpilot.svg)](https://travis-ci.org/joyent/containerpilot)
 [![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerpilot/blob/master/LICENSE)
+[![GoDoc](https://godoc.org/github.com/joyent/containerpilot?status.svg)](https://godoc.org/github.com/joyent/containerpilot)
 
 ## What is ContainerPilot?
 
