@@ -1,3 +1,5 @@
+// Package timing provides functions for parsing time configurations
+// into time.Duration instances
 package timing
 
 import (

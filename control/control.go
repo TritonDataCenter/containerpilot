@@ -1,3 +1,5 @@
+// Package control provides a HTTP server listening on the unix domain
+// socket for use as a control plane, as well as all the HTTP endpoints.
 package control
 
 import (

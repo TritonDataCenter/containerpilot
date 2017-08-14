@@ -1,3 +1,5 @@
+// Package subcommands provides all the alternative top-level functions
+// that run one-off commands that don't run the main event loop.
 package subcommands
 
 import (

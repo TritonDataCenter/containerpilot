@@ -1,3 +1,5 @@
+// Package template provides rendering for the configuration files and
+// the extra functions for use by the golang templating engine.
 package template
 
 import (

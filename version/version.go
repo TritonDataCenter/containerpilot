@@ -1,3 +1,4 @@
+// Package version only provides some package variables set at build time
 package version
 
 var (

@@ -1,3 +1,4 @@
+// Package sup provides the child process reaper for PID1
 package sup
 
 import (

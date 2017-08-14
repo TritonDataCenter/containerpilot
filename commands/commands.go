@@ -1,3 +1,6 @@
+// Package commands provides a wrapper around os/exec to consistently
+// manage process execution, cancellation of their child processes,
+// timeouts, logging, arg parsing, and correct shutdown.
 package commands
 
 import (

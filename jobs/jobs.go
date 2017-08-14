@@ -1,3 +1,4 @@
+// Package jobs manages the configuration and execution of the jobs
 package jobs
 
 import (

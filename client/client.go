@@ -1,3 +1,5 @@
+// Package client provides a HTTP client used to send commands to the
+// ContainerPilot control socket
 package client
 
 import (
