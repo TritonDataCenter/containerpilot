@@ -146,7 +146,7 @@ jobs: [
 
 ##### `restarts`
 
-The `restarts` field is the number of times the process will be restarted if it exits. This field supports any non-negative numeric value (ex. `0` or `1`) or the strings `"unlimited"` or `"never"`. This value is optional and defaults to `"never"`.
+The `restarts` field is the number of times the process will be restarted if it exits. This field supports any non-negative numeric value (ex. `0` or `1`) or the strings `"unlimited"` or `"never"`. This value is optional and usually defaults to `"never"` (see the note below about the `interval` field for the exception).
 
 It's important to understand how this field compares to the `when` field. A restart is run only when the job receives its own `exitSuccess` or `exitFailure` event. The `when` field is for triggering on other events. In the example below the `app` job is first started when the `db` job is `healthy`, but it will restart whenever it exits. Using `restarts` with the `each` option of `when` is not recommended because each time the `each` event triggers, it will spawn an `exec` that can restart after exit. In the case of unlimited restarts this would eventually use up all the resources in your container, so trying to use `restarts: "unlimited"` and `each` will return an error.
 
@@ -158,6 +158,20 @@ jobs: [
     when: {
       source: "db",
       once: "healthy"
+    }
+  }
+]
+```
+
+The behavior of `restarts` is somewhat different if the `when` field is using the `interval` option. In this case, the `restarts` field indicates how many times the `exec` will be run on that interval. In the example configuration below, the `app` job will be run every 5 seconds for a maximum of 4 times (3 restarts). When the `interval` is set, the `restarts` field defaults to `"unlimited"`, which means the job will run every `interval` period without stopping.
+
+```json5
+jobs: [
+  {
+    name: "app",
+    restarts: 3,
+    when: {
+      interval: "5s"
     }
   }
 ]

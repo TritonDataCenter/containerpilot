@@ -13,8 +13,7 @@ services:
     mem_limit: 128m
     links:
       - consul:consul
-    ports:
-      - 9090:9090
     volumes:
+      - './task.sh:/task.sh'
       - './containerpilot.json5:/etc/containerpilot.json5'
       - '${CONTAINERPILOT_BIN}:/bin/containerpilot:ro'
