@@ -108,6 +108,7 @@ func TestJobConfigServiceNonAdvertised(t *testing.T) {
 	assert.Equal(job.whenEvent, events.GlobalStartup,
 		"config for job.whenEvent")
 	assert.Equal(job.Restarts, "unlimited", "config for job.Restarts")
+	assert.Equal(job.restartLimit, unlimited, "config for job.restartLimit")
 }
 
 func TestJobConfigPeriodicTask(t *testing.T) {
@@ -116,7 +117,8 @@ func TestJobConfigPeriodicTask(t *testing.T) {
 	assert.Equal(job.Name, "taskD", "config for job.Name")
 	assert.Equal(job.Port, 0, "config for job.Port")
 	assert.Equal(job.When.Frequency, "1s", "config for job.When")
-	assert.Nil(job.Restarts, "config for job.Restarts")
+	assert.Nil(job.Restarts, "config for job.Restarts") // this the parsed value only
+	assert.Equal(job.restartLimit, unlimited, "config for job.restartLimit")
 }
 
 func TestJobConfigConsulExtras(t *testing.T) {
@@ -128,7 +130,8 @@ func TestJobConfigConsulExtras(t *testing.T) {
 		"10m", "config for job.ConsulExtras.DeregisterCriticalServiceAfter")
 	assert.True(job.ConsulExtras.EnableTagOverride,
 		"config for job.ConsulExtras.EnableTagOverride")
-	assert.Nil(job.Restarts, "config for job.Restarts")
+	assert.Nil(job.Restarts, "config for job.Restarts") // this the parsed value only
+	assert.Equal(job.restartLimit, 0, "config.for job.restartLimit")
 }
 
 func TestJobConfigSmokeTest(t *testing.T) {
@@ -284,6 +287,8 @@ func TestJobConfigValidateFrequency(t *testing.T) {
 	job, _ := NewConfigs(testCfg, nil)
 	assert.Equal(t, job[0].execTimeout, job[0].freqInterval,
 		"expected execTimeout '%v' to equal interval '%v'")
+	assert.Equal(t, job[0].restartLimit, unlimited,
+		"expected job[0].restartLimit to be 'unlimited'")
 }
 
 func TestJobConfigValidateExec(t *testing.T) {

@@ -13,7 +13,6 @@ COPY containerpilot-with-coprocess.json5 /etc/containerpilot-with-coprocess.json
 COPY reload-app.sh /reload-app.sh
 COPY reload-containerpilot.sh /reload-containerpilot.sh
 COPY sensor.sh /sensor.sh
-COPY task.sh /task.sh
 
 ENV CONTAINERPILOT=/etc/containerpilot.json5
 

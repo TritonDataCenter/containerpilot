@@ -40,25 +40,13 @@
       restarts: "5",
     },
     {
-      name: "app",
-      port: 8000,
+      // run a task without explicit number of restarts
+      // (make sure it fires more than once)
+      name: "task4",
+      exec: ["/task.sh", "0", "/task4.txt"],
       when: {
-        source: "preStart",
-        once: "exitSuccess"
-      },
-      exec: [
-        "/usr/local/bin/node",
-        "/usr/local/bin/http-server", "/srv", "-p", "{{ .APP_PORT }}"],
-      health: {
-        exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost:8000",
-        interval: 1,
-        ttl: 5,
-      },
-      tags: ["application"]
-    },
-    {
-      name: "preStart",
-      exec: "/reload-app.sh"
-    },
+        interval: "1000ms"
+      }
+    }
   ]
 }

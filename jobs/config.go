@@ -303,7 +303,11 @@ func (cfg *Config) validateRestarts() error {
 
 	// defaults if omitted
 	if cfg.Restarts == nil {
-		cfg.restartLimit = 0
+		if cfg.freqInterval != time.Duration(0) {
+			cfg.restartLimit = unlimited
+		} else {
+			cfg.restartLimit = 0
+		}
 		return nil
 	}
 	const msg = `job[%s].restarts field '%v' invalid: %v`

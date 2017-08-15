@@ -12,10 +12,11 @@ APP_ID="$(docker-compose ps -q app)"
 sleep 3.5
 docker-compose stop app
 
-docker logs "${APP_ID}" > "${APP_ID}.log"
-docker cp "${APP_ID}:/task1.txt" "${APP_ID}.task1"
-docker cp "${APP_ID}:/task2.txt" "${APP_ID}.task2"
-docker cp "${APP_ID}:/task3.txt" "${APP_ID}.task3"
+docker logs "$APP_ID" > "$APP_ID.log"
+docker cp "$APP_ID:/task1.txt" "$APP_ID.task1"
+docker cp "$APP_ID:/task2.txt" "$APP_ID.task2"
+docker cp "$APP_ID:/task3.txt" "$APP_ID.task3"
+docker cp "$APP_ID:/task4.txt" "$APP_ID.task4"
 
 PASS=0
 
@@ -40,13 +41,28 @@ check() {
 check "task1" 6 0
 check "task2" 6 0
 check "task3" 6 6
+
+# in task4 we don't know the exact number of runs because shutdown can
+# take a long time and this would make the test flaky. instead we assert
+# that we have >1 run and that the runs are at least 1 second apart (to
+# ensure we're not just continously restarting).
+task4runs=$(wc -l < "$APP_ID.task4" | tr -d '[:space:]')
+task4steps=$(cut -f1 -d'.' < "$APP_ID.task4" | uniq -c | wc -l | tr -d '[:space:]')
+if [[ "$task4runs" -lt 2 ]] || [[ "$task4runs" -ne "$task4steps" ]]; then
+    echo "expected task4 to run more than once but only once per second"
+    echo "got $task4runs runs with $task4steps steps"
+    cat "$APP_ID.task4"
+    PASS=1
+fi
+rm "$APP_ID.task4"
+
 result=$PASS
 
 if [ $result -ne 0 ]; then
-    mv "${APP_ID}.log" task.log
+    mv "$APP_ID.log" task.log
     echo "test target logs in ./task.log"
 else
-    rm "${APP_ID}.log"
+    rm "$APP_ID.log"
 fi
 
 
