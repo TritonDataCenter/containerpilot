@@ -7,9 +7,12 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/client9/reopen"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,8 +68,15 @@ func (l *Config) Init() error {
 		output = os.Stderr
 	case "stdout":
 		output = os.Stdout
-	default:
+	case "":
 		return fmt.Errorf("Unknown output type '%s'", l.Output)
+	default:
+		f, err := reopen.NewFileWriter(l.Output)
+		if err != nil {
+			return fmt.Errorf("Error initializing log file '%s': %s", l.Output, err)
+		}
+		initializeSignal(f)
+		output = f
 	}
 	logrus.SetLevel(level)
 	logrus.SetFormatter(formatter)
@@ -94,4 +104,19 @@ func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	logger.Println(entry.Message)
 	// Panic and Fatal are handled by logrus automatically
 	return b.Bytes(), nil
+}
+
+func initializeSignal(f *reopen.FileWriter) {
+	// Handle SIGUSR1
+	//
+	// channel is number of signals needed to catch  (more or less)
+	// we only are working with one here, SIGUSR1
+	sighup := make(chan os.Signal, 1)
+	signal.Notify(sighup, syscall.SIGUSR1)
+	go func() {
+		for {
+			<-sighup
+			f.Reopen()
+		}
+	}()
 }

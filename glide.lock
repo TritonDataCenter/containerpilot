@@ -70,3 +70,5 @@ testImports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
+- name: github.com/client9/reopen
+  version: 1a6ccbeaae3f56aa0058f5491382cb21726e214e
