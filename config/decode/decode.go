@@ -1,3 +1,5 @@
+// Package decode contains helper functions for turning  mapstructure
+// interfaces into simpler structs for configs
 package decode
 
 import (

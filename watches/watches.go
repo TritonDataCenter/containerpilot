@@ -1,3 +1,5 @@
+// Package watches manages the configuration and running of Consul
+// service monitoring
 package watches
 
 import (

@@ -1,3 +1,4 @@
+// Package config is the top-level configuration parsing package
 package config
 
 import (

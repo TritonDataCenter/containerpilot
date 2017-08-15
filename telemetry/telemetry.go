@@ -1,3 +1,5 @@
+// Package telemetry provides a Prometheus client and the configuration
+// for metrics collectors
 package telemetry
 
 import (

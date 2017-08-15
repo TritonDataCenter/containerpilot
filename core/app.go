@@ -1,3 +1,4 @@
+// Package core contains the main control loop.
 package core
 
 import (

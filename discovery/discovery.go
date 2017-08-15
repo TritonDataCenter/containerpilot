@@ -1,3 +1,5 @@
+// Package discovery manages the configuration of the Consul clients and
+// the functions used to update/query Consul with service discovery data.
 package discovery
 
 import "github.com/hashicorp/consul/api"

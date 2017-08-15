@@ -1,3 +1,5 @@
+// Package events contains the internal message bus used to broadcast
+// events between goroutines representing jobs, watches, etc.
 package events
 
 import (
