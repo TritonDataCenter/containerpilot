@@ -1,8 +1,10 @@
 package logger
 
 import (
+	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -64,4 +66,33 @@ func TestDefaultFormatterPanic(t *testing.T) {
 		}
 	}()
 	logrus.Panicln("Panic Test")
+}
+
+func TestFileLogger(t *testing.T) {
+	// initialize logger
+	filename := "/tmp/test_log"
+	testLog := &Config{
+		Level:  "DEBUG",
+		Format: "text",
+		Output: filename,
+	}
+	err := testLog.Init()
+	if err != nil {
+		t.Errorf("Did not expect error: %v", err)
+	}
+
+	// write a log message
+	logMsg := "this is a test"
+	logrus.Info(logMsg)
+	content, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Did not expect error: %v", err)
+	}
+	if len(content) == 0 {
+		t.Error("could not write log to file")
+	}
+	logs := string(content)
+	if !strings.Contains(logs, logMsg) {
+		t.Errorf("expected log file to contain '%s', got '%s'", logMsg, logs)
+	}
 }

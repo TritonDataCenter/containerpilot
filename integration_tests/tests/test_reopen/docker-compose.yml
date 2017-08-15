@@ -1,0 +1,10 @@
+app:
+  image: "cpfix_app"
+  mem_limit: 128m
+  volumes:
+    - './test_reopen.sh:/tmp/test_reopen.sh'
+  environment:
+    # needs to be in the container already or we'll potentially
+    # error when we try to rewrite it; update in the future
+    # with an env var change to the args instead
+    - CONTAINERPILOT=/etc/containerpilot-with-file-log.json5
