@@ -38,7 +38,9 @@ jobs: [
   {
     name: "app",
     exec: "/bin/app",
-    passthru: false,
+    logging: {
+      raw: false
+    },
 
     // 'when' defines the events that cause the job to run
     when: {
@@ -96,9 +98,9 @@ The `name` field is the name of the job as it will appear in logs and events. It
 
 The `exec` field is the executable (and its arguments) that is called when the job runs. This field can contain a string or an array of strings ([see below](#exec-arguments) for details on the format). The command to be run will have a process group set and this entire process group will be reaped by ContainerPilot when the process exits. The process will be run concurrently to all other work, so the process won't block the processing of other ContainerPilot events.
 
-##### `passthru`
+##### `logging`
 
-When the `passthru` field is set to `false` (the default), ContainerPilot will wrap each line of output from an `exec` process's stdout/stderr in a log line. If set to `true`, ContainerPilot will attach the stdout/stderr of the process to the container's stdout/stderr and these streams will be unmodified by ContainerPilot. The latter option can be useful if the process emits structured logs in its own format.
+Jobs and health checks have a `logging` configuration block with a single option: `raw`. When the `raw`field is set to `false` (the default), ContainerPilot will wrap each line of output from an `exec` process's stdout/stderr in a log line. If set to `true`, ContainerPilot will attach the stdout/stderr of the process to the container's stdout/stderr and these streams will be unmodified by ContainerPilot. The latter option can be useful if the process emits structured logs in its own format.
 
 #### Running and timing fields
 
