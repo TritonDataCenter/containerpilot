@@ -14,7 +14,7 @@
       name: "job2",
       // this echo is not wrapped in a log line
       exec: "echo job2 exec",
-      passthru: true,
+      logging: { raw: true },
     },
     {
       name: "job3",
@@ -23,7 +23,7 @@
       health: {
          // this echo is not wrapped in a log line
         exec: "echo job3 health",
-        passthru: true,
+        logging: { raw: true },
         interval: 1,
         ttl: 5
       }
