@@ -15,7 +15,7 @@ docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
 export PATH :=$(PATH):$(GOPATH)/bin
 
 # flags for local development
-GOOS := $(shell uname -s | tr A-Z a-iz)
+GOOS := $(shell uname -s | tr A-Z a-z)
 GOARCH := amd64
 CGO_ENABLED := 0
 GOEXPERIMENT := framepointer
