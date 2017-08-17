@@ -128,9 +128,11 @@ If set and not left as the default, the minimum timeout is `1ms` (see the golang
 
 ##### `stopTimeout`
 
-Some jobs need to have a task performed when they start shutting down but before they've done so. For example, a Consul agent might need to be removed from the list of available nodes via `consul leave`, which requires that the agent is still running to execute.
+`stopTimeout` is the maximum amount of time a `stopping` job will wait for another job that might be watching for the `stopping` event.
 
-In this case, the job will need to leave time between the `stopping` and `stopped` events. The `stopTimeout` field is the time that the job will wait before exiting and killing its process. In the example below the `consul-agent` job waits 5 seconds after being asked to stop to allow for the `leave-consul` job to run.
+This can be useful for jobs which need to perform a task when they begin shutting down, but before they've done so. For example, a Consul agent might need to be removed from the list of available nodes via `consul leave`, which requires that the agent process is still running.
+
+In the example below, the `consul-agent` job will need to leave time between the `stopping` and `stopped` events in order for `consul leave` to perform. The `stopTimeout` field is the time that the job will wait before exiting and killing its process. `consul-agent` job waits 5 seconds after it's `stopping` event has fired in order to allow the `leave-consul` job to execute.
 
 ```json5
 jobs: [
@@ -149,6 +151,8 @@ jobs: [
   }
 ]
 ```
+
+The job that's watching for the `stopping` event can take however long it wants to do it's work. If you want to make sure the watching job is also going to finish, you need to add the `timeout` field to that job as well.
 
 ##### `restarts`
 
