@@ -1,14 +1,11 @@
 package logger
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
-	"syscall"
 	"testing"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -84,52 +81,18 @@ func TestFileLogger(t *testing.T) {
 		t.Errorf("Did not expect error: %v", err)
 	}
 
-	testContainsLog := func(fname string, log string, t *testing.T) {
-		content, err := ioutil.ReadFile(fname)
-		if err != nil {
-			t.Errorf("Did not expect error: %v", err)
-		}
-		if len(content) == 0 {
-			t.Error("could not write log to file")
-		}
-		logs := string(content)
-		if !strings.Contains(logs, log) {
-			t.Errorf("expected log file to contain '%s', got '%s'", log, logs)
-		}
-	}
-
 	// write a log message
 	logMsg := "this is a test"
 	logrus.Info(logMsg)
-	testContainsLog(filename, logMsg, t)
-
-	// rotate the log
-	rotatedFilename := fmt.Sprintf("%s.1", filename)
-	err = os.Rename(filename, rotatedFilename)
+	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Did not expect error: %v", err)
 	}
-	logMsg = "this is another test"
-	logrus.Info(logMsg)
-	testContainsLog(rotatedFilename, logMsg, t)
-
-	// reopen file
-	syscall.Kill(os.Getpid(), syscall.SIGUSR1)
-	time.Sleep(1*time.Second)
-
-	timeExpire := time.Now().Add(3 * time.Second)
-	for {
-		_, err = os.Stat(filename)
-		if err == nil {
-			break
-		}
-		if timeExpire.After(time.Now()) {
-			t.Error("Did not reopen file in expected time")
-			return
-		}
-		time.Sleep(1 * time.Second)
+	if len(content) == 0 {
+		t.Error("could not write log to file")
 	}
-	logMsg = "this is the last test"
-	logrus.Info(logMsg)
-	testContainsLog(filename, logMsg, t)
+	logs := string(content)
+	if !strings.Contains(logs, logMsg) {
+		t.Errorf("expected log file to contain '%s', got '%s'", logMsg, logs)
+	}
 }
