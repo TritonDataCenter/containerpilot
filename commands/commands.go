@@ -6,6 +6,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -32,15 +33,19 @@ func NewCommand(rawArgs interface{}, timeout time.Duration, fields log.Fields) (
 	if err != nil {
 		return nil, err
 	}
-	logger := log.WithFields(fields)
 	cmd := &Command{
 		Name:    exec, // override this in caller
 		Exec:    exec,
 		Args:    args,
 		Timeout: timeout,
 		lock:    &sync.Mutex{},
-		logger:  *logger,
 	} // exec.Cmd created at Run
+
+	if fields != nil {
+		// don't attach the logger if we don't have fields set, so that
+		// we can pass-thru the logs raw
+		cmd.logger = *log.WithFields(fields)
+	}
 	return cmd, nil
 }
 
@@ -57,9 +62,14 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 	c.lock.Lock()
 	log.Debugf("%s.Run start", c.Name)
 
-	cmd := ArgsToCmd(c.Exec, c.Args)
-	cmd.Stdout = c.logger.Writer()
-	cmd.Stderr = c.logger.Writer()
+	cmd := exec.Command(c.Exec, c.Args...)
+	if c.logger.Logger != nil {
+		cmd.Stdout = c.logger.Writer()
+		cmd.Stderr = c.logger.Writer()
+	} else {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	c.Cmd = cmd
 	ctx, cancel := getContext(pctx, c.Timeout)

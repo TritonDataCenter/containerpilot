@@ -51,6 +51,9 @@ type Config struct {
 	whenTimeout       time.Duration
 	whenStartsLimit   int
 	stoppingWaitEvent events.Event
+
+	// logging
+	Logging *LoggingConfig `mapstructure:"logging"`
 }
 
 // WhenConfig determines when a Job runs (dependencies on other Jobs,
@@ -65,16 +68,22 @@ type WhenConfig struct {
 
 // HealthConfig configures the Job's health checks
 type HealthConfig struct {
-	CheckExec    interface{} `mapstructure:"exec"`
-	CheckTimeout string      `mapstructure:"timeout"`
-	Heartbeat    int         `mapstructure:"interval"` // time in seconds
-	TTL          int         `mapstructure:"ttl"`      // time in seconds
+	CheckExec    interface{}    `mapstructure:"exec"`
+	CheckTimeout string         `mapstructure:"timeout"`
+	Heartbeat    int            `mapstructure:"interval"` // time in seconds
+	TTL          int            `mapstructure:"ttl"`      // time in seconds
+	Logging      *LoggingConfig `mapstructure:"logging"`
 }
 
 // ConsulExtras handles additional Consul configuration.
 type ConsulExtras struct {
 	EnableTagOverride              bool   `mapstructure:"enableTagOverride"`
 	DeregisterCriticalServiceAfter string `mapstructure:"deregisterCriticalServiceAfter"`
+}
+
+// LoggingConfig handles job-specific logging fields
+type LoggingConfig struct {
+	Raw bool `mapstructure:"raw"`
 }
 
 // NewConfigs parses json config into a validated slice of Configs
@@ -241,8 +250,11 @@ func (cfg *Config) validateExec() error {
 		cfg.execTimeout = execTimeout
 	}
 	if cfg.Exec != nil {
-		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout,
-			log.Fields{"job": cfg.Name})
+		fields := log.Fields{"job": cfg.Name}
+		if cfg.Logging != nil && cfg.Logging.Raw {
+			fields = nil
+		}
+		cmd, err := commands.NewCommand(cfg.Exec, cfg.execTimeout, fields)
 		if err != nil {
 			return fmt.Errorf("unable to create job[%s].exec: %v", cfg.Name, err)
 		}
@@ -287,8 +299,13 @@ func (cfg *Config) validateHealthCheck() error {
 	if cfg.Health.CheckExec != nil {
 		// the telemetry service won't have a health check
 		checkName := "check." + cfg.Name
-		cmd, err := commands.NewCommand(cfg.Health.CheckExec, checkTimeout,
-			log.Fields{"check": checkName})
+		fields := log.Fields{"check": checkName}
+		if cfg.Health.Logging != nil && cfg.Health.Logging.Raw {
+			fields = nil
+		}
+
+		log.Debugf("job[%s].health.exec fields: %v", cfg.Name, fields)
+		cmd, err := commands.NewCommand(cfg.Health.CheckExec, checkTimeout, fields)
 		if err != nil {
 			return fmt.Errorf("unable to create job[%s].health.exec: %v",
 				cfg.Name, err)

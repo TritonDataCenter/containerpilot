@@ -1,0 +1,43 @@
+{
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text"
+  },
+  jobs: [
+    {
+      name: "job1",
+      // this echo gets wrapped in a log line
+      exec: "echo job1 exec",
+    },
+    {
+      name: "job2",
+      // this echo is not wrapped in a log line
+      exec: "echo job2 exec",
+      logging: { raw: true },
+    },
+    {
+      name: "job3",
+      port: 8000,
+      exec: "sleep 5",
+      health: {
+         // this echo is not wrapped in a log line
+        exec: "echo job3 health",
+        logging: { raw: true },
+        interval: 1,
+        ttl: 5
+      }
+    },
+    {
+      name: "job4",
+      port: 9000,
+      exec: "sleep 5",
+      health: {
+         // this echo gets wrapped in a log line
+        exec: "echo job4 health",
+        interval: 1,
+        ttl: 5
+      }
+    }
+  ]
+}

@@ -3,10 +3,13 @@ package commands
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/joyent/containerpilot/events"
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCommandRunWithTimeoutZero(t *testing.T) {
@@ -74,6 +77,16 @@ func TestCommandRunReuseCmd(t *testing.T) {
 	cmd, _ := NewCommand("true", time.Duration(0), nil)
 	runtestCommandRun(cmd)
 	runtestCommandRun(cmd)
+}
+
+func TestCommandPassthru(t *testing.T) {
+	cmd, _ := NewCommand("true", time.Duration(0), nil)
+	runtestCommandRun(cmd)
+	assert.Equal(t, cmd.Cmd.Stdout, os.Stdout)
+
+	cmd, _ = NewCommand("true", time.Duration(0), log.Fields{"job": "trueDat"})
+	runtestCommandRun(cmd)
+	assert.NotEqual(t, cmd.Cmd.Stdout, os.Stdout)
 }
 
 // test helpers
