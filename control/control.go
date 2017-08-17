@@ -5,6 +5,7 @@ package control
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -17,7 +18,10 @@ import (
 )
 
 // SocketType is the default listener type
-var SocketType = "unix"
+var (
+	SocketType     = "unix"
+	ErrMissingAddr = errors.New("control server not loading due to missing config")
+)
 
 var collector *prometheus.CounterVec
 
@@ -41,15 +45,31 @@ type HTTPServer struct {
 // NewHTTPServer initializes a new control server for manipulating
 // ContainerPilot's runtime configuration.
 func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
-	if cfg == nil {
-		err := errors.New("control server not loading due to missing config")
-		return nil, err
-	}
 	srv := &HTTPServer{
 		Addr: cfg.SocketPath,
 	}
+	if err := srv.Validate(); err != nil {
+		return nil, fmt.Errorf("control: validate failed with %s", err)
+	}
+
 	srv.InitRx()
 	return srv, nil
+}
+
+// Validate validates the state of the control server and ensures that the
+// socket does not exist prior to setting up the listener (bind).
+func (srv HTTPServer) Validate() error {
+	if srv.Addr == "" {
+		return ErrMissingAddr
+	}
+	if _, err := os.Stat(srv.Addr); err == nil {
+		log.Debugf("control: unlinking previous socket at %s", srv.Addr)
+		if err := os.Remove(srv.Addr); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Run executes the event loop for the control server
@@ -112,6 +132,7 @@ func (srv *HTTPServer) listenWithRetry() net.Listener {
 	for i := 0; i < 10; i++ {
 		ln, err = net.Listen(SocketType, srv.Addr)
 		if err == nil {
+			log.Debugf("control: listening to %s", srv.Addr)
 			return ln
 		}
 		time.Sleep(time.Second)

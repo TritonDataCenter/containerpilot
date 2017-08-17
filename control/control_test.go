@@ -59,8 +59,29 @@ func TestNewHTTPServer(t *testing.T) {
 	assert.Equal(t, s.Addr, tempSocketPath, "expected server addr to ref default socket")
 }
 
-func TestServerSmokeTest(t *testing.T) {
+func TestValidate(t *testing.T) {
+	srv := &HTTPServer{
+		Addr: "",
+	}
+	if err := srv.Validate(); assert.NotNil(t, err) {
+		assert.Equal(t, err, ErrMissingAddr, "expected missing addr error")
+	}
 
+	socketPath := tempSocketPath()
+	srv = &HTTPServer{
+		Addr: socketPath,
+	}
+	defer os.Remove(socketPath)
+	if _, err := os.Create(socketPath); err != nil {
+		assert.Nil(t, err, "expected test socket to be created")
+	}
+	if err := srv.Validate(); assert.Nil(t, err) {
+		_, err := os.Stat(socketPath)
+		assert.True(t, os.IsNotExist(err), "expected test socket to no longer exist")
+	}
+}
+
+func TestServerSmokeTest(t *testing.T) {
 	tempSocketPath := tempSocketPath()
 	defer os.Remove(tempSocketPath)
 
