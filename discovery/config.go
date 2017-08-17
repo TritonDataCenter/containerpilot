@@ -40,7 +40,7 @@ func getTLSConfig(parsed *parsedConfig) api.TLSConfig {
 		parsed.TLS.HTTPClientKey = clientKey
 	}
 	if serverName := os.Getenv("CONSUL_TLS_SERVER_NAME"); serverName != "" {
-		parsed.TLS.HTTPClientKey = serverName
+		parsed.TLS.HTTPTLSServerName = serverName
 	}
 	verify := os.Getenv("CONSUL_HTTP_SSL_VERIFY")
 	switch strings.ToLower(verify) {
@@ -51,8 +51,9 @@ func getTLSConfig(parsed *parsedConfig) api.TLSConfig {
 	}
 	tlsConfig := api.TLSConfig{
 		Address:            parsed.TLS.HTTPTLSServerName,
-		CAFile:             parsed.TLS.HTTPCAPath,
-		CertFile:           parsed.TLS.HTTPCAPath,
+		CAFile:             parsed.TLS.HTTPCAFile,
+		CAPath:             parsed.TLS.HTTPCAPath,
+		CertFile:           parsed.TLS.HTTPClientCert,
 		KeyFile:            parsed.TLS.HTTPClientKey,
 		InsecureSkipVerify: !parsed.TLS.HTTPSSLVerify,
 	}
