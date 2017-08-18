@@ -15,8 +15,9 @@ docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
 export PATH :=$(PATH):$(GOPATH)/bin
 
 # flags for local development
-GOOS := $(shell uname -s | tr A-Z a-z)
-GOARCH := amd64
+GOPATH ?= $(shell go env GOPATH)
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED := 0
 GOEXPERIMENT := framepointer
 
@@ -93,7 +94,7 @@ dep-add: build/containerpilot_build
 # run 'GOOS=darwin make tools' if you're installing on MacOS
 ## set up local dev environment
 tools:
-	@go version | grep 1.8 || (echo 'go1.8 not installed'; exit 1)
+	@go version | grep 1.8 || (echo 'go1.8 should be installed')
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
 	go get github.com/golang/lint/golint
 	curl --fail -Lso glide.tgz "https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-$(GOOS)-$(GOARCH).tar.gz"
@@ -110,17 +111,17 @@ tools:
 ## print environment info about this dev environment
 debug:
 	@$(if $(value DOCKER_HOST), echo "DOCKER_HOST=$(DOCKER_HOST)", echo 'DOCKER_HOST not set')
-	@echo IMPORT_PATH=$(IMPORT_PATH)
-	@echo VERSION=$(VERSION)
-	@echo ROOT=$(ROOT)
-	@echo GOPATH=$(GOPATH)
-	@echo PATH=$(PATH)
-	@echo GOOS=$(GOOS)
-	@echo GOARCH=$(GOARCH)
 	@echo CGO_ENABLED=$(CGO_ENABLED)
 	@echo GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT)
+	@echo GOARCH=$(GOARCH)
 	@echo GOEXPERIMENT=$(GOEXPERIMENT)
+	@echo GOOS=$(GOOS)
+	@echo GOPATH=$(GOPATH)
+	@echo IMPORT_PATH=$(IMPORT_PATH)
 	@echo LDFLAGS="$(LDFLAGS)"
+	@echo PATH=$(PATH)
+	@echo ROOT=$(ROOT)
+	@echo VERSION=$(VERSION)
 	@echo
 	@echo docker commands run as:
 	@echo $(docker)
