@@ -1,0 +1,17 @@
+{
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text",
+    output: "/tmp/containerpilot.log"
+  },
+  jobs: [
+    {
+      name: "app",
+      exec: "echo 'hello world!'",
+      when: {
+        interval: 1
+      }
+    }
+  ]
+}
