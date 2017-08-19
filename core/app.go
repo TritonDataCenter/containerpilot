@@ -97,10 +97,10 @@ func getEnvVarNameFromService(service string) string {
 
 // Run starts the application and blocks until finished
 func (a *App) Run() {
+	a.handleSignals()
 	for {
 		a.Bus = events.NewEventBus()
 		a.ControlServer.Run(a.Bus)
-		a.handleSignals()
 		a.handlePolling()
 		if !a.Bus.Wait() {
 			if a.StopTimeout > 0 {
