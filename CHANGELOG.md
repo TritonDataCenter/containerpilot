@@ -1,4 +1,13 @@
-## 3.4.1 (Unreleased)
+## 3.4.2 (Unreleased)
+
+## 3.4.1 (August 21st, 2017)
+
+BUG FIXES:
+
+- move defer out of loop so as not to leak a closure (#488)
+
+SHA1 4d13cfb345de86135ab2271b77516c6b6a7bed3a
+
 ## 3.4.0 (August 18, 2017)
 
 FEATURES:
