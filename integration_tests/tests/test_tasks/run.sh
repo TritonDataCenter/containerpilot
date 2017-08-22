@@ -24,8 +24,8 @@ TASK1_TOS=$(cat ${APP_ID}.log | grep "\[task1\] timeout" | wc -l | tr -d '[[:spa
 TASK1_RUNS=$(cat ${APP_ID}.task1 | wc -l | tr -d '[[:space:]]')
 rm ${APP_ID}.task1
 
-if [[ $TASK1_RUNS -lt 7 || $TASK1_RUNS -gt 8 ]]; then
-  echo "Expected task1 to have 7 or 8 executions: got $TASK1_RUNS"
+if [[ $TASK1_RUNS -lt 5 || $TASK1_RUNS -gt 8 ]]; then
+  echo "Expected task1 to >5 and <8 executions: got $TASK1_RUNS"
   PASS=1
 fi
 if [ $TASK1_TOS -gt 0 ]; then

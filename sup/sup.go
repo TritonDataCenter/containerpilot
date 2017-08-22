@@ -21,18 +21,19 @@ func Run() {
 	if err != nil {
 		log.Fatal("failed to start ContainerPilot worker process:", err)
 	}
-	handleSignals(proc.Pid)
+	passThroughSignals(proc.Pid)
+	handleReaping(proc.Pid)
 	proc.Wait()
 }
 
-// handleSignals listens for signals used to gracefully shutdown and
+// passThroughSignals listens for signals used to gracefully shutdown and
 // passes them thru to the ContainerPilot worker process.
-func handleSignals(pid int) {
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGINT, syscall.SIGCHLD, syscall.SIGUSR1)
+func passThroughSignals(pid int) {
+	sigRecv := make(chan os.Signal, 1)
+	signal.Notify(sigRecv, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGINT, syscall.SIGUSR1)
 	go func() {
-		for signal := range sig {
-			switch signal {
+		for sig := range sigRecv {
+			switch sig {
 			case syscall.SIGINT:
 				syscall.Kill(pid, syscall.SIGINT)
 			case syscall.SIGTERM:
@@ -41,9 +42,20 @@ func handleSignals(pid int) {
 				syscall.Kill(pid, syscall.SIGHUP)
 			case syscall.SIGUSR1:
 				syscall.Kill(pid, syscall.SIGUSR1)
-			case syscall.SIGCHLD:
-				go reap()
 			}
+		}
+	}()
+}
+
+// handleReaping listens for the SIGCHLD signal only and triggers
+// reaping of child processes
+func handleReaping(pid int) {
+	sigRecv := make(chan os.Signal, 1)
+	signal.Notify(sigRecv, syscall.SIGCHLD)
+	go func() {
+		for {
+			<-sigRecv
+			reap()
 		}
 	}()
 }
