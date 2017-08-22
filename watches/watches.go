@@ -20,11 +20,11 @@ type Watch struct {
 	poll             int
 	discoveryService discovery.Backend
 
-	events.EventHandler // Event handling
+	events.Publisher
 }
 
 // NewWatch creates a Watch from a validated Config
-func NewWatch(cfg *Config) *Watch {
+func NewWatch(bus *events.EventBus, cfg *Config) *Watch {
 	watch := &Watch{
 		Name:             cfg.Name,
 		serviceName:      cfg.serviceName,
@@ -33,7 +33,7 @@ func NewWatch(cfg *Config) *Watch {
 		poll:             cfg.Poll,
 		discoveryService: cfg.discoveryService,
 	}
-	watch.InitRx()
+	// watch.InitRx()
 	return watch
 }
 
@@ -54,13 +54,14 @@ func (watch *Watch) CheckForUpstreamChanges() (bool, bool) {
 }
 
 // Run executes the event loop for the Watch
-func (watch *Watch) Run(bus *events.EventBus) {
-	watch.Subscribe(bus)
+func (watch *Watch) Run(ctx context.Context, bus *events.EventBus) {
+	watch.Register(bus)
 	watch.Bus = bus
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx2, cancel := context.WithCancel(ctx)
 
 	timerSource := fmt.Sprintf("%s.poll", watch.Name)
-	events.NewEventTimer(ctx, watch.Rx,
+	// NOTE: implement using a scoped ticker for this watch only
+	events.NewEventTimer(ctx2, watch.Rx,
 		time.Duration(watch.poll)*time.Second, timerSource)
 
 	go func() {
@@ -93,7 +94,7 @@ func (watch *Watch) Run(bus *events.EventBus) {
 					events.GlobalShutdown:
 					return
 				}
-			case <-ctx.Done():
+			case <-ctx2.Done():
 				return
 			}
 		}
