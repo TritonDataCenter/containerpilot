@@ -2,6 +2,7 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -97,11 +98,14 @@ func getEnvVarNameFromService(service string) string {
 
 // Run starts the application and blocks until finished
 func (a *App) Run() {
-	a.handleSignals()
 	for {
+		ctx, cancel := context.WithCancel(context.Background())
+		a.handleSignals(cancel)
+
 		a.Bus = events.NewEventBus()
-		a.ControlServer.Run(a.Bus)
-		a.handlePolling()
+		a.ControlServer.Run(ctx, a.Bus)
+		a.runTasks(ctx)
+
 		if !a.Bus.Wait() {
 			if a.StopTimeout > 0 {
 				log.Debugf("killing all processes in %v seconds", a.StopTimeout)
@@ -128,6 +132,11 @@ func (a *App) Terminate() {
 	a.Bus.Shutdown()
 }
 
+// NEW
+func (a *App) SetReload() {
+	a.Bus.SetReloadFlag()
+}
+
 // reload does the actual work of reloading the configuration and
 // updating the App with those changes. The EventBus should be
 // already shut down before we call this.
@@ -148,25 +157,25 @@ func (a *App) reload() error {
 
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
-func (a *App) handlePolling() {
-
+func (a *App) runTasks(ctx context.Context) {
 	// we need to subscribe to events before we Run all the jobs
 	// to avoid races where a job finishes and fires events before
 	// other jobs are even subscribed to listen for them.
 	for _, job := range a.Jobs {
 		job.Subscribe(a.Bus)
+		job.Register(a.Bus)
 	}
 	for _, job := range a.Jobs {
-		job.Run()
+		job.Run(ctx)
 	}
 	for _, watch := range a.Watches {
-		watch.Run(a.Bus)
+		watch.Run(ctx, a.Bus)
 	}
 	if a.Telemetry != nil {
-		for _, sensor := range a.Telemetry.Metrics {
-			sensor.Run(a.Bus)
+		for _, metric := range a.Telemetry.Metrics {
+			metric.Run(ctx, a.Bus)
 		}
-		a.Telemetry.Run(a.Bus)
+		a.Telemetry.Run(ctx)
 	}
 	// kick everything off
 	a.Bus.Publish(events.GlobalStartup)

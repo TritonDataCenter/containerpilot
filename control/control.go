@@ -11,10 +11,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/joyent/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/joyent/containerpilot/events"
 )
 
 // SocketType is the default listener type
@@ -37,9 +36,9 @@ func init() {
 // HTTP transport control plane. Currently this is listening via a UNIX socket
 // file.
 type HTTPServer struct {
+	Addr string
+
 	http.Server
-	Addr                string
-	events.EventHandler // Event handling
 }
 
 // NewHTTPServer initializes a new control server for manipulating
@@ -52,7 +51,7 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 		return nil, fmt.Errorf("control: validate failed with %s", err)
 	}
 
-	srv.InitRx()
+	// srv.InitRx()
 	return srv, nil
 }
 
@@ -73,19 +72,14 @@ func (srv *HTTPServer) Validate() error {
 }
 
 // Run executes the event loop for the control server
-func (srv *HTTPServer) Run(bus *events.EventBus) {
-	srv.Subscribe(bus, true)
-	srv.Bus = bus
-	srv.Start()
+func (srv *HTTPServer) Run(ctx context.Context, bus *events.EventBus) {
+	srv.Start(bus)
 
 	go func() {
-		defer srv.Stop()
+		defer srv.Stop(ctx)
 		for {
-			event := <-srv.Rx
-			switch event {
-			case
-				events.QuitByClose,
-				events.GlobalShutdown:
+			select {
+			case <-ctx.Done():
 				return
 			}
 		}
@@ -94,8 +88,8 @@ func (srv *HTTPServer) Run(bus *events.EventBus) {
 
 // Start sets up API routes with the event bus, listens on the control
 // socket, and serves the HTTP server.
-func (srv *HTTPServer) Start() {
-	endpoints := &Endpoints{srv.Bus}
+func (srv *HTTPServer) Start(bus *events.EventBus) {
+	endpoints := &Endpoints{bus}
 
 	router := http.NewServeMux()
 	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
@@ -142,7 +136,7 @@ func (srv *HTTPServer) listenWithRetry() net.Listener {
 }
 
 // Stop shuts down the control server gracefully
-func (srv *HTTPServer) Stop() error {
+func (srv *HTTPServer) Stop(pctx context.Context) error {
 	// This timeout won't stop the configuration reload process, since that
 	// happens async, but timing out can pre-emptively close the HTTP connection
 	// that fired the reload in the first place. If pre-emptive timeout occurs
@@ -150,7 +144,7 @@ func (srv *HTTPServer) Stop() error {
 	//
 	// Also, 600 seemed to be the magic number... I'm sure it'll vary.
 	log.Debug("control: stopping control server")
-	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Millisecond)
+	ctx, cancel := context.WithTimeout(pctx, 600*time.Millisecond)
 	defer cancel()
 	defer os.Remove(srv.Addr)
 	if err := srv.Shutdown(ctx); err != nil {
@@ -158,8 +152,6 @@ func (srv *HTTPServer) Stop() error {
 		return err
 	}
 
-	srv.Unsubscribe(srv.Bus, true)
-	close(srv.Rx)
 	log.Debug("control: completed graceful shutdown of control server")
 	return nil
 }

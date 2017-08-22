@@ -30,17 +30,17 @@ func (evh *EventHandler) InitRx() {
 
 // Subscribe adds the EventHandler to the list of handlers that
 // receive all messages from the EventBus.
-func (evh *EventHandler) Subscribe(bus *EventBus, isInternal ...bool) {
+func (evh *EventHandler) Subscribe(bus *EventBus) {
 	evh.wg.Add(1)
-	bus.Register(evh, isInternal...)
+	bus.Subscribe(evh)
 	evh.Bus = bus
 }
 
 // Unsubscribe removes the EventHandler from the list of handlers
 // that receive messages from the EventBus.
-func (evh *EventHandler) Unsubscribe(bus *EventBus, isInternal ...bool) {
+func (evh *EventHandler) Unsubscribe() {
 	evh.wg.Done()
-	bus.Unregister(evh, isInternal...)
+	evh.Bus.Unsubscribe(evh)
 }
 
 // Receive accepts an Event for the EventHandler's receive channel.
