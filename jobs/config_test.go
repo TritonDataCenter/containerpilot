@@ -145,7 +145,7 @@ func TestJobConfigSmokeTest(t *testing.T) {
 	}
 
 	if len(jobs) != 7 {
-		t.Fatalf("expected 7 jobs ", jobs)
+		t.Fatalf("expected 7 jobs, got %v", jobs)
 	}
 	job0 := jobs[0]
 
@@ -236,7 +236,7 @@ func TestJobConfigValidateDiscovery(t *testing.T) {
 	// no health check shouldn't return an error
 	cfgD := `[{name: "myName", port: 80, interfaces: ["inet", "lo0"], health: {interval: 1, ttl: 1}}]`
 	if _, err = NewConfigs(tests.DecodeRawToSlice(cfgD), noop); err != nil {
-		t.Fatalf("expected no error", err)
+		t.Fatalf("expected no error, got %v", err)
 	}
 }
 

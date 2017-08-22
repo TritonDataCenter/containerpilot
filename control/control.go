@@ -58,7 +58,7 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 
 // Validate validates the state of the control server and ensures that the
 // socket does not exist prior to setting up the listener (bind).
-func (srv HTTPServer) Validate() error {
+func (srv *HTTPServer) Validate() error {
 	if srv.Addr == "" {
 		return ErrMissingAddr
 	}
