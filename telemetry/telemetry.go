@@ -11,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/version"
 )
 
@@ -24,8 +23,8 @@ type Telemetry struct {
 	// server
 	router *http.ServeMux
 	addr   net.TCPAddr
+
 	http.Server
-	events.EventHandler // Event handling
 }
 
 // NewTelemetry configures a new prometheus Telemetry server
@@ -38,6 +37,7 @@ func NewTelemetry(cfg *Config) *Telemetry {
 		Status:  &Status{Version: version.Version},
 	}
 	t.addr = cfg.addr
+
 	router := http.NewServeMux()
 	router.Handle("/metrics", prometheus.Handler())
 	router.Handle("/status", NewStatusHandler(t))
@@ -47,27 +47,17 @@ func NewTelemetry(cfg *Config) *Telemetry {
 		sensor := NewMetric(sensorCfg)
 		t.Metrics = append(t.Metrics, sensor)
 	}
-	t.InitRx()
+
 	return t
 }
 
 // Run executes the event loop for the telemetry server
-func (t *Telemetry) Run(bus *events.EventBus) {
-	t.Subscribe(bus, true)
-	t.Bus = bus
+func (t *Telemetry) Run(ctx context.Context) {
 	t.Start()
-
 	go func() {
-		defer t.Stop()
-		for {
-			event := <-t.Rx
-			switch event {
-			case
-				events.QuitByClose,
-				events.GlobalShutdown:
-				return
-			}
-		}
+		defer t.Stop(ctx)
+		<-ctx.Done()
+		return
 	}()
 }
 
@@ -75,9 +65,9 @@ func (t *Telemetry) Run(bus *events.EventBus) {
 func (t *Telemetry) Start() {
 	ln := t.listenWithRetry()
 	go func() {
-		log.Infof("telemetry: serving at %s", t.Addr)
+		log.Infof("telemetry: serving at %s", t.addr.String())
 		t.Serve(ln)
-		log.Debugf("telemetry: stopped serving at %s", t.Addr)
+		log.Debugf("telemetry: stopped serving at %s", t.addr.String())
 	}()
 }
 
@@ -96,20 +86,18 @@ func (t *Telemetry) listenWithRetry() net.Listener {
 		}
 		time.Sleep(time.Second)
 	}
-	log.Fatalf("error listening to socket at %s: %v", t.Addr, err)
+	log.Fatalf("error listening to socket at %s: %v", t.addr.String(), err)
 	return nil
 }
 
 // Stop shuts down the telemetry service
-func (t *Telemetry) Stop() {
+func (t *Telemetry) Stop(pctx context.Context) {
 	log.Debug("telemetry: stopping server")
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 	if err := t.Shutdown(ctx); err != nil {
 		log.Warnf("telemetry: failed to gracefully shutdown server: %v", err)
 		return
 	}
-	t.Unsubscribe(t.Bus, true)
-	close(t.Rx)
 	log.Debug("telemetry: completed graceful shutdown of server")
 }

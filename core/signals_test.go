@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"reflect"
@@ -17,7 +18,6 @@ import (
 // Test setup
 
 func getSignalTestConfig(t *testing.T) *App {
-
 	cfg := &jobs.Config{
 		Name:       "test-service",
 		Port:       1,
@@ -41,12 +41,19 @@ func getSignalTestConfig(t *testing.T) *App {
 // by this same test, but that we don't have a separate unit test
 // because they'll interfere with each other's state.
 func TestTerminateSignal(t *testing.T) {
+	stopCh := make(chan bool)
 	app := getSignalTestConfig(t)
 	bus := app.Bus
-	app.Jobs[0].Subscribe(bus)
-	app.Jobs[0].Run()
-
+	ctx, cancel := context.WithCancel(context.Background())
+	for _, job := range app.Jobs {
+		job.Subscribe(bus)
+		job.Register(bus)
+	}
+	for _, job := range app.Jobs {
+		job.Run(ctx, stopCh)
+	}
 	app.Terminate()
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 	got := map[events.Event]int{}
@@ -65,9 +72,10 @@ func TestTerminateSignal(t *testing.T) {
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
+	_, cancel := context.WithCancel(context.Background())
 	app := EmptyApp()
 	app.Bus = events.NewEventBus()
-	app.handleSignals()
+	app.handleSignals(cancel)
 	sendAndWaitForSignal(t, syscall.SIGTERM)
 }
 

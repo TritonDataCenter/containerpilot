@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/tests"
 	"github.com/joyent/containerpilot/tests/mocks"
@@ -19,9 +19,9 @@ func TestStatusServerPostInvalid(t *testing.T) {
 	cfg := &Config{Port: 9090, Interfaces: []interface{}{"lo", "lo0", "inet"}}
 	cfg.Validate(&mocks.NoopDiscoveryBackend{})
 	telem := NewTelemetry(cfg)
-	bus := events.NewEventBus()
-	defer telem.Stop()
-	telem.Run(bus)
+	ctx := context.Background()
+	defer telem.Stop(ctx)
+	telem.Run(ctx)
 	url := fmt.Sprintf("http://%v:%v/status", telem.addr.IP, telem.addr.Port)
 	resp, err := http.Post(url, "", nil)
 	if err != nil {
@@ -35,25 +35,35 @@ func TestStatusServerPostInvalid(t *testing.T) {
 }
 
 func TestStatusServerGet(t *testing.T) {
-
 	noop := &mocks.NoopDiscoveryBackend{}
 	var err error
 
 	jobCfgs, err := jobs.NewConfigs(
 		tests.DecodeRawToSlice(
 			`[
-				{ name: "myjob1", exec: "sleep 10" },
-        {
+				{
+					name: "myjob1",
+					exec: "sleep 10"
+				},
+				{
 					name: "myjob2",
 					exec: "sleep 10",
 					port: 80,
 					interfaces: ["inet", "lo0"],
-					health: { exec: "true", interval: 1, ttl: 10 }
+					health: {
+					  exec: "true",
+					  interval: 1,
+					  ttl: 10
+					}
 				},
 				{
 					name: "myjob3",
 					exec: "sleep 10",
-					health: { exec: "true", interval: 1, ttl: 10 }
+					health: {
+					  exec: "true",
+					  interval: 1,
+					  ttl: 10
+					}
 				}
 			]`),
 		noop)
@@ -65,7 +75,7 @@ func TestStatusServerGet(t *testing.T) {
 	watchCfgs, err := watches.NewConfigs(
 		tests.DecodeRawToSlice(
 			`[{name: "watch1", interval: 1},
-             {name: "watch2", interval: 2}]`),
+			 {name: "watch2", interval: 2}]`),
 		noop)
 	if err != nil {
 		t.Fatal(err)
@@ -78,9 +88,9 @@ func TestStatusServerGet(t *testing.T) {
 	telem.MonitorJobs(jobs)
 	telem.MonitorWatches(watches)
 
-	bus := events.NewEventBus()
-	defer telem.Stop()
-	telem.Run(bus)
+	ctx := context.Background()
+	defer telem.Stop(ctx)
+	telem.Run(ctx)
 
 	url := fmt.Sprintf("http://%v:%v/status", telem.addr.IP, telem.addr.Port)
 	resp, err := http.Get(url)

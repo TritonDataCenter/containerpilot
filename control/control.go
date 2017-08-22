@@ -11,10 +11,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/joyent/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/joyent/containerpilot/events"
 )
 
 // SocketType is the default listener type
@@ -37,9 +36,11 @@ func init() {
 // HTTP transport control plane. Currently this is listening via a UNIX socket
 // file.
 type HTTPServer struct {
+	Addr string
+	Bus  *events.EventBus
+
 	http.Server
-	Addr                string
-	events.EventHandler // Event handling
+	events.Publisher
 }
 
 // NewHTTPServer initializes a new control server for manipulating
@@ -52,7 +53,6 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 		return nil, fmt.Errorf("control: validate failed with %s", err)
 	}
 
-	srv.InitRx()
 	return srv, nil
 }
 
@@ -73,34 +73,33 @@ func (srv *HTTPServer) Validate() error {
 }
 
 // Run executes the event loop for the control server
-func (srv *HTTPServer) Run(bus *events.EventBus) {
-	srv.Subscribe(bus, true)
-	srv.Bus = bus
-	srv.Start()
+func (srv *HTTPServer) Run(pctx context.Context, bus *events.EventBus) {
+	ctx, cancel := context.WithCancel(pctx)
+	srv.Register(bus)
+	srv.Start(cancel)
 
 	go func() {
 		defer srv.Stop()
-		for {
-			event := <-srv.Rx
-			switch event {
-			case
-				events.QuitByClose,
-				events.GlobalShutdown:
-				return
-			}
-		}
+		<-ctx.Done()
+		return
 	}()
 }
 
-// Start sets up API routes with the event bus, listens on the control
-// socket, and serves the HTTP server.
-func (srv *HTTPServer) Start() {
-	endpoints := &Endpoints{srv.Bus}
+// Start sets up API routes with the event bus, listens on the control socket,
+// and serves the HTTP server.
+func (srv *HTTPServer) Start(cancel context.CancelFunc) {
+	endpoints := &Endpoints{
+		bus:    srv.Publisher.Bus,
+		cancel: cancel,
+	}
 
 	router := http.NewServeMux()
-	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
-	router.Handle("/v3/reload", PostHandler(endpoints.PostReload))
-	router.Handle("/v3/metric", PostHandler(endpoints.PostMetric))
+	router.Handle("/v3/environ",
+		PostHandler(endpoints.PutEnviron))
+	router.Handle("/v3/reload",
+		PostHandler(endpoints.PostReload))
+	router.Handle("/v3/metric",
+		PostHandler(endpoints.PostMetric))
 	router.Handle("/v3/maintenance/enable",
 		PostHandler(endpoints.PostEnableMaintenanceMode))
 	router.Handle("/v3/maintenance/disable",
@@ -118,12 +117,11 @@ func (srv *HTTPServer) Start() {
 		srv.Serve(ln)
 		log.Debugf("control: stopped serving at %s", srv.Addr)
 	}()
-
 }
 
-// on a reload we can't guarantee that the control server will be shut down
-// and the socket file cleaned up before we're ready to start again, so we'll
-// retry with the listener a few times before bailing out.
+// on a reload we can't guarantee that the control server will be shut down and
+// the socket file cleaned up before we're ready to start again, so we'll retry
+// with the listener a few times before bailing out.
 func (srv *HTTPServer) listenWithRetry() net.Listener {
 	var (
 		err error
@@ -158,8 +156,7 @@ func (srv *HTTPServer) Stop() error {
 		return err
 	}
 
-	srv.Unsubscribe(srv.Bus, true)
-	close(srv.Rx)
+	srv.Unregister()
 	log.Debug("control: completed graceful shutdown of control server")
 	return nil
 }

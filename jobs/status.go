@@ -11,6 +11,7 @@ const (
 	statusUnhealthy
 	statusMaintenance
 	statusAlwaysHealthy
+	statusCompleted
 )
 
 func (i JobStatus) String() string {
@@ -24,6 +25,8 @@ func (i JobStatus) String() string {
 	case 5:
 		// for hardcoded "always healthy" jobs
 		return "healthy"
+	case 6:
+		return "completed"
 	default:
 		// both idle and unknown return unknown for purposes of serialization
 		return "unknown"
