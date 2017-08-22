@@ -1,6 +1,7 @@
 package control
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,7 +17,8 @@ import (
 // Endpoints wraps the EventBus so we can bridge data across the App and
 // HTTPServer API boundary
 type Endpoints struct {
-	bus *events.EventBus
+	bus    *events.EventBus
+	cancel context.CancelFunc
 }
 
 // PostHandler is an adapter which allows a normal function to serve itself and
@@ -72,6 +74,7 @@ func (e Endpoints) PutEnviron(r *http.Request) (interface{}, int) {
 // PostReload handles incoming HTTP POST requests and reloads our current
 // ContainerPilot process configuration.  Returns empty response or HTTP422.
 func (e Endpoints) PostReload(r *http.Request) (interface{}, int) {
+	defer e.cancel()
 	log.Debug("control: reloading app via control plane")
 	if r.Body != nil {
 		defer r.Body.Close()
