@@ -51,8 +51,6 @@ type Job struct {
 	restartsRemain int
 	frequency      time.Duration
 
-	Bus *events.EventBus
-
 	events.Subscriber
 	events.Publisher
 }
@@ -206,7 +204,7 @@ func (job *Job) startJobExec(ctx context.Context) {
 	job.startTimeoutEvent = events.NonEvent
 	job.setStatus(statusUnknown)
 	if job.exec != nil {
-		job.exec.Run(ctx, job.Bus)
+		job.exec.Run(ctx, job.Publisher.Bus)
 	}
 }
 
@@ -214,7 +212,7 @@ func (job *Job) onHeartbeatTimerExpired(ctx context.Context) processEventStatus 
 	status := job.GetStatus()
 	if status != statusMaintenance && status != statusIdle {
 		if job.healthCheckExec != nil {
-			job.healthCheckExec.Run(ctx, job.Bus)
+			job.healthCheckExec.Run(ctx, job.Publisher.Bus)
 		} else if job.Service != nil {
 			// this is the case for non-checked but advertised
 			// services like the telemetry endpoint
