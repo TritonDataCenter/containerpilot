@@ -163,6 +163,7 @@ func (a *App) runTasks(ctx context.Context) {
 	// other jobs are even subscribed to listen for them.
 	for _, job := range a.Jobs {
 		job.Subscribe(a.Bus)
+		job.Register(a.Bus)
 	}
 	for _, job := range a.Jobs {
 		job.Run(ctx)

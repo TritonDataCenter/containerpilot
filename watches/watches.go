@@ -76,7 +76,6 @@ func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 	go func() {
 		defer func() {
 			cancel()
-			// watch.Unsubscribe(watch.Bus)
 			watch.Unregister()
 		}()
 		for {

@@ -41,7 +41,7 @@ func NewMetric(cfg *MetricConfig) *Metric {
 		Type:      cfg.metricType,
 		collector: cfg.collector,
 	}
-	// metric.InitRx()
+	metric.Rx = make(chan events.Event, eventBufferSize)
 	return metric
 }
 

@@ -73,8 +73,17 @@ func (srv HTTPServer) Validate() error {
 
 // Run executes the event loop for the control server
 func (srv *HTTPServer) Run(ctx context.Context, bus *events.EventBus) {
-	defer srv.Stop(ctx)
 	srv.Start(bus)
+
+	go func() {
+		defer srv.Stop(ctx)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
 // Start sets up API routes with the event bus, listens on the control

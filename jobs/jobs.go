@@ -17,9 +17,10 @@ type processEventStatus bool
 
 // Some magic numbers used internally by processEvent
 const (
-	unlimited                      = -1
-	jobContinue processEventStatus = false
-	jobHalt     processEventStatus = true
+	unlimited                          = -1
+	jobContinue     processEventStatus = false
+	jobHalt         processEventStatus = true
+	eventBufferSize                    = 1000
 )
 
 // Job manages the state of a job and its start/stop conditions
@@ -75,6 +76,7 @@ func NewJob(cfg *Config) *Job {
 	}
 	// job.InitRx()
 	job.statusLock = &sync.RWMutex{}
+	job.Rx = make(chan events.Event, eventBufferSize)
 	if job.Name == "containerpilot" {
 		// right now this hardcodes the telemetry service to
 		// be always "healthy", but maybe we want to have it verify itself
@@ -223,7 +225,7 @@ func (job *Job) onHeartbeatTimerExpired(ctx context.Context) processEventStatus 
 }
 
 func (job *Job) onStartTimeoutExpired(ctx context.Context) processEventStatus {
-	job.Bus.Publish(events.Event{
+	job.Publish(events.Event{
 		Code: events.TimerExpired, Source: job.Name})
 	job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
 	return jobContinue
@@ -244,7 +246,7 @@ func (job *Job) onRunEveryTimerExpired(ctx context.Context) processEventStatus {
 func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusUnhealthy)
-		job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
+		job.Publish(events.Event{events.StatusUnhealthy, job.Name})
 	}
 	return jobContinue
 }
@@ -252,7 +254,7 @@ func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 func (job *Job) onHealthCheckPassed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusHealthy)
-		job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
+		job.Publish(events.Event{events.StatusHealthy, job.Name})
 		job.SendHeartbeat()
 	}
 	return jobContinue
@@ -334,7 +336,7 @@ func (job *Job) restartPermitted() bool {
 // channels and contexts when done.
 func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 	stoppingTimeout := fmt.Sprintf("%s.stopping-timeout", job.Name)
-	job.Bus.Publish(events.Event{Code: events.Stopping, Source: job.Name})
+	job.Publish(events.Event{Code: events.Stopping, Source: job.Name})
 	if job.stoppingWaitEvent != events.NonEvent {
 		if job.stoppingTimeout > 0 {
 			// not having this set is a programmer error not a runtime error
@@ -357,7 +359,7 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 		job.Service.Deregister() // deregister from Consul
 	}
 	job.Unsubscribe() // deregister from events
-	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
+	job.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 }
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing

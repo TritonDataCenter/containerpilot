@@ -53,8 +53,16 @@ func NewTelemetry(cfg *Config) *Telemetry {
 
 // Run executes the event loop for the telemetry server
 func (t *Telemetry) Run(ctx context.Context) {
-	defer t.Stop(ctx)
 	t.Start()
+	go func() {
+		defer t.Stop(ctx)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
 // Start starts serving the telemetry service
