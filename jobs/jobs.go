@@ -124,37 +124,37 @@ func (job *Job) Kill() {
 }
 
 // Run executes the event loop for the Job
-func (job *Job) Run(ctx context.Context) {
-	ctx2, cancel := context.WithCancel(ctx)
+func (job *Job) Run(pctx context.Context) {
+	ctx, cancel := context.WithCancel(pctx)
 
 	if job.frequency > 0 {
-		events.NewEventTimer(ctx2, job.Rx, job.frequency,
+		events.NewEventTimer(ctx, job.Rx, job.frequency,
 			fmt.Sprintf("%s.run-every", job.Name))
 	}
 	if job.heartbeat > 0 {
-		events.NewEventTimer(ctx2, job.Rx, job.heartbeat,
+		events.NewEventTimer(ctx, job.Rx, job.heartbeat,
 			fmt.Sprintf("%s.heartbeat", job.Name))
 	}
 	if job.startTimeout > 0 {
 		timeoutName := fmt.Sprintf("%s.wait-timeout", job.Name)
-		events.NewEventTimeout(ctx2, job.Rx, job.startTimeout, timeoutName)
+		events.NewEventTimeout(ctx, job.Rx, job.startTimeout, timeoutName)
 		job.startTimeoutEvent = events.Event{events.TimerExpired, timeoutName}
 	} else {
 		job.startTimeoutEvent = events.NonEvent
 	}
 
 	go func() {
-		defer job.cleanup(ctx2, cancel)
+		defer job.cleanup(ctx, cancel)
 		for {
 			select {
 			case event, ok := <-job.Rx:
 				if !ok {
 					return
 				}
-				if job.processEvent(ctx2, event) == jobHalt {
+				if job.processEvent(ctx, event) == jobHalt {
 					return
 				}
-			case <-ctx2.Done():
+			case <-ctx.Done():
 				return
 			}
 		}

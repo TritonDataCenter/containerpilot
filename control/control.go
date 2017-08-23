@@ -73,24 +73,9 @@ func (srv HTTPServer) Validate() error {
 }
 
 // Run executes the event loop for the control server
-func (srv *HTTPServer) Run(bus *events.EventBus) {
-	// NOTE: Deprecate when we pull EventHandler out of HTTPServer
-	srv.Subscribe(bus)
-	srv.Bus = bus
+func (srv *HTTPServer) Run(ctx context.Context) {
+	defer srv.Stop(ctx)
 	srv.Start()
-
-	go func() {
-		defer srv.Stop()
-		for {
-			event := <-srv.Rx
-			switch event {
-			case
-				events.QuitByClose,
-				events.GlobalShutdown:
-				return
-			}
-		}
-	}()
 }
 
 // Start sets up API routes with the event bus, listens on the control
@@ -143,7 +128,7 @@ func (srv *HTTPServer) listenWithRetry() net.Listener {
 }
 
 // Stop shuts down the control server gracefully
-func (srv *HTTPServer) Stop() error {
+func (srv *HTTPServer) Stop(pctx context.Context) error {
 	// This timeout won't stop the configuration reload process, since that
 	// happens async, but timing out can pre-emptively close the HTTP connection
 	// that fired the reload in the first place. If pre-emptive timeout occurs
@@ -151,7 +136,7 @@ func (srv *HTTPServer) Stop() error {
 	//
 	// Also, 600 seemed to be the magic number... I'm sure it'll vary.
 	log.Debug("control: stopping control server")
-	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Millisecond)
+	ctx, cancel := context.WithTimeout(pctx, 600*time.Millisecond)
 	defer cancel()
 	defer os.Remove(srv.Addr)
 	if err := srv.Shutdown(ctx); err != nil {
@@ -160,8 +145,8 @@ func (srv *HTTPServer) Stop() error {
 	}
 
 	// NOTE: Deprecate when we pull EventHandler out of HTTPServer
-	srv.Unsubscribe()
-	close(srv.Rx)
+	// srv.Unsubscribe()
+	// close(srv.Rx)
 	log.Debug("control: completed graceful shutdown of control server")
 	return nil
 }

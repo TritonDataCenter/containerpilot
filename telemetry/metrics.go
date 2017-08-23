@@ -31,7 +31,7 @@ type Metric struct {
 	Type      MetricType
 	collector prometheus.Collector
 
-	events.EventHandler // Event handling
+	events.Subscriber
 }
 
 // NewMetric creates a Metric from a validated MetricConfig
@@ -41,7 +41,7 @@ func NewMetric(cfg *MetricConfig) *Metric {
 		Type:      cfg.metricType,
 		collector: cfg.collector,
 	}
-	metric.InitRx()
+	// metric.InitRx()
 	return metric
 }
 
@@ -80,14 +80,14 @@ func (metric *Metric) record(metricValue string) {
 }
 
 // Run executes the event loop for the Metric
-func (metric *Metric) Run(bus *events.EventBus) {
+func (metric *Metric) Run(pctx context.Context, bus *events.EventBus) {
 	metric.Subscribe(bus)
-	metric.Bus = bus
-	ctx, cancel := context.WithCancel(context.Background())
+	// metric.Bus = bus
+	ctx, cancel := context.WithCancel(pctx)
 	go func() {
 		defer func() {
 			cancel()
-			metric.Unsubscribe(metric.Bus)
+			metric.Unsubscribe()
 		}()
 		for {
 			select {

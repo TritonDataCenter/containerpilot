@@ -62,16 +62,16 @@ func (watch *Watch) Tick() time.Duration {
 }
 
 // Run executes the event loop for the Watch
-func (watch *Watch) Run(ctx context.Context, bus *events.EventBus) {
+func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 	watch.Register(bus)
-	watch.Bus = bus
-	ctx2, cancel := context.WithCancel(ctx)
+	// watch.Bus = bus
+	ctx, cancel := context.WithCancel(pctx)
 
 	// timerSource := fmt.Sprintf("%s.poll", watch.Name)
 	timerSource := watch.Name + ".poll"
 	// NOTE: replace by implementing a timer that's only used within the local
 	// scope of this watch Run func.
-	events.NewEventTimer(ctx2, watch.rx, watch.Tick(), timerSource)
+	events.NewEventTimer(ctx, watch.rx, watch.Tick(), timerSource)
 
 	go func() {
 		defer func() {
@@ -104,7 +104,7 @@ func (watch *Watch) Run(ctx context.Context, bus *events.EventBus) {
 					events.GlobalShutdown:
 					return
 				}
-			case <-ctx2.Done():
+			case <-ctx.Done():
 				watch.Unregister()
 				watch.Wait()
 				return
