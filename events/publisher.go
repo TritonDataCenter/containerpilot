@@ -26,3 +26,7 @@ func (p *Publisher) Unregister() {
 func (p *Publisher) Wait() {
 	p.Bus.done.Wait()
 }
+
+func (p *Publisher) Quit() {
+	p.Bus.done.Wait()
+}

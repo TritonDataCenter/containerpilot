@@ -50,6 +50,8 @@ type Job struct {
 	restartsRemain int
 	frequency      time.Duration
 
+	Bus *events.EventBus
+
 	events.Subscriber
 	events.Publisher
 }
@@ -70,7 +72,6 @@ func NewJob(cfg *Config) *Job {
 		restartLimit:      cfg.restartLimit,
 		restartsRemain:    cfg.restartLimit,
 		frequency:         cfg.freqInterval,
-		rx:                make(chan string, 20),
 	}
 	// job.InitRx()
 	job.statusLock = &sync.RWMutex{}
@@ -355,7 +356,7 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 	if job.Service != nil {
 		job.Service.Deregister() // deregister from Consul
 	}
-	job.Unsubscribe(job.Bus) // deregister from events
+	job.Unsubscribe() // deregister from events
 	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 }
 

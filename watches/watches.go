@@ -4,7 +4,6 @@ package watches
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/joyent/containerpilot/discovery"
@@ -19,12 +18,15 @@ type Watch struct {
 	dc               string
 	poll             int
 	discoveryService discovery.Backend
+	rx               chan events.Event
 
 	events.Publisher
 }
 
+const eventBufferSize = 1000
+
 // NewWatch creates a Watch from a validated Config
-func NewWatch(bus *events.EventBus, cfg *Config) *Watch {
+func NewWatch(cfg *Config) *Watch {
 	watch := &Watch{
 		Name:             cfg.Name,
 		serviceName:      cfg.serviceName,
@@ -34,6 +36,7 @@ func NewWatch(bus *events.EventBus, cfg *Config) *Watch {
 		discoveryService: cfg.discoveryService,
 	}
 	// watch.InitRx()
+	watch.rx = make(chan events.Event, eventBufferSize)
 	return watch
 }
 
@@ -53,25 +56,32 @@ func (watch *Watch) CheckForUpstreamChanges() (bool, bool) {
 	return watch.discoveryService.CheckForUpstreamChanges(watch.serviceName, watch.tag, watch.dc)
 }
 
+// Tick returns the watcher's ticker time duration.
+func (watch *Watch) Tick() time.Duration {
+	return time.Duration(watch.poll) * time.Second
+}
+
 // Run executes the event loop for the Watch
 func (watch *Watch) Run(ctx context.Context, bus *events.EventBus) {
 	watch.Register(bus)
 	watch.Bus = bus
 	ctx2, cancel := context.WithCancel(ctx)
 
-	timerSource := fmt.Sprintf("%s.poll", watch.Name)
-	// NOTE: implement using a scoped ticker for this watch only
-	events.NewEventTimer(ctx2, watch.Rx,
-		time.Duration(watch.poll)*time.Second, timerSource)
+	// timerSource := fmt.Sprintf("%s.poll", watch.Name)
+	timerSource := watch.Name + ".poll"
+	// NOTE: replace by implementing a timer that's only used within the local
+	// scope of this watch Run func.
+	events.NewEventTimer(ctx2, watch.rx, watch.Tick(), timerSource)
 
 	go func() {
 		defer func() {
 			cancel()
-			watch.Unsubscribe(watch.Bus)
+			// watch.Unsubscribe(watch.Bus)
+			watch.Unregister()
 		}()
 		for {
 			select {
-			case event, ok := <-watch.Rx:
+			case event, ok := <-watch.rx:
 				if !ok {
 					return
 				}
@@ -79,13 +89,13 @@ func (watch *Watch) Run(ctx context.Context, bus *events.EventBus) {
 				case events.Event{events.TimerExpired, timerSource}:
 					didChange, isHealthy := watch.CheckForUpstreamChanges()
 					if didChange {
-						watch.Bus.Publish(events.Event{events.StatusChanged, watch.Name})
+						watch.Publish(events.Event{events.StatusChanged, watch.Name})
 						// we only send the StatusHealthy and StatusUnhealthy
 						// events if there was a change
 						if isHealthy {
-							watch.Bus.Publish(events.Event{events.StatusHealthy, watch.Name})
+							watch.Publish(events.Event{events.StatusHealthy, watch.Name})
 						} else {
-							watch.Bus.Publish(events.Event{events.StatusUnhealthy, watch.Name})
+							watch.Publish(events.Event{events.StatusUnhealthy, watch.Name})
 						}
 					}
 				case
@@ -95,6 +105,8 @@ func (watch *Watch) Run(ctx context.Context, bus *events.EventBus) {
 					return
 				}
 			case <-ctx2.Done():
+				watch.Unregister()
+				watch.Wait()
 				return
 			}
 		}

@@ -1,6 +1,7 @@
 package watches
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -43,7 +44,8 @@ func runWatchTest(cfg *Config, count int, disc discovery.Backend) map[events.Eve
 	bus := events.NewEventBus()
 	cfg.Validate(disc)
 	watch := NewWatch(cfg)
-	watch.Run(bus)
+	ctx := context.Background()
+	watch.Run(ctx, bus)
 
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s.poll", cfg.Name)}
 	bus.Publish(poll)

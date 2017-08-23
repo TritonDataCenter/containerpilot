@@ -10,7 +10,7 @@ import (
 
 // EventBus manages the state of and transmits messages to all its Subscribers
 type EventBus struct {
-	registry map[Subscriber]bool
+	registry map[*Subscriber]bool
 	lock     *sync.RWMutex
 	reload   bool
 	done     sync.WaitGroup
@@ -71,7 +71,7 @@ func init() {
 // literal so that we know our channels are non-nil (which block sends).
 func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
-	reg := make(map[Subscriber]bool)
+	reg := make(map[*Subscriber]bool)
 	buf := make([]Event, 10)
 	for i := range buf {
 		buf[i] = Event{}
@@ -99,7 +99,7 @@ func (bus *EventBus) Unregister(publisher EventPublisher) {
 func (bus *EventBus) Subscribe(subscriber EventSubscriber) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
-	sub := subscriber.(Subscriber)
+	sub := subscriber.(*Subscriber)
 	bus.registry[sub] = true
 
 	// internal subscribers like the control socket and telemetry server
@@ -113,7 +113,7 @@ func (bus *EventBus) Subscribe(subscriber EventSubscriber) {
 func (bus *EventBus) Unsubscribe(subscriber EventSubscriber) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
-	sub := subscriber.(Subscriber)
+	sub := subscriber.(*Subscriber)
 	if _, ok := bus.registry[sub]; ok {
 		delete(bus.registry, sub)
 	}

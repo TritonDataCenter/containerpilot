@@ -74,7 +74,8 @@ func (srv HTTPServer) Validate() error {
 
 // Run executes the event loop for the control server
 func (srv *HTTPServer) Run(bus *events.EventBus) {
-	srv.Subscribe(bus, true)
+	// NOTE: Deprecate when we pull EventHandler out of HTTPServer
+	srv.Subscribe(bus)
 	srv.Bus = bus
 	srv.Start()
 
@@ -158,7 +159,8 @@ func (srv *HTTPServer) Stop() error {
 		return err
 	}
 
-	srv.Unsubscribe(srv.Bus, true)
+	// NOTE: Deprecate when we pull EventHandler out of HTTPServer
+	srv.Unsubscribe()
 	close(srv.Rx)
 	log.Debug("control: completed graceful shutdown of control server")
 	return nil
