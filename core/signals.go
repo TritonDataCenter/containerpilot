@@ -12,14 +12,15 @@ func (a *App) handleSignals(cancel context.CancelFunc) {
 	recvSig := make(chan os.Signal, 1)
 	signal.Notify(recvSig, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	go func() {
-		sig := <-recvSig
-		switch sig {
-		case syscall.SIGINT:
-			a.Terminate()
-		case syscall.SIGTERM:
-			a.Terminate()
-		case syscall.SIGHUP:
-			a.SetReload()
+		for sig := range recvSig {
+			switch sig {
+			case syscall.SIGINT:
+				a.Terminate()
+			case syscall.SIGTERM:
+				a.Terminate()
+			case syscall.SIGHUP:
+				a.SetReload()
+			}
 		}
 		cancel()
 	}()

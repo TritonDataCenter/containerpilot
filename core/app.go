@@ -103,7 +103,7 @@ func (a *App) Run() {
 		a.handleSignals(cancel)
 
 		a.Bus = events.NewEventBus()
-		a.ControlServer.Run(ctx)
+		a.ControlServer.Run(ctx, a.Bus)
 		a.runTasks(ctx)
 
 		if !a.Bus.Wait() {

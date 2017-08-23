@@ -11,10 +11,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/joyent/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/joyent/containerpilot/events"
 )
 
 // SocketType is the default listener type
@@ -37,9 +36,9 @@ func init() {
 // HTTP transport control plane. Currently this is listening via a UNIX socket
 // file.
 type HTTPServer struct {
+	Addr string
+
 	http.Server
-	Addr                string
-	events.EventHandler // Event handling
 }
 
 // NewHTTPServer initializes a new control server for manipulating
@@ -52,7 +51,7 @@ func NewHTTPServer(cfg *Config) (*HTTPServer, error) {
 		return nil, fmt.Errorf("control: validate failed with %s", err)
 	}
 
-	srv.InitRx()
+	// srv.InitRx()
 	return srv, nil
 }
 
@@ -73,15 +72,15 @@ func (srv HTTPServer) Validate() error {
 }
 
 // Run executes the event loop for the control server
-func (srv *HTTPServer) Run(ctx context.Context) {
+func (srv *HTTPServer) Run(ctx context.Context, bus *events.EventBus) {
 	defer srv.Stop(ctx)
-	srv.Start()
+	srv.Start(bus)
 }
 
 // Start sets up API routes with the event bus, listens on the control
 // socket, and serves the HTTP server.
-func (srv *HTTPServer) Start() {
-	endpoints := &Endpoints{srv.Bus}
+func (srv *HTTPServer) Start(bus *events.EventBus) {
+	endpoints := &Endpoints{bus}
 
 	router := http.NewServeMux()
 	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
@@ -144,9 +143,6 @@ func (srv *HTTPServer) Stop(pctx context.Context) error {
 		return err
 	}
 
-	// NOTE: Deprecate when we pull EventHandler out of HTTPServer
-	// srv.Unsubscribe()
-	// close(srv.Rx)
 	log.Debug("control: completed graceful shutdown of control server")
 	return nil
 }
