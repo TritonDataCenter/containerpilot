@@ -33,7 +33,7 @@ func (f *MultiFlag) Set(value string) error {
 		return fmt.Errorf(
 			"flag value '%v' was not in the format 'key=val'", value)
 	}
-	key, val := strings.Join(pair[0:1], ""), strings.Join(pair[1:2], "")
+	key, val := strings.Join(pair[0:1], ""), strings.Join(pair[1:], "=")
 	f.Values[key] = val
 	return nil
 }
