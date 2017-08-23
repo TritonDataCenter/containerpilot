@@ -357,6 +357,7 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 		job.Service.Deregister() // deregister from Consul
 	}
 	job.Unsubscribe() // deregister from events
+	job.Unregister()
 	job.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 }
 
