@@ -39,6 +39,7 @@ type HTTPServer struct {
 	Addr string
 
 	http.Server
+	events.Publisher
 }
 
 // NewHTTPServer initializes a new control server for manipulating
@@ -73,23 +74,20 @@ func (srv *HTTPServer) Validate() error {
 
 // Run executes the event loop for the control server
 func (srv *HTTPServer) Run(ctx context.Context, bus *events.EventBus) {
-	srv.Start(bus)
+	srv.Register(bus)
+	srv.Start()
 
 	go func() {
 		defer srv.Stop(ctx)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			}
-		}
+		<-ctx.Done()
+		return
 	}()
 }
 
 // Start sets up API routes with the event bus, listens on the control
 // socket, and serves the HTTP server.
-func (srv *HTTPServer) Start(bus *events.EventBus) {
-	endpoints := &Endpoints{bus}
+func (srv *HTTPServer) Start() {
+	endpoints := &Endpoints{srv.Publisher.Bus}
 
 	router := http.NewServeMux()
 	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
@@ -147,6 +145,7 @@ func (srv *HTTPServer) Stop(pctx context.Context) error {
 	ctx, cancel := context.WithTimeout(pctx, 600*time.Millisecond)
 	defer cancel()
 	defer os.Remove(srv.Addr)
+	srv.Unregister()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Warnf("control: failed to gracefully shutdown control server: %v", err)
 		return err
