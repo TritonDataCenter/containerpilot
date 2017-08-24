@@ -82,6 +82,15 @@ func TestPidEnvVar(t *testing.T) {
 	}
 }
 
+func TestSetEqual(t *testing.T) {
+	defer argTestCleanup(argTestSetup())
+	os.Args = []string{"this", "-config", "{}", "-putenv", "ENV_VALUE=PART1=PART2"}
+	_, p := GetArgs()
+	if value, ok := p.Env["ENV_VALUE"]; !ok || value != "PART1=PART2" {
+		t.Errorf("expected ENV_VALUE to be set to 'PART1=PART2'")
+	}
+}
+
 // ----------------------------------------------------
 // test helpers
 
