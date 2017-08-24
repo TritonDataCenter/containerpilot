@@ -17,9 +17,10 @@ type processEventStatus bool
 
 // Some magic numbers used internally by processEvent
 const (
-	unlimited                      = -1
-	jobContinue processEventStatus = false
-	jobHalt     processEventStatus = true
+	unlimited                          = -1
+	jobContinue     processEventStatus = false
+	jobHalt         processEventStatus = true
+	eventBufferSize                    = 1000
 )
 
 // Job manages the state of a job and its start/stop conditions
@@ -50,7 +51,8 @@ type Job struct {
 	restartsRemain int
 	frequency      time.Duration
 
-	events.EventHandler // Event handling
+	events.Subscriber
+	events.Publisher
 }
 
 // NewJob creates a new Job from a Config
@@ -70,8 +72,9 @@ func NewJob(cfg *Config) *Job {
 		restartsRemain:    cfg.restartLimit,
 		frequency:         cfg.freqInterval,
 	}
-	job.InitRx()
+	// job.InitRx()
 	job.statusLock = &sync.RWMutex{}
+	job.Rx = make(chan events.Event, eventBufferSize)
 	if job.Name == "containerpilot" {
 		// right now this hardcodes the telemetry service to
 		// be always "healthy", but maybe we want to have it verify itself
@@ -121,8 +124,8 @@ func (job *Job) Kill() {
 }
 
 // Run executes the event loop for the Job
-func (job *Job) Run() {
-	ctx, cancel := context.WithCancel(context.Background())
+func (job *Job) Run(pctx context.Context) {
+	ctx, cancel := context.WithCancel(pctx)
 
 	if job.frequency > 0 {
 		events.NewEventTimer(ctx, job.Rx, job.frequency,
@@ -201,7 +204,7 @@ func (job *Job) startJobExec(ctx context.Context) {
 	job.startTimeoutEvent = events.NonEvent
 	job.setStatus(statusUnknown)
 	if job.exec != nil {
-		job.exec.Run(ctx, job.Bus)
+		job.exec.Run(ctx, job.Publisher.Bus)
 	}
 }
 
@@ -209,7 +212,7 @@ func (job *Job) onHeartbeatTimerExpired(ctx context.Context) processEventStatus 
 	status := job.GetStatus()
 	if status != statusMaintenance && status != statusIdle {
 		if job.healthCheckExec != nil {
-			job.healthCheckExec.Run(ctx, job.Bus)
+			job.healthCheckExec.Run(ctx, job.Publisher.Bus)
 		} else if job.Service != nil {
 			// this is the case for non-checked but advertised
 			// services like the telemetry endpoint
@@ -220,7 +223,7 @@ func (job *Job) onHeartbeatTimerExpired(ctx context.Context) processEventStatus 
 }
 
 func (job *Job) onStartTimeoutExpired(ctx context.Context) processEventStatus {
-	job.Bus.Publish(events.Event{
+	job.Publish(events.Event{
 		Code: events.TimerExpired, Source: job.Name})
 	job.Rx <- events.Event{Code: events.Quit, Source: job.Name}
 	return jobContinue
@@ -241,7 +244,7 @@ func (job *Job) onRunEveryTimerExpired(ctx context.Context) processEventStatus {
 func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusUnhealthy)
-		job.Bus.Publish(events.Event{events.StatusUnhealthy, job.Name})
+		job.Publish(events.Event{events.StatusUnhealthy, job.Name})
 	}
 	return jobContinue
 }
@@ -249,7 +252,7 @@ func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 func (job *Job) onHealthCheckPassed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusHealthy)
-		job.Bus.Publish(events.Event{events.StatusHealthy, job.Name})
+		job.Publish(events.Event{events.StatusHealthy, job.Name})
 		job.SendHeartbeat()
 	}
 	return jobContinue
@@ -331,7 +334,7 @@ func (job *Job) restartPermitted() bool {
 // channels and contexts when done.
 func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 	stoppingTimeout := fmt.Sprintf("%s.stopping-timeout", job.Name)
-	job.Bus.Publish(events.Event{Code: events.Stopping, Source: job.Name})
+	job.Publish(events.Event{Code: events.Stopping, Source: job.Name})
 	if job.stoppingWaitEvent != events.NonEvent {
 		if job.stoppingTimeout > 0 {
 			// not having this set is a programmer error not a runtime error
@@ -353,8 +356,9 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 	if job.Service != nil {
 		job.Service.Deregister() // deregister from Consul
 	}
-	job.Unsubscribe(job.Bus) // deregister from events
-	job.Bus.Publish(events.Event{Code: events.Stopped, Source: job.Name})
+	job.Unsubscribe() // deregister from events
+	job.Unregister()
+	job.Publish(events.Event{Code: events.Stopped, Source: job.Name})
 }
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing

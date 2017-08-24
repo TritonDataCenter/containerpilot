@@ -10,7 +10,7 @@ import (
 
 // EventBus manages the state of and transmits messages to all its Subscribers
 type EventBus struct {
-	registry map[Subscriber]bool
+	registry map[*Subscriber]bool
 	lock     *sync.RWMutex
 	reload   bool
 	done     sync.WaitGroup
@@ -71,7 +71,7 @@ func init() {
 // literal so that we know our channels are non-nil (which block sends).
 func NewEventBus() *EventBus {
 	lock := &sync.RWMutex{}
-	reg := make(map[Subscriber]bool)
+	reg := make(map[*Subscriber]bool)
 	buf := make([]Event, 10)
 	for i := range buf {
 		buf[i] = Event{}
@@ -81,29 +81,45 @@ func NewEventBus() *EventBus {
 	return bus
 }
 
-// Register the Subscriber for all Events
-func (bus *EventBus) Register(subscriber Subscriber, isInternal ...bool) {
+// Register the Publisher for all Events
+func (bus *EventBus) Register(publisher EventPublisher) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
-	bus.registry[subscriber] = true
+	bus.done.Add(1)
+}
+
+// Unregister the Publisher from all Events
+func (bus *EventBus) Unregister(publisher EventPublisher) {
+	bus.lock.Lock()
+	defer bus.lock.Unlock()
+	bus.done.Done()
+}
+
+// Subscribe the Subscriber for all Events
+func (bus *EventBus) Subscribe(subscriber EventSubscriber) {
+	bus.lock.Lock()
+	defer bus.lock.Unlock()
+	sub := subscriber.(*Subscriber)
+	bus.registry[sub] = true
 
 	// internal subscribers like the control socket and telemetry server
 	// will never unregister from events, but we want to be able to exit
-	if len(isInternal) == 0 || !isInternal[0] {
-		bus.done.Add(1)
-	}
+	// if len(isInternal) == 0 || !isInternal[0] {
+	bus.done.Add(1)
+	// }
 }
 
-// Unregister the Subscriber from all Events
-func (bus *EventBus) Unregister(subscriber Subscriber, isInternal ...bool) {
+// Unsubscribe the Subscriber from all Events
+func (bus *EventBus) Unsubscribe(subscriber EventSubscriber) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
-	if _, ok := bus.registry[subscriber]; ok {
-		delete(bus.registry, subscriber)
+	sub := subscriber.(*Subscriber)
+	if _, ok := bus.registry[sub]; ok {
+		delete(bus.registry, sub)
 	}
-	if len(isInternal) == 0 || !isInternal[0] {
-		bus.done.Done()
-	}
+	// if len(isInternal) == 0 || !isInternal[0] {
+	bus.done.Done()
+	// }
 }
 
 // Publish an Event to all Subscribers
