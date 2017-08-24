@@ -37,9 +37,11 @@ func init() {
 // file.
 type HTTPServer struct {
 	Addr string
+	Bus  *events.EventBus
 
 	http.Server
 	events.Publisher
+	events.Subscriber
 }
 
 // NewHTTPServer initializes a new control server for manipulating
@@ -73,12 +75,13 @@ func (srv *HTTPServer) Validate() error {
 }
 
 // Run executes the event loop for the control server
-func (srv *HTTPServer) Run(ctx context.Context, bus *events.EventBus) {
+func (srv *HTTPServer) Run(pctx context.Context, bus *events.EventBus) {
+	ctx, cancel := context.WithCancel(pctx)
 	srv.Register(bus)
-	srv.Start()
+	srv.Start(cancel)
 
 	go func() {
-		defer srv.Stop(ctx)
+		defer srv.Stop()
 		<-ctx.Done()
 		return
 	}()
@@ -86,8 +89,13 @@ func (srv *HTTPServer) Run(ctx context.Context, bus *events.EventBus) {
 
 // Start sets up API routes with the event bus, listens on the control
 // socket, and serves the HTTP server.
-func (srv *HTTPServer) Start() {
-	endpoints := &Endpoints{srv.Publisher.Bus}
+// func (srv *HTTPServer) Start() {
+// 	endpoints := &Endpoints{srv.Publisher.Bus}
+func (srv *HTTPServer) Start(cancel context.CancelFunc) {
+	endpoints := &Endpoints{
+		bus:    srv.Publisher.Bus,
+		cancel: cancel,
+	}
 
 	router := http.NewServeMux()
 	router.Handle("/v3/environ", PostHandler(endpoints.PutEnviron))
@@ -134,7 +142,7 @@ func (srv *HTTPServer) listenWithRetry() net.Listener {
 }
 
 // Stop shuts down the control server gracefully
-func (srv *HTTPServer) Stop(pctx context.Context) error {
+func (srv *HTTPServer) Stop() error {
 	// This timeout won't stop the configuration reload process, since that
 	// happens async, but timing out can pre-emptively close the HTTP connection
 	// that fired the reload in the first place. If pre-emptive timeout occurs
@@ -142,15 +150,15 @@ func (srv *HTTPServer) Stop(pctx context.Context) error {
 	//
 	// Also, 600 seemed to be the magic number... I'm sure it'll vary.
 	log.Debug("control: stopping control server")
-	ctx, cancel := context.WithTimeout(pctx, 600*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Millisecond)
 	defer cancel()
 	defer os.Remove(srv.Addr)
-	srv.Unregister()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Warnf("control: failed to gracefully shutdown control server: %v", err)
 		return err
 	}
 
+	srv.Unregister()
 	log.Debug("control: completed graceful shutdown of control server")
 	return nil
 }
