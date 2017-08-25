@@ -122,6 +122,7 @@ func (a *App) Run() {
 			log.Error(err)
 			break
 		}
+		cancel()
 	}
 }
 

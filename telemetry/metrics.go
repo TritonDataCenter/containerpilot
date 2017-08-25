@@ -82,7 +82,6 @@ func (metric *Metric) record(metricValue string) {
 // Run executes the event loop for the Metric
 func (metric *Metric) Run(pctx context.Context, bus *events.EventBus) {
 	metric.Subscribe(bus)
-	// metric.Bus = bus
 	ctx, cancel := context.WithCancel(pctx)
 	go func() {
 		defer func() {

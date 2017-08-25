@@ -56,12 +56,8 @@ func (t *Telemetry) Run(ctx context.Context) {
 	t.Start()
 	go func() {
 		defer t.Stop(ctx)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			}
-		}
+		<-ctx.Done()
+		return
 	}()
 }
 
@@ -69,9 +65,9 @@ func (t *Telemetry) Run(ctx context.Context) {
 func (t *Telemetry) Start() {
 	ln := t.listenWithRetry()
 	go func() {
-		log.Infof("telemetry: serving at %s", t.Addr)
+		log.Infof("telemetry: serving at %s", t.addr.String())
 		t.Serve(ln)
-		log.Debugf("telemetry: stopped serving at %s", t.Addr)
+		log.Debugf("telemetry: stopped serving at %s", t.addr.String())
 	}()
 }
 
@@ -90,14 +86,15 @@ func (t *Telemetry) listenWithRetry() net.Listener {
 		}
 		time.Sleep(time.Second)
 	}
-	log.Fatalf("error listening to socket at %s: %v", t.Addr, err)
+	log.Fatalf("error listening to socket at %s: %v", t.addr.String(), err)
 	return nil
 }
 
 // Stop shuts down the telemetry service
 func (t *Telemetry) Stop(pctx context.Context) {
 	log.Debug("telemetry: stopping server")
-	ctx, cancel := context.WithTimeout(pctx, 500*time.Millisecond)
+	// ctx, cancel := context.WithTimeout(pctx, 500*time.Millisecond)
+	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 	if err := t.Shutdown(ctx); err != nil {
 		log.Warnf("telemetry: failed to gracefully shutdown server: %v", err)
