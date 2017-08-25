@@ -1,6 +1,7 @@
 package control
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 )
 
 func TestPutEnviron(t *testing.T) {
-
 	endpoints := &Endpoints{}
 	testFunc := func(t *testing.T, body string) (int, string) {
 		os.Setenv(t.Name(), "original")
@@ -103,9 +103,12 @@ func TestPostHandler(t *testing.T) {
 
 func TestPostMetric(t *testing.T) {
 	testFunc := func(t *testing.T, expected map[events.Event]int, body string) int {
+		_, cancel := context.WithCancel(context.Background())
 		bus := events.NewEventBus()
-
-		endpoints := &Endpoints{bus}
+		endpoints := &Endpoints{
+			bus:    bus,
+			cancel: cancel,
+		}
 		req, _ := http.NewRequest("POST", "/v3/metric", strings.NewReader(body))
 		_, status := endpoints.PostMetric(req)
 		got := map[events.Event]int{}
@@ -143,10 +146,13 @@ func TestPostMetric(t *testing.T) {
 
 func TestPostEnableMaintenanceMode(t *testing.T) {
 	testFunc := func(t *testing.T, expected map[events.Event]int, req *http.Request) int {
+		_, cancel := context.WithCancel(context.Background())
 		bus := events.NewEventBus()
-
 		bus.Publish(events.GlobalStartup)
-		endpoints := &Endpoints{bus}
+		endpoints := &Endpoints{
+			bus:    bus,
+			cancel: cancel,
+		}
 		_, status := endpoints.PostEnableMaintenanceMode(req)
 		results := bus.DebugEvents()
 		got := map[events.Event]int{}
@@ -176,9 +182,13 @@ func TestPostEnableMaintenanceMode(t *testing.T) {
 
 func TestPostDisableMaintenanceMode(t *testing.T) {
 	testFunc := func(t *testing.T, expected map[events.Event]int, req *http.Request) int {
+		_, cancel := context.WithCancel(context.Background())
 		bus := events.NewEventBus()
 		bus.Publish(events.GlobalStartup)
-		endpoints := &Endpoints{bus}
+		endpoints := &Endpoints{
+			bus:    bus,
+			cancel: cancel,
+		}
 		_, status := endpoints.PostDisableMaintenanceMode(req)
 		bus.Wait()
 		results := bus.DebugEvents()

@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	"reflect"
 	"sync"
 	"testing"
@@ -13,22 +14,27 @@ import (
 
 func TestJobRunSafeClose(t *testing.T) {
 	bus := events.NewEventBus()
-	cfg := &Config{Name: "myjob", Exec: "sleep 10"} // don't want exec to finish
+	cfg := &Config{
+		Name: "myjob",
+		Exec: "sleep 10",
+	} // don't want exec to finish
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
+	job.Register(bus)
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
 	bus.Publish(events.GlobalStartup)
-	job.Quit()
+	cancel()
 	bus.Wait()
-	results := job.Bus.DebugEvents()
+	results := bus.DebugEvents()
 
 	defer func() {
 		if r := recover(); r != nil {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Publish(events.GlobalStartup)
 
 	expected := []events.Event{
 		events.GlobalStartup,
@@ -48,17 +54,18 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Register(bus)
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
+	job.Publish(events.GlobalStartup)
 
 	time.Sleep(200 * time.Millisecond)
-	defer func() {
-		if r := recover(); r != nil {
-			t.Fatalf("panicked but should not: sent to closed Subscriber")
-		}
-	}()
-	bus.Publish(events.QuitByClose)
-	job.Quit()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		t.Fatalf("panicked but should not: sent to closed Subscriber")
+	// 	}
+	// }()
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 
@@ -71,7 +78,6 @@ func TestJobRunStartupTimeout(t *testing.T) {
 		events.GlobalStartup:                         1,
 		{Code: events.Stopping, Source: "myjob"}:     1,
 		{Code: events.Stopped, Source: "myjob"}:      1,
-		events.QuitByClose:                           1,
 	}) {
 		t.Fatalf("expected timeout after startup but got:\n%v", results)
 	}
@@ -87,8 +93,10 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Register(bus)
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
+	job.Publish(events.GlobalStartup)
 
 	time.Sleep(1000 * time.Millisecond)
 	defer func() {
@@ -96,7 +104,7 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	bus.Publish(events.QuitByClose)
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 
@@ -108,7 +116,6 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 		events.GlobalStartup:                     1,
 		{Code: events.Stopping, Source: "myjob"}: 1,
 		{Code: events.Stopped, Source: "myjob"}:  1,
-		events.QuitByClose:                       1,
 	}) {
 		t.Fatalf("expected timeout after startup but got:\n%v", results)
 	}
@@ -128,8 +135,9 @@ func TestJobRunRestarts(t *testing.T) {
 		job := NewJob(cfg)
 
 		job.Subscribe(bus)
-		job.Run()
-		job.Bus.Publish(events.GlobalStartup)
+		job.Register(bus)
+		job.Run(context.Background())
+		job.Publish(events.GlobalStartup)
 		time.Sleep(100 * time.Millisecond) // TODO: we can't force this, right?
 		exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 		var got = 0
@@ -157,7 +165,9 @@ func TestJobRunPeriodic(t *testing.T) {
 	cfg := &Config{
 		Name: "myjob",
 		Exec: []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
-		When: &WhenConfig{Frequency: "250ms"},
+		When: &WhenConfig{
+			Frequency: "250ms",
+		},
 		// we need to make sure we don't have any events getting cut off
 		// by the test run of 1sec (which would result in flaky tests),
 		// so this should ensure we get a predictable number within the window
@@ -166,12 +176,14 @@ func TestJobRunPeriodic(t *testing.T) {
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Register(bus)
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
+	job.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 	exitFail := events.Event{Code: events.ExitFailed, Source: "myjob"}
 	time.Sleep(1 * time.Second)
-	job.Quit()
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 	var got = 0
@@ -190,26 +202,34 @@ func TestJobRunPeriodic(t *testing.T) {
 }
 
 func TestJobMaintenance(t *testing.T) {
-
 	testFunc := func(t *testing.T, startingState JobStatus, event events.Event) JobStatus {
 		bus := events.NewEventBus()
-		cfg := &Config{Name: "myjob", Exec: "true",
+		cfg := &Config{
+			Name: "myjob",
+			Exec: "true",
 			// need to make sure this can't succeed during test
-			Health: &HealthConfig{CheckExec: "false", Heartbeat: 10, TTL: 50},
+			Health: &HealthConfig{
+				CheckExec: "false",
+				Heartbeat: 10,
+				TTL:       50,
+			},
 		}
 		cfg.Validate(noop)
 		job := NewJob(cfg)
 		job.setStatus(startingState)
 		job.Subscribe(bus)
-		job.Run()
-		job.Bus.Publish(event)
-		job.Quit()
+		job.Register(bus)
+		ctx := context.Background()
+		job.Run(ctx)
+		bus.Publish(event)
+		bus.Publish(events.QuitByTest)
+		bus.Wait()
 		return job.GetStatus()
 	}
 
 	t.Run("enter maintenance", func(t *testing.T) {
 		status := testFunc(t, statusUnknown, events.GlobalEnterMaintenance)
-		assert.Equal(t, status, statusMaintenance,
+		assert.Equal(t, statusMaintenance, status,
 			"job status after entering maintenance mode")
 	})
 
@@ -217,7 +237,7 @@ func TestJobMaintenance(t *testing.T) {
 	t.Run("healthy no change", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
 			events.Event{events.ExitSuccess, "check.myjob"})
-		assert.Equal(t, status, statusMaintenance,
+		assert.Equal(t, statusMaintenance, status,
 			"job status after passing check while in maintenance")
 	})
 
@@ -225,20 +245,20 @@ func TestJobMaintenance(t *testing.T) {
 	t.Run("unhealthy no change", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
 			events.Event{events.ExitFailed, "check.myjob"})
-		assert.Equal(t, status, statusMaintenance,
+		assert.Equal(t, statusMaintenance, status,
 			"job status after failed check while in maintenance")
 	})
 
 	t.Run("exit maintenance", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance, events.GlobalExitMaintenance)
-		assert.Equal(t, status, statusUnknown,
+		assert.Equal(t, statusUnknown, status,
 			"job status after exiting maintenance")
 	})
 
 	t.Run("now healthy", func(t *testing.T) {
 		status := testFunc(t, statusUnknown,
 			events.Event{events.ExitSuccess, "check.myjob"})
-		assert.Equal(t, status, statusHealthy,
+		assert.Equal(t, statusHealthy, status,
 			"job status after passing check out of maintenance")
 	})
 }

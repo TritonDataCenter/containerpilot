@@ -1,6 +1,7 @@
 package control
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net"
@@ -40,7 +41,7 @@ func SetupHTTPServer(t *testing.T, raw string) *HTTPServer {
 
 	s, err := NewHTTPServer(cfg)
 	s.Bus = events.NewEventBus()
-	s.Subscribe(s.Bus)
+	s.Register(s.Bus)
 
 	if err != nil {
 		t.Fatalf("Could not init control server: %s", err)
@@ -84,10 +85,11 @@ func TestValidate(t *testing.T) {
 func TestServerSmokeTest(t *testing.T) {
 	tempSocketPath := tempSocketPath()
 	defer os.Remove(tempSocketPath)
+	_, cancel := context.WithCancel(context.Background())
 
 	s := SetupHTTPServer(t, fmt.Sprintf(`{ "socket": %q}`, tempSocketPath))
 	defer s.Stop()
-	s.Start()
+	s.Start(cancel)
 
 	client := &http.Client{
 		Transport: &http.Transport{

@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -37,11 +38,13 @@ func TestMetricRun(t *testing.T) {
 	metric := NewMetric(cfg)
 
 	bus := events.NewEventBus()
-	metric.Run(bus)
+	ctx := context.Background()
+	metric.Run(ctx, bus)
 
 	record := events.Event{events.Metric, fmt.Sprintf("%s|84", metric.Name)}
 	bus.Publish(record)
-	metric.Quit()
+
+	metric.Receive(events.QuitByTest)
 	bus.Wait()
 	results := bus.DebugEvents()
 
