@@ -44,9 +44,13 @@ func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
 	bus := app.Bus
 	ctx, cancel := context.WithCancel(context.Background())
-	app.Jobs[0].Subscribe(bus)
-	app.Jobs[0].Run(ctx)
-
+	for _, job := range app.Jobs {
+		job.Subscribe(bus)
+		job.Register(bus)
+	}
+	for _, job := range app.Jobs {
+		job.Run(ctx)
+	}
 	app.Terminate()
 	cancel()
 	bus.Wait()
