@@ -219,17 +219,17 @@ func TestJobMaintenance(t *testing.T) {
 		job.setStatus(startingState)
 		job.Subscribe(bus)
 		job.Register(bus)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx := context.Background()
 		job.Run(ctx)
-		job.Publish(event)
-		cancel()
+		bus.Publish(event)
+		bus.Publish(events.QuitByTest)
 		bus.Wait()
 		return job.GetStatus()
 	}
 
 	t.Run("enter maintenance", func(t *testing.T) {
 		status := testFunc(t, statusUnknown, events.GlobalEnterMaintenance)
-		assert.Equal(t, status, statusMaintenance,
+		assert.Equal(t, statusMaintenance, status,
 			"job status after entering maintenance mode")
 	})
 
@@ -237,7 +237,7 @@ func TestJobMaintenance(t *testing.T) {
 	t.Run("healthy no change", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
 			events.Event{events.ExitSuccess, "check.myjob"})
-		assert.Equal(t, status, statusMaintenance,
+		assert.Equal(t, statusMaintenance, status,
 			"job status after passing check while in maintenance")
 	})
 
@@ -245,20 +245,20 @@ func TestJobMaintenance(t *testing.T) {
 	t.Run("unhealthy no change", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
 			events.Event{events.ExitFailed, "check.myjob"})
-		assert.Equal(t, status, statusMaintenance,
+		assert.Equal(t, statusMaintenance, status,
 			"job status after failed check while in maintenance")
 	})
 
 	t.Run("exit maintenance", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance, events.GlobalExitMaintenance)
-		assert.Equal(t, status, statusUnknown,
+		assert.Equal(t, statusUnknown, status,
 			"job status after exiting maintenance")
 	})
 
 	t.Run("now healthy", func(t *testing.T) {
 		status := testFunc(t, statusUnknown,
 			events.Event{events.ExitSuccess, "check.myjob"})
-		assert.Equal(t, status, statusHealthy,
+		assert.Equal(t, statusHealthy, status,
 			"job status after passing check out of maintenance")
 	})
 }

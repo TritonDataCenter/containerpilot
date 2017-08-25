@@ -148,7 +148,7 @@ func (job *Job) Run(pctx context.Context) {
 		for {
 			select {
 			case event, ok := <-job.Rx:
-				if !ok {
+				if !ok || event == events.QuitByTest {
 					return
 				}
 				if job.processEvent(ctx, event) == jobHalt {
