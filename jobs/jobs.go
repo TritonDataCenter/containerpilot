@@ -185,7 +185,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) processEve
 	case events.GlobalEnterMaintenance:
 		return job.onEnterMaintenance(ctx)
 	case events.GlobalExitMaintenance:
-		job.setStatus(statusUnknown)
+		return job.onExitMaintenance(ctx)
 	case
 		events.Event{Code: events.ExitSuccess, Source: job.Name},
 		events.Event{Code: events.ExitFailed, Source: job.Name}:
@@ -278,6 +278,17 @@ func (job *Job) onEnterMaintenance(ctx context.Context) processEventStatus {
 	job.setStatus(statusMaintenance)
 	if job.Service != nil {
 		job.Service.MarkForMaintenance()
+	}
+	if job.startEvent == events.GlobalEnterMaintenance {
+		return job.onStartEvent(ctx)
+	}
+	return jobContinue
+}
+
+func (job *Job) onExitMaintenance(ctx context.Context) processEventStatus {
+	job.setStatus(statusUnknown)
+	if job.startEvent == events.GlobalExitMaintenance {
+		return job.onStartEvent(ctx)
 	}
 	return jobContinue
 }
