@@ -87,15 +87,22 @@ func (metric *Metric) Run(pctx context.Context, bus *events.EventBus) {
 		defer func() {
 			cancel()
 			metric.Unsubscribe()
+			metric.Wait()
 		}()
 		for {
 			select {
 			case event, ok := <-metric.Rx:
-				if !ok || event == events.GlobalShutdown {
+				if !ok {
 					return
 				}
-				if event.Code == events.Metric {
+				switch event.Code {
+				case events.Metric:
 					metric.processMetric(event.Source)
+				default:
+					switch event {
+					case events.GlobalShutdown, events.QuitByTest:
+						return
+					}
 				}
 			case <-ctx.Done():
 				return

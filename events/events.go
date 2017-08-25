@@ -44,6 +44,7 @@ var (
 	NonEvent               = Event{Code: None, Source: ""}
 	GlobalEnterMaintenance = Event{Code: EnterMaintenance, Source: "global"}
 	GlobalExitMaintenance  = Event{Code: ExitMaintenance, Source: "global"}
+	QuitByTest             = Event{Code: Quit, Source: "closed"}
 )
 
 // FromString parses a string as an EventCode enum

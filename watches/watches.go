@@ -73,11 +73,16 @@ func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 	events.NewEventTimer(ctx, watch.rx, watch.Tick(), timerSource)
 
 	go func() {
+		defer func() {
+			cancel()
+			watch.Unregister()
+			watch.Wait()
+		}()
 		for {
 			select {
 			case event, ok := <-watch.rx:
-				if !ok {
-					cancel()
+				if !ok || event == events.QuitByTest {
+					return
 				}
 				if event == (events.Event{events.TimerExpired, timerSource}) {
 					didChange, isHealthy := watch.CheckForUpstreamChanges()
@@ -93,9 +98,6 @@ func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 					}
 				}
 			case <-ctx.Done():
-				watch.Unregister()
-				watch.Wait()
-				close(watch.rx)
 				return
 			}
 		}
