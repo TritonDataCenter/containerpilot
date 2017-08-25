@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	"reflect"
 	"sync"
 	"testing"
@@ -13,22 +14,26 @@ import (
 
 func TestJobRunSafeClose(t *testing.T) {
 	bus := events.NewEventBus()
-	cfg := &Config{Name: "myjob", Exec: "sleep 10"} // don't want exec to finish
+	cfg := &Config{
+		Name: "myjob",
+		Exec: "sleep 10",
+	} // don't want exec to finish
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
+	job.Register(bus)
+	job.Run(context.Background())
 	bus.Publish(events.GlobalStartup)
 	job.Quit()
 	bus.Wait()
-	results := job.Bus.DebugEvents()
+	results := job.Publisher.Bus.DebugEvents()
 
 	defer func() {
 		if r := recover(); r != nil {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Publish(events.GlobalStartup)
 
 	expected := []events.Event{
 		events.GlobalStartup,
@@ -48,8 +53,9 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Register(bus)
+	job.Run(context.Background())
+	job.Publish(events.GlobalStartup)
 
 	time.Sleep(200 * time.Millisecond)
 	defer func() {
@@ -87,8 +93,9 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Register(bus)
+	job.Run(context.Background())
+	job.Publish(events.GlobalStartup)
 
 	time.Sleep(1000 * time.Millisecond)
 	defer func() {
@@ -128,8 +135,9 @@ func TestJobRunRestarts(t *testing.T) {
 		job := NewJob(cfg)
 
 		job.Subscribe(bus)
-		job.Run()
-		job.Bus.Publish(events.GlobalStartup)
+		job.Register(bus)
+		job.Run(context.Background())
+		job.Publish(events.GlobalStartup)
 		time.Sleep(100 * time.Millisecond) // TODO: we can't force this, right?
 		exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 		var got = 0
@@ -157,7 +165,9 @@ func TestJobRunPeriodic(t *testing.T) {
 	cfg := &Config{
 		Name: "myjob",
 		Exec: []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
-		When: &WhenConfig{Frequency: "250ms"},
+		When: &WhenConfig{
+			Frequency: "250ms",
+		},
 		// we need to make sure we don't have any events getting cut off
 		// by the test run of 1sec (which would result in flaky tests),
 		// so this should ensure we get a predictable number within the window
@@ -166,8 +176,9 @@ func TestJobRunPeriodic(t *testing.T) {
 	cfg.Validate(noop)
 	job := NewJob(cfg)
 	job.Subscribe(bus)
-	job.Run()
-	job.Bus.Publish(events.GlobalStartup)
+	job.Register(bus)
+	job.Run(context.Background())
+	job.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 	exitFail := events.Event{Code: events.ExitFailed, Source: "myjob"}
 	time.Sleep(1 * time.Second)
@@ -193,16 +204,23 @@ func TestJobMaintenance(t *testing.T) {
 
 	testFunc := func(t *testing.T, startingState JobStatus, event events.Event) JobStatus {
 		bus := events.NewEventBus()
-		cfg := &Config{Name: "myjob", Exec: "true",
+		cfg := &Config{
+			Name: "myjob",
+			Exec: "true",
 			// need to make sure this can't succeed during test
-			Health: &HealthConfig{CheckExec: "false", Heartbeat: 10, TTL: 50},
+			Health: &HealthConfig{
+				CheckExec: "false",
+				Heartbeat: 10,
+				TTL:       50,
+			},
 		}
 		cfg.Validate(noop)
 		job := NewJob(cfg)
 		job.setStatus(startingState)
 		job.Subscribe(bus)
-		job.Run()
-		job.Bus.Publish(event)
+		job.Register(bus)
+		job.Run(context.Background())
+		job.Publish(event)
 		job.Quit()
 		return job.GetStatus()
 	}

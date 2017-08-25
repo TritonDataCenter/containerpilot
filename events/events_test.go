@@ -62,7 +62,7 @@ func (ts *TestSubscriber) Run() {
 			case Quit:
 				ts.lock.Lock()
 				ts.results = append(ts.results, event)
-				ts.Unsubscribe(ts.Bus)
+				ts.Unsubscribe()
 				close(ts.Rx)
 				break
 			default:
