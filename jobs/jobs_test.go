@@ -22,11 +22,12 @@ func TestJobRunSafeClose(t *testing.T) {
 	job := NewJob(cfg)
 	job.Subscribe(bus)
 	job.Register(bus)
-	job.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
 	bus.Publish(events.GlobalStartup)
-	job.Quit()
+	cancel()
 	bus.Wait()
-	results := job.Publisher.Bus.DebugEvents()
+	results := bus.DebugEvents()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -54,17 +55,17 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	job := NewJob(cfg)
 	job.Subscribe(bus)
 	job.Register(bus)
-	job.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
 	job.Publish(events.GlobalStartup)
 
 	time.Sleep(200 * time.Millisecond)
-	defer func() {
-		if r := recover(); r != nil {
-			t.Fatalf("panicked but should not: sent to closed Subscriber")
-		}
-	}()
-	bus.Publish(events.QuitByClose)
-	job.Quit()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		t.Fatalf("panicked but should not: sent to closed Subscriber")
+	// 	}
+	// }()
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 
@@ -77,7 +78,6 @@ func TestJobRunStartupTimeout(t *testing.T) {
 		events.GlobalStartup:                         1,
 		{Code: events.Stopping, Source: "myjob"}:     1,
 		{Code: events.Stopped, Source: "myjob"}:      1,
-		events.QuitByClose:                           1,
 	}) {
 		t.Fatalf("expected timeout after startup but got:\n%v", results)
 	}
@@ -94,7 +94,8 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 	job := NewJob(cfg)
 	job.Subscribe(bus)
 	job.Register(bus)
-	job.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
 	job.Publish(events.GlobalStartup)
 
 	time.Sleep(1000 * time.Millisecond)
@@ -103,7 +104,7 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 			t.Fatalf("panicked but should not: sent to closed Subscriber")
 		}
 	}()
-	bus.Publish(events.QuitByClose)
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 
@@ -115,7 +116,6 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 		events.GlobalStartup:                     1,
 		{Code: events.Stopping, Source: "myjob"}: 1,
 		{Code: events.Stopped, Source: "myjob"}:  1,
-		events.QuitByClose:                       1,
 	}) {
 		t.Fatalf("expected timeout after startup but got:\n%v", results)
 	}
@@ -177,12 +177,13 @@ func TestJobRunPeriodic(t *testing.T) {
 	job := NewJob(cfg)
 	job.Subscribe(bus)
 	job.Register(bus)
-	job.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	job.Run(ctx)
 	job.Publish(events.GlobalStartup)
 	exitOk := events.Event{Code: events.ExitSuccess, Source: "myjob"}
 	exitFail := events.Event{Code: events.ExitFailed, Source: "myjob"}
 	time.Sleep(1 * time.Second)
-	job.Quit()
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 	var got = 0
@@ -201,7 +202,6 @@ func TestJobRunPeriodic(t *testing.T) {
 }
 
 func TestJobMaintenance(t *testing.T) {
-
 	testFunc := func(t *testing.T, startingState JobStatus, event events.Event) JobStatus {
 		bus := events.NewEventBus()
 		cfg := &Config{
@@ -219,9 +219,11 @@ func TestJobMaintenance(t *testing.T) {
 		job.setStatus(startingState)
 		job.Subscribe(bus)
 		job.Register(bus)
-		job.Run(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
+		job.Run(ctx)
 		job.Publish(event)
-		job.Quit()
+		cancel()
+		bus.Wait()
 		return job.GetStatus()
 	}
 

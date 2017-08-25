@@ -91,20 +91,11 @@ func (metric *Metric) Run(pctx context.Context, bus *events.EventBus) {
 		for {
 			select {
 			case event, ok := <-metric.Rx:
-				if !ok {
+				if !ok || event == events.GlobalShutdown {
 					return
 				}
-				switch event.Code {
-				case events.Metric:
+				if event.Code == events.Metric {
 					metric.processMetric(event.Source)
-				default:
-					switch event {
-					case
-						events.Event{events.Quit, metric.Name},
-						events.QuitByClose,
-						events.GlobalShutdown:
-						return
-					}
 				}
 			case <-ctx.Done():
 				return

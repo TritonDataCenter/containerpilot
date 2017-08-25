@@ -60,7 +60,6 @@ func TestPubSubTypes(t *testing.T) {
 
 	expected := []Event{
 		{Code: Startup, Source: "serviceA"},
-		QuitByClose,
 	}
 	for _, event := range expected {
 		tp.Publish(event)

@@ -38,11 +38,12 @@ func TestMetricRun(t *testing.T) {
 	metric := NewMetric(cfg)
 
 	bus := events.NewEventBus()
-	metric.Run(context.Background(), bus)
+	ctx, cancel := context.WithCancel(context.Background())
+	metric.Run(ctx, bus)
 
 	record := events.Event{events.Metric, fmt.Sprintf("%s|84", metric.Name)}
 	bus.Publish(record)
-	metric.Wait()
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 

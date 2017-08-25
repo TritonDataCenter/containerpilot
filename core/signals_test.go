@@ -43,10 +43,12 @@ func getSignalTestConfig(t *testing.T) *App {
 func TestTerminateSignal(t *testing.T) {
 	app := getSignalTestConfig(t)
 	bus := app.Bus
+	ctx, cancel := context.WithCancel(context.Background())
 	app.Jobs[0].Subscribe(bus)
-	app.Jobs[0].Run(context.Background())
+	app.Jobs[0].Run(ctx)
 
 	app.Terminate()
+	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
 	got := map[events.Event]int{}

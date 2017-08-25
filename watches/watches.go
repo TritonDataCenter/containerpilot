@@ -64,7 +64,6 @@ func (watch *Watch) Tick() time.Duration {
 // Run executes the event loop for the Watch
 func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 	watch.Register(bus)
-	// watch.Bus = bus
 	ctx, cancel := context.WithCancel(pctx)
 
 	// timerSource := fmt.Sprintf("%s.poll", watch.Name)
@@ -74,18 +73,13 @@ func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 	events.NewEventTimer(ctx, watch.rx, watch.Tick(), timerSource)
 
 	go func() {
-		defer func() {
-			cancel()
-			watch.Unregister()
-		}()
 		for {
 			select {
 			case event, ok := <-watch.rx:
 				if !ok {
-					return
+					cancel()
 				}
-				switch event {
-				case events.Event{events.TimerExpired, timerSource}:
+				if event == (events.Event{events.TimerExpired, timerSource}) {
 					didChange, isHealthy := watch.CheckForUpstreamChanges()
 					if didChange {
 						watch.Publish(events.Event{events.StatusChanged, watch.Name})
@@ -97,19 +91,19 @@ func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 							watch.Publish(events.Event{events.StatusUnhealthy, watch.Name})
 						}
 					}
-				case
-					events.Event{events.Quit, watch.Name},
-					events.QuitByClose,
-					events.GlobalShutdown:
-					return
 				}
 			case <-ctx.Done():
 				watch.Unregister()
 				watch.Wait()
+				close(watch.rx)
 				return
 			}
 		}
 	}()
+}
+
+func (watch *Watch) Receive(event events.Event) {
+	watch.rx <- event
 }
 
 // String implements the stdlib fmt.Stringer interface for pretty-printing

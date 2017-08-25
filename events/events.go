@@ -41,7 +41,6 @@ const (
 var (
 	GlobalStartup          = Event{Code: Startup, Source: "global"}
 	GlobalShutdown         = Event{Code: Shutdown, Source: "global"}
-	QuitByClose            = Event{Code: Quit, Source: "closed"}
 	NonEvent               = Event{Code: None, Source: ""}
 	GlobalEnterMaintenance = Event{Code: EnterMaintenance, Source: "global"}
 	GlobalExitMaintenance  = Event{Code: ExitMaintenance, Source: "global"}

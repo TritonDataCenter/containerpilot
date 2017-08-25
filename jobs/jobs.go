@@ -182,7 +182,6 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) processEve
 		return job.onHealthCheckPassed(ctx)
 	case
 		events.Event{Code: events.Quit, Source: job.Name},
-		events.QuitByClose,
 		events.GlobalShutdown:
 		return job.onQuit(ctx)
 	case events.GlobalEnterMaintenance:

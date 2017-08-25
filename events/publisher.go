@@ -36,6 +36,6 @@ func (p *Publisher) Wait() {
 }
 
 // Quit blocks for the EventBus wait group counter to count down to zero.
-func (p *Publisher) Quit() {
-	p.Bus.done.Wait()
-}
+// func (p *Publisher) Quit() {
+// 	p.Bus.done.Wait()
+// }

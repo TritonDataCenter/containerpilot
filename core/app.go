@@ -133,11 +133,6 @@ func (a *App) Terminate() {
 	a.Bus.Shutdown()
 }
 
-// NEW
-func (a *App) SetReload() {
-	a.Bus.SetReloadFlag()
-}
-
 // reload does the actual work of reloading the configuration and
 // updating the App with those changes. The EventBus should be
 // already shut down before we call this.
