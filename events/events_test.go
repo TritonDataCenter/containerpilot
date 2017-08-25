@@ -1,61 +1,38 @@
 package events
 
 import (
-	"reflect"
 	"sync"
 	"testing"
 )
 
-func TestSafeUnsubscribe(t *testing.T) {
-	bus := NewEventBus()
-	ts := NewTestSubscriber(bus)
-	ts.Subscribe(bus)
-
-	ts.Run()
-	bus.Publish(Event{Code: Startup, Source: "serviceA"})
-	ts.Quit()
-
-	defer func() {
-		if r := recover(); r != nil {
-			t.Fatalf("panicked but should not: sent to closed Subscriber")
-		}
-	}()
-	bus.Publish(Event{Code: Startup, Source: "serviceB"}) // should not panic
-
-	expected := []Event{
-		{Code: Startup, Source: "serviceA"},
-		QuitByClose,
-	}
-
-	for _, result := range ts.results {
-		if result.Source == "serviceB" {
-			t.Fatal("got Event after we closed receiver")
-		}
-	}
-	if !reflect.DeepEqual(expected, ts.results) {
-		t.Fatalf("expected: %v\ngot: %v", expected, ts.results)
-	}
+type TestPublisher struct {
+	Publisher
 }
 
-/*
-Dummy TestSubscriber as test helpers; need this because we
-don't want a circular reference with the mocks package
-*/
+func NewTestPublisher(bus *EventBus) *TestPublisher {
+	tp := &TestPublisher{}
+	tp.Register(bus)
+	return tp
+}
 
 type TestSubscriber struct {
-	EventHandler
 	results []Event
 	lock    *sync.RWMutex
+
+	Subscriber
 }
 
-func NewTestSubscriber(bus *EventBus) *TestSubscriber {
-	my := &TestSubscriber{lock: &sync.RWMutex{}, results: []Event{}}
-	my.InitRx()
-	my.Bus = bus
+func NewTestSubscriber() *TestSubscriber {
+	my := &TestSubscriber{
+		lock:    &sync.RWMutex{},
+		results: []Event{},
+	}
+	my.Rx = make(chan Event, 100)
 	return my
 }
 
-func (ts *TestSubscriber) Run() {
+func (ts *TestSubscriber) Run(bus *EventBus) {
+	ts.Subscribe(bus)
 	go func() {
 		for event := range ts.Rx {
 			switch event.Code {
@@ -72,4 +49,26 @@ func (ts *TestSubscriber) Run() {
 			}
 		}
 	}()
+}
+
+func TestPubSubTypes(t *testing.T) {
+	bus := NewEventBus()
+	tp := NewTestPublisher(bus)
+	defer tp.Unregister()
+	ts := NewTestSubscriber()
+	ts.Run(bus)
+
+	expected := []Event{
+		{Code: Startup, Source: "serviceA"},
+		QuitByClose,
+	}
+	for _, event := range expected {
+		tp.Publish(event)
+	}
+
+	for i, found := range ts.results {
+		if expected[i] != found {
+			t.Fatalf("expected: %v\ngot: %v", expected, ts.results)
+		}
+	}
 }
