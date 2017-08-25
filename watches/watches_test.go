@@ -42,13 +42,11 @@ func runWatchTest(cfg *Config, count int, disc discovery.Backend) map[events.Eve
 	bus := events.NewEventBus()
 	cfg.Validate(disc)
 	watch := NewWatch(cfg)
-	ctx, _ := context.WithCancel(context.Background())
+	ctx := context.Background()
 	watch.Run(ctx, bus)
 	poll := events.Event{events.TimerExpired, fmt.Sprintf("%s.poll", cfg.Name)}
 	watch.Receive(poll)
 	watch.Receive(poll) // Ensure we can run it more than once
-	// time.Sleep(10 * time.Second)
-	// cancel()
 	watch.Receive(events.QuitByTest)
 	bus.Wait()
 	results := bus.DebugEvents()

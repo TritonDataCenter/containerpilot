@@ -104,6 +104,7 @@ func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 	}()
 }
 
+// Receive receives an event into the internal control channel.
 func (watch *Watch) Receive(event events.Event) {
 	watch.rx <- event
 }
