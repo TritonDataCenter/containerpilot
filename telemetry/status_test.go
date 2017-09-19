@@ -41,10 +41,21 @@ func TestStatusServerGet(t *testing.T) {
 
 	jobCfgs, err := jobs.NewConfigs(
 		tests.DecodeRawToSlice(
-			`[{name: "myjob1", exec: "sleep 10"},
-             {name: "myjob2", exec: "sleep 10",
-             port: 80, interfaces: ["inet", "lo0"],
-             health: { exec: "true", interval: 1, ttl: 2}}]`),
+			`[
+				{ name: "myjob1", exec: "sleep 10" },
+        {
+					name: "myjob2",
+					exec: "sleep 10",
+					port: 80,
+					interfaces: ["inet", "lo0"],
+					health: { exec: "true", interval: 1, ttl: 10 }
+				},
+				{
+					name: "myjob3",
+					exec: "sleep 10",
+					health: { exec: "true", interval: 1, ttl: 10 }
+				}
+			]`),
 		noop)
 	if err != nil {
 		t.Fatal(err)
@@ -88,9 +99,15 @@ func TestStatusServerGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, out.Watches, []string{"watch1", "watch2"},
+	// expected, actual
+	assert.Equal(t, []string{"watch1", "watch2"}, out.Watches,
 		"unexpected value for 'watches'")
-	assert.Equal(t, len(out.Services), 1, "unexpected count of services")
-	assert.Equal(t, out.Services[0].Port, 80, "unexpected job port")
-	assert.Equal(t, out.Services[0].Status, "unknown", "unexpected job status")
+	assert.Equal(t, 1, len(out.Services), "unexpected count of services")
+	assert.Equal(t, 80, out.Services[0].Port, "unexpected job port")
+	assert.Equal(t, "unknown", out.Services[0].Status, "unexpected job status")
+	assert.Equal(t, 2, len(out.Jobs), "unexpected count of services")
+	assert.Equal(t, "myjob1", out.Jobs[0].Name)
+	assert.Equal(t, "unknown", out.Jobs[0].Status, "unexpected job status")
+	assert.Equal(t, "myjob3", out.Jobs[1].Name)
+	assert.Equal(t, "unknown", out.Jobs[1].Status, "unexpected job status")
 }

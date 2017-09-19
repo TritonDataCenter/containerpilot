@@ -15,11 +15,17 @@ import (
 type Status struct {
 	Version  string
 	jobs     []*jobs.Job
-	Services []*jobStatusResponse
+	Jobs     []*jobStatusResponse
+	Services []*serviceStatusResponse
 	Watches  []string
 }
 
 type jobStatusResponse struct {
+	Name   string
+	Status string
+}
+
+type serviceStatusResponse struct {
 	Name    string
 	Address string
 	Port    int
@@ -51,6 +57,11 @@ func (sh StatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				service.Status = status
 			}
 		}
+		for _, jobStatus := range sh.telem.Status.Jobs {
+			if jobStatus.Name == job.Name {
+				jobStatus.Status = status
+			}
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -61,15 +72,21 @@ func (sh StatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (t *Telemetry) MonitorJobs(jobs []*jobs.Job) {
 	if t != nil {
 		for _, job := range jobs {
+			t.Status.jobs = append(t.Status.jobs, job)
 			if job.Service != nil && job.Service.Port != 0 {
-				service := &jobStatusResponse{
+				serviceResponse := &serviceStatusResponse{
 					Name:    job.Name,
 					Address: job.Service.IPAddress,
 					Port:    job.Service.Port,
 					Status:  fmt.Sprintf("%s", job.GetStatus()),
 				}
-				t.Status.jobs = append(t.Status.jobs, job)
-				t.Status.Services = append(t.Status.Services, service)
+				t.Status.Services = append(t.Status.Services, serviceResponse)
+			} else {
+				jobResponse := &jobStatusResponse{
+					Name:   job.Name,
+					Status: fmt.Sprintf("%s", job.GetStatus()),
+				}
+				t.Status.Jobs = append(t.Status.Jobs, jobResponse)
 			}
 		}
 	}
