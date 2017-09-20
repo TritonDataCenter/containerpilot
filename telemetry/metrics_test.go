@@ -51,7 +51,7 @@ func TestMetricRun(t *testing.T) {
 	}
 	resp := getFromTestServer(t, testServer)
 	assert.Equal(t,
-		strings.Count(resp, "telemetry_metrics_TestMetricObserve 84"), 1,
+		1, strings.Count(resp, "telemetry_metrics_TestMetricObserve 84"),
 		"failed to get match for metric in response")
 }
 

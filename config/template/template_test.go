@@ -9,16 +9,16 @@ import (
 
 func TestParseEnvironment(t *testing.T) {
 	parsed := parseEnvironment([]string{})
-	assert.Equal(t, parsed, Environment{})
+	assert.Equal(t, Environment{}, parsed)
 
 	parsed = parseEnvironment([]string{
 		"VAR1=test",
 		"VAR2=test2",
 	})
-	assert.Equal(t, parsed, Environment{
+	assert.Equal(t, Environment{
 		"VAR1": "test",
 		"VAR2": "test2",
-	})
+	}, parsed)
 }
 
 func TestTemplate(t *testing.T) {
