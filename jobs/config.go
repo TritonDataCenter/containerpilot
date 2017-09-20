@@ -127,10 +127,8 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 	if err := cfg.validateRestarts(); err != nil {
 		return err
 	}
-	if err := cfg.validateExec(); err != nil {
-		return err
-	}
-	return nil
+
+	return cfg.validateExec()
 }
 
 func (cfg *Config) setStopping(name string) {
