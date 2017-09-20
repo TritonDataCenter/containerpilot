@@ -64,7 +64,7 @@ func TestValidate(t *testing.T) {
 		Addr: "",
 	}
 	if err := srv.Validate(); assert.NotNil(t, err) {
-		assert.Equal(t, err, ErrMissingAddr, "expected missing addr error")
+		assert.Equal(t, ErrMissingAddr, err, "expected missing addr error")
 	}
 
 	socketPath := tempSocketPath()

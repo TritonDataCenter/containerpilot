@@ -46,13 +46,13 @@ func getLocalhostIfaceName() string {
 func TestGetIp(t *testing.T) {
 
 	ip, _ := GetIP([]string{lo, "inet"})
-	assert.Equal(t, ip, "127.0.0.1", "expected to find loopback IP")
+	assert.Equal(t, "127.0.0.1", ip, "expected to find loopback IP")
 
 	ip, err := GetIP([]string{"interface-does-not-exist"})
 	assert.Error(t, err, "expected interface not found, but instead got an IP")
 
 	ip, _ = GetIP([]string{"static:192.168.1.100", lo})
-	assert.Equal(t, ip, "192.168.1.100", "expected to find static IP")
+	assert.Equal(t, "192.168.1.100", ip, "expected to find static IP")
 
 	// these tests can't pass if the test runner doesn't have a valid inet
 	// address, so we'll skip these tests in that environment.
