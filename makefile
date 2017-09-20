@@ -94,7 +94,7 @@ dep-add: build/containerpilot_build
 # run 'GOOS=darwin make tools' if you're installing on MacOS
 ## set up local dev environment
 tools:
-	@go version | grep 1.8 || (echo 'go1.8 should be installed')
+	@go version | grep 1.[8,9] || (echo 'go1.8 or go1.9 should be installed')
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
 	go get github.com/golang/lint/golint
 	curl --fail -Lso glide.tgz "https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-$(GOOS)-$(GOARCH).tar.gz"
