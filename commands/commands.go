@@ -25,6 +25,7 @@ type Command struct {
 	Timeout time.Duration
 	logger  log.Entry
 	lock    *sync.Mutex
+	fields  log.Fields
 }
 
 // NewCommand parses JSON config into a Command
@@ -42,9 +43,10 @@ func NewCommand(rawArgs interface{}, timeout time.Duration, fields log.Fields) (
 	} // exec.Cmd created at Run
 
 	if fields != nil {
+		cmd.fields = fields
 		// don't attach the logger if we don't have fields set, so that
 		// we can pass-thru the logs raw
-		cmd.logger = *log.WithFields(fields)
+		cmd.logger = *log.WithFields(cmd.fields)
 	}
 	return cmd, nil
 }
@@ -99,6 +101,17 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 			bus.Publish(events.Event{events.Error, err.Error()})
 			return
 		}
+
+		// if we're able to, log the PID of our Command's exec process through
+		// our logger fields
+		if c.Cmd != nil && c.Cmd.Process != nil {
+			pid := c.Cmd.Process.Pid
+			if len(c.fields) > 0 {
+				c.fields["pid"] = pid
+				c.logger = *log.WithFields(c.fields)
+			}
+		}
+
 		// blocks this goroutine here; if the context gets cancelled
 		// we'll return from Wait() and publish events
 		if err := c.Cmd.Wait(); err != nil {
