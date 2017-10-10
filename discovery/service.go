@@ -49,7 +49,7 @@ func (service *ServiceDefinition) SendHeartbeat() error {
 		return nil
 	}
 	checkID := fmt.Sprintf("service:%s", service.ID)
-	if err := service.Consul.PassTTL(checkID, "ok"); err != nil {
+	if err := service.Consul.UpdateTTL(checkID, "ok", "pass"); err != nil {
 		log.Infof("service not registered: %v", err)
 		if err = service.registerService(); err != nil {
 			log.Warnf("service registration failed: %s", err)
