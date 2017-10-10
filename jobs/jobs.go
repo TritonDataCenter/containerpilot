@@ -75,7 +75,6 @@ func NewJob(cfg *Config) *Job {
 		restartsRemain:    cfg.restartLimit,
 		frequency:         cfg.freqInterval,
 	}
-	// job.InitRx()
 	job.statusLock = &sync.RWMutex{}
 	job.Rx = make(chan events.Event, eventBufferSize)
 	if job.Name == "containerpilot" {

@@ -62,11 +62,11 @@ func TestJobRunStartupTimeout(t *testing.T) {
 	job.Publish(events.GlobalStartup)
 
 	time.Sleep(200 * time.Millisecond)
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		t.Fatalf("panicked but should not: sent to closed Subscriber")
-	// 	}
-	// }()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("panicked but should not: sent to closed Subscriber")
+		}
+	}()
 	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
