@@ -25,8 +25,8 @@ func (noop *NoopDiscoveryBackend) CheckRegister(check *api.AgentCheckRegistratio
 	return nil
 }
 
-// PassTTL (required for mock interface)
-func (noop *NoopDiscoveryBackend) PassTTL(checkID, note string) error {
+// UpdateTTL (required for mock interface)
+func (noop *NoopDiscoveryBackend) UpdateTTL(checkID, output, status string) error {
 	return nil
 }
 

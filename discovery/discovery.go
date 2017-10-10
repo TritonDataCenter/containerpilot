@@ -8,7 +8,7 @@ import "github.com/hashicorp/consul/api"
 type Backend interface {
 	CheckForUpstreamChanges(service, tag, dc string) (bool, bool)
 	CheckRegister(check *api.AgentCheckRegistration) error
-	PassTTL(checkID, note string) error
+	UpdateTTL(checkID, output, status string) error
 	ServiceDeregister(serviceID string) error
 	ServiceRegister(service *api.AgentServiceRegistration) error
 }

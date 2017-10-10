@@ -57,10 +57,10 @@ func NewConsul(config interface{}) (*Consul, error) {
 	return consul, nil
 }
 
-// PassTTL wraps the Consul.Agent's PassTTL method, and is used to set a
-// TTL check to the passing state
-func (c *Consul) PassTTL(name, note string) error {
-	return c.Agent().PassTTL(name, note)
+// UpdateTTL wraps the Consul.Agent's UpdateTTL method, and is used to set a TTL
+// check to the passing state
+func (c *Consul) UpdateTTL(checkID, output, status string) error {
+	return c.Agent().UpdateTTL(checkID, output, status)
 }
 
 // CheckRegister wraps the Consul.Agent's CheckRegister method,
