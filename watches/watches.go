@@ -65,11 +65,9 @@ func (watch *Watch) Tick() time.Duration {
 func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 	watch.Register(bus)
 	ctx, cancel := context.WithCancel(pctx)
-
-	// timerSource := fmt.Sprintf("%s.poll", watch.Name)
 	timerSource := watch.Name + ".poll"
-	// NOTE: replace by implementing a timer that's only used within the local
-	// scope of this watch Run func.
+
+	// TODO(justinwr@): this could be replaced by a simple Ticker
 	events.NewEventTimer(ctx, watch.rx, watch.Tick(), timerSource)
 
 	go func() {
