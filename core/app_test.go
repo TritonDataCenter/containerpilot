@@ -23,7 +23,7 @@ the core and config packages are working together
 func TestJobConfigRequiredFields(t *testing.T) {
 	// Missing `name`
 	var testCfg = `{"consul": "consul:8500", jobs: [
-                    {"name": "", "port": 8080, health: {interval: 30, "ttl": 19 }}]}`
+					{"name": "", "port": 8080, health: {interval: 30, "ttl": 19 }}]}`
 	f1 := testCfgToTempFile(t, testCfg)
 	defer os.Remove(f1.Name())
 	_, err := NewApp(f1.Name())
@@ -31,7 +31,7 @@ func TestJobConfigRequiredFields(t *testing.T) {
 
 	// Missing `interval`
 	testCfg = `{"consul": "consul:8500", jobs: [
-                {"name": "name", "port": 8080, health: {ttl: 19}}]}`
+				{"name": "name", "port": 8080, health: {ttl: 19}}]}`
 	f2 := testCfgToTempFile(t, testCfg)
 	defer os.Remove(f2.Name())
 	_, err = NewApp(f2.Name())
@@ -39,7 +39,7 @@ func TestJobConfigRequiredFields(t *testing.T) {
 
 	// Missing `ttl`
 	testCfg = `{"consul": "consul:8500", jobs: [
-                {"name": "name", "port": 8080, health: {interval: 19}}]}`
+				{"name": "name", "port": 8080, health: {interval: 19}}]}`
 	f3 := testCfgToTempFile(t, testCfg)
 	defer os.Remove(f3.Name())
 	_, err = NewApp(f3.Name())
@@ -65,11 +65,11 @@ func TestWatchConfigRequiredFields(t *testing.T) {
 func TestMetricServiceCreation(t *testing.T) {
 
 	f := testCfgToTempFile(t, `{
-    "consul": "consul:8500",
-    "telemetry": {
-      "interfaces": ["inet", "lo0"],
-      "port": 9090
-    }
+	"consul": "consul:8500",
+	"telemetry": {
+	  "interfaces": ["inet", "lo0"],
+	  "port": 9090
+	}
   }`)
 	defer os.Remove(f.Name())
 	app, err := NewApp(f.Name())

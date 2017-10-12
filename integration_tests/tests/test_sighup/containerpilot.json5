@@ -1,0 +1,33 @@
+{
+  consul: "consul:8500",
+  logging: {
+    level: "DEBUG",
+    format: "text"
+  },
+  jobs: [
+    {
+      name: "app",
+      port: 8000,
+      exec: "sleep 30",
+      health: {
+        exec: "true",
+        interval: 1,
+        ttl: 5,
+      },
+    },
+    {
+      name: "on-sighup",
+      exec: "echo 'on-sighup job fired on SIGHUP'",
+      when: {
+        source: "SIGHUP"
+      },
+    },
+    {
+      name: "on-sigusr2",
+      exec: "echo 'on-sigusr2 job fired on SIGUSR2'",
+      when: {
+        source: "SIGUSR2"
+      },
+    }
+  ]
+}

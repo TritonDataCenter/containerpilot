@@ -89,6 +89,28 @@ func TestCommandPassthru(t *testing.T) {
 	assert.NotEqual(t, cmd.Cmd.Stdout, os.Stdout)
 }
 
+func TestEnvName(t *testing.T) {
+	tests := []struct {
+		name, input, output string
+	}{
+		{"mixed case", "testCase", "TESTCASE"},
+		{"hyphen", "test-case", "TEST_CASE"},
+		{"exec no ext", "/bin/to/testCase", "TESTCASE"},
+		{"exec hyphen", "/bin/to/test-case", "TEST_CASE"},
+		{"exec ext", "/bin/to/testCase.sh", "TESTCASE"},
+		{"exec cwd", "./bin/to/testCase.sh", "TESTCASE"},
+		{"exec hyphen", "/bin/to/test-Case.sh", "TEST_CASE"},
+		{"exec multi hyphen", "/bin/to/test-Case--now.sh", "TEST_CASE_NOW"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cmd, _ := NewCommand(test.input, time.Duration(0), nil)
+			assert.Equal(t, test.input, cmd.Name)
+			assert.Equal(t, test.output, cmd.EnvName())
+		})
+	}
+}
+
 // test helpers
 
 func runtestCommandRun(cmd *Command) map[events.Event]int {
