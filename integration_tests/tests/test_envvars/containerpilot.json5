@@ -1,7 +1,22 @@
 {
   consul: "127.0.0.1:8500",
-  logging: { level: "DEBUG" },
+  logging: {
+    level: "DEBUG"
+  },
   jobs: [
+    // PID env var only shows up during the job's execution. It is cleaned up
+    // shortly after thus we need to run our `testenvvar` job concurrently
+    // during `testpid`. We use a fake health status to achieve this.
+    {
+      name: "testpid",
+      port: 8000,
+      exec: "sleep 30",
+      health: {
+        exec: "true",
+        interval: 1,
+        ttl: 5,
+      },
+    },
     {
       name: "testenvvar",
       port: 8500,
@@ -10,6 +25,10 @@
         exec: "true",
         interval: 10,
         ttl: 25
+      },
+      when: {
+        source: "testpid",
+        once: "healthy"
       }
     }
   ]
