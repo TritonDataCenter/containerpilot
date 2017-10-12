@@ -144,8 +144,8 @@ func TestJobConfigSmokeTest(t *testing.T) {
 		t.Fatalf("unexpected error in LoadConfig: %v", err)
 	}
 
-	if len(jobs) != 7 {
-		t.Fatalf("expected 7 jobs, got %v", jobs)
+	if len(jobs) != 9 {
+		t.Fatalf("expected 9 jobs, got %v", jobs)
 	}
 	job0 := jobs[0]
 
@@ -194,6 +194,16 @@ func TestJobConfigSmokeTest(t *testing.T) {
 	assert.Equal(job6.When, &WhenConfig{Source: "serviceA", Once: "stopped"},
 		"config for job6.When")
 	assert.Nil(job6.Restarts, "config for job6.Restarts")
+
+	job7 := jobs[7]
+	assert.Equal(job7.Name, "reloadA", "config for job7.Name")
+	assert.Equal(job7.When, &WhenConfig{Source: "signal", Each: "SIGHUP"},
+		"config for job7.When")
+
+	job8 := jobs[8]
+	assert.Equal(job8.Name, "reloadB", "config for job8.Name")
+	assert.Equal(job8.When, &WhenConfig{Source: "signal", Once: "SIGUSR2"},
+		"config for job8.When")
 }
 
 // ---------------------------------------------------------------------
@@ -372,7 +382,7 @@ func TestJobConfigValidateRestarts(t *testing.T) {
 		"C", "-1", `number must be positive integer`)
 	expectErr(
 		`[{name: "D", exec: "/bin/coprocessD", restarts: "unlimited",
-         when: { each: "healthy", source: "other"} }]`,
+		 when: { each: "healthy", source: "other"} }]`,
 		"D", "unlimited",
 		`may not be used when 'job.when.each' is set because it may result in infinite processes`)
 

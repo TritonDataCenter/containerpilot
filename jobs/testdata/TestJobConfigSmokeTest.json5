@@ -18,7 +18,7 @@
   {
     name: "serviceB",
     port: 5000,
-    interfaces: ["ethwe","eth0", "inet", "lo0"],
+    interfaces: ["ethwe", "eth0", "inet", "lo0"],
     exec: ["/bin/serviceB", "B"],
     health: {
       exec: ["/bin/to/healthcheck/for/service/B.sh", "B"],
@@ -58,5 +58,21 @@
       once: "stopped"
     },
     exec: ["/bin/to/postStop.sh"]
+  },
+  {
+    name: "reloadA",
+    when: {
+      source: "signal",
+      each: "SIGHUP"
+    },
+    exec: "kill -HUP $CONTAINERPILOT_NGINX_PID"
+  },
+  {
+    name: "reloadB",
+    when: {
+      source: "signal",
+      once: "SIGUSR2"
+    },
+    exec: "kill -USR2 $CONTAINERPILOT_NGINX_PID"
   }
 ]
