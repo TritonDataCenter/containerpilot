@@ -49,7 +49,7 @@
       source: "serviceA",
       once: "stopping"
     },
-    exec: ["/bin/to/preStop.sh","arg1","arg2"]
+    exec: ["/bin/to/preStop.sh", "arg1", "arg2"]
   },
   {
     name: "postStop",
@@ -62,17 +62,15 @@
   {
     name: "reloadA",
     when: {
-      source: "signal",
-      each: "SIGHUP"
+      source: "SIGHUP"
     },
-    exec: "kill -HUP $CONTAINERPILOT_NGINX_PID"
+    exec: "/bin/to/reload.sh"
   },
   {
     name: "reloadB",
     when: {
-      source: "signal",
-      once: "SIGUSR2"
+      source: "SIGUSR2"
     },
-    exec: "kill -USR2 $CONTAINERPILOT_NGINX_PID"
+    exec: "/bin/to/reload.sh"
   }
 ]

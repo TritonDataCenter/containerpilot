@@ -197,12 +197,12 @@ func TestJobConfigSmokeTest(t *testing.T) {
 
 	job7 := jobs[7]
 	assert.Equal(job7.Name, "reloadA", "config for job7.Name")
-	assert.Equal(job7.When, &WhenConfig{Source: "signal", Each: "SIGHUP"},
+	assert.Equal(job7.When, &WhenConfig{Source: "SIGHUP"},
 		"config for job7.When")
 
 	job8 := jobs[8]
 	assert.Equal(job8.Name, "reloadB", "config for job8.Name")
-	assert.Equal(job8.When, &WhenConfig{Source: "signal", Once: "SIGUSR2"},
+	assert.Equal(job8.When, &WhenConfig{Source: "SIGUSR2"},
 		"config for job8.When")
 }
 

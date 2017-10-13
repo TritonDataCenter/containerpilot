@@ -112,6 +112,7 @@ func TestSignalEvent(t *testing.T) {
 	cancel()
 	bus.Wait()
 	results := bus.DebugEvents()
+
 	got := map[events.Event]int{}
 	for _, result := range results {
 		got[result]++
