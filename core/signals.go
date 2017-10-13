@@ -22,7 +22,7 @@ func (a *App) handleSignals() {
 				return
 			case syscall.SIGHUP, syscall.SIGUSR2:
 				if s := toString(sig); s != "" {
-					a.Signal(s)
+					a.SignalEvent(s)
 				}
 			default:
 			}
