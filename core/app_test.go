@@ -146,13 +146,6 @@ func TestReloadConfig(t *testing.T) {
 	}
 }
 
-// func TestSignal(t *testing.T) {
-// 	app := EmptyApp()
-// 	app.Bus = events.NewEventBus()
-
-// 	assert.Equal()
-// }
-
 // ----------------------------------------------------
 // test helpers
 

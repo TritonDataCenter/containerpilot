@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,10 +94,10 @@ func TestPublishSignal(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	ts.Run(ctx, bus)
 
-	signals := []syscall.Signal{syscall.SIGHUP, syscall.SIGUSR2}
+	signals := []string{"SIGHUP", "SIGUSR2"}
 	expected := make([]Event, len(signals))
 	for n, sig := range signals {
-		expected[n] = Event{Signal, FromSignal(sig)}
+		expected[n] = Event{Code: Signal, Source: sig}
 		bus.PublishSignal(sig)
 	}
 	cancel()

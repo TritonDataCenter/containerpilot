@@ -172,7 +172,7 @@ func (a *App) Terminate() {
 }
 
 // Signal publishes a signal event onto the event bus
-func (a *App) Signal(sig os.Signal) {
+func (a *App) Signal(sig string) {
 	a.signalLock.Lock()
 	defer a.signalLock.Unlock()
 	a.Bus.PublishSignal(sig)

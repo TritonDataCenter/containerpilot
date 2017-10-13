@@ -4,8 +4,6 @@ package events
 
 import (
 	"fmt"
-	"os"
-	"syscall"
 )
 
 // Event represents a single message in the EventBus
@@ -85,15 +83,4 @@ func FromString(codeName string) (EventCode, error) {
 		return Signal, nil
 	}
 	return None, fmt.Errorf("%s is not a valid event code", codeName)
-}
-
-// FromSignal parses a string as a Signal enum
-func FromSignal(signal os.Signal) string {
-	switch signal {
-	case syscall.SIGHUP:
-		return "SIGHUP"
-	case syscall.SIGUSR2:
-		return "SIGUSR2"
-	}
-	return "SIGNONE"
 }
