@@ -1,6 +1,7 @@
 package events
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -133,6 +134,12 @@ func (bus *EventBus) Publish(event Event) {
 		subscriber.Receive(event)
 	}
 	bus.enqueue(event)
+}
+
+// PublishSignal publishes a signal event through the EventBus to any Jobs that
+// are subscribed to trigger on them.
+func (bus *EventBus) PublishSignal(sig os.Signal) {
+	bus.Publish(Event{Code: Signal, Source: FromSignal(sig)})
 }
 
 // SetReloadFlag sets the flag that Wait will use to signal to the main

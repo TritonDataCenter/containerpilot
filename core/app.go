@@ -171,6 +171,13 @@ func (a *App) Terminate() {
 	a.Bus.Shutdown()
 }
 
+// Signal publishes a signal event onto the event bus
+func (a *App) Signal(sig os.Signal) {
+	a.signalLock.Lock()
+	defer a.signalLock.Unlock()
+	a.Bus.PublishSignal(sig)
+}
+
 // reload does the actual work of reloading the configuration and
 // updating the App with those changes. The EventBus should be
 // already shut down before we call this.

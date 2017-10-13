@@ -20,6 +20,8 @@ func (a *App) handleSignals() {
 			case syscall.SIGTERM:
 				a.Terminate()
 				return
+			case syscall.SIGHUP, syscall.SIGUSR2:
+				a.Signal(sig)
 			default:
 			}
 		}
