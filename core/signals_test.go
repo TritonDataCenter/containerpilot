@@ -12,6 +12,7 @@ import (
 	"github.com/joyent/containerpilot/events"
 	"github.com/joyent/containerpilot/jobs"
 	"github.com/joyent/containerpilot/tests/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 // ------------------------------------------
@@ -94,5 +95,22 @@ func sendAndWaitForSignal(t *testing.T, s os.Signal) {
 		}
 	case <-time.After(1 * time.Second):
 		t.Fatalf("timeout waiting for %v\n", s)
+	}
+}
+
+func TestToString(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  os.Signal
+		output string
+	}{
+		{"SIGHUP", syscall.SIGHUP, "SIGHUP"},
+		{"SIGUSR2", syscall.SIGUSR2, "SIGUSR2"},
+		{"SIGTERM", syscall.SIGTERM, ""},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, toString(test.input), test.output)
+		})
 	}
 }

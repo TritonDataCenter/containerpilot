@@ -21,9 +21,22 @@ func (a *App) handleSignals() {
 				a.Terminate()
 				return
 			case syscall.SIGHUP, syscall.SIGUSR2:
-				a.Signal(sig)
+				if s := toString(sig); s != "" {
+					a.Signal(s)
+				}
 			default:
 			}
 		}
 	}()
+}
+
+func toString(sig os.Signal) string {
+	switch sig {
+	case syscall.SIGHUP:
+		return "SIGHUP"
+	case syscall.SIGUSR2:
+		return "SIGUSR2"
+	default:
+		return ""
+	}
 }
