@@ -1,4 +1,45 @@
-## 3.4.2 (Unreleased)
+## 3.5.1 (Unreleased)
+
+## 3.5.0 (October 13th, 2017)
+
+The big change in this release for ContainerPilot is a refactoring of how the
+app shuts down. We're now using the Go context package throughout the entire
+application. Many of the race conditions and timing issues that occurred on
+global shutdown should now be removed.
+
+FEATURES:
+
+- Log the pid of every job in a logger field (#497)
+
+BUG FIXES:
+
+- Refactor away EventHandler into separate pub/sub interfaces (#476)
+- Migrate from deprecated Consul API call PassTTL to UpdateTTL (#515)
+
+SHA1 f06b2e8398f83ee860a73c207354b75758e3e3ac
+
+## 3.4.3 (September 25th, 2017)
+
+FEATURES:
+
+- add Jobs to status endpoint (#507)
+
+BUG FIXES:
+
+- cleanup test assert.Equal argument order (#509)
+- fix lint and support go 1.9 (#507)
+- enter/exit maintenance events should also trigger job start (#501)
+- Fix join (#495)
+
+SHA1 e8258ed166bcb3de3e06638936dcc2cae32c7c58
+
+## 3.4.2 (August 23rd, 2017)
+
+BUG FIXES:
+
+- split SIGCHLD from all other signal handlers in supervisor (#493)
+
+SHA1 5c99ae9ede01e8fcb9b027b5b3cb0cfd8c0b8b88
 
 ## 3.4.1 (August 21st, 2017)
 
