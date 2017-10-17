@@ -23,7 +23,7 @@ docker exec -it "$consul" assert service app 1
 
 # send SIGHUP into the app container
 docker kill -s HUP "$app"
-sleep 10
+sleep 2
 # send SIGUSR2 into the app container
 docker kill -s USR2 "$app"
 
