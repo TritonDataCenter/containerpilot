@@ -211,7 +211,7 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) processEve
 
 	case events.Event{Code: events.Signal, Source: "SIGHUP"},
 		events.Event{Code: events.Signal, Source: "SIGUSR2"}:
-		return job.onSignalEvent(ctx)
+		return job.onSignalEvent(ctx, event.Source)
 
 	case job.startEvent:
 		return job.onStartEvent(ctx)
@@ -334,8 +334,9 @@ func (job *Job) onExecExit(ctx context.Context) processEventStatus {
 	return jobHalt
 }
 
-func (job *Job) onSignalEvent(ctx context.Context) processEventStatus {
-	if job.startEvent.Code == events.Signal {
+func (job *Job) onSignalEvent(ctx context.Context, sig string) processEventStatus {
+	if job.startEvent.Code == events.Signal &&
+		job.startEvent.Source == sig {
 		job.startJobExec(ctx)
 	}
 	return jobContinue
