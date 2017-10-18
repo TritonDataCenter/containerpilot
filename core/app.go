@@ -130,7 +130,7 @@ func (a *App) Run() {
 		}()
 
 		a.Bus = events.NewEventBus()
-		a.handleSignals(cancel)
+		a.handleSignals(ctx, cancel)
 		a.ControlServer.Run(ctx, a.Bus)
 		a.runTasks(ctx, completedCh)
 
