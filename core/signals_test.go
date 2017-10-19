@@ -72,10 +72,9 @@ func TestTerminateSignal(t *testing.T) {
 // Test that only ensures that we cover a straight-line run through
 // the handleSignals setup code
 func TestSignalWiring(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
 	app := EmptyApp()
 	app.Bus = events.NewEventBus()
-	app.handleSignals(ctx, cancel)
+	app.handleSignals()
 	sendAndWaitForSignal(t, syscall.SIGTERM)
 }
 
