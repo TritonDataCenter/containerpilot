@@ -98,6 +98,8 @@ func getEnvVarNameFromService(service string) string {
 
 // Run starts the application and blocks until finished
 func (a *App) Run() {
+	a.handleSignals()
+
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
 
@@ -130,7 +132,6 @@ func (a *App) Run() {
 		}()
 
 		a.Bus = events.NewEventBus()
-		a.handleSignals(ctx, cancel)
 		a.ControlServer.Run(ctx, a.Bus)
 		a.runTasks(ctx, completedCh)
 
