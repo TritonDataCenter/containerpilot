@@ -110,6 +110,14 @@ func (a *App) Run() {
 		// `IsComplete`, and shutdown ContainerPilot if all jobs are
 		// completed. This is because ContainerPilot is NOT a server and must
 		// shut down when no longer required (i.e. process containers).
+		//
+		// Consider that this fires the global context.CancelFunc after all jobs
+		// have completed. This means we'll serialize the shut down of all
+		// dependent services, control server, telemetry, watches, metrics,
+		// after jobs have finalized here (quit == true). This is the reason the
+		// signal handler above, and reload endpoint, only need to fire a
+		// GlobalShutdown across the event bus. Context handles everything after
+		// that process.
 		completedCh := make(chan bool)
 		go func() {
 			for {
