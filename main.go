@@ -18,18 +18,16 @@ func main() {
 	// contention on the main application
 	runtime.GOMAXPROCS(1)
 
-	subcommand, params := core.GetArgs()
-	configPath := params.ConfigPath
-
 	// If we're running as PID1, we fork and run as a supervisor
 	// so that we can cleanly handle reaping of child processes.
 	// We fork before doing *anything* else so we don't have to
 	// worry about where any new threads spawned by the runtime.
 	if os.Getpid() == 1 {
-		sup.Run(configPath) // blocks forever
+		sup.Run() // blocks forever
 		return
 	}
 
+	subcommand, params := core.GetArgs()
 	if subcommand != nil {
 		err := subcommand(params)
 		if err != nil {
