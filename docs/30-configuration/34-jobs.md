@@ -29,6 +29,15 @@ Additionally, jobs may react to these events:
 - `enterMaintenance`: published when the [control plane](./30-configuration/37-control-plane.md) is told to enter maintenance mode for the container. All jobs will be automatically deregistered from Consul when this happens, so you only want to react to this event if there is some other task to perform.
 - `exitMaintenance`: published when the [control plane](./30-configuration/37-control-plane.md) is told to exit maintenance mode for the container.
 
+Finally, there are two special `source` values that can be used to trigger a job when ContainerPilot receives a UNIX signal.
+
+- `SIGHUP`: published when a ContainerPilot process receives the UNIX signal `SIGHUP`.
+- `SIGUSR2`: published when a ContainerPilot process receives the UNIX signal `SIGUSR2`.
+
+Signal events come in handy when you need to kick off some type of special process (reloading configs, publishing debug info) inside a container. This type of external communication is only supported when running ContainerPilot within a Docker container running on a Docker host, or under the supervision of a scheduler like Nomad.
+
+Note: Either two signals can be sent to ContainerPilot acting as a PID 1 supervisor or it's standalone worker process.
+
 ## Configuration
 
 Job configurations include the following fields:
