@@ -94,25 +94,16 @@ func (srv *HTTPServer) Start(cancel context.CancelFunc) {
 	}
 
 	router := http.NewServeMux()
-
 	router.Handle("/v3/environ",
 		PostHandler(endpoints.PutEnviron))
-
 	router.Handle("/v3/reload",
 		PostHandler(endpoints.PostReload))
-
 	router.Handle("/v3/metric",
 		PostHandler(endpoints.PostMetric))
-
 	router.Handle("/v3/maintenance/enable",
 		PostHandler(endpoints.PostEnableMaintenanceMode))
-
 	router.Handle("/v3/maintenance/disable",
 		PostHandler(endpoints.PostDisableMaintenanceMode))
-
-	router.Handle("/v3/signal",
-		PostHandler(endpoints.PostSignal))
-
 	router.HandleFunc("/v3/ping", GetPing)
 
 	srv.Handler = router

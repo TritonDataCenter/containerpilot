@@ -128,26 +128,6 @@ func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
 	return nil, http.StatusOK
 }
 
-// PostSignal handles incoming HTTP POST requests for triggering a signal event
-// through the event bus. Returns empty response or HTTP422.
-func (e Endpoints) PostSignal(r *http.Request) (interface{}, int) {
-	var postData map[string]string
-	jsonBlob, err := ioutil.ReadAll(r.Body)
-
-	defer r.Body.Close()
-	if err != nil {
-		return nil, http.StatusUnprocessableEntity
-	}
-	err = json.Unmarshal(jsonBlob, &postData)
-	if err != nil {
-		return nil, http.StatusUnprocessableEntity
-	}
-	if signal, ok := postData["signal"]; ok {
-		e.bus.PublishSignal(signal)
-	}
-	return nil, http.StatusOK
-}
-
 // GetPing allows us to check if the control socket is up without
 // making a mutation of ContainerPilot's state
 func GetPing(w http.ResponseWriter, r *http.Request) {

@@ -226,38 +226,3 @@ func TestGetPing(t *testing.T) {
 	status := resp.StatusCode
 	assert.Equal(t, 200, status, "expected HTTP 200 OK")
 }
-
-func TestPostSignal(t *testing.T) {
-	testFunc := func(t *testing.T, expected map[events.Event]int, body string) int {
-		_, cancel := context.WithCancel(context.Background())
-		bus := events.NewEventBus()
-		endpoints := &Endpoints{
-			bus:    bus,
-			cancel: cancel,
-		}
-		req, _ := http.NewRequest("POST", "/v3/metric", strings.NewReader(body))
-		_, status := endpoints.PostSignal(req)
-		got := map[events.Event]int{}
-		results := bus.DebugEvents()
-		for _, result := range results {
-			if result != events.GlobalStartup {
-				got[result]++
-			}
-		}
-		assert.Equal(t, expected, got)
-		return status
-	}
-
-	t.Run("POST bad JSON", func(t *testing.T) {
-		body := "{{\n"
-		expected := map[events.Event]int{}
-		status := testFunc(t, expected, body)
-		assert.Equal(t, http.StatusUnprocessableEntity, status, "status was not 422")
-	})
-	t.Run("POST value", func(t *testing.T) {
-		body := "{\"signal\": \"SIGHUP\"}"
-		expected := map[events.Event]int{{events.Signal, "SIGHUP"}: 1}
-		status := testFunc(t, expected, body)
-		assert.Equal(t, http.StatusOK, status, "status was not 200OK")
-	})
-}

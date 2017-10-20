@@ -99,22 +99,6 @@ func (c HTTPClient) PutMetric(body string) error {
 	return nil
 }
 
-// PostSignal makes a request to the signal endpoint of a ContainerPilot process
-// for triggering signals events/jobs.
-func (c HTTPClient) PostSignal(signal string) error {
-	resp, err := c.Post("http://control/v3/signal", "application/json",
-		strings.NewReader(signal))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusUnprocessableEntity {
-		return fmt.Errorf("unprocessable entity received by control server")
-	}
-	return nil
-}
-
 // GetPing make a request to the ping endpoint of the ContainerPilot control
 // socket, to verify it's listening
 func (c HTTPClient) GetPing() error {
