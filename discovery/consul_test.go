@@ -80,9 +80,14 @@ ref https://github.com/hashicorp/consul/tree/master/testutil
 var testServer *testutil.TestServer
 
 func TestWithConsul(t *testing.T) {
-	testServer, _ = testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
+	var err error
+	testServer, err = testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "err"
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	defer testServer.Stop()
 	t.Run("TestConsulTTLPass", testConsulTTLPass)
 	t.Run("TestConsulReregister", testConsulReregister)
