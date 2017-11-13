@@ -3,9 +3,9 @@ package discovery
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	consul "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,18 +77,18 @@ a Consul server for testing. The 'consul' binary must be in the $PATH
 ref https://github.com/hashicorp/consul/tree/master/testutil
 */
 
-var testServer *testutil.TestServer
+var testServer *TestServer
 
 func TestWithConsul(t *testing.T) {
 	var err error
-	testServer, err = testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
-		c.LogLevel = "err"
-	})
+	testServer, err = NewTestServer(8500)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer testServer.Stop()
+
+	time.Sleep(300 * time.Millisecond)
+
 	t.Run("TestConsulTTLPass", testConsulTTLPass)
 	t.Run("TestConsulReregister", testConsulReregister)
 	t.Run("TestConsulCheckForChanges", testConsulCheckForChanges)
