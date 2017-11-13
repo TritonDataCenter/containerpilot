@@ -192,7 +192,6 @@ func (cfg *Config) validateFrequency() error {
 }
 
 func (cfg *Config) validateWhenEvent() error {
-
 	whenTimeout, err := timing.GetTimeout(cfg.When.Timeout)
 	if err != nil {
 		return fmt.Errorf("unable to parse job[%s].when.timeout: %v",
@@ -204,7 +203,8 @@ func (cfg *Config) validateWhenEvent() error {
 	if cfg.When.Once != "" {
 		eventCode, err = events.FromString(cfg.When.Once)
 		cfg.whenStartsLimit = 1
-	} else {
+	}
+	if cfg.When.Each != "" && cfg.When.Once == "" {
 		eventCode, err = events.FromString(cfg.When.Each)
 		cfg.whenStartsLimit = unlimited
 	}
@@ -212,6 +212,12 @@ func (cfg *Config) validateWhenEvent() error {
 		return fmt.Errorf("unable to parse job[%s].when.event: %v",
 			cfg.Name, err)
 	}
+
+	if cfg.When.Source == "SIGHUP" || cfg.When.Source == "SIGUSR2" {
+		eventCode = events.Signal
+		cfg.whenStartsLimit = unlimited
+	}
+
 	cfg.whenEvent = events.Event{eventCode, cfg.When.Source}
 	return nil
 }

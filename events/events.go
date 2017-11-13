@@ -35,6 +35,7 @@ const (
 	Metric
 	Startup  // fired once after events are set up and event loop is started
 	Shutdown // fired once after all jobs exit or on receiving SIGTERM
+	Signal   // fired when a UNIX signal hits a CP process/supervisor
 )
 
 // global events
@@ -78,6 +79,8 @@ func FromString(codeName string) (EventCode, error) {
 		return Startup, nil
 	case "shutdown":
 		return Shutdown, nil
+	case "SIGHUP", "SIGUSR2":
+		return Signal, nil
 	}
 	return None, fmt.Errorf("%s is not a valid event code", codeName)
 }

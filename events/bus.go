@@ -135,6 +135,12 @@ func (bus *EventBus) Publish(event Event) {
 	bus.enqueue(event)
 }
 
+// PublishSignal publishes a signal event through the EventBus to any Jobs that
+// are subscribed to trigger on them.
+func (bus *EventBus) PublishSignal(sig string) {
+	bus.Publish(Event{Code: Signal, Source: sig})
+}
+
 // SetReloadFlag sets the flag that Wait will use to signal to the main
 // App that we want to restart rather than be shut down
 func (bus *EventBus) SetReloadFlag() {
