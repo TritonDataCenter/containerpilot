@@ -36,7 +36,7 @@ Finally, there are two special `source` values that can be used to trigger a job
 
 Signal events come in handy when you need to kick off some type of special process (reloading configs, publishing debug info) inside a container. This type of external communication is only supported when running ContainerPilot within a Docker container running on a Docker host, or under the supervision of a scheduler like Nomad.
 
-Note: Either two signals can be sent to ContainerPilot acting as a PID 1 supervisor or it's standalone worker process.
+Note: Either two signals can be sent to ContainerPilot acting as a PID 1 supervisor or its standalone worker process.
 
 ## Configuration
 
