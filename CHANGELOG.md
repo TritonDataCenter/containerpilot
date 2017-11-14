@@ -1,4 +1,30 @@
-## 3.5.1 (Unreleased)
+## 3.6.1 (Unreleased)
+
+## 3.6.0 (November 14th, 2017)
+
+This release adds two major enhancements, upgrades to Go 1.9 and Consul 1.0.0 as
+well as signal events.
+
+We've added a new event trigger to ContainerPilot. You can now send a UNIX
+signal into a `containerpilot` process and have it trigger a custom job. Signal
+based jobs can trigger on either `SIGHUP` or `SIGUSR2`.
+
+FEATURES:
+
+- Upgraded to Go 1.9 for building ContainerPilot (#519)
+- Upgraded to Consul 1.0.0 for our testing infrastructure and target Consul
+  version (#519)
+- Signal events which allow a job to trigger on a UNIX signal (#513)
+
+SHA1 1248784ff475e6fda69ebf7a2136adbfb902f74b
+
+## 3.5.1 (October 19th, 2017)
+
+BUG FIXES:
+
+- Fix a goroutine leak in the signal handler code path (#523)
+
+SHA1 7ee8e59588b6b593325930b0dc18d01f666031d7
 
 ## 3.5.0 (October 13th, 2017)
 
