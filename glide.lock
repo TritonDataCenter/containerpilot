@@ -1,12 +1,12 @@
-hash: a730729c91753fec77a0c9b4084e37a07ab19dceb8f5c4f8b134eee0d7980df9
-updated: 2017-07-05T15:36:19.413681678-04:00
+hash: c13286385a0d957eb3b4e47af1f85b6cd8d8b084c846737477f46ac04d2c44f2
+updated: 2017-11-13T21:22:43.229954534-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
-- name: github.com/docker/go-units
-  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
+- name: github.com/client9/reopen
+  version: 1a6ccbeaae3f56aa0058f5491382cb21726e214e
 - name: github.com/flynn/json5
   version: 7620272ed63390e979cf5882d2fa0506fe2a8db5
 - name: github.com/golang/protobuf
@@ -14,17 +14,14 @@ imports:
   subpackages:
   - proto
 - name: github.com/hashicorp/consul
-  version: 2c7715154d8d4568524b76d2d4deb7ca6fd1b285
+  version: 783a405d781ffc5edaf2d6b5eff41e22df96644f
   subpackages:
   - api
-  - testutil
   - testutil/retry
 - name: github.com/hashicorp/go-cleanhttp
   version: 3573b8b52aa7b37b9358d966a898feb387f62437
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
-- name: github.com/hashicorp/go-uuid
-  version: 64130c7a86d732268a38cb04cfbaf0cc987fda98
 - name: github.com/hashicorp/serf
   version: 91fd53b1d3e624389ed9a295a3fa380e5c7b9dfc
   subpackages:
@@ -37,8 +34,6 @@ imports:
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
-- name: github.com/pkg/errors
-  version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/prometheus/client_golang
   version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
@@ -57,8 +52,6 @@ imports:
   version: e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2
   subpackages:
   - xfs
-- name: github.com/samalba/dockerclient
-  version: a3036261847103270e9f732509f43b5f98710ace
 - name: github.com/sirupsen/logrus
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 - name: golang.org/x/sys
@@ -66,9 +59,15 @@ imports:
   subpackages:
   - unix
 testImports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
-- name: github.com/client9/reopen
-  version: 1a6ccbeaae3f56aa0058f5491382cb21726e214e
