@@ -1,5 +1,5 @@
-hash: 35866aee7d26c8bf31a492efa451621e3d62b1ab62ccfd646460318b91bba833
-updated: 2017-11-12T11:32:01.653670901-05:00
+hash: c13286385a0d957eb3b4e47af1f85b6cd8d8b084c846737477f46ac04d2c44f2
+updated: 2017-11-13T21:22:43.229954534-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -17,15 +17,11 @@ imports:
   version: 783a405d781ffc5edaf2d6b5eff41e22df96644f
   subpackages:
   - api
-  - lib/freeport
-  - testutil
   - testutil/retry
 - name: github.com/hashicorp/go-cleanhttp
   version: 3573b8b52aa7b37b9358d966a898feb387f62437
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
-- name: github.com/hashicorp/go-uuid
-  version: 64130c7a86d732268a38cb04cfbaf0cc987fda98
 - name: github.com/hashicorp/serf
   version: 91fd53b1d3e624389ed9a295a3fa380e5c7b9dfc
   subpackages:
@@ -36,12 +32,8 @@ imports:
   - pbutil
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
-- name: github.com/mitchellh/go-testing-interface
-  version: a61a99592b77c9ba629d254a693acffaeb4b7e28
 - name: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
-- name: github.com/pkg/errors
-  version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/prometheus/client_golang
   version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
