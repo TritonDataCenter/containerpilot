@@ -3,7 +3,6 @@ package discovery
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	consul "github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
@@ -71,118 +70,117 @@ func TestCheckForChanges(t *testing.T) {
 	assert.True(t, didChange, "value for 'didChange' after t3")
 }
 
-/*
-The TestWithConsul suite of tests uses Hashicorp's own testutil for managing
-a Consul server for testing. The 'consul' binary must be in the $PATH
-ref https://github.com/hashicorp/consul/tree/master/testutil
-*/
-
-var testServer *TestServer
-
 func TestWithConsul(t *testing.T) {
-	var err error
-	testServer, err = NewTestServer(8500)
+	testServer, err := NewTestServer(8500)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer testServer.Stop()
 
-	time.Sleep(300 * time.Millisecond)
+	testServer.WaitForAPI()
 
-	t.Run("TestConsulTTLPass", testConsulTTLPass)
-	t.Run("TestConsulReregister", testConsulReregister)
-	t.Run("TestConsulCheckForChanges", testConsulCheckForChanges)
-	t.Run("TestConsulEnableTagOverride", testConsulEnableTagOverride)
+	t.Run("TestConsulTTLPass", testConsulTTLPass(testServer))
+	t.Run("TestConsulReregister", testConsulReregister(testServer))
+	t.Run("TestConsulCheckForChanges", testConsulCheckForChanges(testServer))
+	t.Run("TestConsulEnableTagOverride", testConsulEnableTagOverride(testServer))
 }
 
-func testConsulTTLPass(t *testing.T) {
-	consul, _ := NewConsul(testServer.HTTPAddr)
-	name := fmt.Sprintf("TestConsulTTLPass")
-	service := generateServiceDefinition(name, consul)
-	checkID := fmt.Sprintf("service:%s", service.ID)
+func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
+	return func(t *testing.T) {
+		consul, _ := NewConsul(testServer.HTTPAddr)
+		name := fmt.Sprintf("TestConsulTTLPass")
+		service := generateServiceDefinition(name, consul)
+		checkID := fmt.Sprintf("service:%s", service.ID)
 
-	service.SendHeartbeat() // force registration and 1st heartbeat
-	checks, _ := consul.Agent().Checks()
-	check := checks[checkID]
-	if check.Status != "passing" {
-		t.Fatalf("status of check %s should be 'passing' but is %s", checkID, check.Status)
-	}
-}
-
-func testConsulReregister(t *testing.T) {
-	consul, _ := NewConsul(testServer.HTTPAddr)
-	name := fmt.Sprintf("TestConsulReregister")
-	service := generateServiceDefinition(name, consul)
-	id := service.ID
-
-	service.SendHeartbeat() // force registration and 1st heartbeat
-	services, _ := consul.Agent().Services()
-	svc := services[id]
-	if svc.Address != "192.168.1.1" {
-		t.Fatalf("service address should be '192.168.1.1' but is %s", svc.Address)
-	}
-
-	// new Consul client (as though we've restarted)
-	consul, _ = NewConsul(testServer.HTTPAddr)
-	service = generateServiceDefinition(name, consul)
-	service.IPAddress = "192.168.1.2"
-	service.SendHeartbeat() // force re-registration and 1st heartbeat
-
-	services, _ = consul.Agent().Services()
-	svc = services[id]
-	if svc.Address != "192.168.1.2" {
-		t.Fatalf("service address should be '192.168.1.2' but is %s", svc.Address)
+		service.SendHeartbeat() // force registration and 1st heartbeat
+		checks, _ := consul.Agent().Checks()
+		check := checks[checkID]
+		if check.Status != "passing" {
+			t.Fatalf("status of check %s should be 'passing' but is %s", checkID, check.Status)
+		}
 	}
 }
 
-func testConsulCheckForChanges(t *testing.T) {
-	backend := fmt.Sprintf("TestConsulCheckForChanges")
-	consul, _ := NewConsul(testServer.HTTPAddr)
-	service := generateServiceDefinition(backend, consul)
-	id := service.ID
-	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
-		t.Fatalf("First read of %s should show `false` for change", id)
-	}
-	service.SendHeartbeat() // force registration and 1st heartbeat
+func testConsulReregister(testServer *TestServer) func(*testing.T) {
+	return func(t *testing.T) {
+		consul, _ := NewConsul(testServer.HTTPAddr)
+		name := fmt.Sprintf("TestConsulReregister")
+		service := generateServiceDefinition(name, consul)
+		id := service.ID
 
-	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
-		t.Errorf("%v should have changed after first health check TTL", id)
-	}
-	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
-		t.Errorf("%v should not have changed without TTL expiring", id)
-	}
-	check := fmt.Sprintf("service:TestConsulCheckForChanges")
-	consul.Agent().UpdateTTL(check, "expired", "critical")
-	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
-		t.Errorf("%v should have changed after TTL expired.", id)
+		service.SendHeartbeat() // force registration and 1st heartbeat
+		services, _ := consul.Agent().Services()
+		svc := services[id]
+		if svc.Address != "192.168.1.1" {
+			t.Fatalf("service address should be '192.168.1.1' but is %s", svc.Address)
+		}
+
+		// new Consul client (as though we've restarted)
+		consul, _ = NewConsul(testServer.HTTPAddr)
+		service = generateServiceDefinition(name, consul)
+		service.IPAddress = "192.168.1.2"
+		service.SendHeartbeat() // force re-registration and 1st heartbeat
+
+		services, _ = consul.Agent().Services()
+		svc = services[id]
+		if svc.Address != "192.168.1.2" {
+			t.Fatalf("service address should be '192.168.1.2' but is %s", svc.Address)
+		}
 	}
 }
 
-func testConsulEnableTagOverride(t *testing.T) {
-	backend := fmt.Sprintf("TestConsulEnableTagOverride")
-	consul, _ := NewConsul(testServer.HTTPAddr)
-	service := &ServiceDefinition{
-		ID:                backend,
-		Name:              backend,
-		IPAddress:         "192.168.1.1",
-		TTL:               1,
-		Port:              9000,
-		EnableTagOverride: true,
-		Consul:            consul,
-	}
-	id := service.ID
-	if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
-		t.Fatalf("First read of %s should show `false` for change", id)
-	}
-	service.SendHeartbeat() // force registration
-	catalogService, _, err := consul.Catalog().Service(id, "", nil)
-	if err != nil {
-		t.Fatalf("error finding service: %v", err)
-	}
+func testConsulCheckForChanges(testServer *TestServer) func(*testing.T) {
+	return func(t *testing.T) {
+		backend := fmt.Sprintf("TestConsulCheckForChanges")
+		consul, _ := NewConsul(testServer.HTTPAddr)
+		service := generateServiceDefinition(backend, consul)
+		id := service.ID
+		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
+			t.Fatalf("First read of %s should show `false` for change", id)
+		}
+		service.SendHeartbeat() // force registration and 1st heartbeat
 
-	for _, service := range catalogService {
-		if service.ServiceEnableTagOverride != true {
-			t.Errorf("%v should have had EnableTagOverride set to true", id)
+		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
+			t.Errorf("%v should have changed after first health check TTL", id)
+		}
+		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
+			t.Errorf("%v should not have changed without TTL expiring", id)
+		}
+		check := fmt.Sprintf("service:TestConsulCheckForChanges")
+		consul.Agent().UpdateTTL(check, "expired", "critical")
+		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
+			t.Errorf("%v should have changed after TTL expired.", id)
+		}
+	}
+}
+
+func testConsulEnableTagOverride(testServer *TestServer) func(*testing.T) {
+	return func(t *testing.T) {
+		backend := fmt.Sprintf("TestConsulEnableTagOverride")
+		consul, _ := NewConsul(testServer.HTTPAddr)
+		service := &ServiceDefinition{
+			ID:                backend,
+			Name:              backend,
+			IPAddress:         "192.168.1.1",
+			TTL:               1,
+			Port:              9000,
+			EnableTagOverride: true,
+			Consul:            consul,
+		}
+		id := service.ID
+		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
+			t.Fatalf("First read of %s should show `false` for change", id)
+		}
+		service.SendHeartbeat() // force registration
+		catalogService, _, err := consul.Catalog().Service(id, "", nil)
+		if err != nil {
+			t.Fatalf("error finding service: %v", err)
+		}
+
+		for _, service := range catalogService {
+			if service.ServiceEnableTagOverride != true {
+				t.Errorf("%v should have had EnableTagOverride set to true", id)
+			}
 		}
 	}
 }
