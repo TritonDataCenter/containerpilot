@@ -3,6 +3,8 @@ package events
 import (
 	"context"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // NewEventTimeout starts a goroutine on a timer that will send a
@@ -26,7 +28,9 @@ func NewEventTimeout(
 					return
 				}
 			}()
-			rx <- Event{Code: TimerExpired, Source: name}
+			event := Event{Code: TimerExpired, Source: name}
+			log.Debugf("timeout: %v", event)
+			rx <- event
 		}
 	}()
 }
@@ -53,7 +57,9 @@ func NewEventTimer(
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				rx <- Event{Code: TimerExpired, Source: name}
+				event := Event{Code: TimerExpired, Source: name}
+				log.Debugf("timer: %v", event)
+				rx <- event
 			}
 		}
 	}()
