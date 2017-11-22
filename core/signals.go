@@ -19,17 +19,12 @@ func (a *App) handleSignals() {
 		for {
 			sig := <-recvSig
 			switch sig {
-			case syscall.SIGINT:
+			case syscall.SIGINT, syscall.SIGTERM:
 				a.Terminate()
-				return
-			case syscall.SIGTERM:
-				a.Terminate()
-				return
 			case syscall.SIGHUP, syscall.SIGUSR2:
 				if s := toString(sig); s != "" {
 					a.SignalEvent(s)
 				}
-			default:
 			}
 		}
 	}()
