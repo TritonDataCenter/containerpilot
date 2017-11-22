@@ -52,7 +52,8 @@ type Job struct {
 	frequency      time.Duration
 
 	// completed
-	IsComplete bool
+	IsComplete   bool
+	completeLock *sync.RWMutex
 
 	events.Subscriber
 	events.Publisher
@@ -76,6 +77,7 @@ func NewJob(cfg *Config) *Job {
 		frequency:         cfg.freqInterval,
 	}
 	job.statusLock = &sync.RWMutex{}
+	job.completeLock = &sync.RWMutex{}
 	job.Rx = make(chan events.Event, eventBufferSize)
 	if job.Name == "containerpilot" {
 		// right now this hardcodes the telemetry service to
@@ -119,6 +121,8 @@ func (job *Job) setStatus(status JobStatus) {
 }
 
 func (job *Job) setComplete() {
+	job.completeLock.Lock()
+	defer job.completeLock.Unlock()
 	job.IsComplete = true
 }
 
@@ -130,7 +134,7 @@ func (job *Job) Kill() {
 }
 
 // Run executes the event loop for the Job
-func (job *Job) Run(pctx context.Context, completedCh chan bool) {
+func (job *Job) Run(pctx context.Context, completedCh chan struct{}) {
 	ctx, cancel := context.WithCancel(pctx)
 
 	if job.frequency > 0 {
@@ -152,7 +156,7 @@ func (job *Job) Run(pctx context.Context, completedCh chan bool) {
 	go func() {
 		defer func() {
 			job.cleanup(ctx, cancel)
-			completedCh <- true
+			completedCh <- struct{}{}
 		}()
 		for {
 			select {

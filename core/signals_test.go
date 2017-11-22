@@ -62,7 +62,7 @@ func getSignalEventTestConfig(signals []string) *App {
 // by this same test, but that we don't have a separate unit test
 // because they'll interfere with each other's state.
 func TestTerminateSignal(t *testing.T) {
-	stopCh := make(chan bool)
+	stopCh := make(chan struct{}, 1)
 	app := getSignalTestConfig()
 	bus := app.Bus
 	ctx, cancel := context.WithCancel(context.Background())
@@ -93,7 +93,7 @@ func TestTerminateSignal(t *testing.T) {
 // Test handler for handling signal events SIGHUP (and SIGUSR2). Note that the
 // SIGUSR1 is currently setup to handle reloading ContainerPilot's log file.
 func TestSignalEvent(t *testing.T) {
-	stopCh := make(chan bool)
+	stopCh := make(chan struct{}, 1)
 	signals := []string{"SIGHUP", "SIGUSR2"}
 	app := getSignalEventTestConfig(signals)
 	bus := app.Bus

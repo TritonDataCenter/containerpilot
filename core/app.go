@@ -118,7 +118,7 @@ func (a *App) Run() {
 		// signal handler above, and reload endpoint, only need to fire a
 		// GlobalShutdown across the event bus. Context handles everything after
 		// that process.
-		completedCh := make(chan bool)
+		completedCh := make(chan struct{}, 1)
 		go func() {
 			for {
 				select {
@@ -159,7 +159,6 @@ func (a *App) Run() {
 			log.Error(err)
 			break
 		}
-		cancel()
 		close(completedCh)
 	}
 }
@@ -198,7 +197,7 @@ func (a *App) reload() error {
 
 // HandlePolling sets up polling functions and write their quit channels
 // back to our config
-func (a *App) runTasks(ctx context.Context, completedCh chan bool) {
+func (a *App) runTasks(ctx context.Context, completedCh chan struct{}) {
 	// we need to subscribe to events before we Run all the jobs
 	// to avoid races where a job finishes and fires events before
 	// other jobs are even subscribed to listen for them.

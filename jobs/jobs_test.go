@@ -14,7 +14,7 @@ import (
 
 func TestJobRunSafeClose(t *testing.T) {
 	bus := events.NewEventBus()
-	stopCh := make(chan bool)
+	stopCh := make(chan struct{}, 1)
 	cfg := &Config{
 		Name: "myjob",
 		Exec: "sleep 10",
@@ -50,7 +50,7 @@ func TestJobRunSafeClose(t *testing.T) {
 // A Job should timeout if not started before the startupTimeout
 func TestJobRunStartupTimeout(t *testing.T) {
 	bus := events.NewEventBus()
-	stopCh := make(chan bool)
+	stopCh := make(chan struct{}, 1)
 	cfg := &Config{Name: "myjob", Exec: "true",
 		When: &WhenConfig{Source: "never", Once: "startup", Timeout: "100ms"}}
 	cfg.Validate(noop)
@@ -88,7 +88,7 @@ func TestJobRunStartupTimeout(t *testing.T) {
 // A Job should not timeout if started before the startupTimeout
 func TestJobRunStartupNoTimeout(t *testing.T) {
 	bus := events.NewEventBus()
-	stopCh := make(chan bool)
+	stopCh := make(chan struct{}, 1)
 	cfg := &Config{Name: "myjob", Exec: "sleep 5",
 		When: &WhenConfig{Timeout: "500ms"}}
 	cfg.Validate(noop)
@@ -127,7 +127,7 @@ func TestJobRunStartupNoTimeout(t *testing.T) {
 func TestJobRunRestarts(t *testing.T) {
 	runRestartsTest := func(restarts interface{}, expected int) {
 		bus := events.NewEventBus()
-		stopCh := make(chan bool)
+		stopCh := make(chan struct{}, 1)
 		cfg := &Config{
 			Name:            "myjob",
 			whenEvent:       events.GlobalStartup,
@@ -165,7 +165,7 @@ func TestJobRunRestarts(t *testing.T) {
 
 func TestJobRunPeriodic(t *testing.T) {
 	bus := events.NewEventBus()
-	stopCh := make(chan bool)
+	stopCh := make(chan struct{}, 1)
 	cfg := &Config{
 		Name: "myjob",
 		Exec: []string{"./testdata/test.sh", "doStuff", "runPeriodicTest"},
@@ -208,7 +208,7 @@ func TestJobRunPeriodic(t *testing.T) {
 func TestJobMaintenance(t *testing.T) {
 	testFunc := func(t *testing.T, startingState JobStatus, event events.Event) JobStatus {
 		bus := events.NewEventBus()
-		stopCh := make(chan bool)
+		stopCh := make(chan struct{}, 1)
 		cfg := &Config{
 			Name: "myjob",
 			Exec: "true",
