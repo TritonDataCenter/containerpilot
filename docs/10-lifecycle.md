@@ -17,7 +17,7 @@ By default every job will emit events for the lifecycle of its process: when the
 
 ## What is an event?
 
-An event is a message about a change in the state of the container and its jobs. Every ContainerPilot job receives all the events as an asynchronous but ordered stream of messages. The events include the start of the container, a change in the health of a job, the exit (successful or not) of each job, a change to the state of a `watch`, the expiration of timeouts, etc. (A full listing with detailed explanation of each is available in the [job configuration](./30-configuration.md/34-jobs.md) section.)
+An event is a message about a change in the state of the container and its jobs. Every ContainerPilot job receives all the events as an asynchronous but ordered stream of messages. The events include the start of the container, a change in the health of a job, the exit (successful or not) of each job, a change to the state of a `watch`, the expiration of timeouts, etc. (A full listing with detailed explanation of each is available in the [job configuration](./30-configuration/34-jobs.md) section.)
 
 Events are internal to a single instance of ContainerPilot; they are not shared to other containers. The only way the information about a job's health can be seen by other containers is if a job has been configured for service discovery in Consul and the other containers have a `watch` for that information.
 
