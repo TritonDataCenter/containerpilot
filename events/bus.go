@@ -126,7 +126,11 @@ func (bus *EventBus) Publish(event Event) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
 	log.Debugf("event: %v", event)
-	collector.WithLabelValues(event.Code.String(), event.Source).Inc()
+
+	if event.Code.String() != "Metric" {
+		collector.WithLabelValues(event.Code.String(), event.Source).Inc()
+	}
+
 	for subscriber := range bus.registry {
 		// sending to an unsubscribed Subscriber shouldn't be a runtime
 		// error, so this is in intentionally allowed to panic here
