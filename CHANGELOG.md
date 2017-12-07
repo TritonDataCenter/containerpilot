@@ -1,4 +1,16 @@
-## 3.6.1 (Unreleased)
+## 3.6.2 (Unreleased)
+
+## 3.6.1 (December 7th, 2017)
+
+BUG FIXES:
+
+- Clean-up core signals handler by removing unnecessary cruft (#533)
+- Clean-up a few things around global/job shutdown (#533)
+- Add optional debug logging of timer/timeout events (#534)
+- Prevent overzealous collection of Metric events through Prometheus (#536)
+- docs: fix typo in link to job config spec (#537)
+
+SHA1 57857530356708e9e8672d133b3126511fb785ab
 
 ## 3.6.0 (November 14th, 2017)
 
