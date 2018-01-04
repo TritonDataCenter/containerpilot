@@ -88,20 +88,11 @@ func (l *Config) Init() error {
 type DefaultLogFormatter struct {
 }
 
-// RFC3339logWriter io.Writer that outputs RFC3339 dates
-type RFC3339logWriter struct {
-}
-
-func (writer RFC3339logWriter) Write(bytes []byte) (int, error) {
-	return fmt.Print(time.Now().Format(time.RFC3339Nano) + " " + string(bytes))
-}
-
 // Format formats the logrus entry by passing it to the "log" package
 func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-
 	b := &bytes.Buffer{}
-	logger := log.New(new(RFC3339logWriter), "", 0)
-	logger.Println(entry.Message)
+	logger := log.New(b, "", 0)
+	logger.Println(time.Now().Format(time.RFC3339Nano) + " " + string(entry.Message))
 	// Panic and Fatal are handled by logrus automatically
 	return b.Bytes(), nil
 }
