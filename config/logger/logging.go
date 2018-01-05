@@ -59,7 +59,9 @@ func (l *Config) Init() error {
 	case "json":
 		formatter = &logrus.JSONFormatter{}
 	case "default":
-		formatter = &DefaultLogFormatter{}
+		formatter = &DefaultLogFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		}
 	default:
 		return fmt.Errorf("Unknown log format '%s'", l.Format)
 	}
@@ -86,13 +88,14 @@ func (l *Config) Init() error {
 
 // DefaultLogFormatter delegates formatting to standard go log package
 type DefaultLogFormatter struct {
+	TimestampFormat string
 }
 
 // Format formats the logrus entry by passing it to the "log" package
 func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	b := &bytes.Buffer{}
 	logger := log.New(b, "", 0)
-	logger.Println(time.Now().Format(time.RFC3339Nano) + " " + string(entry.Message))
+	logger.Println(time.Now().Format(f.TimestampFormat) + " " + string(entry.Message))
 	// Panic and Fatal are handled by logrus automatically
 	return b.Bytes(), nil
 }
