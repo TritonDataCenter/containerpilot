@@ -95,7 +95,18 @@ type DefaultLogFormatter struct {
 func (f *DefaultLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	b := &bytes.Buffer{}
 	logger := log.New(b, "", 0)
-	logger.Println(time.Now().Format(f.TimestampFormat) + " " + string(entry.Message))
+
+	fields := ""
+	if len(entry.Data) != 0 {
+		if jobName := entry.Data["job"]; jobName != nil {
+			fields = fmt.Sprintf("%s %s", fields, jobName)
+		}
+		if pidID := entry.Data["pid"]; pidID != nil {
+			fields = fmt.Sprintf("%s %d", fields, pidID)
+		}
+	}
+
+	logger.Println(time.Now().Format(f.TimestampFormat) + fields + " " + string(entry.Message))
 	// Panic and Fatal are handled by logrus automatically
 	return b.Bytes(), nil
 }
