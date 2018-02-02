@@ -57,7 +57,9 @@ func (l *Config) Init() error {
 	case "text":
 		formatter = &logrus.TextFormatter{}
 	case "json":
-		formatter = &logrus.JSONFormatter{}
+		formatter = &logrus.JSONFormatter{
+			TimestampFormat: time.RFC3339Nano,
+		}
 	case "default":
 		formatter = &DefaultLogFormatter{
 			TimestampFormat: time.RFC3339Nano,
