@@ -52,6 +52,21 @@ func TestJobConfigServiceWithPreStart(t *testing.T) {
 	assert.Nil(job1.serviceDefinition, "config for job1.serviceDefinition")
 }
 
+func TestJobConfigHealthTimeout(t *testing.T) {
+	jobs := loadTestConfig(t)
+	assert := assert.New(t)
+
+	job0 := jobs[0]
+	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
+	assert.Equal(job0.heartbeatInterval, time.Duration(10) * time.Second, "config for job0.Health")
+	assert.Equal(job0.healthCheckExec.Timeout, time.Duration(5) * time.Second, "config for job0.Name.Health")
+
+	job1 := jobs[1]
+	assert.Equal(job1.Name, "serviceB", "config for job1.Name")
+	assert.Equal(job1.heartbeatInterval, time.Duration(10) * time.Second, "config for job1.Health")
+	assert.Equal(job1.healthCheckExec.Timeout, job1.heartbeatInterval, "config for job1.Health")
+}
+
 func TestJobConfigServiceWithArrayExec(t *testing.T) {
 	jobs := loadTestConfig(t)
 	assert := assert.New(t)

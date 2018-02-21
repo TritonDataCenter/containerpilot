@@ -297,7 +297,7 @@ func (cfg *Config) validateHealthCheck() error {
 		}
 		checkTimeout = parsedTimeout
 	} else {
-		checkTimeout = cfg.execTimeout
+		checkTimeout = cfg.heartbeatInterval
 	}
 
 	if cfg.Health.CheckExec != nil {

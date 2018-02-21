@@ -1,0 +1,23 @@
+[
+  {
+    name: "serviceA",
+    port: 80,
+    exec: "/bin/serviceA",
+    health: {
+      exec: "/bin/healthCheckA.sh",
+      interval: 10,
+      ttl: 20,
+      timeout: "5s"
+    }
+  },
+  {
+    name: "serviceB",
+    port: 80,
+    exec: "/bin/serviceB",
+    health: {
+      exec: "/bin/healthCheckB.sh",
+      interval: 10,
+      ttl: 20,
+    }
+  }
+]
