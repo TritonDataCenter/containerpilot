@@ -98,8 +98,16 @@ func FromConfigs(cfgs []*Config) []*Job {
 	return jobs
 }
 
-// SendHeartbeat sends a heartbeat for this Job's service
-func (job *Job) SendHeartbeat() {
+// registerUnhealthyService registers this Job's service with status set to
+// critical. Will only register the service if it does not already exist.
+func (job *Job) registerUnhealthyService() {
+	if job.Service != nil {
+		job.Service.RegisterUnhealthy()
+	}
+}
+
+// sendHeartbeat sends a heartbeat for this Job's service
+func (job *Job) sendHeartbeat() {
 	if job.Service != nil {
 		job.Service.SendHeartbeat()
 	}
@@ -240,7 +248,7 @@ func (job *Job) onHeartbeatTimerExpired(ctx context.Context) processEventStatus 
 		} else if job.Service != nil {
 			// this is the case for non-checked but advertised
 			// services like the telemetry endpoint
-			job.SendHeartbeat()
+			job.sendHeartbeat()
 		}
 	}
 	return jobContinue
@@ -269,6 +277,7 @@ func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusUnhealthy)
 		job.Publish(events.Event{events.StatusUnhealthy, job.Name})
+		job.registerUnhealthyService()
 	}
 	return jobContinue
 }
@@ -277,7 +286,7 @@ func (job *Job) onHealthCheckPassed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusHealthy)
 		job.Publish(events.Event{events.StatusHealthy, job.Name})
-		job.SendHeartbeat()
+		job.sendHeartbeat()
 	}
 	return jobContinue
 }

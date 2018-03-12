@@ -80,6 +80,7 @@ func TestWithConsul(t *testing.T) {
 	testServer.WaitForAPI()
 
 	t.Run("TestConsulTTLPass", testConsulTTLPass(testServer))
+	t.Run("TestConsulRegisterUnhealthy", testConsulRegisterUnhealthy(testServer))
 	t.Run("TestConsulReregister", testConsulReregister(testServer))
 	t.Run("TestConsulCheckForChanges", testConsulCheckForChanges(testServer))
 	t.Run("TestConsulEnableTagOverride", testConsulEnableTagOverride(testServer))
@@ -97,6 +98,22 @@ func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
 		check := checks[checkID]
 		if check.Status != "passing" {
 			t.Fatalf("status of check %s should be 'passing' but is %s", checkID, check.Status)
+		}
+	}
+}
+
+func testConsulRegisterUnhealthy(testServer *TestServer) func(*testing.T) {
+	return func(t *testing.T) {
+		consul, _ := NewConsul(testServer.HTTPAddr)
+		name := fmt.Sprintf("TestConsulRegisterUnhealthy")
+		service := generateServiceDefinition(name, consul)
+		checkID := fmt.Sprintf("service:%s", service.ID)
+
+		service.RegisterUnhealthy() // force registration and 1st heartbeat
+		checks, _ := consul.Agent().Checks()
+		check := checks[checkID]
+		if check.Status != "critical" {
+			t.Fatalf("status of check %s should be 'critical' but is %s", checkID, check.Status)
 		}
 	}
 }
