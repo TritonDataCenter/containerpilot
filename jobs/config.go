@@ -168,7 +168,7 @@ func (cfg *Config) valdiateInitialStatus() error {
 	if cfg.InitialStatus != "passing" &&
 		cfg.InitialStatus != "warning" &&
 		cfg.InitialStatus != "critical" {
-		return fmt.Errorf("job[%s].initialStatus must be one of 'passing', 'warning' or 'critical'.",
+		return fmt.Errorf("job[%s].initialStatus must be one of 'passing', 'warning' or 'critical'",
 			cfg.Name)
 	}
 
