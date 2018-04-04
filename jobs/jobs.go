@@ -98,18 +98,17 @@ func FromConfigs(cfgs []*Config) []*Job {
 	return jobs
 }
 
-// registerUnhealthyService registers this Job's service with status set to
-// critical. Will only register the service if it does not already exist.
-func (job *Job) registerUnhealthyService() {
-	if job.Service != nil {
-		job.Service.RegisterUnhealthy()
-	}
-}
-
 // sendHeartbeat sends a heartbeat for this Job's service
 func (job *Job) sendHeartbeat() {
 	if job.Service != nil {
 		job.Service.SendHeartbeat()
+	}
+}
+
+// checkRegistration registers this Job's service if it isn't already registered.
+func (job *Job) checkRegistration() {
+	if job.Service != nil && job.Service.InitialStatus != "" {
+		job.Service.RegisterWithInitialStatus()
 	}
 }
 
@@ -167,6 +166,9 @@ func (job *Job) Run(pctx context.Context, completedCh chan struct{}) {
 			completedCh <- struct{}{}
 		}()
 		for {
+			// Check if job's service has been registered. Doing it inside the event
+			// loop to retry if consul registration fails.
+			job.checkRegistration()
 			select {
 			case event, ok := <-job.Rx:
 				if !ok || event == events.QuitByTest {
@@ -277,7 +279,6 @@ func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusUnhealthy)
 		job.Publish(events.Event{events.StatusUnhealthy, job.Name})
-		job.registerUnhealthyService()
 	}
 	return jobContinue
 }

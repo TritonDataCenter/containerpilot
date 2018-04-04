@@ -80,7 +80,7 @@ func TestWithConsul(t *testing.T) {
 	testServer.WaitForAPI()
 
 	t.Run("TestConsulTTLPass", testConsulTTLPass(testServer))
-	t.Run("TestConsulRegisterUnhealthy", testConsulRegisterUnhealthy(testServer))
+	t.Run("TestConsulRegisterWithInitialStatus", testConsulRegisterWithInitialStatus(testServer))
 	t.Run("TestConsulReregister", testConsulReregister(testServer))
 	t.Run("TestConsulCheckForChanges", testConsulCheckForChanges(testServer))
 	t.Run("TestConsulEnableTagOverride", testConsulEnableTagOverride(testServer))
@@ -102,18 +102,18 @@ func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
 	}
 }
 
-func testConsulRegisterUnhealthy(testServer *TestServer) func(*testing.T) {
+func testConsulRegisterWithInitialStatus(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
 		consul, _ := NewConsul(testServer.HTTPAddr)
-		name := fmt.Sprintf("TestConsulRegisterUnhealthy")
+		name := fmt.Sprintf("TestConsulRegisterWithInitialStatus")
 		service := generateServiceDefinition(name, consul)
 		checkID := fmt.Sprintf("service:%s", service.ID)
 
-		service.RegisterUnhealthy() // force registration and 1st heartbeat
+		service.RegisterWithInitialStatus() // force registration with initial status
 		checks, _ := consul.Agent().Checks()
 		check := checks[checkID]
-		if check.Status != "critical" {
-			t.Fatalf("status of check %s should be 'critical' but is %s", checkID, check.Status)
+		if check.Status != "warning" {
+			t.Fatalf("status of check %s should be 'warning' but is %s", checkID, check.Status)
 		}
 	}
 }
@@ -207,6 +207,7 @@ func generateServiceDefinition(serviceName string, consul *Consul) *ServiceDefin
 		ID:        serviceName,
 		Name:      serviceName,
 		IPAddress: "192.168.1.1",
+		InitialStatus: "warning",
 		TTL:       5,
 		Port:      9000,
 		Consul:    consul,

@@ -24,6 +24,7 @@ type Config struct {
 
 	// service discovery
 	Port              int           `mapstructure:"port"`
+	InitialStatus     string        `mapstructure:"initialStatus"`
 	Interfaces        interface{}   `mapstructure:"interfaces"`
 	Tags              []string      `mapstructure:"tags"`
 	ConsulExtras      *ConsulExtras `mapstructure:"consul"`
@@ -144,12 +145,34 @@ func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
 	if (cfg.Port == 0 || disc == nil) && cfg.Name != "" {
 		return nil
 	}
+
+	// we only need to validate initialStatus if we're doing discovery.
+	if err := cfg.valdiateInitialStatus(); err != nil {
+		return err
+	}
+
 	// we only need to validate the name if we're doing discovery;
 	// we'll just take the name of the exec otherwise
 	if err := services.ValidateName(cfg.Name); err != nil {
 		return err
 	}
 	return cfg.addDiscoveryConfig(disc)
+}
+
+func (cfg *Config) valdiateInitialStatus() error {
+	// initial status is optional
+	if cfg.InitialStatus == "" {
+		return nil
+	}
+
+	if cfg.InitialStatus != "passing" &&
+		cfg.InitialStatus != "warning" &&
+		cfg.InitialStatus != "critical" {
+		return fmt.Errorf("job[%s].initialStatus must be one of 'passing', 'warning' or 'critical'.",
+			cfg.Name)
+	}
+
+	return nil
 }
 
 func (cfg *Config) validateWhen() error {
@@ -407,6 +430,7 @@ func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
 		Port:                           cfg.Port,
 		TTL:                            cfg.ttl,
 		Tags:                           cfg.Tags,
+		InitialStatus:                  cfg.InitialStatus,
 		IPAddress:                      ipAddress,
 		DeregisterCriticalServiceAfter: deregAfter,
 		EnableTagOverride:              enableTagOverride,

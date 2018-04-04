@@ -126,6 +126,21 @@ func TestJobConfigServiceNonAdvertised(t *testing.T) {
 	assert.Equal(job.restartLimit, unlimited, "config for job.restartLimit")
 }
 
+func TestJobConfigServiceWithInitialStatus(t *testing.T) {
+	jobs := loadTestConfig(t)
+	assert := assert.New(t)
+
+	job0 := jobs[0]
+	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
+	assert.Equal(job0.Port, 8080, "config for job0.Port")
+	assert.Equal(job0.InitialStatus, "warning", "config for job0.InitialStatus")
+
+	// job1.InitialStatus should not be validated since the job has no service.
+	job1 := jobs[1]
+	assert.Equal(job1.Name, "serviceB", "config for job1.Name")
+	assert.Equal(job1.InitialStatus, "invalid-value", "config for job1.InitialStatus")
+}
+
 func TestJobConfigPeriodicTask(t *testing.T) {
 	job := loadTestConfig(t)[0]
 	assert := assert.New(t)
@@ -257,6 +272,10 @@ func TestJobConfigValidateDiscovery(t *testing.T) {
 	cfgB := `[{name: "myName", port: 80, interfaces: ["inet", "lo0"], health: {interval: 1}}]`
 	_, err = NewConfigs(tests.DecodeRawToSlice(cfgB), noop)
 	assert.Error(err, "job[myName].health.ttl must be > 0")
+
+	cfgC := `[{name: "myName", port: 80, initialStatus: "invalid", interfaces: ["inet", "lo0"], health: {interval: 1, ttl: 1}}]`
+	_, err = NewConfigs(tests.DecodeRawToSlice(cfgC), noop)
+	assert.Error(err, "job[myName].intialStatus must be one of 'passing', 'warning' or 'critical'.")
 
 	// no health check shouldn't return an error
 	cfgD := `[{name: "myName", port: 80, interfaces: ["inet", "lo0"], health: {interval: 1, ttl: 1}}]`
