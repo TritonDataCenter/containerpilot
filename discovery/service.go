@@ -15,6 +15,7 @@ type ServiceDefinition struct {
 	Port                           int
 	TTL                            int
 	Tags                           []string
+	InitialStatus									 string
 	IPAddress                      string
 	EnableTagOverride              bool
 	DeregisterCriticalServiceAfter string
@@ -49,9 +50,29 @@ func (service *ServiceDefinition) SendHeartbeat() error {
 	return nil
 }
 
-// RegisterUnhealthy registers the service with status set to critical.
-func (service *ServiceDefinition) RegisterUnhealthy() {
-	service.register(api.HealthCritical)
+// Register the service with its configured initial status.
+func (service *ServiceDefinition) RegisterWithInitialStatus() {
+	if service.wasRegistered {
+		return
+	}
+
+	status := ""
+
+	switch service.InitialStatus {
+		case "passing":
+			status = api.HealthPassing
+			break
+		case "warning":
+			status = api.HealthWarning
+			break
+		case "critical":
+			status = api.HealthCritical
+			break
+	}
+
+	log.Infof("Registering service %v with initial status set to %v",
+	          service.Name, service.InitialStatus)
+	service.register(status)
 }
 
 // Register registers the service with the given status in Consul.
