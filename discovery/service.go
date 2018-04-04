@@ -15,7 +15,7 @@ type ServiceDefinition struct {
 	Port                           int
 	TTL                            int
 	Tags                           []string
-	InitialStatus									 string
+	InitialStatus                  string
 	IPAddress                      string
 	EnableTagOverride              bool
 	DeregisterCriticalServiceAfter string
