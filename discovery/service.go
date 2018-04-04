@@ -50,7 +50,7 @@ func (service *ServiceDefinition) SendHeartbeat() error {
 	return nil
 }
 
-// Register the service with its configured initial status.
+// RegisterWithInitialStatus registers the service with its configured initial status.
 func (service *ServiceDefinition) RegisterWithInitialStatus() {
 	if service.wasRegistered {
 		return
