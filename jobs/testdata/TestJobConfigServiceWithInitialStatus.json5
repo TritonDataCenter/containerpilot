@@ -2,7 +2,7 @@
   {
     name: "serviceA",
     port: 8080,
-    initialStatus: "warning",
+    initial_status: "warning",
     exec: "/bin/serviceA",
     health: {
       exec: "/bin/to/healthcheck/for/service/A.sh",
@@ -12,7 +12,7 @@
   },
   {
     name: "serviceB",
-    initialStatus: "invalid-value",
+    initial_status: "invalid-value",
     exec: "/bin/serviceB",
   }
 ]
