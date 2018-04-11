@@ -24,7 +24,7 @@ type Config struct {
 
 	// service discovery
 	Port              int           `mapstructure:"port"`
-	InitialStatus     string        `mapstructure:"initialStatus"`
+	InitialStatus     string        `mapstructure:"initial_status"`
 	Interfaces        interface{}   `mapstructure:"interfaces"`
 	Tags              []string      `mapstructure:"tags"`
 	ConsulExtras      *ConsulExtras `mapstructure:"consul"`
