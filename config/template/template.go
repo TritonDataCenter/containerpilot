@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -63,17 +64,43 @@ func envFunc(env string) string {
 	return os.Getenv(env)
 }
 
+func ensureInt(intv interface{}) (int, error) {
+	switch intv.(type) {
+	case string:
+		ret, err := strconv.Atoi(intv.(string))
+		if err != nil {
+			return 0, err
+		}
+		return ret, nil
+	default:
+		return intv.(int), nil
+	}
+}
+
 // loop accepts 1 or two parameters
 // loop 5 returns 0 1 2 3 4 or loop 5 8 returns 5 6 7 or loop 5 1 returns 5 4 3 2
-func loop(params ...int) ([]int, error) {
+// loop also accepts a string or environment variable in the form of loop 0 .COUNT
+func loop(params ...interface{}) ([]int, error) {
 	var start, stop int
 	result := []int{}
 
 	switch len(params) {
 	case 1:
-		start, stop = 0, params[0]
+		firstParam, err := ensureInt(params[0])
+		if err != nil {
+			return nil, err
+		}
+		start, stop = 0, firstParam
 	case 2:
-		start, stop = params[0], params[1]
+		firstParam, err := ensureInt(params[0])
+		if err != nil {
+			return nil, err
+		}
+		secondParam, err := ensureInt(params[1])
+		if err != nil {
+			return nil, err
+		}
+		start, stop = firstParam, secondParam
 	default:
 		return nil, fmt.Errorf("loop: wrong number of arguments, expected 1 or 2"+
 			", but got %d", len(params))
