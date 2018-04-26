@@ -31,13 +31,7 @@ func Run() {
 // passes them thru to the ContainerPilot worker process.
 func passThroughSignals(pid int) {
 	sigRecv := make(chan os.Signal, 1)
-	signal.Notify(sigRecv,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGHUP,
-		syscall.SIGUSR1,
-		syscall.SIGUSR2,
-	)
+	signal.Notify(sigRecv, syscall.SIGTERM, syscall.SIGINT, syscall.SIGUSR1)
 	go func() {
 		for sig := range sigRecv {
 			switch sig {
@@ -45,12 +39,8 @@ func passThroughSignals(pid int) {
 				syscall.Kill(pid, syscall.SIGINT)
 			case syscall.SIGTERM:
 				syscall.Kill(pid, syscall.SIGTERM)
-			case syscall.SIGHUP:
-				syscall.Kill(pid, syscall.SIGHUP)
 			case syscall.SIGUSR1:
 				syscall.Kill(pid, syscall.SIGUSR1)
-			case syscall.SIGUSR2:
-				syscall.Kill(pid, syscall.SIGUSR2)
 			}
 		}
 	}()

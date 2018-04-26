@@ -183,40 +183,28 @@ func (job *Job) processEvent(ctx context.Context, event events.Event) processEve
 	}
 
 	switch event {
-
 	case events.Event{Code: events.TimerExpired, Source: heartbeatSource}:
 		return job.onHeartbeatTimerExpired(ctx)
-
 	case job.startTimeoutEvent:
 		return job.onStartTimeoutExpired(ctx)
-
 	case events.Event{Code: events.TimerExpired, Source: runEverySource}:
 		return job.onRunEveryTimerExpired(ctx)
-
 	case events.Event{Code: events.ExitFailed, Source: healthCheckName}:
 		return job.onHealthCheckFailed(ctx)
-
 	case events.Event{Code: events.ExitSuccess, Source: healthCheckName}:
 		return job.onHealthCheckPassed(ctx)
-
-	case events.Event{Code: events.Quit, Source: job.Name},
+	case
+		events.Event{Code: events.Quit, Source: job.Name},
 		events.GlobalShutdown:
 		return job.onQuit(ctx)
-
 	case events.GlobalEnterMaintenance:
 		return job.onEnterMaintenance(ctx)
-
 	case events.GlobalExitMaintenance:
 		return job.onExitMaintenance(ctx)
-
-	case events.Event{Code: events.ExitSuccess, Source: job.Name},
+	case
+		events.Event{Code: events.ExitSuccess, Source: job.Name},
 		events.Event{Code: events.ExitFailed, Source: job.Name}:
 		return job.onExecExit(ctx)
-
-	case events.Event{Code: events.Signal, Source: "SIGHUP"},
-		events.Event{Code: events.Signal, Source: "SIGUSR2"}:
-		return job.onSignalEvent(ctx, event.Source)
-
 	case job.startEvent:
 		return job.onStartEvent(ctx)
 	}
@@ -336,14 +324,6 @@ func (job *Job) onExecExit(ctx context.Context) processEventStatus {
 	job.startEvent = events.NonEvent
 	job.setStatus(statusUnknown)
 	return jobHalt
-}
-
-func (job *Job) onSignalEvent(ctx context.Context, sig string) processEventStatus {
-	if job.startEvent.Code == events.Signal &&
-		job.startEvent.Source == sig {
-		job.startJobExec(ctx)
-	}
-	return jobContinue
 }
 
 func (job *Job) onStartEvent(ctx context.Context) processEventStatus {

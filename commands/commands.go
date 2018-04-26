@@ -8,10 +8,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -53,31 +49,6 @@ func NewCommand(rawArgs interface{}, timeout time.Duration, fields log.Fields) (
 		cmd.logger = *log.WithFields(cmd.fields)
 	}
 	return cmd, nil
-}
-
-// EnvName formats Name for use as an environment variable name (PID).
-func (c *Command) EnvName() string {
-	if c.Name == "" {
-		return c.Name
-	}
-
-	var name string
-	name = filepath.Base(c.Name)
-
-	// remove command extension if exec was used as name
-	if strings.Contains(name, ".") {
-		name = strings.Replace(name, filepath.Ext(name), "", 1)
-	}
-
-	// convert all non-alphanums into an underscore
-	matchSyms := regexp.MustCompile("[^[:alnum:]]+")
-	name = matchSyms.ReplaceAllString(name, "_")
-
-	// compact multiple underscores into singles
-	matchScores := regexp.MustCompile("__+")
-	name = matchScores.ReplaceAllString(name, "_")
-
-	return strings.ToUpper(name)
 }
 
 // Run creates an exec.Cmd for the Command and runs it asynchronously.
@@ -135,11 +106,6 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		// our logger fields
 		if c.Cmd != nil && c.Cmd.Process != nil {
 			pid := c.Cmd.Process.Pid
-
-			envName := fmt.Sprintf("CONTAINERPILOT_%s_PID", c.EnvName())
-			os.Setenv(envName, strconv.Itoa(pid))
-			defer os.Unsetenv(envName)
-
 			if len(c.fields) > 0 {
 				c.fields["pid"] = pid
 				c.logger = *log.WithFields(c.fields)
