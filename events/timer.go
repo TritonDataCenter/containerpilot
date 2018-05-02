@@ -58,7 +58,12 @@ func NewEventTimer(
 				return
 			case <-ticker.C:
 				event := Event{Code: TimerExpired, Source: name}
-				log.Debugf("timer: %v", event)
+				// do not log the telemetry health check timer ticks since this
+				// log statement is called once for every internal heartbeat
+				// check, which is a bit excessive under DEBUG logging [GH-556]
+				if event.Source != "containerpilot.heartbeat" {
+					log.Debugf("timer: %v", event)
+				}
 				rx <- event
 			}
 		}
