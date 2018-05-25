@@ -76,7 +76,7 @@ jobs: [
     // 'port', 'tags', 'interfaces', and 'consul' define options for
     // service discovery with Consul
     port: 80,
-    initialStatus: "warning", // optional status to immediately register service with
+    initial_status: "warning", // optional status to immediately register service with
     tags: [
       "app",
       "prod"
@@ -225,9 +225,9 @@ jobs: [
 ]
 ```
 
-##### `initialStatus`
+##### `initial_status`
 
-The `initialStatus` field is optional and specifies which status to immediately register the service with. If not specified, the service will not be registered in consul until after the first successful health check. Valid values are `passing`, `warning` or `critical`.
+The `initial_status` field is optional and specifies which status to immediately register the service with. If not specified, the service will not be registered in consul until after the first successful health check. Valid values are `passing`, `warning` or `critical`.
 
 ##### `tags`
 
