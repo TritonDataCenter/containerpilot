@@ -54,7 +54,7 @@ func parseEnvironment(environ []string) Environment {
 		return env
 	}
 	for _, e := range environ {
-		kv := strings.Split(e, "=")
+		kv := strings.SplitN(e, "=", 2)
 		env[kv[0]] = kv[1]
 	}
 	return env
