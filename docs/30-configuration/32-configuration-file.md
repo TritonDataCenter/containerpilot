@@ -267,7 +267,7 @@ ContainerPilot configuration has template support. If you have an environment va
 
 ##### `default`
 
-Provides a default value if the variable is empty. For example: `{{ .CONSUL | default "localhost}}` would output `localhost` if the `CONSUL` env var is not set.
+Provides a default value if the variable is empty. For example: `{{ .CONSUL | default "localhost" }}` would output `localhost` if the `CONSUL` env var is not set.
 
 ##### `split` and `join`
 
