@@ -69,7 +69,7 @@ jobs: [
     health: {
       exec: "/usr/bin/curl --fail -s -o /dev/null http://localhost/app",
       interval: 5,
-      tll: 10,
+      ttl: 10,
       timeout: "5s",
     },
 
