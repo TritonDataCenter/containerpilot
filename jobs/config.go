@@ -21,6 +21,8 @@ const taskMinDuration = time.Millisecond
 type Config struct {
 	Name string      `mapstructure:"name"`
 	Exec interface{} `mapstructure:"exec"`
+	UID int          `mapstructure:"uid"`
+	GID int          `mapstructure:"gid"`
 
 	// service discovery
 	Port              int           `mapstructure:"port"`
@@ -289,6 +291,8 @@ func (cfg *Config) validateExec() error {
 			cfg.Name = cmd.Exec
 		}
 		cmd.Name = cfg.Name
+        cmd.UID = cfg.UID
+        cmd.GID = cfg.GID
 		cfg.exec = cmd
 	}
 	return nil
