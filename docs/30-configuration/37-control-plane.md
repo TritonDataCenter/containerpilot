@@ -33,7 +33,7 @@ Usage of ./containerpilot:
         Show version identifier and quit.
 ```
 
-##### `PutEnv POST /v3/env`
+##### `PutEnv POST /v3/environ`
 
 This API allows a client to update the environment variables that ContainerPilot provides to jobs and health checks. The body of the POST must be in JSON format. The keys will be used as the environment variable to set, and the values will be the values to set for those environment variables. The environment variables take effect for all future processes spawned and override any existing environment variables. Unsetting an variable is supporting by passing an empty string or `null` as the JSON value for that key. This API returns HTTP400 if the key is not a valid environment variable name, otherwise HTTP200 with no body.
 
@@ -49,7 +49,7 @@ This API allows a client to update the environment variables that ContainerPilot
 curl -XPOST \
     -d '{"ENV1": "value1", "ENV2": "value2", "ENV_TO_CLEAR": ""}' \
     --unix-socket /var/containerpilot.sock \
-    http:/v3/env
+    http:/v3/environ
 ```
 
 ##### `PutMetric POST /v3/metric`
@@ -68,7 +68,7 @@ This API allows a client to update Prometheus metrics. The body of the POST must
 curl -XPOST \
     -d '{"my_counter_metric": 2, "my_gauge_metric": 42.42}' \
     --unix-socket /var/containerpilot.sock \
-    http:/v3/environ
+    http:/v3/metric
 ```
 
 ##### `Reload POST /v3/reload`
