@@ -12,6 +12,8 @@ docker-compose up -d app
 
 app="$(docker-compose ps -q app)"
 IP=$(docker inspect -f '{{ .NetworkSettings.Networks.testtelemetry_default.IPAddress }}' "$app")
+docker exec -it "$app" cat /etc/containerpilot.json5
+docker exec -it "$app" cat /sensor.sh
 
 # This interface takes a while to converge
 for _ in $(seq 0 20); do
