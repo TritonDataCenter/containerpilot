@@ -18,7 +18,7 @@ docker exec -it "$app" /bin/containerpilot -putmetric 'containerpilot_app_some_o
 for _ in $(seq 0 20); do
     sleep 1
     metrics=$(docker exec -it "$app" curl -s "${IP}:9090/metrics")
-    echo "$metrics" && break
+    echo "$metrics" | grep 'containerpilot_app_some_counter 42' && break
 done || (echo "did not get expected metrics output" && exit 1)
 
 # check last /metrics scrape for the rest of the events
