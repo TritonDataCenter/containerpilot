@@ -21,8 +21,7 @@ GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED := 0
 GOEXPERIMENT := framepointer
 
-CONSUL_VERSION := 1.0.0
-GLIDE_VERSION := 0.12.3
+CONSUL_VERSION := 1.6.3
 
 ## display this help message
 help:
@@ -41,7 +40,7 @@ help:
 
 ## build the ContainerPilot binary
 build: build/containerpilot
-build/containerpilot:  build/containerpilot_build build/glide-installed */*/*.go */*.go */*/*.go *.go
+build/containerpilot:  build/containerpilot_build */*/*.go */*.go */*/*.go *.go
 	$(docker) go build -o build/containerpilot -ldflags "$(LDFLAGS)"
 	@rm -rf src || true
 
@@ -66,7 +65,7 @@ release: build
 
 ## remove build/test artifacts, test fixtures, and vendor directories
 clean:
-	rm -rf build release cover vendor .glide
+	rm -rf build release cover vendor
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	./scripts/test.sh clean
@@ -76,19 +75,18 @@ clean:
 # NOTE: glide will be replaced with `dep` when its production-ready
 # ref https://github.com/golang/dep
 
-## install any changed packages in the glide.yaml
-vendor: build/glide-installed
-build/glide-installed: build/containerpilot_build glide.yaml
-	$(docker) glide install
-	mkdir -p vendor
-	@echo date > build/glide-installed
+## install any changed packages in go.mod and go.sum
+vendor: build/update
+build/update: build/containerpilot_build go.mod
+	$(docker) go get -u ./...
+	@echo date > build/update
 
-## install all vendored packages in the glide.yaml
+## install all dependencies
 dep-install:
-	mkdir -p vendor
-	$(docker) glide install
-	@echo date > build/glide-installed
+	$(docker) go get -u ./...
+	@echo date > build/update
 
+# Deprecated with go modules:
 # usage DEP=github.com/owner/package make dep-add
 ## fetch a dependency and vendor it via `glide`
 dep-add: build/containerpilot_build
@@ -97,12 +95,9 @@ dep-add: build/containerpilot_build
 # run 'GOOS=darwin make tools' if you're installing on MacOS
 ## set up local dev environment
 tools:
-	@go version | grep 1.9 || (echo 'WARNING: go1.9 should be installed!')
+	@go version | grep 1.13 || (echo 'WARNING: go1.13 should be installed!')
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
-	go get github.com/golang/lint/golint
-	curl --fail -Lso glide.tgz "https://github.com/Masterminds/glide/releases/download/v$(GLIDE_VERSION)/glide-v$(GLIDE_VERSION)-$(GOOS)-$(GOARCH).tar.gz"
-	tar -C "$(GOPATH)/bin" -xzf glide.tgz --strip=1 $(GOOS)-$(GOARCH)/glide
-	rm glide.tgz
+	go get golang.org/x/lint/golint
 	curl --fail -Lso consul.zip "https://releases.hashicorp.com/consul/$(CONSUL_VERSION)/consul_$(CONSUL_VERSION)_$(GOOS)_$(GOARCH).zip"
 	unzip consul.zip -d "$(GOPATH)/bin"
 	rm consul.zip

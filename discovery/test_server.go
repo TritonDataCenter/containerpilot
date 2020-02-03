@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
@@ -64,7 +64,7 @@ type failer struct {
 	failed bool
 }
 
-func (f *failer) Log(args ...interface{}) { fmt.Println(args) }
+func (f *failer) Log(args ...interface{}) { fmt.Println(args...) }
 func (f *failer) FailNow()                { f.failed = true }
 
 // WaitForAPI waits for only the agent HTTP endpoint to start responding. This
