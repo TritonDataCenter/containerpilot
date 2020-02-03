@@ -11,8 +11,7 @@ docker exec -it "$consul" assert ready
 docker-compose up -d app
 
 app="$(docker-compose ps -q app)"
-IP=$(docker inspect -f '{{ .NetworkSettings.Networks.testtelemetry_default.IPAddress }}' "$app")
-docker exec -it "$app" /bin/containerpilot -putmetric 'containerpilot_app_some_other_counter=42'
+IP=$(docker inspect -f '{{ .NetworkSettings.Networks.test_telemetry_default.IPAddress }}' "$app")
 
 # This interface takes a while to converge
 for _ in $(seq 0 20); do
