@@ -85,7 +85,7 @@ This API allows a client to force ContainerPilot to reload its configuration fro
 
 ```
 curl -XPOST \
-    --unix-socket /var/containerpilot.sock \
+    --unix-socket /var/run/containerpilot.sock \
     http:/v3/reload
 ```
 
@@ -105,7 +105,7 @@ When the `disable` endpoint is used, ContainerPilot will exit maintenance mode. 
 
 ```
 curl -XPOST \
-    --unix-socket /var/containerpilot.sock \
+    --unix-socket /var/run/containerpilot.sock \
     http:/v3/maintenance/enable
 ```
 
@@ -134,7 +134,7 @@ This API checks if the ContainerPilot socket is up without mutating any state. T
 *Example HTTP Request*
 
 ```
-curl --unix-socket /var/containerpilot.sock \
+curl --unix-socket /var/run/containerpilot.sock \
     http:/v3/ping
 ```
 
