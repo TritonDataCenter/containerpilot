@@ -13,6 +13,7 @@ steps:
     - name: deps
       path: /go
     commands:
+      - bash ./scripts/install_consul.sh
       - bash ./scripts/unit_test.sh
 
 trigger:
