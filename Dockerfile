@@ -1,4 +1,4 @@
-FROM golang:1.13
+FROM golang:1.14
 
 ENV CONSUL_VERSION=1.6.3
 
