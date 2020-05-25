@@ -1,13 +1,13 @@
 kind: pipeline
 type: docker
-name: default
+name: docker-runner
 
 platform:
   os: linux
   arch: amd64
 
 steps:
-  - name: test
+  - name: unit-tests
     image: golang:1.14
     volumes:
     - name: deps
@@ -15,6 +15,27 @@ steps:
     commands:
       - bash ./scripts/install_consul.sh
       - bash ./scripts/unit_test.sh
+
+trigger:
+  event:
+    - push
+
+kind: pipeline
+type: exec
+name: exec-runner
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: integration-tests
+    environment:
+      COMPOSE_INTERACTIVE_NO_CLI: 1
+    commands:
+      - make build
+      - bash ./scripts/test.sh test all
+      - make clean
 
 trigger:
   event:
