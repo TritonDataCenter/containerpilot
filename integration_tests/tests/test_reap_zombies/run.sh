@@ -8,7 +8,7 @@ set -e
 
 docker-compose up -d consul zombies
 consul=$(docker-compose ps -q consul)
-docker exec -it "$consul" assert ready
+docker exec -i "$consul" assert ready
 
 ID=$(docker-compose ps -q zombies)
 sleep 6

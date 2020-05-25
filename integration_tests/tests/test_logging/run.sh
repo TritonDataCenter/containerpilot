@@ -11,7 +11,7 @@ trap finish EXIT
 
 # start up app & consul and wait for leader election
 docker-compose up -d consul app
-docker exec -it "$(docker-compose ps -q consul)" assert ready
+docker exec -i "$(docker-compose ps -q consul)" assert ready
 
 app=$(docker-compose ps -q app)
 sleep 1 # need time for 1st health checks to fire

@@ -4,7 +4,7 @@
 
 # start up consul and wait for leader election
 docker-compose up -d consul
-docker exec -it "$(docker-compose ps -q consul)" assert ready
+docker exec -i "$(docker-compose ps -q consul)" assert ready
 
 docker-compose up -d app
 APP_ID="$(docker-compose ps -q app)"
