@@ -12,11 +12,10 @@ steps:
     commands:
       - make integration
       - make clean
-
-trigger:
-  event:
-  - push
-  - tag
+    when:
+      event:
+        - pull_request
+        - push
 
 ---
 kind: pipeline
@@ -36,21 +35,20 @@ steps:
     commands:
       - bash ./scripts/install_consul.sh
       - bash ./scripts/unit_test.sh
+    when:
+      event:
+        - pull_request
+        - push
 
   - name: prepare-release
     image: golang:1.14
-    volumes:
-    - name: deps
-      path: /go
     commands:
-      - go build -o build/containerpilot -ldflags -X github.com/teutat3s/containerpilot/version.GitHash=$(shell git rev-parse --short HEAD) -X github.com/teutat3s/containerpilot/version.Version=${DRONE_TAG}
-      - cd build && tar -czf ../release/containerpilot-${DRONE_TAG}.tar.gz containerpilot
+      - go build -o build/containerpilot -ldflags "-X github.com/teutat3s/containerpilot/version.GitHash=$(git rev-parse --short HEAD) -X github.com/teutat3s/containerpilot/version.Version=${DRONE_TAG}"
+      - mkdir release && cd build && tar -czf ../release/containerpilot-${DRONE_TAG}.tar.gz containerpilot
       - cd release && sha1sum containerpilot-${DRONE_TAG}.tar.gz > containerpilot-${DRONE_TAG}.sha1.txt
     when:
-      event: tag
-    depends_on:
-      - unit-tests
-      - integration-tests
+      event:
+        - tag
 
   - name: publish-release
     image: plugins/github-release
@@ -62,16 +60,10 @@ steps:
         - release/containerpilot-${DRONE_TAG}.sha1.txt
       title: "New release: version ${DRONE_TAG}"
     when:
-      event: tag
+      event:
+        - tag
     depends_on:
-      - unit-tests
-      - integration-tests
       - prepare-release
-
-trigger:
-  event:
-  - push
-  - tag
 
 ---
 kind: secret
