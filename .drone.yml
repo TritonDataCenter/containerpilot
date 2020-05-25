@@ -16,9 +16,34 @@ steps:
       - bash ./scripts/install_consul.sh
       - bash ./scripts/unit_test.sh
 
-trigger:
-  event:
-    - push
+  - name: prepare-release
+    image: alpine:3.11
+    commands:
+      - cd build && tar -czf ../release/containerpilot-${DRONE_TAG}.tar.gz containerpilot
+      - cd release && sha1sum containerpilot-${DRONE_TAG}.tar.gz > containerpilot-${DRONE_TAG}.sha1.txt
+    when:
+      event: tag
+    depends_on:
+      - unit-tests
+      - integration-tests
+
+  - name: publish-release
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_api-key
+      files:
+        - release/containerpilot-${DRONE_TAG}.tar.gz
+        - release/containerpilot-${DRONE_TAG}.sha1.txt
+      checksum:
+        - sha1
+      title: New release: version ${DRONE_TAG}
+    when:
+      event: tag
+    depends_on:
+      - unit-tests
+      - integration-tests
+      - prepare-release
 
 ---
 kind: pipeline
@@ -32,12 +57,14 @@ platform:
 steps:
   - name: integration-tests
     environment:
-      COMPOSE_INTERACTIVE_NO_CLI: 1
     commands:
-      - make build
-      - bash ./scripts/test.sh test all
+      - make integration
       - make clean
 
-trigger:
-  event:
-    - push
+---
+kind: secret
+name: github_api-key
+get:
+  path: secret/data/drone/github
+  name: api-key
+
