@@ -45,7 +45,7 @@ steps:
     commands:
       - go build -o build/containerpilot -ldflags "-X github.com/teutat3s/containerpilot/version.GitHash=$(git rev-parse --short HEAD) -X github.com/teutat3s/containerpilot/version.Version=${DRONE_TAG}"
       - mkdir release && cd build && tar -czf ../release/containerpilot-${DRONE_TAG}.tar.gz containerpilot
-      - cd release && sha1sum containerpilot-${DRONE_TAG}.tar.gz > containerpilot-${DRONE_TAG}.sha1.txt
+      - cd ../release && sha1sum containerpilot-${DRONE_TAG}.tar.gz > containerpilot-${DRONE_TAG}.sha1.txt
     when:
       event:
         - tag
