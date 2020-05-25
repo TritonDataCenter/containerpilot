@@ -1,4 +1,25 @@
 kind: pipeline
+type: exec
+name: exec-runner
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: integration-tests
+    environment:
+    commands:
+      - make integration
+      - make clean
+
+trigger:
+  event:
+  - push
+  - tag
+
+---
+kind: pipeline
 type: docker
 name: docker-runner
 
@@ -17,8 +38,12 @@ steps:
       - bash ./scripts/unit_test.sh
 
   - name: prepare-release
-    image: alpine:3.11
+    image: golang:1.14
+    volumes:
+    - name: deps
+      path: /go
     commands:
+      - go build -o build/containerpilot -ldflags -X github.com/teutat3s/containerpilot/version.GitHash=$(shell git rev-parse --short HEAD) -X github.com/teutat3s/containerpilot/version.Version=${DRONE_TAG}
       - cd build && tar -czf ../release/containerpilot-${DRONE_TAG}.tar.gz containerpilot
       - cd release && sha1sum containerpilot-${DRONE_TAG}.tar.gz > containerpilot-${DRONE_TAG}.sha1.txt
     when:
@@ -35,9 +60,7 @@ steps:
       files:
         - release/containerpilot-${DRONE_TAG}.tar.gz
         - release/containerpilot-${DRONE_TAG}.sha1.txt
-      checksum:
-        - sha1
-      title: New release: version ${DRONE_TAG}
+      title: "New release: version ${DRONE_TAG}"
     when:
       event: tag
     depends_on:
@@ -45,21 +68,10 @@ steps:
       - integration-tests
       - prepare-release
 
----
-kind: pipeline
-type: exec
-name: exec-runner
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-  - name: integration-tests
-    environment:
-    commands:
-      - make integration
-      - make clean
+trigger:
+  event:
+  - push
+  - tag
 
 ---
 kind: secret
