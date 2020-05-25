@@ -2,7 +2,7 @@
 
 *An init system for cloud-native distributed applications that automates the process of service discovery, configuration, and lifecycle management inside the container, so you can focus on your apps.*
 
-[![Build Status](https://travis-ci.org/joyent/containerpilot.svg)](https://travis-ci.org/joyent/containerpilot)
+[![Build Status](https://drone.greenbaum.cloud/api/badges/greenbaum.cloud/containerpilot/status.svg)](https://drone.greenbaum.cloud/greenbaum.cloud/containerpilot)
 [![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerpilot/blob/master/LICENSE)
 [![GoDoc](https://godoc.org/github.com/joyent/containerpilot?status.svg)](https://godoc.org/github.com/joyent/containerpilot)
 
