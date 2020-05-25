@@ -59,6 +59,7 @@ steps:
         - release/containerpilot-${DRONE_TAG}.tar.gz
         - release/containerpilot-${DRONE_TAG}.sha1.txt
       title: "New release: version ${DRONE_TAG}"
+      base_url: teutat3s/containerpilot
     when:
       event:
         - tag
