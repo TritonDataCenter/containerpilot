@@ -20,6 +20,7 @@ trigger:
   event:
     - push
 
+---
 kind: pipeline
 type: exec
 name: exec-runner
