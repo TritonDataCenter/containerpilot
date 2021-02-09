@@ -31,4 +31,4 @@ If you have a golang toolchain, `make local build` will build using the architec
 
 ### Building the documentation
 
-The ContainerPilot documentation is deployed on [Joyent's website](https://www.joyent.com/containerpilot/docs). Use the `make kirby` target to build the documentation; the output can be found at `build/docs`.
+The ContainerPilot documentation is deployed on [Joyent's website](https://docs.joyent.com/public-cloud/instances/docker/containerpilot). Use the `make kirby` target to build the documentation; the output can be found at `build/docs`.
