@@ -11,7 +11,7 @@ LDFLAGS := -X ${IMPORT_PATH}/version.GitHash=$(shell git rev-parse --short HEAD)
 
 ROOT := $(shell pwd)
 RUNNER := -v ${ROOT}:/go/src/${IMPORT_PATH} -w /go/src/${IMPORT_PATH} containerpilot_build
-docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
+docker := docker run --disable-content-trust --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
 export PATH :=$(PATH):$(GOPATH)/bin
 
 # flags for local development

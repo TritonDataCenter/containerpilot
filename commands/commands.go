@@ -30,6 +30,8 @@ type Command struct {
 	logger  log.Entry
 	lock    *sync.Mutex
 	fields  log.Fields
+	UID     int
+	GID     int
 }
 
 // NewCommand parses JSON config into a Command
@@ -101,7 +103,20 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if os.Getuid() == 0 {
+	    if c.UID != 0 && c.GID != 0 {
+            cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(c.UID), Gid: uint32(c.GID)}
+        } else if c.UID != 0 {
+            cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(c.UID)}
+        } else if c.GID != 0 {
+            cmd.SysProcAttr.Credential = &syscall.Credential{Gid: uint32(c.GID)}
+        }
+   	} else {
+   	    log.Debugf("%s.Skipping uid and gid (ContainerPilot is not running as root)", c.Name)
+   	}
+
 	c.Cmd = cmd
 	ctx, cancel := getContext(pctx, c.Timeout)
 

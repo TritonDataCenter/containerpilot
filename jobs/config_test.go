@@ -23,6 +23,8 @@ func TestJobConfigServiceWithPreStart(t *testing.T) {
 	// job0 is the main application
 	job0 := jobs[0]
 	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
+	assert.Equal(job0.UID, 1, "config for job0.UID")
+	assert.Equal(job0.GID, 1, "config for job0.GID")
 	assert.Equal(job0.Exec, "/bin/serviceA.sh", "config for job0.Exec")
 	assert.Equal(job0.exec.Exec, "/bin/serviceA.sh",
 		"config for job.0.Exec.exec")
