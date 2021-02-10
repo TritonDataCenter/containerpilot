@@ -14,10 +14,12 @@ func TestParseEnvironment(t *testing.T) {
 	parsed = parseEnvironment([]string{
 		"VAR1=test",
 		"VAR2=test2",
+		"VAR3=test3=w/equals==",
 	})
 	assert.Equal(t, Environment{
 		"VAR1": "test",
 		"VAR2": "test2",
+		"VAR3": "test3=w/equals==",
 	}, parsed)
 }
 
