@@ -81,6 +81,10 @@ jobs: [
       "app",
       "prod"
     ],
+    meta: {
+      keyA: "A",
+      keyB: "B",   
+    },    
     interfaces: [
       "eth0",
       "eth1[1]",
@@ -232,6 +236,10 @@ The `initial_status` field is optional and specifies which status to immediately
 ##### `tags`
 
 The `tags` field is an optional array of tags to be used when the job is registered as a service in Consul. Other containers can use these tags in `watches` to filter a service by tag.
+
+##### `meta`
+
+The `meta` field is an optional map key/value to be used when the job is registered as a service in Consul. Other containers can use these meta in `watches` to filter a service by meta data.
 
 ##### `interfaces`
 

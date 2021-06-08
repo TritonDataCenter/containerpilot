@@ -71,10 +71,11 @@ func (cfg *MetricConfig) Validate() error {
 	case "summary":
 		cfg.metricType = Summary
 		cfg.collector = prometheus.NewSummary(prometheus.SummaryOpts{
-			Namespace: cfg.Namespace,
-			Subsystem: cfg.Subsystem,
-			Name:      cfg.Name,
-			Help:      cfg.Help,
+			Namespace:  cfg.Namespace,
+			Subsystem:  cfg.Subsystem,
+			Name:       cfg.Name,
+			Help:       cfg.Help,
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		})
 	default:
 		return fmt.Errorf("invalid metric type: %s", cfg.Type)

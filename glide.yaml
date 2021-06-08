@@ -5,13 +5,13 @@ import:
 - package: github.com/sirupsen/logrus
   version: 1.0.0
 - package: github.com/hashicorp/consul
-  version: ~1.0.0
+  version: ~1.9.0
   subpackages:
   - api
 - package: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
 - package: github.com/prometheus/client_golang
-  version: 0.8.0
+  version: 1.1.0
   subpackages:
   - prometheus
 - package: github.com/flynn/json5

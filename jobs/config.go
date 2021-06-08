@@ -23,11 +23,12 @@ type Config struct {
 	Exec interface{} `mapstructure:"exec"`
 
 	// service discovery
-	Port              int           `mapstructure:"port"`
-	InitialStatus     string        `mapstructure:"initial_status"`
-	Interfaces        interface{}   `mapstructure:"interfaces"`
-	Tags              []string      `mapstructure:"tags"`
-	ConsulExtras      *ConsulExtras `mapstructure:"consul"`
+	Port              int               `mapstructure:"port"`
+	InitialStatus     string            `mapstructure:"initial_status"`
+	Interfaces        interface{}       `mapstructure:"interfaces"`
+	Tags              []string          `mapstructure:"tags"`
+	Meta              map[string]string `mapstructure:"meta"`
+	ConsulExtras      *ConsulExtras     `mapstructure:"consul"`
 	serviceDefinition *discovery.ServiceDefinition
 
 	// health checking
@@ -430,6 +431,7 @@ func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
 		Port:                           cfg.Port,
 		TTL:                            cfg.ttl,
 		Tags:                           cfg.Tags,
+		Meta:                           cfg.Meta,
 		InitialStatus:                  cfg.InitialStatus,
 		IPAddress:                      ipAddress,
 		DeregisterCriticalServiceAfter: deregAfter,
