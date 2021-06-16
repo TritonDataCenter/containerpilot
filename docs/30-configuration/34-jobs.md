@@ -239,7 +239,7 @@ The `tags` field is an optional array of tags to be used when the job is registe
 
 ##### `meta`
 
-The `meta` field is an optional map key/value to be used when the job is registered as a service in Consul. Other containers can use these meta in `watches` to filter a service by meta data.
+The `meta` field is an optional map key/value to be used when the job is registered as a service in Consul. Key names must be valid JSON5/Ecmascript identifierNames or be quoted and follow consul limitation , practical this means only [a-zA-Z0-9_-] can be used in key names and key names with '-' must be quoted
 
 ##### `interfaces`
 

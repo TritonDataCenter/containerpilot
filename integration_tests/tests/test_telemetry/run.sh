@@ -13,7 +13,7 @@ app="$(docker-compose ps -q app)"
 IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$app")
 
 # This interface takes a while to converge
-for _ in $(seq 0 2000); do
+for _ in $(seq 0 20); do
     sleep 1
     metrics=$(docker exec -it "$app" curl -s "${IP}:9090/metrics")
     echo "$metrics" | grep 'TYPE containerpilot_app_some_counter counter' && break
