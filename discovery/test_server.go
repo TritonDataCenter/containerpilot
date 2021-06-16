@@ -8,8 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"testing"
 
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
@@ -59,21 +60,13 @@ func (s *TestServer) Stop() error {
 	return s.cmd.Wait()
 }
 
-// failer implements the retry.Failer interface
-type failer struct {
-	failed bool
-}
-
-func (f *failer) Log(args ...interface{}) { fmt.Println(args) }
-func (f *failer) FailNow()                { f.failed = true }
-
 // WaitForAPI waits for only the agent HTTP endpoint to start responding. This
 // is an indication that the agent has started, but will likely return before a
 // leader is elected.
-func (s *TestServer) WaitForAPI() error {
-	f := &failer{}
-	retry.Run(f, func(r *retry.R) {
-		resp, err := s.client.Get(s.HTTPAddr + "/v1/agent/self")
+func (s *TestServer) WaitForAPI(t *testing.T) error {
+	//f := &failer{}
+	retry.Run(t, func(r *retry.R) {
+		resp, err := s.client.Get("http://" + s.HTTPAddr + "/v1/agent/self")
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -83,7 +76,7 @@ func (s *TestServer) WaitForAPI() error {
 			r.Fatalf("bad status code %d", resp.StatusCode)
 		}
 	})
-	if f.failed {
+	if t.Failed() {
 		return errors.New("failed waiting for API")
 	}
 	return nil

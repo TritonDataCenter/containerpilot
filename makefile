@@ -10,8 +10,11 @@ VERSION ?= dev-build-not-for-release
 LDFLAGS := -X ${IMPORT_PATH}/version.GitHash=$(shell git rev-parse --short HEAD) -X ${IMPORT_PATH}/version.Version=${VERSION}
 
 ROOT := $(shell pwd)
+CURRENT_UID := $(shell id -u)
+CURRENT_GID := $(shell id -g)
+
 RUNNER := -v ${ROOT}:/go/src/${IMPORT_PATH} -w /go/src/${IMPORT_PATH} containerpilot_build
-docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
+docker := docker run -u ${CURRENT_UID}:${CURRENT_GID} --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
 export PATH :=$(PATH):$(GOPATH)/bin
 
 # flags for local development
@@ -21,7 +24,7 @@ GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED := 0
 GOEXPERIMENT := framepointer
 
-CONSUL_VERSION := 1.0.0
+CONSUL_VERSION := 1.9.5
 GLIDE_VERSION := 0.12.3
 
 ## display this help message
@@ -66,7 +69,7 @@ release: build
 
 ## remove build/test artifacts, test fixtures, and vendor directories
 clean:
-	rm -rf build release cover vendor .glide
+	rm -rf build release cover vendor .glide glide.lock
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	./scripts/test.sh clean

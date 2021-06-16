@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-
 # start up consul and wait for leader election
 docker-compose up -d consul
 consul=$(docker-compose ps -q consul)
@@ -11,13 +10,13 @@ docker exec -it "$consul" assert ready
 docker-compose up -d app
 
 app="$(docker-compose ps -q app)"
-IP=$(docker inspect -f '{{ .NetworkSettings.Networks.testtelemetry_default.IPAddress }}' "$app")
+IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$app")
 
 # This interface takes a while to converge
 for _ in $(seq 0 20); do
     sleep 1
     metrics=$(docker exec -it "$app" curl -s "${IP}:9090/metrics")
-    echo "$metrics" | grep 'containerpilot_app_some_counter 42' && break
+    echo "$metrics" | grep 'TYPE containerpilot_app_some_counter counter' && break
 done || (echo "did not get expected metrics output" && exit 1)
 
 # check last /metrics scrape for the rest of the events

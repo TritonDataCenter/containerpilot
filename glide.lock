@@ -1,63 +1,121 @@
-hash: c13286385a0d957eb3b4e47af1f85b6cd8d8b084c846737477f46ac04d2c44f2
-updated: 2017-11-13T21:22:43.229954534-05:00
+hash: 4ae87054be3359a9b14ab2688be9869641175298445ec67308d049a03105c392
+updated: 2021-06-08T05:39:54.309148219Z
 imports:
+- name: github.com/armon/go-metrics
+  version: a054c40a13a85da90bb36b889d4e20664a173215
 - name: github.com/beorn7/perks
-  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+  version: 37c8de3658fcb183f997c4e13e8337516ab753e6
   subpackages:
   - quantile
 - name: github.com/client9/reopen
-  version: 1a6ccbeaae3f56aa0058f5491382cb21726e214e
+  version: dbabf56e0beda57421ccdf6c7431a75a7d8a1562
+- name: github.com/fatih/color
+  version: cf452350f542986d689fb53db88dbb0212f141db
 - name: github.com/flynn/json5
   version: 7620272ed63390e979cf5882d2fa0506fe2a8db5
 - name: github.com/golang/protobuf
-  version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
+  version: ae97035608a719c7a1c1c41bed0ae0744bdb0c6f
   subpackages:
   - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/hashicorp/consul
-  version: 783a405d781ffc5edaf2d6b5eff41e22df96644f
+  version: bbcbb733b416acd7066fe4e0157c58678e4ba1e4
   subpackages:
   - api
-  - testutil/retry
+  - sdk/testutil/retry
 - name: github.com/hashicorp/go-cleanhttp
-  version: 3573b8b52aa7b37b9358d966a898feb387f62437
+  version: 6d9e2ac5d828e5f8594b97f88c4bde14a67bb6d2
+- name: github.com/hashicorp/go-hclog
+  version: f07802e845f9dc40480e42adbecdf7b3e7e89937
+- name: github.com/hashicorp/go-immutable-radix
+  version: f63f49c0b598a5ead21c5015fb4d08fe7e3c21ea
 - name: github.com/hashicorp/go-rootcerts
-  version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
+  version: c8a9a31cbd7675425d28e4e56713d0368a3aeb2c
+- name: github.com/hashicorp/golang-lru
+  version: 80c98217689d6df152309d574ccc682b21dc802c
+  subpackages:
+  - simplelru
 - name: github.com/hashicorp/serf
-  version: 91fd53b1d3e624389ed9a295a3fa380e5c7b9dfc
+  version: 7faa1b06262f70780c3c35ac25a4c96d754f06f3
   subpackages:
   - coordinate
+- name: github.com/mattn/go-colorable
+  version: f6c00982823144337e56cdb71c712eaac151d29c
+- name: github.com/mattn/go-isatty
+  version: 8b0c6d82fa8980f9bff874afff66860a0c3e9c5c
 - name: github.com/matttproud/golang_protobuf_extensions
-  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  version: c182affec369e30f25d3eb8cd8a478dee585ae7d
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
-  version: b8bc1bf767474819792c23f32d8286a45736f1c6
+  version: af06845cf3004701891bf4fdb884bfe4920b3727
 - name: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
 - name: github.com/prometheus/client_golang
-  version: c5b7fccd204277076155f10851dad72b76a49317
+  version: 170205fb58decfd011f1550d4cfb737230d7ae4f
   subpackages:
   - prometheus
+  - prometheus/internal
+  - prometheus/promhttp
 - name: github.com/prometheus/client_model
-  version: 6f3806018612930941127f2a7c6c453ba2c527d2
+  version: 147c58e9608a4f9628b53b6cc863325ca746f63a
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: 0866df4b85a18d652b6965be022d007cdf076822
+  version: 9e276a1555878cfdaeeea42127f40f2518861145
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2
+  version: e8361a78447375e011eba5d699109138d0afc530
   subpackages:
-  - xfs
+  - internal/fs
+  - internal/util
 - name: github.com/sirupsen/logrus
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 - name: golang.org/x/sys
-  version: 94b76065f2d2081d0fef24a6e67c571f51a6408a
+  version: aa57babbf139f2cf189f7cc4dce7ad03fec65ed6
   subpackages:
+  - internal/unsafeheader
   - unix
+  - windows
+- name: google.golang.org/protobuf
+  version: 21e33cc91079beb975323466e237f2486ea29c10
+  subpackages:
+  - encoding/prototext
+  - encoding/protowire
+  - internal/descfmt
+  - internal/descopts
+  - internal/detrand
+  - internal/encoding/defval
+  - internal/encoding/messageset
+  - internal/encoding/tag
+  - internal/encoding/text
+  - internal/errors
+  - internal/filedesc
+  - internal/filetype
+  - internal/flags
+  - internal/genid
+  - internal/impl
+  - internal/order
+  - internal/pragma
+  - internal/set
+  - internal/strs
+  - internal/version
+  - proto
+  - reflect/protodesc
+  - reflect/protoreflect
+  - reflect/protoregistry
+  - runtime/protoiface
+  - runtime/protoimpl
+  - types/descriptorpb
+  - types/known/anypb
+  - types/known/durationpb
+  - types/known/timestamppb
 testImports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
