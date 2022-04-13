@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/joyent/containerpilot/version"
@@ -39,7 +39,7 @@ func NewTelemetry(cfg *Config) *Telemetry {
 	t.addr = cfg.addr
 
 	router := http.NewServeMux()
-	router.Handle("/metrics", prometheus.Handler())
+	router.Handle("/metrics", promhttp.Handler())
 	router.Handle("/status", NewStatusHandler(t))
 	t.Handler = router
 
