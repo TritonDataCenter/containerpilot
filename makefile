@@ -1,5 +1,5 @@
 MAKEFLAGS += --warn-undefined-variables
-SHELL := /bin/bash
+SHELL := bash
 .SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 

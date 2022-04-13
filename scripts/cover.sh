@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 OUT=${OUT:-cover/cover.out}
 TMP=${TMP:-cover/temp.out}
 echo "mode: set" > $OUT

@@ -60,12 +60,12 @@ func TestJobConfigHealthTimeout(t *testing.T) {
 
 	job0 := jobs[0]
 	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
-	assert.Equal(job0.heartbeatInterval, time.Duration(10) * time.Second, "config for job0.Health")
-	assert.Equal(job0.healthCheckExec.Timeout, time.Duration(5) * time.Second, "config for job0.Name.Health")
+	assert.Equal(job0.heartbeatInterval, time.Duration(10)*time.Second, "config for job0.Health")
+	assert.Equal(job0.healthCheckExec.Timeout, time.Duration(5)*time.Second, "config for job0.Name.Health")
 
 	job1 := jobs[1]
 	assert.Equal(job1.Name, "serviceB", "config for job1.Name")
-	assert.Equal(job1.heartbeatInterval, time.Duration(10) * time.Second, "config for job1.Health")
+	assert.Equal(job1.heartbeatInterval, time.Duration(10)*time.Second, "config for job1.Health")
 	assert.Equal(job1.healthCheckExec.Timeout, job1.heartbeatInterval, "config for job1.Health")
 }
 
@@ -326,7 +326,7 @@ func TestJobConfigValidateFrequency(t *testing.T) {
 
 	expectErr(
 		`[{name: "E", exec: "/bin/taskE", timeout: "1ns", when: {interval: "xx"}}]`,
-		"unable to parse job[E].when.interval 'xx': time: invalid duration xx")
+		"unable to parse job[serviceC].timeout 'xx': time: invalid duration \"xx\"")
 
 	testCfg := tests.DecodeRawToSlice(
 		`[{name: "F", exec: "/bin/taskF", when: {interval: "1ms"}}]`)
@@ -381,7 +381,7 @@ func TestJobConfigValidateExec(t *testing.T) {
 		timeout: "xx"
 	}]`)
 	_, err = NewConfigs(testCfg, noop)
-	expected := "unable to parse job[serviceC].timeout 'xx': time: invalid duration xx"
+	expected := "unable to parse job[serviceC].timeout 'xx': time: invalid duration \"xx\""
 	if err == nil || err.Error() != expected {
 		t.Fatalf("expected '%s', got '%v'", expected, err)
 	}
