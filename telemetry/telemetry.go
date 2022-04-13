@@ -57,7 +57,6 @@ func (t *Telemetry) Run(ctx context.Context) {
 	go func() {
 		defer t.Stop(ctx)
 		<-ctx.Done()
-		return
 	}()
 }
 
