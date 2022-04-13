@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 docker-compose run app
 TEST_ID=$(docker ps -a | awk -F' +' '/test_version_flag/{print $1}')

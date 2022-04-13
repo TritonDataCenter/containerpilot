@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test_tasks: runs multiple tasks with timeouts for a period of time and
 # then parses their logs to verify that they ran the expected number of times.
 

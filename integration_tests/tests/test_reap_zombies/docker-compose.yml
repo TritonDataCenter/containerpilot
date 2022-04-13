@@ -9,7 +9,7 @@ services:
     command: agent -dev -client 0.0.0.0 -bind 0.0.0.0
 
   zombies:
-    image: alpine:3.5
+    image: alpine:3.15
     mem_limit: 128m
     links:
       - consul:consul
