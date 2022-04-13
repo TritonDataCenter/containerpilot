@@ -126,8 +126,8 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		defer log.Debugf("%s.Run end", c.Name)
 		if err := c.Cmd.Start(); err != nil {
 			log.Errorf("unable to start %s: %v", c.Name, err)
-			bus.Publish(events.Event{events.ExitFailed, c.Name})
-			bus.Publish(events.Event{events.Error, err.Error()})
+			bus.Publish(events.Event{Code: events.ExitFailed, Source: c.Name})
+			bus.Publish(events.Event{Code: events.Error, Source: err.Error()})
 			return
 		}
 
@@ -150,12 +150,12 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		// we'll return from Wait() and publish events
 		if err := c.Cmd.Wait(); err != nil {
 			log.Errorf("%s exited with error: %v", c.Name, err)
-			bus.Publish(events.Event{events.ExitFailed, c.Name})
-			bus.Publish(events.Event{events.Error,
-				fmt.Errorf("%s: %s", c.Name, err).Error()})
+			bus.Publish(events.Event{Code: events.ExitFailed, Source: c.Name})
+			bus.Publish(events.Event{Code: events.Error,
+				Source: fmt.Errorf("%s: %s", c.Name, err).Error()})
 		} else {
 			log.Debugf("%s exited without error", c.Name)
-			bus.Publish(events.Event{events.ExitSuccess, c.Name})
+			bus.Publish(events.Event{Code: events.ExitSuccess, Source: c.Name})
 		}
 	}()
 }

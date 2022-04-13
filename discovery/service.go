@@ -59,15 +59,12 @@ func (service *ServiceDefinition) RegisterWithInitialStatus() {
 	status := ""
 
 	switch service.InitialStatus {
-		case "passing":
-			status = api.HealthPassing
-			break
-		case "warning":
-			status = api.HealthWarning
-			break
-		case "critical":
-			status = api.HealthCritical
-			break
+	case "passing":
+		status = api.HealthPassing
+	case "warning":
+		status = api.HealthWarning
+	case "critical":
+		status = api.HealthCritical
 	}
 
 	log.Infof("Registering service %v with initial status set to %v",

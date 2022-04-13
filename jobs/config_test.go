@@ -31,7 +31,7 @@ func TestJobConfigServiceWithPreStart(t *testing.T) {
 	assert.Equal(job0.Tags, []string{"tag1", "tag2"},
 		"config for job0.Tags")
 	assert.Equal(job0.restartLimit, 0, "config for job0.restartLimit")
-	assert.Equal(job0.whenEvent, events.Event{events.ExitSuccess, "preStart"},
+	assert.Equal(job0.whenEvent, events.Event{Code: events.ExitSuccess, Source: "preStart"},
 		"config for serviceA.whenEvent")
 	assert.Equal(job0.healthCheckExec.Exec, "/bin/healthCheckA.sh",
 		"config for job0.healthCheckExec.Exec")
@@ -91,7 +91,7 @@ func TestJobConfigServiceWithStopping(t *testing.T) {
 	// job0 is the main application
 	job0 := jobs[0]
 	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
-	assert.Equal(job0.stoppingWaitEvent, events.Event{events.Stopped, "preStop"},
+	assert.Equal(job0.stoppingWaitEvent, events.Event{Code: events.Stopped, Source: "preStop"},
 		"expected no stopping event for serviceA")
 
 	// job1 is its preStart
@@ -103,7 +103,7 @@ func TestJobConfigServiceWithStopping(t *testing.T) {
 	assert.Equal(job2.Name, "preStop", "config for job2.Name")
 	assert.Equal(job2.exec.Exec, "/bin/to/preStop.sh",
 		"config for preStop.exec.Exec")
-	assert.Equal(job2.whenEvent, events.Event{events.Stopping, "serviceA"},
+	assert.Equal(job2.whenEvent, events.Event{Code: events.Stopping, Source: "serviceA"},
 		"config for preStop.whenEvent")
 
 	// job3 is its post-stop
@@ -111,7 +111,7 @@ func TestJobConfigServiceWithStopping(t *testing.T) {
 	assert.Equal(job3.Name, "postStop", "config for job3.Name")
 	assert.Equal(job3.exec.Exec, "/bin/to/postStop.sh",
 		"config for postStop.exec.Exec")
-	assert.Equal(job3.whenEvent, events.Event{events.Stopped, "serviceA"},
+	assert.Equal(job3.whenEvent, events.Event{Code: events.Stopped, Source: "serviceA"},
 		"config for postStop.whenEvent")
 }
 

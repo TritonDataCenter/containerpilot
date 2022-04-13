@@ -130,7 +130,7 @@ local: | quiet
 quiet: # this is silly but shuts up 'Nothing to be done for `local`'
 	@:
 
-## run `go lint` and other code quality tools
+## run `go vet`, `staticcheck` and other code quality tools
 lint:
 	$(docker) bash ./scripts/lint.sh
 

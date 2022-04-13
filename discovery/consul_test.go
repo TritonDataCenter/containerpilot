@@ -89,7 +89,7 @@ func TestWithConsul(t *testing.T) {
 func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
 		consul, _ := NewConsul(testServer.HTTPAddr)
-		name := fmt.Sprintf("TestConsulTTLPass")
+		name := "TestConsulTTLPass"
 		service := generateServiceDefinition(name, consul)
 		checkID := fmt.Sprintf("service:%s", service.ID)
 
@@ -105,7 +105,7 @@ func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
 func testConsulRegisterWithInitialStatus(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
 		consul, _ := NewConsul(testServer.HTTPAddr)
-		name := fmt.Sprintf("TestConsulRegisterWithInitialStatus")
+		name := "TestConsulRegisterWithInitialStatus"
 		service := generateServiceDefinition(name, consul)
 		checkID := fmt.Sprintf("service:%s", service.ID)
 
@@ -121,7 +121,7 @@ func testConsulRegisterWithInitialStatus(testServer *TestServer) func(*testing.T
 func testConsulReregister(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
 		consul, _ := NewConsul(testServer.HTTPAddr)
-		name := fmt.Sprintf("TestConsulReregister")
+		name := "TestConsulReregister"
 		service := generateServiceDefinition(name, consul)
 		id := service.ID
 
@@ -148,7 +148,7 @@ func testConsulReregister(testServer *TestServer) func(*testing.T) {
 
 func testConsulCheckForChanges(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
-		backend := fmt.Sprintf("TestConsulCheckForChanges")
+		backend := "TestConsulCheckForChanges"
 		consul, _ := NewConsul(testServer.HTTPAddr)
 		service := generateServiceDefinition(backend, consul)
 		id := service.ID
@@ -163,7 +163,7 @@ func testConsulCheckForChanges(testServer *TestServer) func(*testing.T) {
 		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
 			t.Errorf("%v should not have changed without TTL expiring", id)
 		}
-		check := fmt.Sprintf("service:TestConsulCheckForChanges")
+		check := "service:TestConsulCheckForChanges"
 		consul.Agent().UpdateTTL(check, "expired", "critical")
 		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
 			t.Errorf("%v should have changed after TTL expired.", id)
@@ -173,7 +173,7 @@ func testConsulCheckForChanges(testServer *TestServer) func(*testing.T) {
 
 func testConsulEnableTagOverride(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
-		backend := fmt.Sprintf("TestConsulEnableTagOverride")
+		backend := "TestConsulEnableTagOverride"
 		consul, _ := NewConsul(testServer.HTTPAddr)
 		service := &ServiceDefinition{
 			ID:                backend,

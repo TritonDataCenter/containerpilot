@@ -130,8 +130,10 @@ func initClient(configPath string) (*client.HTTPClient, error) {
 // we're using an interface{} for params for Handler but these should
 // never fail to type-assert. so this assert should be unreachable
 // unless we've screwed something up.
-func assert(ok bool, msg string) {
-	if !ok {
-		panic("invalid parameter types for %v")
-	}
-}
+//
+// staticcheck U1000 func unused
+//func assert(ok bool, msg string) {
+//	if !ok {
+//		panic("invalid parameter types for %v")
+//	}
+//}

@@ -123,7 +123,7 @@ func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
 	}
 	for metricKey, metricValue := range postMetrics {
 		eventVal := fmt.Sprintf("%v|%v", metricKey, metricValue)
-		e.bus.Publish(events.Event{events.Metric, eventVal})
+		e.bus.Publish(events.Event{Code: events.Metric, Source: eventVal})
 	}
 	return nil, http.StatusOK
 }
