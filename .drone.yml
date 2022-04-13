@@ -10,8 +10,10 @@ steps:
   - name: integration-tests
     environment:
     commands:
-      - make integration
       - make clean
+      - make lint build
+      - make test
+      - make integration
     when:
       event:
         - pull_request
@@ -27,23 +29,15 @@ platform:
   arch: amd64
 
 steps:
-  - name: unit-tests
-    image: golang:1.14
-    volumes:
-    - name: deps
-      path: /go
-    commands:
-      - bash ./scripts/install_consul.sh
-      - bash ./scripts/unit_test.sh
-    when:
-      event:
-        - pull_request
-        - push
-
   - name: prepare-release
-    image: golang:1.14
+    image: golang:1.18
     commands:
-      - go build -o build/containerpilot -ldflags "-X github.com/teutat3s/containerpilot/version.GitHash=$(git rev-parse --short HEAD) -X github.com/teutat3s/containerpilot/version.Version=${DRONE_TAG}"
+      - |
+        go build \
+          -o build/containerpilot \
+          -ldflags \
+            "-X github.com/greenbaum/containerpilot/version.GitHash=$(git rev-parse --short HEAD) \
+             -X github.com/greenbaum/containerpilot/version.Version=${DRONE_TAG}"
       - mkdir release && cd build && tar -czf ../release/containerpilot-${DRONE_TAG}.tar.gz containerpilot
       - cd ../release && sha1sum containerpilot-${DRONE_TAG}.tar.gz > containerpilot-${DRONE_TAG}.sha1.txt
     when:
@@ -59,7 +53,7 @@ steps:
         - release/containerpilot-${DRONE_TAG}.tar.gz
         - release/containerpilot-${DRONE_TAG}.sha1.txt
       title: "New release: version ${DRONE_TAG}"
-      base_url: teutat3s/containerpilot
+      base_url: greenbaum/containerpilot
     when:
       event:
         - tag
