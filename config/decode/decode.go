@@ -71,7 +71,7 @@ func interfaceToString(raw interface{}) string {
 }
 
 func interfaceToStringArray(rawArray []interface{}) []string {
-	if rawArray == nil || len(rawArray) == 0 {
+	if len(rawArray) == 0 {
 		return nil
 	}
 	var stringArray []string
