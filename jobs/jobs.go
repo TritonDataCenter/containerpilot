@@ -155,7 +155,7 @@ func (job *Job) Run(pctx context.Context, completedCh chan struct{}) {
 	if job.startTimeout > 0 {
 		timeoutName := fmt.Sprintf("%s.wait-timeout", job.Name)
 		events.NewEventTimeout(ctx, job.Rx, job.startTimeout, timeoutName)
-		job.startTimeoutEvent = events.Event{events.TimerExpired, timeoutName}
+		job.startTimeoutEvent = events.Event{Code: events.TimerExpired, Source: timeoutName}
 	} else {
 		job.startTimeoutEvent = events.NonEvent
 	}
@@ -278,7 +278,7 @@ func (job *Job) onRunEveryTimerExpired(ctx context.Context) processEventStatus {
 func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusUnhealthy)
-		job.Publish(events.Event{events.StatusUnhealthy, job.Name})
+		job.Publish(events.Event{Code: events.StatusUnhealthy, Source: job.Name})
 	}
 	return jobContinue
 }
@@ -286,7 +286,7 @@ func (job *Job) onHealthCheckFailed(ctx context.Context) processEventStatus {
 func (job *Job) onHealthCheckPassed(ctx context.Context) processEventStatus {
 	if job.GetStatus() != statusMaintenance {
 		job.setStatus(statusHealthy)
-		job.Publish(events.Event{events.StatusHealthy, job.Name})
+		job.Publish(events.Event{Code: events.StatusHealthy, Source: job.Name})
 		job.SendHeartbeat()
 	}
 	return jobContinue
@@ -400,7 +400,7 @@ func (job *Job) cleanup(ctx context.Context, cancel context.CancelFunc) {
 			switch event {
 			case job.stoppingWaitEvent:
 				break loop
-			case events.Event{events.Stopping, stoppingTimeout}:
+			case events.Event{Code: events.Stopping, Source: stoppingTimeout}:
 				break loop
 			}
 		}
