@@ -21,8 +21,10 @@ type Telemetry struct {
 	Status  *Status   // supports '/status' endpoint fields
 
 	// server
-	router *http.ServeMux
-	addr   net.TCPAddr
+
+	// staticcheck U1000 field is unused
+	//router *http.ServeMux
+	addr net.TCPAddr
 
 	http.Server
 }

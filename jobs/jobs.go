@@ -33,7 +33,8 @@ type Job struct {
 	statusLock      *sync.RWMutex
 	Service         *discovery.ServiceDefinition
 	healthCheckExec *commands.Command
-	healthCheckName string
+	// staticcheck U1000 field is unused
+	//healthCheckName string
 
 	// starting events
 	startEvent        events.Event

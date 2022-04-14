@@ -14,7 +14,8 @@ import (
 // requests out to a ContainerPilot process's control socket.
 type HTTPClient struct {
 	http.Client
-	socketPath string
+	// staticcheck U1000 field is unused
+	//socketPath string
 }
 
 var socketType = "unix"
