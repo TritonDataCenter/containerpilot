@@ -4,7 +4,7 @@ ENV CONSUL_VERSION=1.11.4
 
 RUN  apt-get update \
      && apt-get install -y unzip \
-     && go install golang.org/x/lint/golint@latest
+     && go install honnef.co/go/tools/cmd/staticcheck@latest
 
 
 RUN export CONSUL_CHECKSUM=5155f6a3b7ff14d3671b0516f6b7310530b509a2b882b95b4fdf25f4219342c8 \
