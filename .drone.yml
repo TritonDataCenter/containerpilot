@@ -11,7 +11,7 @@ steps:
     environment:
     commands:
       - make clean
-      - make lint build
+      - make build lint
       - make test
       - make integration
     when:
