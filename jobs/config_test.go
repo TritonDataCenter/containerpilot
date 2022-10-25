@@ -2,7 +2,7 @@ package jobs
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -165,7 +165,7 @@ func TestJobConfigConsulExtras(t *testing.T) {
 }
 
 func TestJobConfigSmokeTest(t *testing.T) {
-	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	data, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRawToSlice(string(data))
 	assert := assert.New(t)
 
@@ -285,7 +285,7 @@ func TestJobConfigValidateDiscovery(t *testing.T) {
 }
 
 func TestErrJobConfigConsulEnableTagOverride(t *testing.T) {
-	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	_, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), noop)
 	if err == nil {
 		t.Errorf("ConsulExtras should have thrown error about EnableTagOverride being a string.")
@@ -293,7 +293,7 @@ func TestErrJobConfigConsulEnableTagOverride(t *testing.T) {
 }
 
 func TestErrJobConfigConsulDeregisterCriticalServiceAfter(t *testing.T) {
-	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	_, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), noop)
 	if err == nil {
 		t.Errorf("error should have been generated for duration 'nope'.")
@@ -469,7 +469,7 @@ func TestHealthChecksConfigError(t *testing.T) {
 var noop = &mocks.NoopDiscoveryBackend{}
 
 func loadTestConfig(t *testing.T) []*Config {
-	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	data, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRawToSlice(string(data))
 
 	jobs, err := NewConfigs(testCfg, noop)
