@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 	log "github.com/sirupsen/logrus"
 )
 

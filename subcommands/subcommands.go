@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/joyent/containerpilot/client"
-	"github.com/joyent/containerpilot/config"
+	"github.com/tritondatacenter/containerpilot/client"
+	"github.com/tritondatacenter/containerpilot/config"
 )
 
 // Params ...

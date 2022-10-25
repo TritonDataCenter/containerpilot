@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 )
 
 func TestPutEnviron(t *testing.T) {

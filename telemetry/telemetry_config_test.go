@@ -8,8 +8,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/mocks"
+	"github.com/tritondatacenter/containerpilot/tests"
+	"github.com/tritondatacenter/containerpilot/tests/mocks"
 )
 
 func TestTelemetryConfigParse(t *testing.T) {

@@ -3,7 +3,7 @@ package control
 import (
 	"fmt"
 
-	"github.com/joyent/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/decode"
 )
 
 // DefaultSocket is the default location of the unix domain socket file

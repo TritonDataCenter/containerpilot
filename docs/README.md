@@ -65,13 +65,13 @@ Configuration
 
 ## Where it's used
 
-- [Applications on autopilot: a guide to how to build self-operating applications with ContainerPilot](https://www.joyent.com/blog/applications-on-autopilot)
-- [MySQL (Percona Server) with auto scaling and fail-over](https://www.joyent.com/blog/dbaas-simplicity-no-lock-in)
-- [Autopilot Pattern WordPress](https://www.joyent.com/blog/wordpress-on-autopilot)
-- [ELK stack](https://www.joyent.com/blog/docker-log-drivers)
-- [Node.js + Nginx + Couchbase](https://www.joyent.com/blog/docker-nodejs-nginx-nosql-autopilot)
+- [Applications on autopilot: a guide to how to build self-operating applications with ContainerPilot](https://www.tritondatacenter.com/blog/applications-on-autopilot)
+- [MySQL (Percona Server) with auto scaling and fail-over](https://www.tritondatacenter.com/blog/dbaas-simplicity-no-lock-in)
+- [Autopilot Pattern WordPress](https://www.tritondatacenter.com/blog/wordpress-on-autopilot)
+- [ELK stack](https://www.tritondatacenter.com/blog/docker-log-drivers)
+- [Node.js + Nginx + Couchbase](https://www.tritondatacenter.com/blog/docker-nodejs-nginx-nosql-autopilot)
 - [CloudFlare DNS and CDN with dynamic origins](https://github.com/autopilotpattern/cloudflare)
 - [Consul, running as an HA raft](https://github.com/autopilotpattern/consul)
 - [Couchbase](https://github.com/autopilotpattern/couchbase)
-- [Mesos on Joyent Triton](https://www.joyent.com/blog/mesos-by-the-pound)
-- [Nginx with dynamic upstreams](https://www.joyent.com/blog/dynamic-nginx-upstreams-with-containerbuddy)
+- [Mesos on Joyent Triton](https://www.tritondatacenter.com/blog/mesos-by-the-pound)
+- [Nginx with dynamic upstreams](https://www.tritondatacenter.com/blog/dynamic-nginx-upstreams-with-containerbuddy)

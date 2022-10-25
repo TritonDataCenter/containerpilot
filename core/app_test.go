@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/tests/mocks"
+	"github.com/tritondatacenter/containerpilot/discovery"
+	"github.com/tritondatacenter/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/jobs"
+	"github.com/tritondatacenter/containerpilot/tests/mocks"
 )
 
 /*

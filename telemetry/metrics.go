@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )

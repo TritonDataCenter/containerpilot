@@ -11,14 +11,14 @@ import (
 
 	"github.com/flynn/json5"
 
-	"github.com/joyent/containerpilot/config/decode"
-	"github.com/joyent/containerpilot/config/logger"
-	"github.com/joyent/containerpilot/config/template"
-	"github.com/joyent/containerpilot/control"
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/watches"
+	"github.com/tritondatacenter/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/logger"
+	"github.com/tritondatacenter/containerpilot/config/template"
+	"github.com/tritondatacenter/containerpilot/control"
+	"github.com/tritondatacenter/containerpilot/discovery"
+	"github.com/tritondatacenter/containerpilot/jobs"
+	"github.com/tritondatacenter/containerpilot/telemetry"
+	"github.com/tritondatacenter/containerpilot/watches"
 )
 
 type rawConfig struct {

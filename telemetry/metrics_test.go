@@ -15,7 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 )
 
 /*

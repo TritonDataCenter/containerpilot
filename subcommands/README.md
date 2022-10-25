@@ -1,3 +1,3 @@
 ## subcommands
 
-[![GoDoc](https://godoc.org/github.com/joyent/containerpilot?status.svg)](https://godoc.org/github.com/joyent/containerpilot/subcommands)
+[![GoDoc](https://godoc.org/github.com/tritondatacenter/containerpilot?status.svg)](https://godoc.org/github.com/tritondatacenter/containerpilot/subcommands)

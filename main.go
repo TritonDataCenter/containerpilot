@@ -1,14 +1,14 @@
 // ContainerPilot is an init system for cloud-native distributed applications
 // that automates the process of service discovery, configuration, and
 // lifecycle management inside the container, so you can focus on your apps.
-package main // import "github.com/joyent/containerpilot"
+package main // import "github.com/tritondatacenter/containerpilot"
 
 import (
 	"os"
 	"runtime"
 
-	"github.com/joyent/containerpilot/core"
-	"github.com/joyent/containerpilot/sup"
+	"github.com/tritondatacenter/containerpilot/core"
+	"github.com/tritondatacenter/containerpilot/sup"
 	log "github.com/sirupsen/logrus"
 )
 

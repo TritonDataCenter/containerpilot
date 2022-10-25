@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/joyent/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/decode"
 	log "github.com/sirupsen/logrus"
 )
 

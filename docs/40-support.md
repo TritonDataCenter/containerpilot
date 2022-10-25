@@ -2,19 +2,19 @@
 
 ## Where to file issues
 
-Please report any issues you encounter with ContainerPilot or its documentation by [opening a Github issue](https://github.com/joyent/containerpilot/issues). When creating a bug report, please include as many details as possible, including the output of `containerpilot -version` and any steps needed to reproduce the issue if possible. If you can reproduce the issue with debug logging on, please include any logs you can provide. If you're reporting a crash, include the stack trace. Check the open issues to see if anyone else is reporting a similar problem.
+Please report any issues you encounter with ContainerPilot or its documentation by [opening a Github issue](https://github.com/tritondatacenter/containerpilot/issues). When creating a bug report, please include as many details as possible, including the output of `containerpilot -version` and any steps needed to reproduce the issue if possible. If you can reproduce the issue with debug logging on, please include any logs you can provide. If you're reporting a crash, include the stack trace. Check the open issues to see if anyone else is reporting a similar problem.
 
 If you are a Joyent support customer, we encourage you to report ContainerPilot issues on GitHub so their resolution can be shared with the community. But the Support team will be happy give you direct support via Zendesk as well.
 
 ## Contributing
 
-ContainerPilot is open source under the [Mozilla Public License 2.0](https://github.com/joyent/containerpilot/blob/master/LICENSE).
+ContainerPilot is open source under the [Mozilla Public License 2.0](https://github.com/tritondatacenter/containerpilot/blob/master/LICENSE).
 
-Pull requests on GitHub are welcome on any issue. If you'd like to propose a new feature, it's often a good idea to discuss the design by opening an issue first. We'll mark these as [`proposals`](https://github.com/joyent/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3Aproposal), and roadmap items will be maintained as [`enhancements`](https://github.com/joyent/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement).
+Pull requests on GitHub are welcome on any issue. If you'd like to propose a new feature, it's often a good idea to discuss the design by opening an issue first. We'll mark these as [`proposals`](https://github.com/tritondatacenter/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3Aproposal), and roadmap items will be maintained as [`enhancements`](https://github.com/tritondatacenter/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement).
 
-Many of our contributors have never contributed to an open source golang project before. If you are looking for a good first contribution, check out the [`help wanted` label](https://github.com/joyent/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3A"help+wanted"); not that we don't want help anywhere else of course! But these are low-hanging fruit to get started.
+Many of our contributors have never contributed to an open source golang project before. If you are looking for a good first contribution, check out the [`help wanted` label](https://github.com/tritondatacenter/containerpilot/issues?q=is%3Aopen+is%3Aissue+label%3A"help+wanted"); not that we don't want help anywhere else of course! But these are low-hanging fruit to get started.
 
-Please make sure you've added tests for any new feature or tests that prove a bug has been fixed. Run `make lint` before submitting your PR. We test ContainerPilot on [TravisCI](https://travis-ci.org/joyent/containerpilot).
+Please make sure you've added tests for any new feature or tests that prove a bug has been fixed. Run `make lint` before submitting your PR. We test ContainerPilot on [TravisCI](https://travis-ci.org/tritondatacenter/containerpilot).
 
 
 ## Backwards compatibility

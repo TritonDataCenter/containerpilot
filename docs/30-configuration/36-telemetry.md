@@ -2,7 +2,7 @@
 
 If a `telemetry` option is provided, ContainerPilot will expose a [Prometheus](http://prometheus.io) HTTP client interface that can be used to scrape performance telemetry. The telemetry interface is advertised as a service to Consul. Each `metric` for the telemetry service configures a collectors for the [Prometheus client library](https://github.com/prometheus/client_golang). A Prometheus server can then make HTTP requests to the telemetry endpoint.
 
-Configuration details follow, but [this blog post offers a usage example and narrative](https://www.joyent.com/blog/containerpilot-telemetry) for it.
+Configuration details follow, but [this blog post offers a usage example and narrative](https://www.tritondatacenter.com/blog/containerpilot-telemetry) for it.
 
 The top-level telemetry configuration defines the telemetry HTTP endpoint. This endpoint will be advertised to Consul (or other discovery service) just as a typical ContainerPilot `service` block is. The service will be called `containerpilot` and will be served on the path `/metrics`. The telemetry service will send periodic heartbeats to the discovery service to identify that it is still operating. There is no user-defined health check for the telemetry service endpoint, and you don't need to configure the poll/TTL; it will send a 15 second heartbeat every 5 seconds.
 

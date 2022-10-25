@@ -1,4 +1,4 @@
-module github.com/joyent/containerpilot
+module github.com/tritondatacenter/containerpilot
 
 go 1.18
 

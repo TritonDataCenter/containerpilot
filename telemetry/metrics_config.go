@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/joyent/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/decode"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
