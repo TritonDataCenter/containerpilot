@@ -3,7 +3,7 @@ package control
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -65,7 +65,7 @@ func TestPostHandler(t *testing.T) {
 		ph.ServeHTTP(w, req)
 		resp := w.Result()
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		status := resp.StatusCode
 		return status, string(body)
 	}

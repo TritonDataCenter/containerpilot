@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,6 +32,7 @@ func TestValidConfigJobs(t *testing.T) {
 	assert.Equal(job0.Port, 8080, "config for job0.Port")
 	assert.Equal(job0.Exec, "/bin/serviceA", "config for job0.Exec")
 	assert.Equal(job0.Tags, []string{"tag1", "tag2"}, "config for job0.Tags")
+	assert.Equal(job0.Meta, map[string]string{"keyA": "A"}, "config for job0.Meta")
 	assert.Equal(job0.Restarts, nil, "config for job1.Restarts")
 
 	job1 := cfg.Jobs[1]
@@ -184,8 +184,8 @@ func TestRenderConfigFileStdout(t *testing.T) {
 	temp.Close()
 	os.Stdout = old
 
-	renderedOut, _ := ioutil.ReadFile(fname)
-	renderedFile, _ := ioutil.ReadFile("testJSON.json")
+	renderedOut, _ := os.ReadFile(fname)
+	renderedFile, _ := os.ReadFile("testJSON.json")
 	if string(renderedOut) != string(renderedFile) {
 		t.Fatalf("expected the rendered file and stdout to be identical")
 	}

@@ -41,3 +41,6 @@ cover.html
 # IDE files
 .idea
 *.iml
+
+# Nix files
+.direnv

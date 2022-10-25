@@ -2,7 +2,7 @@ package telemetry
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -13,7 +13,7 @@ import (
 )
 
 func TestTelemetryConfigParse(t *testing.T) {
-	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	data, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRaw(string(data))
 	telem, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	if err != nil {
