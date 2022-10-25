@@ -3,7 +3,7 @@ package control
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 )
 
 func TestPutEnviron(t *testing.T) {
@@ -65,7 +65,7 @@ func TestPostHandler(t *testing.T) {
 		ph.ServeHTTP(w, req)
 		resp := w.Result()
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		status := resp.StatusCode
 		return status, string(body)
 	}
@@ -130,15 +130,15 @@ func TestPostMetric(t *testing.T) {
 	})
 	t.Run("POST value", func(t *testing.T) {
 		body := "{\"mymetric\": 1.0}"
-		expected := map[events.Event]int{{events.Metric, "mymetric|1"}: 1}
+		expected := map[events.Event]int{{Code: events.Metric, Source: "mymetric|1"}: 1}
 		status := testFunc(t, expected, body)
 		assert.Equal(t, http.StatusOK, status, "status was not 200OK")
 	})
 	t.Run("POST multi-metric", func(t *testing.T) {
 		body := "{\"mymetric\": 1.5, \"myothermetric\": 2}"
 		status := testFunc(t, map[events.Event]int{
-			{events.Metric, "mymetric|1.5"}:    1,
-			{events.Metric, "myothermetric|2"}: 1,
+			{Code: events.Metric, Source: "mymetric|1.5"}:    1,
+			{Code: events.Metric, Source: "myothermetric|2"}: 1,
 		}, body)
 		assert.Equal(t, http.StatusOK, status, "status was not 200OK")
 	})

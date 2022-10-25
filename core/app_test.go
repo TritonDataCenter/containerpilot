@@ -2,17 +2,16 @@ package core
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/tests/mocks"
+	"github.com/tritondatacenter/containerpilot/discovery"
+	"github.com/tritondatacenter/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/jobs"
+	"github.com/tritondatacenter/containerpilot/tests/mocks"
 )
 
 /*
@@ -152,7 +151,7 @@ func TestReloadConfig(t *testing.T) {
 // write the configuration to a tempfile. caller is responsible
 // for calling 'defer os.Remove(f.Name())' when done
 func testCfgToTempFile(t *testing.T, text string) *os.File {
-	f, err := ioutil.TempFile(".", "test-")
+	f, err := os.CreateTemp(".", "test-")
 	if err != nil {
 		t.Fatal(err)
 	}

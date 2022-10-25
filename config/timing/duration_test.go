@@ -20,7 +20,7 @@ func TestGetTimeout(t *testing.T) {
 
 	dur, err = GetTimeout("x")
 	expectDurationCompare(t, dur, time.Duration(0),
-		err, errors.New("time: invalid duration x"))
+		err, errors.New("time: invalid duration \"x\""))
 
 	dur, err = GetTimeout("0")
 	expectDurationCompare(t, dur, time.Duration(0), err, nil)
@@ -67,7 +67,7 @@ func TestParseDuration(t *testing.T) {
 
 	// Some parse errors
 	expectError(t, "asf", "invalid duration")
-	expectError(t, "20yy", "unknown unit yy")
+	expectError(t, "20yy", "time: unknown unit \"yy\" in duration \"20yy\"")
 
 	// Fractional
 	expectError(t, 10.10, "unexpected duration of type float")

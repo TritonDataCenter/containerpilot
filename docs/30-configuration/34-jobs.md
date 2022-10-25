@@ -81,6 +81,10 @@ jobs: [
       "app",
       "prod"
     ],
+    meta: {
+      keyA: "A",
+      keyB: "B",
+    },
     interfaces: [
       "eth0",
       "eth1[1]",
@@ -107,6 +111,14 @@ The `name` field is the name of the job as it will appear in logs and events. It
 ##### `exec`
 
 The `exec` field is the executable (and its arguments) that is called when the job runs. This field can contain a string or an array of strings ([see below](#exec-arguments) for details on the format). The command to be run will have a process group set and this entire process group will be reaped by ContainerPilot when the process exits. The process will be run concurrently to all other work, so the process won't block the processing of other ContainerPilot events.
+
+##### `uid`
+
+The `uid` field is the ID of the user that runs the command.
+
+##### `gid`
+
+The `gid` field is the ID of the group that runs the command.
 
 ##### `logging`
 
@@ -232,6 +244,10 @@ The `initial_status` field is optional and specifies which status to immediately
 ##### `tags`
 
 The `tags` field is an optional array of tags to be used when the job is registered as a service in Consul. Other containers can use these tags in `watches` to filter a service by tag.
+
+##### `meta`
+
+The `meta` field is an optional map key/value to be used when the job is registered as a service in Consul. Key names must be valid JSON5/Ecmascript identifierNames or be quoted and follow consul limitation , practical this means only [a-zA-Z0-9_-] can be used in key names and key names with '-' must be quoted
 
 ##### `interfaces`
 

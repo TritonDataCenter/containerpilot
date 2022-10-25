@@ -6,19 +6,19 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/flynn/json5"
 
-	"github.com/joyent/containerpilot/config/decode"
-	"github.com/joyent/containerpilot/config/logger"
-	"github.com/joyent/containerpilot/config/template"
-	"github.com/joyent/containerpilot/control"
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/watches"
+	"github.com/tritondatacenter/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/logger"
+	"github.com/tritondatacenter/containerpilot/config/template"
+	"github.com/tritondatacenter/containerpilot/control"
+	"github.com/tritondatacenter/containerpilot/discovery"
+	"github.com/tritondatacenter/containerpilot/jobs"
+	"github.com/tritondatacenter/containerpilot/telemetry"
+	"github.com/tritondatacenter/containerpilot/watches"
 )
 
 type rawConfig struct {
@@ -79,7 +79,7 @@ func RenderConfig(configFlag, renderFlag string) error {
 		fmt.Printf("%s", renderedConfig)
 	} else {
 		var err error
-		if err = ioutil.WriteFile(renderFlag, renderedConfig, 0644); err != nil {
+		if err = os.WriteFile(renderFlag, renderedConfig, 0644); err != nil {
 			return fmt.Errorf("could not write config file: %s", err)
 		}
 	}
@@ -108,7 +108,7 @@ func loadConfigFile(configFlag string) ([]byte, error) {
 	if configFlag == "" {
 		return nil, errors.New("-config flag is required")
 	}
-	data, err := ioutil.ReadFile(configFlag)
+	data, err := os.ReadFile(configFlag)
 	if err != nil {
 		return nil, fmt.Errorf("could not read config file: %s", err)
 	}

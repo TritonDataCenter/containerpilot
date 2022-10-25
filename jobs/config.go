@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/joyent/containerpilot/commands"
-	"github.com/joyent/containerpilot/config/decode"
-	"github.com/joyent/containerpilot/config/services"
-	"github.com/joyent/containerpilot/config/timing"
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/commands"
+	"github.com/tritondatacenter/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/services"
+	"github.com/tritondatacenter/containerpilot/config/timing"
+	"github.com/tritondatacenter/containerpilot/discovery"
+	"github.com/tritondatacenter/containerpilot/events"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,13 +21,16 @@ const taskMinDuration = time.Millisecond
 type Config struct {
 	Name string      `mapstructure:"name"`
 	Exec interface{} `mapstructure:"exec"`
+	UID  int         `mapstructure:"uid"`
+	GID  int         `mapstructure:"gid"`
 
 	// service discovery
-	Port              int           `mapstructure:"port"`
-	InitialStatus     string        `mapstructure:"initial_status"`
-	Interfaces        interface{}   `mapstructure:"interfaces"`
-	Tags              []string      `mapstructure:"tags"`
-	ConsulExtras      *ConsulExtras `mapstructure:"consul"`
+	Port              int               `mapstructure:"port"`
+	InitialStatus     string            `mapstructure:"initial_status"`
+	Interfaces        interface{}       `mapstructure:"interfaces"`
+	Tags              []string          `mapstructure:"tags"`
+	Meta              map[string]string `mapstructure:"meta"`
+	ConsulExtras      *ConsulExtras     `mapstructure:"consul"`
 	serviceDefinition *discovery.ServiceDefinition
 
 	// health checking
@@ -133,7 +136,7 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 }
 
 func (cfg *Config) setStopping(name string) {
-	cfg.stoppingWaitEvent = events.Event{events.Stopped, name}
+	cfg.stoppingWaitEvent = events.Event{Code: events.Stopped, Source: name}
 }
 
 func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
@@ -241,7 +244,7 @@ func (cfg *Config) validateWhenEvent() error {
 		cfg.whenStartsLimit = unlimited
 	}
 
-	cfg.whenEvent = events.Event{eventCode, cfg.When.Source}
+	cfg.whenEvent = events.Event{Code: eventCode, Source: cfg.When.Source}
 	return nil
 }
 
@@ -289,6 +292,8 @@ func (cfg *Config) validateExec() error {
 			cfg.Name = cmd.Exec
 		}
 		cmd.Name = cfg.Name
+		cmd.UID = cfg.UID
+		cmd.GID = cfg.GID
 		cfg.exec = cmd
 	}
 	return nil
@@ -430,6 +435,7 @@ func (cfg *Config) addDiscoveryConfig(disc discovery.Backend) error {
 		Port:                           cfg.Port,
 		TTL:                            cfg.ttl,
 		Tags:                           cfg.Tags,
+		Meta:                           cfg.Meta,
 		InitialStatus:                  cfg.InitialStatus,
 		IPAddress:                      ipAddress,
 		DeregisterCriticalServiceAfter: deregAfter,

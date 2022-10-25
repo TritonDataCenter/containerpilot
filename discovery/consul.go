@@ -24,7 +24,7 @@ func init() {
 // Consul wraps the service discovery backend for the Hashicorp Consul client
 // and tracks the state of all watched dependencies.
 type Consul struct {
-	api.Client
+	*api.Client
 	lock            sync.RWMutex
 	watchedServices map[string][]*api.ServiceEntry
 }
@@ -53,7 +53,7 @@ func NewConsul(config interface{}) (*Consul, error) {
 		return nil, err
 	}
 	watchedServices := make(map[string][]*api.ServiceEntry)
-	consul := &Consul{*client, sync.RWMutex{}, watchedServices}
+	consul := &Consul{client, sync.RWMutex{}, watchedServices}
 	return consul, nil
 }
 

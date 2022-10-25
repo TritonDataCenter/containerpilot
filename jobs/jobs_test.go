@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 )
 
 func TestJobRunSafeClose(t *testing.T) {
@@ -39,8 +39,8 @@ func TestJobRunSafeClose(t *testing.T) {
 
 	expected := []events.Event{
 		events.GlobalStartup,
-		{events.Stopping, "myjob"},
-		{events.Stopped, "myjob"},
+		{Code: events.Stopping, Source: "myjob"},
+		{Code: events.Stopped, Source: "myjob"},
 	}
 	if !reflect.DeepEqual(expected, results) {
 		t.Fatalf("expected: %v\ngot: %v", expected, results)
@@ -241,7 +241,7 @@ func TestJobMaintenance(t *testing.T) {
 	// in-flight health checks should not bump the Job out of maintenance
 	t.Run("healthy no change", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
-			events.Event{events.ExitSuccess, "check.myjob"})
+			events.Event{Code: events.ExitSuccess, Source: "check.myjob"})
 		assert.Equal(t, statusMaintenance, status,
 			"job status after passing check while in maintenance")
 	})
@@ -249,7 +249,7 @@ func TestJobMaintenance(t *testing.T) {
 	// in-flight health checks should not bump the Job out of maintenance
 	t.Run("unhealthy no change", func(t *testing.T) {
 		status := testFunc(t, statusMaintenance,
-			events.Event{events.ExitFailed, "check.myjob"})
+			events.Event{Code: events.ExitFailed, Source: "check.myjob"})
 		assert.Equal(t, statusMaintenance, status,
 			"job status after failed check while in maintenance")
 	})
@@ -262,7 +262,7 @@ func TestJobMaintenance(t *testing.T) {
 
 	t.Run("now healthy", func(t *testing.T) {
 		status := testFunc(t, statusUnknown,
-			events.Event{events.ExitSuccess, "check.myjob"})
+			events.Event{Code: events.ExitSuccess, Source: "check.myjob"})
 		assert.Equal(t, statusHealthy, status,
 			"job status after passing check out of maintenance")
 	})
@@ -278,11 +278,11 @@ func TestJobProcessEvent(t *testing.T) {
 		// }
 		job := &Job{
 			Name:         "testJob",
-			startEvent:   events.Event{events.StatusChanged, "upstream"},
+			startEvent:   events.Event{Code: events.StatusChanged, Source: "upstream"},
 			startsRemain: 1,
 			statusLock:   &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got := job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st startEvent")
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, 0, job.startsRemain)
@@ -299,30 +299,30 @@ func TestJobProcessEvent(t *testing.T) {
 		// restarts: 2
 		job := &Job{
 			Name:           "testJob",
-			startEvent:     events.Event{events.StatusChanged, "upstream"},
+			startEvent:     events.Event{Code: events.StatusChanged, Source: "upstream"},
 			startsRemain:   1,
 			restartLimit:   2,
 			restartsRemain: 2,
 			statusLock:     &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got := job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st startEvent")
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, 0, job.startsRemain)
 		assert.Equal(t, events.NonEvent, job.startEvent)
 
-		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 2nd startEvent")
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st exit")
 		assert.Equal(t, 1, job.restartsRemain)
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after 2nd exit")
 		assert.Equal(t, 0, job.restartsRemain)
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobHalt, got, "processEvent after 3rd exit")
 	})
 
@@ -337,26 +337,26 @@ func TestJobProcessEvent(t *testing.T) {
 		// restarts: "unlimited"
 		job := &Job{
 			Name:           "testJob",
-			startEvent:     events.Event{events.StatusChanged, "upstream"},
+			startEvent:     events.Event{Code: events.StatusChanged, Source: "upstream"},
 			startsRemain:   1,
 			restartLimit:   -1,
 			restartsRemain: -1,
 			statusLock:     &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got := job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st startEvent")
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, 0, job.startsRemain)
 		assert.Equal(t, events.NonEvent, job.startEvent)
 
-		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 2nd startEvent")
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st exit")
 		assert.Equal(t, -2, job.restartsRemain)
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after 2nd exit")
 		assert.Equal(t, -3, job.restartsRemain)
 	})
@@ -369,26 +369,26 @@ func TestJobProcessEvent(t *testing.T) {
 		// restarts: "none"
 		job := &Job{
 			Name:         "testJob",
-			startEvent:   events.Event{events.StatusChanged, "upstream"},
+			startEvent:   events.Event{Code: events.StatusChanged, Source: "upstream"},
 			startsRemain: unlimited,
 			statusLock:   &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got := job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st startEvent")
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, unlimited, job.startsRemain)
-		assert.Equal(t, events.Event{events.StatusChanged, "upstream"}, job.startEvent)
+		assert.Equal(t, events.Event{Code: events.StatusChanged, Source: "upstream"}, job.startEvent)
 
-		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 2nd startEvent")
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after exit")
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, unlimited, job.startsRemain)
-		assert.Equal(t, events.Event{events.StatusChanged, "upstream"}, job.startEvent)
+		assert.Equal(t, events.Event{Code: events.StatusChanged, Source: "upstream"}, job.startEvent)
 
-		got = job.processEvent(nil, events.Event{events.StatusChanged, "upstream"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.StatusChanged, Source: "upstream"})
 		assert.Equal(t, jobContinue, got, "processEvent after 3rd startEvent")
 	})
 
@@ -402,16 +402,16 @@ func TestJobProcessEvent(t *testing.T) {
 			restartsRemain: unlimited,
 			statusLock:     &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.GlobalStartup)
+		job.processEvent(context.TODO(), events.GlobalStartup)
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, 0, job.startsRemain)
 		assert.Equal(t, events.NonEvent, job.startEvent)
 
 		// should return False after each exit which means we don't stop job
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got := job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st exit")
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after 2nd exit")
 	})
 
@@ -425,15 +425,15 @@ func TestJobProcessEvent(t *testing.T) {
 			restartsRemain: 1,
 			statusLock:     &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, events.GlobalStartup)
+		job.processEvent(context.TODO(), events.GlobalStartup)
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, 0, job.startsRemain)
 		assert.Equal(t, events.NonEvent, job.startEvent)
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got := job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after 1st exit")
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobHalt, got, "processEvent after 2nd exit")
 	})
 
@@ -443,7 +443,7 @@ func TestJobProcessEvent(t *testing.T) {
 		//   each: "changed"
 		// },
 		// restart: "unlimited"
-		startEvent := events.Event{events.StatusChanged, "upstream"}
+		startEvent := events.Event{Code: events.StatusChanged, Source: "upstream"}
 		job := &Job{
 			Name:           "testJob",
 			startEvent:     startEvent,
@@ -451,19 +451,19 @@ func TestJobProcessEvent(t *testing.T) {
 			restartsRemain: unlimited,
 			statusLock:     &sync.RWMutex{},
 		}
-		got := job.processEvent(nil, startEvent)
+		got := job.processEvent(context.TODO(), startEvent)
 		assert.Equal(t, jobContinue, got, "processEvent after 1st startEvent")
 		assert.Equal(t, statusUnknown, job.Status)
 		assert.Equal(t, unlimited, job.startsRemain)
 		assert.Equal(t, startEvent, job.startEvent)
 
-		got = job.processEvent(nil, startEvent)
+		got = job.processEvent(context.TODO(), startEvent)
 		assert.Equal(t, jobContinue, got, "processEvent after 2nd startEvent")
 
-		got = job.processEvent(nil, events.Event{events.ExitSuccess, "testJob"})
+		got = job.processEvent(context.TODO(), events.Event{Code: events.ExitSuccess, Source: "testJob"})
 		assert.Equal(t, jobContinue, got, "processEvent after exit")
 
-		got = job.processEvent(nil, startEvent)
+		got = job.processEvent(context.TODO(), startEvent)
 		assert.Equal(t, jobContinue, got, "processEvent after 3rd startEvent")
 	})
 

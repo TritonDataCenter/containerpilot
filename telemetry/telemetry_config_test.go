@@ -2,18 +2,18 @@ package telemetry
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/mocks"
+	"github.com/tritondatacenter/containerpilot/tests"
+	"github.com/tritondatacenter/containerpilot/tests/mocks"
 )
 
 func TestTelemetryConfigParse(t *testing.T) {
-	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	data, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRaw(string(data))
 	telem, err := NewConfig(testCfg, &mocks.NoopDiscoveryBackend{})
 	if err != nil {

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CONTAINERPILOT_LOGFILE="/tmp/containerpilot.log"
 CONTAINERPILOT_ROTATEDLOGFILE="/tmp/containerpilot.log.1"

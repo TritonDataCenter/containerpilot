@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,6 +30,8 @@ type Command struct {
 	logger  log.Entry
 	lock    *sync.Mutex
 	fields  log.Fields
+	UID     int
+	GID     int
 }
 
 // NewCommand parses JSON config into a Command
@@ -101,7 +103,20 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if os.Getuid() == 0 {
+		if c.UID != 0 && c.GID != 0 {
+			cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(c.UID), Gid: uint32(c.GID)}
+		} else if c.UID != 0 {
+			cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(c.UID)}
+		} else if c.GID != 0 {
+			cmd.SysProcAttr.Credential = &syscall.Credential{Gid: uint32(c.GID)}
+		}
+	} else {
+		log.Debugf("%s.Skipping uid and gid (ContainerPilot is not running as root)", c.Name)
+	}
+
 	c.Cmd = cmd
 	ctx, cancel := getContext(pctx, c.Timeout)
 
@@ -126,8 +141,8 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		defer log.Debugf("%s.Run end", c.Name)
 		if err := c.Cmd.Start(); err != nil {
 			log.Errorf("unable to start %s: %v", c.Name, err)
-			bus.Publish(events.Event{events.ExitFailed, c.Name})
-			bus.Publish(events.Event{events.Error, err.Error()})
+			bus.Publish(events.Event{Code: events.ExitFailed, Source: c.Name})
+			bus.Publish(events.Event{Code: events.Error, Source: err.Error()})
 			return
 		}
 
@@ -150,12 +165,12 @@ func (c *Command) Run(pctx context.Context, bus *events.EventBus) {
 		// we'll return from Wait() and publish events
 		if err := c.Cmd.Wait(); err != nil {
 			log.Errorf("%s exited with error: %v", c.Name, err)
-			bus.Publish(events.Event{events.ExitFailed, c.Name})
-			bus.Publish(events.Event{events.Error,
-				fmt.Errorf("%s: %s", c.Name, err).Error()})
+			bus.Publish(events.Event{Code: events.ExitFailed, Source: c.Name})
+			bus.Publish(events.Event{Code: events.Error,
+				Source: fmt.Errorf("%s: %s", c.Name, err).Error()})
 		} else {
 			log.Debugf("%s exited without error", c.Name)
-			bus.Publish(events.Event{events.ExitSuccess, c.Name})
+			bus.Publish(events.Event{Code: events.ExitSuccess, Source: c.Name})
 		}
 	}()
 }

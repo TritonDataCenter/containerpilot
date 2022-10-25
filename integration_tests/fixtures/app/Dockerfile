@@ -1,8 +1,8 @@
-FROM node:slim
+FROM node:16-slim
 
 RUN apt-get update && \
     apt-get install -y \
-    curl netcat-openbsd && \
+    curl netcat-openbsd procps && \
     rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g json http-server

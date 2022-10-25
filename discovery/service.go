@@ -15,6 +15,7 @@ type ServiceDefinition struct {
 	Port                           int
 	TTL                            int
 	Tags                           []string
+	Meta                           map[string]string
 	InitialStatus                  string
 	IPAddress                      string
 	EnableTagOverride              bool
@@ -59,19 +60,16 @@ func (service *ServiceDefinition) RegisterWithInitialStatus() {
 	status := ""
 
 	switch service.InitialStatus {
-		case "passing":
-			status = api.HealthPassing
-			break
-		case "warning":
-			status = api.HealthWarning
-			break
-		case "critical":
-			status = api.HealthCritical
-			break
+	case "passing":
+		status = api.HealthPassing
+	case "warning":
+		status = api.HealthWarning
+	case "critical":
+		status = api.HealthCritical
 	}
 
 	log.Infof("Registering service %v with initial status set to %v",
-	          service.Name, service.InitialStatus)
+		service.Name, service.InitialStatus)
 	service.register(status)
 }
 
@@ -96,13 +94,14 @@ func (service *ServiceDefinition) registerService(status string) error {
 			ID:                service.ID,
 			Name:              service.Name,
 			Tags:              service.Tags,
+			Meta:              service.Meta,
 			Port:              service.Port,
 			Address:           service.IPAddress,
 			EnableTagOverride: service.EnableTagOverride,
 			Check: &api.AgentServiceCheck{
-				TTL:    fmt.Sprintf("%ds", service.TTL),
-				Status: status,
-				Notes:  fmt.Sprintf("TTL for %s set by containerpilot", service.Name),
+				TTL:                            fmt.Sprintf("%ds", service.TTL),
+				Status:                         status,
+				Notes:                          fmt.Sprintf("TTL for %s set by containerpilot", service.Name),
 				DeregisterCriticalServiceAfter: service.DeregisterCriticalServiceAfter,
 			},
 		},

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/joyent/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/decode"
 )
 
 type parsedConfig struct {

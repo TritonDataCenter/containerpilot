@@ -2,16 +2,16 @@ package watches
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/tests"
+	"github.com/tritondatacenter/containerpilot/tests"
 )
 
 func TestWatchesParse(t *testing.T) {
-	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	data, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRawToSlice(string(data))
 	watches, err := NewConfigs(testCfg, nil)
 	if err != nil {

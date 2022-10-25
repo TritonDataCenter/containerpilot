@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/events"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -81,7 +81,6 @@ func (srv *HTTPServer) Run(pctx context.Context, bus *events.EventBus) {
 	go func() {
 		defer srv.Stop()
 		<-ctx.Done()
-		return
 	}()
 }
 

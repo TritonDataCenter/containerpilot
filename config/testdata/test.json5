@@ -18,7 +18,10 @@
         interval: 19,
         ttl: 30,
       },
-      tags: ["tag1","tag2"]
+      tags: ["tag1","tag2"],
+      meta: {
+        keyA: "A",
+      }
     },
     {
       name: "serviceB",

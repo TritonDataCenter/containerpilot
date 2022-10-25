@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test_config_reload: runs an application container and send it commands
 # to reload config
 

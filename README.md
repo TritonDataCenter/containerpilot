@@ -2,13 +2,13 @@
 
 *An init system for cloud-native distributed applications that automates the process of service discovery, configuration, and lifecycle management inside the container, so you can focus on your apps.*
 
-[![Build Status](https://travis-ci.org/joyent/containerpilot.svg)](https://travis-ci.org/joyent/containerpilot)
-[![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/joyent/containerpilot/blob/master/LICENSE)
-[![GoDoc](https://godoc.org/github.com/joyent/containerpilot?status.svg)](https://godoc.org/github.com/joyent/containerpilot)
+[![Build Status](https://drone.greenbaum.cloud/api/badges/greenbaum.cloud/containerpilot/status.svg)](https://drone.greenbaum.cloud/greenbaum.cloud/containerpilot)
+[![MPL licensed](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://github.com/tritondatacenter/containerpilot/blob/master/LICENSE)
+[![GoDoc](https://godoc.org/github.com/tritondatacenter/containerpilot?status.svg)](https://godoc.org/github.com/tritondatacenter/containerpilot)
 
 ## What is ContainerPilot?
 
-Orchestration is the automation of the operations of an application. Most application require operational tasks like connecting them to related components ([WordPress needs to know where it's MySQL and Memcached servers are, for example](https://www.joyent.com/blog/wordpress-on-autopilot)), and some applications require special attention as they start up or shut down to be sure they bootstrap correctly or persist their data. We can do all that by hand, but modern applications automate those tasks in code. That's called "orchestration."
+Orchestration is the automation of the operations of an application. Most application require operational tasks like connecting them to related components ([WordPress needs to know where it's MySQL and Memcached servers are, for example](https://www.tritondatacenter.com/blog/wordpress-on-autopilot)), and some applications require special attention as they start up or shut down to be sure they bootstrap correctly or persist their data. We can do all that by hand, but modern applications automate those tasks in code. That's called "orchestration."
 
 To make this work, every application needs to do the following (at a minimum):
 
@@ -35,11 +35,11 @@ open http://localhost
 
 This application blueprint demonstrates using ContainerPilot to update Nginx upstream configuration at runtime. Try scaling up via `docker-compose scale hello=2 world=3` to see the Nginx configuration updated.
 
-You can also [download](https://github.com/joyent/containerpilot/releases) the latest release of ContainerPilot from GitHub.
+You can also [download](https://github.com/tritondatacenter/containerpilot/releases) the latest release of ContainerPilot from GitHub.
 
 ## Documentation
 
-Documentation for ContainerPilot and where it fits with the rest of the Triton ecosystem can be found at [www.joyent.com/containerpilot](https://www.joyent.com/containerpilot). The index below links to the documentation in this repo for convenience.
+Documentation for ContainerPilot and where it fits with the rest of the Triton ecosystem can be found at [www.tritondatacenter.com/containerpilot](https://www.tritondatacenter.com/containerpilot). The index below links to the documentation in this repo for convenience.
 
 [Lifecycle](./docs/10-lifecycle.md)
 - [What is a job?](./docs/10-lifecycle.md#what-is-a-job)
@@ -100,19 +100,19 @@ Configuration
 - [Contributing](./docs/40-support.md#contributing)
 - [Backwards compatibility](./docs/40-support.md#backwards-compatibility)
 
-You might also read [our guide building self-operating applications with ContainerPilot](https://www.joyent.com/blog/applications-on-autopilot) and look at the examples below.
+You might also read [our guide building self-operating applications with ContainerPilot](https://www.tritondatacenter.com/blog/applications-on-autopilot) and look at the examples below.
 
 ## Examples
 
 We've published a number of example applications demonstrating how ContainerPilot works.
 
-- [Applications on autopilot: a guide to how to build self-operating applications with ContainerPilot](https://www.joyent.com/blog/applications-on-autopilot)
-- [MySQL (Percona Server) with auto scaling and fail-over](https://www.joyent.com/blog/dbaas-simplicity-no-lock-in)
-- [Autopilot Pattern WordPress](https://www.joyent.com/blog/wordpress-on-autopilot)
-- [ELK stack](https://www.joyent.com/blog/docker-log-drivers)
-- [Node.js + Nginx + Couchbase](https://www.joyent.com/blog/docker-nodejs-nginx-nosql-autopilot)
+- [Applications on autopilot: a guide to how to build self-operating applications with ContainerPilot](https://www.tritondatacenter.com/blog/applications-on-autopilot)
+- [MySQL (Percona Server) with auto scaling and fail-over](https://www.tritondatacenter.com/blog/dbaas-simplicity-no-lock-in)
+- [Autopilot Pattern WordPress](https://www.tritondatacenter.com/blog/wordpress-on-autopilot)
+- [ELK stack](https://www.tritondatacenter.com/blog/docker-log-drivers)
+- [Node.js + Nginx + Couchbase](https://www.tritondatacenter.com/blog/docker-nodejs-nginx-nosql-autopilot)
 - [CloudFlare DNS and CDN with dynamic origins](https://github.com/autopilotpattern/cloudflare)
 - [Consul, running as an HA raft](https://github.com/autopilotpattern/consul)
 - [Couchbase](https://github.com/autopilotpattern/couchbase)
-- [Mesos on Joyent Triton](https://www.joyent.com/blog/mesos-by-the-pound)
-- [Nginx with dynamic upstreams](https://www.joyent.com/blog/dynamic-nginx-upstreams-with-containerbuddy)
+- [Mesos on Joyent Triton](https://www.tritondatacenter.com/blog/mesos-by-the-pound)
+- [Nginx with dynamic upstreams](https://www.tritondatacenter.com/blog/dynamic-nginx-upstreams-with-containerbuddy)

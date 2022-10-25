@@ -2,12 +2,11 @@ package telemetry
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/watches"
+	"github.com/tritondatacenter/containerpilot/jobs"
+	"github.com/tritondatacenter/containerpilot/watches"
 )
 
 // Status persists all the data the telemetry server needs to serve
@@ -51,7 +50,7 @@ func (sh StatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, job := range sh.telem.Status.jobs {
-		status := fmt.Sprintf("%s", job.GetStatus())
+		status := job.GetStatus().String()
 		for _, service := range sh.telem.Status.Services {
 			if service.Name == job.Name {
 				service.Status = status
@@ -78,13 +77,13 @@ func (t *Telemetry) MonitorJobs(jobs []*jobs.Job) {
 					Name:    job.Name,
 					Address: job.Service.IPAddress,
 					Port:    job.Service.Port,
-					Status:  fmt.Sprintf("%s", job.GetStatus()),
+					Status:  job.GetStatus().String(),
 				}
 				t.Status.Services = append(t.Status.Services, serviceResponse)
 			} else {
 				jobResponse := &jobStatusResponse{
 					Name:   job.Name,
-					Status: fmt.Sprintf("%s", job.GetStatus()),
+					Status: job.GetStatus().String(),
 				}
 				t.Status.Jobs = append(t.Status.Jobs, jobResponse)
 			}

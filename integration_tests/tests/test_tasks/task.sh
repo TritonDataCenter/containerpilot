@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SLEEP=${1:-"1"}
 FILE=${2:-"/tmp/test"}

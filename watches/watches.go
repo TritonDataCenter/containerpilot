@@ -6,8 +6,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/discovery"
+	"github.com/tritondatacenter/containerpilot/events"
 )
 
 // Watch represents an event to signal when something changes
@@ -82,16 +82,16 @@ func (watch *Watch) Run(pctx context.Context, bus *events.EventBus) {
 				if !ok || event == events.QuitByTest {
 					return
 				}
-				if event == (events.Event{events.TimerExpired, timerSource}) {
+				if event == (events.Event{Code: events.TimerExpired, Source: timerSource}) {
 					didChange, isHealthy := watch.CheckForUpstreamChanges()
 					if didChange {
-						watch.Publish(events.Event{events.StatusChanged, watch.Name})
+						watch.Publish(events.Event{Code: events.StatusChanged, Source: watch.Name})
 						// we only send the StatusHealthy and StatusUnhealthy
 						// events if there was a change
 						if isHealthy {
-							watch.Publish(events.Event{events.StatusHealthy, watch.Name})
+							watch.Publish(events.Event{Code: events.StatusHealthy, Source: watch.Name})
 						} else {
-							watch.Publish(events.Event{events.StatusUnhealthy, watch.Name})
+							watch.Publish(events.Event{Code: events.StatusUnhealthy, Source: watch.Name})
 						}
 					}
 				}

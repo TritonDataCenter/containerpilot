@@ -1,0 +1,69 @@
+kind: pipeline
+type: exec
+name: exec-runner
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: integration-tests
+    environment:
+    commands:
+      - make clean
+      - make build lint
+      - make test
+      - make integration
+    when:
+      event:
+        - pull_request
+        - push
+
+---
+kind: pipeline
+type: docker
+name: docker-runner
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: prepare-release
+    image: golang:1.18
+    commands:
+      - |
+        go build \
+          -o build/containerpilot \
+          -ldflags \
+            "-X github.com/greenbaum/containerpilot/version.GitHash=$(git rev-parse --short HEAD) \
+             -X github.com/greenbaum/containerpilot/version.Version=${DRONE_TAG}"
+      - mkdir release && cd build && tar -czf ../release/containerpilot-${DRONE_TAG}.tar.gz containerpilot
+      - cd ../release && sha1sum containerpilot-${DRONE_TAG}.tar.gz > containerpilot-${DRONE_TAG}.sha1.txt
+    when:
+      event:
+        - tag
+
+  - name: publish-release
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_api-key
+      files:
+        - release/containerpilot-${DRONE_TAG}.tar.gz
+        - release/containerpilot-${DRONE_TAG}.sha1.txt
+      title: "New release: version ${DRONE_TAG}"
+      base_url: greenbaum/containerpilot
+    when:
+      event:
+        - tag
+    depends_on:
+      - prepare-release
+
+---
+kind: secret
+name: github_api-key
+get:
+  path: secret/data/drone/github
+  name: api-key
+

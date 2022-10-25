@@ -84,12 +84,13 @@ func TestWithConsul(t *testing.T) {
 	t.Run("TestConsulReregister", testConsulReregister(testServer))
 	t.Run("TestConsulCheckForChanges", testConsulCheckForChanges(testServer))
 	t.Run("TestConsulEnableTagOverride", testConsulEnableTagOverride(testServer))
+	t.Run("testConsulTagsMeta", testConsulTagsMeta(testServer))
 }
 
 func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
 		consul, _ := NewConsul(testServer.HTTPAddr)
-		name := fmt.Sprintf("TestConsulTTLPass")
+		name := "TestConsulTTLPass"
 		service := generateServiceDefinition(name, consul)
 		checkID := fmt.Sprintf("service:%s", service.ID)
 
@@ -105,7 +106,7 @@ func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
 func testConsulRegisterWithInitialStatus(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
 		consul, _ := NewConsul(testServer.HTTPAddr)
-		name := fmt.Sprintf("TestConsulRegisterWithInitialStatus")
+		name := "TestConsulRegisterWithInitialStatus"
 		service := generateServiceDefinition(name, consul)
 		checkID := fmt.Sprintf("service:%s", service.ID)
 
@@ -121,7 +122,7 @@ func testConsulRegisterWithInitialStatus(testServer *TestServer) func(*testing.T
 func testConsulReregister(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
 		consul, _ := NewConsul(testServer.HTTPAddr)
-		name := fmt.Sprintf("TestConsulReregister")
+		name := "TestConsulReregister"
 		service := generateServiceDefinition(name, consul)
 		id := service.ID
 
@@ -146,9 +147,42 @@ func testConsulReregister(testServer *TestServer) func(*testing.T) {
 	}
 }
 
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
+
+func testConsulTagsMeta(testServer *TestServer) func(*testing.T) {
+	return func(t *testing.T) {
+		consul, _ := NewConsul(testServer.HTTPAddr)
+		name := "TestConsulReregister"
+		service := generateServiceDefinition(name, consul)
+		id := service.ID
+
+		service.SendHeartbeat() // force registration and 1st heartbeat
+		services, _ := consul.Agent().Services()
+		svc := services[id]
+		if !contains(svc.Tags, "a") || !contains(svc.Tags, "b") {
+			t.Fatalf("first tag must containt a & b but is %s", svc.Tags)
+		}
+		if svc.Meta["keyA"] != "A" {
+			t.Fatalf("first meta must containt keyA:A but is %s", svc.Meta["keyA"])
+		}
+		if svc.Meta["keyB"] != "B" {
+			t.Fatalf("first meta must containt keyB:B but is %s", svc.Meta["keyB"])
+		}
+
+	}
+}
+
 func testConsulCheckForChanges(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
-		backend := fmt.Sprintf("TestConsulCheckForChanges")
+		backend := "TestConsulCheckForChanges"
 		consul, _ := NewConsul(testServer.HTTPAddr)
 		service := generateServiceDefinition(backend, consul)
 		id := service.ID
@@ -163,7 +197,7 @@ func testConsulCheckForChanges(testServer *TestServer) func(*testing.T) {
 		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); changed {
 			t.Errorf("%v should not have changed without TTL expiring", id)
 		}
-		check := fmt.Sprintf("service:TestConsulCheckForChanges")
+		check := "service:TestConsulCheckForChanges"
 		consul.Agent().UpdateTTL(check, "expired", "critical")
 		if changed, _ := consul.CheckForUpstreamChanges(backend, "", ""); !changed {
 			t.Errorf("%v should have changed after TTL expired.", id)
@@ -173,7 +207,7 @@ func testConsulCheckForChanges(testServer *TestServer) func(*testing.T) {
 
 func testConsulEnableTagOverride(testServer *TestServer) func(*testing.T) {
 	return func(t *testing.T) {
-		backend := fmt.Sprintf("TestConsulEnableTagOverride")
+		backend := "TestConsulEnableTagOverride"
 		consul, _ := NewConsul(testServer.HTTPAddr)
 		service := &ServiceDefinition{
 			ID:                backend,
@@ -204,12 +238,17 @@ func testConsulEnableTagOverride(testServer *TestServer) func(*testing.T) {
 
 func generateServiceDefinition(serviceName string, consul *Consul) *ServiceDefinition {
 	return &ServiceDefinition{
-		ID:        serviceName,
-		Name:      serviceName,
-		IPAddress: "192.168.1.1",
+		ID:            serviceName,
+		Name:          serviceName,
+		IPAddress:     "192.168.1.1",
 		InitialStatus: "warning",
-		TTL:       5,
-		Port:      9000,
-		Consul:    consul,
+		TTL:           5,
+		Port:          9000,
+		Consul:        consul,
+		Tags:          []string{"a", "b"},
+		Meta: map[string]string{
+			"keyA": "A",
+			"keyB": "B",
+		},
 	}
 }

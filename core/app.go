@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joyent/containerpilot/config"
-	"github.com/joyent/containerpilot/control"
-	"github.com/joyent/containerpilot/discovery"
-	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/jobs"
-	"github.com/joyent/containerpilot/telemetry"
-	"github.com/joyent/containerpilot/watches"
+	"github.com/tritondatacenter/containerpilot/config"
+	"github.com/tritondatacenter/containerpilot/control"
+	"github.com/tritondatacenter/containerpilot/discovery"
+	"github.com/tritondatacenter/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/jobs"
+	"github.com/tritondatacenter/containerpilot/telemetry"
+	"github.com/tritondatacenter/containerpilot/watches"
 
 	log "github.com/sirupsen/logrus"
 )

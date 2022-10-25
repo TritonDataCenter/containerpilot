@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/joyent/containerpilot/config/decode"
+	"github.com/tritondatacenter/containerpilot/config/decode"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,7 +30,7 @@ func IPFromInterfaces(raw interface{}) (string, error) {
 // GetIP determines the IP address of the container
 func GetIP(specList []string) (string, error) {
 
-	if specList == nil || len(specList) == 0 {
+	if len(specList) == 0 {
 		// Use a sane default
 		specList = []string{"eth0:inet", "inet"}
 	}
@@ -191,7 +191,7 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 		if _, err := strconv.Atoi(ip[1]); err != nil {
 			nip := net.ParseIP(ip[1])
 			if nip == nil {
-				return nil, fmt.Errorf("Unable to parse static ip %s in %s", ip[0], spec)
+				return nil, fmt.Errorf("unable to parse static ip %s in %s", ip[0], spec)
 			}
 			return staticInterfaceSpec{Spec: spec, Name: "static", IP: nip}, nil
 		}
@@ -204,7 +204,7 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 		if index != "" {
 			i, err := strconv.Atoi(index)
 			if err != nil {
-				return nil, fmt.Errorf("Unable to parse index %s in %s", index, spec)
+				return nil, fmt.Errorf("unable to parse index %s in %s", index, spec)
 			}
 			return indexInterfaceSpec{Spec: spec, Name: name, Index: i}, nil
 		}
@@ -219,7 +219,7 @@ func parseInterfaceSpec(spec string) (interfaceSpec, error) {
 	if _, net, err := net.ParseCIDR(spec); err == nil {
 		return cidrInterfaceSpec{Spec: spec, Network: net}, nil
 	}
-	return nil, fmt.Errorf("Unable to parse interface spec: %s", spec)
+	return nil, fmt.Errorf("unable to parse interface spec: %s", spec)
 }
 
 type interfaceIP struct {

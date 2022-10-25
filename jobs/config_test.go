@@ -2,15 +2,15 @@ package jobs
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/joyent/containerpilot/events"
-	"github.com/joyent/containerpilot/tests"
-	"github.com/joyent/containerpilot/tests/mocks"
+	"github.com/tritondatacenter/containerpilot/events"
+	"github.com/tritondatacenter/containerpilot/tests"
+	"github.com/tritondatacenter/containerpilot/tests/mocks"
 )
 
 // ---------------------------------------------------------------------
@@ -23,6 +23,8 @@ func TestJobConfigServiceWithPreStart(t *testing.T) {
 	// job0 is the main application
 	job0 := jobs[0]
 	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
+	assert.Equal(job0.UID, 1, "config for job0.UID")
+	assert.Equal(job0.GID, 1, "config for job0.GID")
 	assert.Equal(job0.Exec, "/bin/serviceA.sh", "config for job0.Exec")
 	assert.Equal(job0.exec.Exec, "/bin/serviceA.sh",
 		"config for job.0.Exec.exec")
@@ -31,7 +33,7 @@ func TestJobConfigServiceWithPreStart(t *testing.T) {
 	assert.Equal(job0.Tags, []string{"tag1", "tag2"},
 		"config for job0.Tags")
 	assert.Equal(job0.restartLimit, 0, "config for job0.restartLimit")
-	assert.Equal(job0.whenEvent, events.Event{events.ExitSuccess, "preStart"},
+	assert.Equal(job0.whenEvent, events.Event{Code: events.ExitSuccess, Source: "preStart"},
 		"config for serviceA.whenEvent")
 	assert.Equal(job0.healthCheckExec.Exec, "/bin/healthCheckA.sh",
 		"config for job0.healthCheckExec.Exec")
@@ -58,12 +60,12 @@ func TestJobConfigHealthTimeout(t *testing.T) {
 
 	job0 := jobs[0]
 	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
-	assert.Equal(job0.heartbeatInterval, time.Duration(10) * time.Second, "config for job0.Health")
-	assert.Equal(job0.healthCheckExec.Timeout, time.Duration(5) * time.Second, "config for job0.Name.Health")
+	assert.Equal(job0.heartbeatInterval, time.Duration(10)*time.Second, "config for job0.Health")
+	assert.Equal(job0.healthCheckExec.Timeout, time.Duration(5)*time.Second, "config for job0.Name.Health")
 
 	job1 := jobs[1]
 	assert.Equal(job1.Name, "serviceB", "config for job1.Name")
-	assert.Equal(job1.heartbeatInterval, time.Duration(10) * time.Second, "config for job1.Health")
+	assert.Equal(job1.heartbeatInterval, time.Duration(10)*time.Second, "config for job1.Health")
 	assert.Equal(job1.healthCheckExec.Timeout, job1.heartbeatInterval, "config for job1.Health")
 }
 
@@ -91,7 +93,7 @@ func TestJobConfigServiceWithStopping(t *testing.T) {
 	// job0 is the main application
 	job0 := jobs[0]
 	assert.Equal(job0.Name, "serviceA", "config for job0.Name")
-	assert.Equal(job0.stoppingWaitEvent, events.Event{events.Stopped, "preStop"},
+	assert.Equal(job0.stoppingWaitEvent, events.Event{Code: events.Stopped, Source: "preStop"},
 		"expected no stopping event for serviceA")
 
 	// job1 is its preStart
@@ -103,7 +105,7 @@ func TestJobConfigServiceWithStopping(t *testing.T) {
 	assert.Equal(job2.Name, "preStop", "config for job2.Name")
 	assert.Equal(job2.exec.Exec, "/bin/to/preStop.sh",
 		"config for preStop.exec.Exec")
-	assert.Equal(job2.whenEvent, events.Event{events.Stopping, "serviceA"},
+	assert.Equal(job2.whenEvent, events.Event{Code: events.Stopping, Source: "serviceA"},
 		"config for preStop.whenEvent")
 
 	// job3 is its post-stop
@@ -111,7 +113,7 @@ func TestJobConfigServiceWithStopping(t *testing.T) {
 	assert.Equal(job3.Name, "postStop", "config for job3.Name")
 	assert.Equal(job3.exec.Exec, "/bin/to/postStop.sh",
 		"config for postStop.exec.Exec")
-	assert.Equal(job3.whenEvent, events.Event{events.Stopped, "serviceA"},
+	assert.Equal(job3.whenEvent, events.Event{Code: events.Stopped, Source: "serviceA"},
 		"config for postStop.whenEvent")
 }
 
@@ -165,7 +167,7 @@ func TestJobConfigConsulExtras(t *testing.T) {
 }
 
 func TestJobConfigSmokeTest(t *testing.T) {
-	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	data, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRawToSlice(string(data))
 	assert := assert.New(t)
 
@@ -285,7 +287,7 @@ func TestJobConfigValidateDiscovery(t *testing.T) {
 }
 
 func TestErrJobConfigConsulEnableTagOverride(t *testing.T) {
-	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	_, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), noop)
 	if err == nil {
 		t.Errorf("ConsulExtras should have thrown error about EnableTagOverride being a string.")
@@ -293,7 +295,7 @@ func TestErrJobConfigConsulEnableTagOverride(t *testing.T) {
 }
 
 func TestErrJobConfigConsulDeregisterCriticalServiceAfter(t *testing.T) {
-	testCfg, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	testCfg, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	_, err := NewConfigs(tests.DecodeRawToSlice(string(testCfg)), noop)
 	if err == nil {
 		t.Errorf("error should have been generated for duration 'nope'.")
@@ -324,7 +326,7 @@ func TestJobConfigValidateFrequency(t *testing.T) {
 
 	expectErr(
 		`[{name: "E", exec: "/bin/taskE", timeout: "1ns", when: {interval: "xx"}}]`,
-		"unable to parse job[E].when.interval 'xx': time: invalid duration xx")
+		"unable to parse job[serviceC].timeout 'xx': time: invalid duration \"xx\"")
 
 	testCfg := tests.DecodeRawToSlice(
 		`[{name: "F", exec: "/bin/taskF", when: {interval: "1ms"}}]`)
@@ -379,7 +381,7 @@ func TestJobConfigValidateExec(t *testing.T) {
 		timeout: "xx"
 	}]`)
 	_, err = NewConfigs(testCfg, noop)
-	expected := "unable to parse job[serviceC].timeout 'xx': time: invalid duration xx"
+	expected := "unable to parse job[serviceC].timeout 'xx': time: invalid duration \"xx\""
 	if err == nil || err.Error() != expected {
 		t.Fatalf("expected '%s', got '%v'", expected, err)
 	}
@@ -469,7 +471,7 @@ func TestHealthChecksConfigError(t *testing.T) {
 var noop = &mocks.NoopDiscoveryBackend{}
 
 func loadTestConfig(t *testing.T) []*Config {
-	data, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
+	data, _ := os.ReadFile(fmt.Sprintf("./testdata/%s.json5", t.Name()))
 	testCfg := tests.DecodeRawToSlice(string(data))
 
 	jobs, err := NewConfigs(testCfg, noop)

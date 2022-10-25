@@ -2,6 +2,8 @@
   {
     name: "serviceA",
     port: 8080,
+    uid: 1,
+    gid: 1,
     interfaces: ["inet", "lo0"],
     exec: "/bin/serviceA.sh",
     when: {
