@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -84,7 +83,7 @@ func TestFileLogger(t *testing.T) {
 	// write a log message
 	logMsg := "this is a test"
 	logrus.Info(logMsg)
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Did not expect error: %v", err)
 	}

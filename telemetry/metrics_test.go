@@ -3,7 +3,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -270,7 +270,7 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 		t.Fatal(err)
 	} else {
 		defer res.Body.Close()
-		if resp, err := ioutil.ReadAll(res.Body); err != nil {
+		if resp, err := io.ReadAll(res.Body); err != nil {
 			t.Fatal(err)
 		} else {
 			response := string(resp)

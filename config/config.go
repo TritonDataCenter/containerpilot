@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/flynn/json5"
@@ -79,7 +79,7 @@ func RenderConfig(configFlag, renderFlag string) error {
 		fmt.Printf("%s", renderedConfig)
 	} else {
 		var err error
-		if err = ioutil.WriteFile(renderFlag, renderedConfig, 0644); err != nil {
+		if err = os.WriteFile(renderFlag, renderedConfig, 0644); err != nil {
 			return fmt.Errorf("could not write config file: %s", err)
 		}
 	}
@@ -108,7 +108,7 @@ func loadConfigFile(configFlag string) ([]byte, error) {
 	if configFlag == "" {
 		return nil, errors.New("-config flag is required")
 	}
-	data, err := ioutil.ReadFile(configFlag)
+	data, err := os.ReadFile(configFlag)
 	if err != nil {
 		return nil, fmt.Errorf("could not read config file: %s", err)
 	}

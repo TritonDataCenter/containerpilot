@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -185,8 +184,8 @@ func TestRenderConfigFileStdout(t *testing.T) {
 	temp.Close()
 	os.Stdout = old
 
-	renderedOut, _ := ioutil.ReadFile(fname)
-	renderedFile, _ := ioutil.ReadFile("testJSON.json")
+	renderedOut, _ := os.ReadFile(fname)
+	renderedFile, _ := os.ReadFile("testJSON.json")
 	if string(renderedOut) != string(renderedFile) {
 		t.Fatalf("expected the rendered file and stdout to be identical")
 	}
