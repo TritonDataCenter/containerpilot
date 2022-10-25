@@ -60,6 +60,10 @@ The following is a completed example of the JSON5 file configuration schema, wit
         "app",
         "prod"
       ],
+      meta: {
+        keyA: "A",
+        keyB: "B",
+      },
       interfaces: [
         "eth0",
         "eth1[1]",

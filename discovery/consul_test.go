@@ -84,6 +84,7 @@ func TestWithConsul(t *testing.T) {
 	t.Run("TestConsulReregister", testConsulReregister(testServer))
 	t.Run("TestConsulCheckForChanges", testConsulCheckForChanges(testServer))
 	t.Run("TestConsulEnableTagOverride", testConsulEnableTagOverride(testServer))
+	t.Run("testConsulTagsMeta", testConsulTagsMeta(testServer))
 }
 
 func testConsulTTLPass(testServer *TestServer) func(*testing.T) {
@@ -143,6 +144,39 @@ func testConsulReregister(testServer *TestServer) func(*testing.T) {
 		if svc.Address != "192.168.1.2" {
 			t.Fatalf("service address should be '192.168.1.2' but is %s", svc.Address)
 		}
+	}
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
+
+func testConsulTagsMeta(testServer *TestServer) func(*testing.T) {
+	return func(t *testing.T) {
+		consul, _ := NewConsul(testServer.HTTPAddr)
+		name := "TestConsulReregister"
+		service := generateServiceDefinition(name, consul)
+		id := service.ID
+
+		service.SendHeartbeat() // force registration and 1st heartbeat
+		services, _ := consul.Agent().Services()
+		svc := services[id]
+		if !contains(svc.Tags, "a") || !contains(svc.Tags, "b") {
+			t.Fatalf("first tag must containt a & b but is %s", svc.Tags)
+		}
+		if svc.Meta["keyA"] != "A" {
+			t.Fatalf("first meta must containt keyA:A but is %s", svc.Meta["keyA"])
+		}
+		if svc.Meta["keyB"] != "B" {
+			t.Fatalf("first meta must containt keyB:B but is %s", svc.Meta["keyB"])
+		}
+
 	}
 }
 
@@ -211,5 +245,10 @@ func generateServiceDefinition(serviceName string, consul *Consul) *ServiceDefin
 		TTL:           5,
 		Port:          9000,
 		Consul:        consul,
+		Tags:          []string{"a", "b"},
+		Meta: map[string]string{
+			"keyA": "A",
+			"keyB": "B",
+		},
 	}
 }

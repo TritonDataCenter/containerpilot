@@ -15,6 +15,7 @@ type ServiceDefinition struct {
 	Port                           int
 	TTL                            int
 	Tags                           []string
+	Meta                           map[string]string
 	InitialStatus                  string
 	IPAddress                      string
 	EnableTagOverride              bool
@@ -93,6 +94,7 @@ func (service *ServiceDefinition) registerService(status string) error {
 			ID:                service.ID,
 			Name:              service.Name,
 			Tags:              service.Tags,
+			Meta:              service.Meta,
 			Port:              service.Port,
 			Address:           service.IPAddress,
 			EnableTagOverride: service.EnableTagOverride,
