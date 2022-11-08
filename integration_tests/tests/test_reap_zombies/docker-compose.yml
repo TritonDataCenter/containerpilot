@@ -1,4 +1,4 @@
-version: "2.1"
+version: "2.4"
 
 services:
 
@@ -9,7 +9,7 @@ services:
     command: agent -dev -client 0.0.0.0 -bind 0.0.0.0
 
   zombies:
-    image: alpine:3.15
+    image: alpine:3.16
     mem_limit: 128m
     links:
       - consul:consul

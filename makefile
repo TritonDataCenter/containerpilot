@@ -21,7 +21,7 @@ GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED := 0
 GOEXPERIMENT := framepointer
 
-CONSUL_VERSION := 1.6.3
+CONSUL_VERSION := 1.13.3
 
 ## display this help message
 help:
@@ -95,7 +95,7 @@ dep-add: build/containerpilot_build
 # run 'GOOS=darwin make tools' if you're installing on MacOS
 ## set up local dev environment
 tools:
-	@go version | grep 1.13 || (echo 'WARNING: go1.13 should be installed!')
+	@go version | grep 1.19 || (echo 'WARNING: go1.19 should be installed!')
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
 	go get golang.org/x/lint/golint
 	curl --fail -Lso consul.zip "https://releases.hashicorp.com/consul/$(CONSUL_VERSION)/consul_$(CONSUL_VERSION)_$(GOOS)_$(GOARCH).zip"
