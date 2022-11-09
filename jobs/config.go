@@ -133,7 +133,7 @@ func (cfg *Config) Validate(disc discovery.Backend) error {
 }
 
 func (cfg *Config) setStopping(name string) {
-	cfg.stoppingWaitEvent = events.Event{events.Stopped, name}
+	cfg.stoppingWaitEvent = events.Event{Code: events.Stopped, Source: name}
 }
 
 func (cfg *Config) validateDiscovery(disc discovery.Backend) error {
@@ -241,7 +241,7 @@ func (cfg *Config) validateWhenEvent() error {
 		cfg.whenStartsLimit = unlimited
 	}
 
-	cfg.whenEvent = events.Event{eventCode, cfg.When.Source}
+	cfg.whenEvent = events.Event{Code: eventCode, Source: cfg.When.Source}
 	return nil
 }
 

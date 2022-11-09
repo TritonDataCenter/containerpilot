@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -152,7 +151,7 @@ func TestReloadConfig(t *testing.T) {
 // write the configuration to a tempfile. caller is responsible
 // for calling 'defer os.Remove(f.Name())' when done
 func testCfgToTempFile(t *testing.T, text string) *os.File {
-	f, err := ioutil.TempFile(".", "test-")
+	f, err := os.CreateTemp(".", "test-")
 	if err != nil {
 		t.Fatal(err)
 	}

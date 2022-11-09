@@ -65,9 +65,9 @@ func envFunc(env string) string {
 }
 
 func ensureInt(intv interface{}) (int, error) {
-	switch intv.(type) {
+	switch intv := intv.(type) {
 	case string:
-		ret, err := strconv.Atoi(intv.(string))
+		ret, err := strconv.Atoi(intv)
 		if err != nil {
 			return 0, err
 		}

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/joyent/containerpilot/version"
@@ -21,8 +21,10 @@ type Telemetry struct {
 	Status  *Status   // supports '/status' endpoint fields
 
 	// server
-	router *http.ServeMux
-	addr   net.TCPAddr
+
+	// staticcheck U1000 field is unused
+	//router *http.ServeMux
+	addr net.TCPAddr
 
 	http.Server
 }
@@ -39,7 +41,7 @@ func NewTelemetry(cfg *Config) *Telemetry {
 	t.addr = cfg.addr
 
 	router := http.NewServeMux()
-	router.Handle("/metrics", prometheus.Handler())
+	router.Handle("/metrics", promhttp.Handler())
 	router.Handle("/status", NewStatusHandler(t))
 	t.Handler = router
 
@@ -57,7 +59,6 @@ func (t *Telemetry) Run(ctx context.Context) {
 	go func() {
 		defer t.Stop(ctx)
 		<-ctx.Done()
-		return
 	}()
 }
 

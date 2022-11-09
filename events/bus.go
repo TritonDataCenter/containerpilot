@@ -115,9 +115,7 @@ func (bus *EventBus) Unsubscribe(subscriber EventSubscriber) {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
 	sub := subscriber.(*Subscriber)
-	if _, ok := bus.registry[sub]; ok {
-		delete(bus.registry, sub)
-	}
+	delete(bus.registry, sub)
 	bus.done.Done()
 }
 

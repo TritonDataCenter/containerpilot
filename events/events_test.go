@@ -70,7 +70,7 @@ func TestPubSubInterfaces(t *testing.T) {
 	ts.Run(ctx, bus)
 
 	expected := []Event{
-		Event{Startup, "serviceA"},
+		{Startup, "serviceA"},
 	}
 	for _, event := range expected {
 		tp.Publish(event)

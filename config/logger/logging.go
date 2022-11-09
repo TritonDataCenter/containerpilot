@@ -49,7 +49,7 @@ func (l *Config) Init() error {
 	}
 	level, err := logrus.ParseLevel(strings.ToLower(l.Level))
 	if err != nil {
-		return fmt.Errorf("Unknown log level '%s': %s", l.Level, err)
+		return fmt.Errorf("unknown log level '%s': %s", l.Level, err)
 	}
 	var formatter logrus.Formatter
 	var output io.Writer
@@ -65,7 +65,7 @@ func (l *Config) Init() error {
 			TimestampFormat: time.RFC3339Nano,
 		}
 	default:
-		return fmt.Errorf("Unknown log format '%s'", l.Format)
+		return fmt.Errorf("unknown log format '%s'", l.Format)
 	}
 	switch strings.ToLower(l.Output) {
 	case "stderr":
@@ -73,11 +73,11 @@ func (l *Config) Init() error {
 	case "stdout":
 		output = os.Stdout
 	case "":
-		return fmt.Errorf("Unknown output type '%s'", l.Output)
+		return fmt.Errorf("unknown output type '%s'", l.Output)
 	default:
 		f, err := reopen.NewFileWriter(l.Output)
 		if err != nil {
-			return fmt.Errorf("Error initializing log file '%s': %s", l.Output, err)
+			return fmt.Errorf("error initializing log file '%s': %s", l.Output, err)
 		}
 		initializeSignal(f)
 		output = f

@@ -1,16 +1,16 @@
 MAKEFLAGS += --warn-undefined-variables
-SHELL := /bin/bash
+SHELL := bash
 .SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: clean test integration consul ship dockerfile docker cover lint local vendor dep-* tools kirby
+.PHONY: clean test integration consul ship dockerfile docker cover lint local dep-* tools kirby
 
 IMPORT_PATH := github.com/joyent/containerpilot
 VERSION ?= dev-build-not-for-release
 LDFLAGS := -X ${IMPORT_PATH}/version.GitHash=$(shell git rev-parse --short HEAD) -X ${IMPORT_PATH}/version.Version=${VERSION}
 
 ROOT := $(shell pwd)
-RUNNER := -v ${ROOT}:/go/src/${IMPORT_PATH} -w /go/src/${IMPORT_PATH} containerpilot_build
+RUNNER := -v containerpilot_cache:/go -v ${ROOT}:/usr/src/containerpilot -w /usr/src/containerpilot containerpilot_build
 docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
 export PATH :=$(PATH):$(GOPATH)/bin
 
@@ -21,8 +21,7 @@ GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED := 0
 GOEXPERIMENT := framepointer
 
-CONSUL_VERSION := 1.0.0
-GLIDE_VERSION := 0.12.3
+CONSUL_VERSION := 1.13.3
 
 ## display this help message
 help:
@@ -41,7 +40,7 @@ help:
 
 ## build the ContainerPilot binary
 build: build/containerpilot
-build/containerpilot:  build/containerpilot_build build/glide-installed */*/*.go */*.go */*/*.go *.go
+build/containerpilot:  build/containerpilot_build */*/*.go */*.go */*/*.go *.go
 	$(docker) go build -o build/containerpilot -ldflags "$(LDFLAGS)"
 	@rm -rf src || true
 
@@ -64,45 +63,34 @@ release: build
 	@cd release && sha1sum containerpilot-$(VERSION).tar.gz > containerpilot-$(VERSION).sha1.txt
 	@echo Upload files in release/ directory to GitHub release.
 
-## remove build/test artifacts, test fixtures, and vendor directories
+## remove build/test artifacts, test fixtures
 clean:
-	rm -rf build release cover vendor .glide
+	rm -rf build release cover
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
+	docker volume rm containerpilot_cache > /dev/null 2>&1 || true
 	./scripts/test.sh clean
 
 # ----------------------------------------------
 # dependencies
-# NOTE: glide will be replaced with `dep` when its production-ready
-# ref https://github.com/golang/dep
 
-## install any changed packages in the glide.yaml
-vendor: build/glide-installed
-build/glide-installed: build/containerpilot_build glide.yaml
-	$(docker) glide install
-	mkdir -p vendor
-	@echo date > build/glide-installed
+## install all packages in go.mod and go.sum
+deps: build/dep-install
+build/dep-install: build/containerpilot_build go.mod
+	$(docker) go get ./...
+	@echo date > build/update
 
-## install all vendored packages in the glide.yaml
-dep-install:
-	mkdir -p vendor
-	$(docker) glide install
-	@echo date > build/glide-installed
-
-# usage DEP=github.com/owner/package make dep-add
-## fetch a dependency and vendor it via `glide`
-dep-add: build/containerpilot_build
-	$(docker) bash -c "DEP=$(DEP) ./scripts/add_dep.sh"
+## update all dependencies (minor versions)
+dep-update:
+	$(docker) go get -u ./...
+	@echo date > build/update
 
 # run 'GOOS=darwin make tools' if you're installing on MacOS
 ## set up local dev environment
 tools:
-	@go version | grep 1.9 || (echo 'WARNING: go1.9 should be installed!')
+	@go version | grep 1.19 || (echo 'WARNING: go1.19 should be installed!')
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
-	go get github.com/golang/lint/golint
-	curl --fail -Lso glide.tgz "https://github.com/Masterminds/glide/releases/download/v$(GLIDE_VERSION)/glide-v$(GLIDE_VERSION)-$(GOOS)-$(GOARCH).tar.gz"
-	tar -C "$(GOPATH)/bin" -xzf glide.tgz --strip=1 $(GOOS)-$(GOARCH)/glide
-	rm glide.tgz
+	go install honnef.co/go/tools/cmd/staticcheck@latest
 	curl --fail -Lso consul.zip "https://releases.hashicorp.com/consul/$(CONSUL_VERSION)/consul_$(CONSUL_VERSION)_$(GOOS)_$(GOARCH).zip"
 	unzip consul.zip -d "$(GOPATH)/bin"
 	rm consul.zip
@@ -135,7 +123,7 @@ local: | quiet
 quiet: # this is silly but shuts up 'Nothing to be done for `local`'
 	@:
 
-## run `go lint` and other code quality tools
+## run `go vet`, `staticcheck` and other code quality tools
 lint:
 	$(docker) bash ./scripts/lint.sh
 

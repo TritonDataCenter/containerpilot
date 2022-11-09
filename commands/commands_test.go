@@ -15,7 +15,7 @@ import (
 func TestCommandRunWithTimeoutZero(t *testing.T) {
 	cmd, _ := NewCommand("sleep 2", time.Duration(0), nil)
 	got := runtestCommandRun(cmd)
-	timedout := events.Event{events.ExitFailed, "sleep"}
+	timedout := events.Event{Code: events.ExitFailed, Source: "sleep"}
 	if got[timedout] != 1 {
 		t.Fatalf("stopped command prior to test timeout, got events %v", got)
 	}
@@ -25,9 +25,9 @@ func TestCommandRunWithTimeoutKilled(t *testing.T) {
 	cmd, _ := NewCommand("sleep 2", time.Duration(100*time.Millisecond), nil)
 	cmd.Name = t.Name()
 	got := runtestCommandRun(cmd)
-	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
-	expired := events.Event{events.ExitFailed, t.Name()}
-	errMsg := events.Event{events.Error, fmt.Sprintf("%s: signal: killed", cmd.Name)}
+	testTimeout := events.Event{Code: events.TimerExpired, Source: "DebugSubscriberTimeout"}
+	expired := events.Event{Code: events.ExitFailed, Source: t.Name()}
+	errMsg := events.Event{Code: events.Error, Source: fmt.Sprintf("%s: signal: killed", cmd.Name)}
 	if got[testTimeout] > 0 || got[expired] != 1 || got[errMsg] != 1 {
 		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", expired, errMsg, got)
 	}
@@ -38,9 +38,9 @@ func TestCommandRunChildrenKilled(t *testing.T) {
 		time.Duration(100*time.Millisecond), nil)
 	cmd.Name = t.Name()
 	got := runtestCommandRun(cmd)
-	testTimeout := events.Event{events.TimerExpired, "DebugSubscriberTimeout"}
-	expired := events.Event{events.ExitFailed, t.Name()}
-	errMsg := events.Event{events.Error, fmt.Sprintf("%s: signal: killed", cmd.Name)}
+	testTimeout := events.Event{Code: events.TimerExpired, Source: "DebugSubscriberTimeout"}
+	expired := events.Event{Code: events.ExitFailed, Source: t.Name()}
+	errMsg := events.Event{Code: events.Error, Source: fmt.Sprintf("%s: signal: killed", cmd.Name)}
 	if got[testTimeout] > 0 || got[expired] != 1 || got[errMsg] != 1 {
 		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", expired, errMsg, got)
 	}
@@ -49,8 +49,8 @@ func TestCommandRunChildrenKilled(t *testing.T) {
 func TestCommandRunExecFailed(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/test.sh failStuff --debug", time.Duration(0), nil)
 	got := runtestCommandRun(cmd)
-	failed := events.Event{events.ExitFailed, "./testdata/test.sh"}
-	errMsg := events.Event{events.Error, "./testdata/test.sh: exit status 255"}
+	failed := events.Event{Code: events.ExitFailed, Source: "./testdata/test.sh"}
+	errMsg := events.Event{Code: events.Error, Source: "./testdata/test.sh: exit status 255"}
 	if got[failed] != 1 || got[errMsg] != 1 {
 		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", failed, errMsg, got)
 	}
@@ -59,9 +59,9 @@ func TestCommandRunExecFailed(t *testing.T) {
 func TestCommandRunExecInvalid(t *testing.T) {
 	cmd, _ := NewCommand("./testdata/invalidCommand", time.Duration(0), nil)
 	got := runtestCommandRun(cmd)
-	failed := events.Event{events.ExitFailed, "./testdata/invalidCommand"}
-	errMsg := events.Event{events.Error,
-		"fork/exec ./testdata/invalidCommand: no such file or directory"}
+	failed := events.Event{Code: events.ExitFailed, Source: "./testdata/invalidCommand"}
+	errMsg := events.Event{Code: events.Error,
+		Source: "fork/exec ./testdata/invalidCommand: no such file or directory"}
 	if got[failed] != 1 || got[errMsg] != 1 {
 		t.Fatalf("expected:\n%v\n%v\ngot events:\n%v", failed, errMsg, got)
 	}

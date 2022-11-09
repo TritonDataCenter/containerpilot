@@ -3,7 +3,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/joyent/containerpilot/events"
@@ -25,7 +26,7 @@ the prometheus handler and then check the results of a GET.
 */
 
 func TestMetricRun(t *testing.T) {
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	testServer := httptest.NewServer(promhttp.Handler())
 	defer testServer.Close()
 	cfg := &MetricConfig{
 		Namespace: "telemetry",
@@ -41,7 +42,7 @@ func TestMetricRun(t *testing.T) {
 	ctx := context.Background()
 	metric.Run(ctx, bus)
 
-	record := events.Event{events.Metric, fmt.Sprintf("%s|84", metric.Name)}
+	record := events.Event{Code: events.Metric, Source: fmt.Sprintf("%s|84", metric.Name)}
 	bus.Publish(record)
 
 	metric.Receive(events.QuitByTest)
@@ -61,7 +62,7 @@ func TestMetricRun(t *testing.T) {
 // TestMetricProcessMetric covers the same ground as the 4 collector-
 // specific tests below, but checks the unhappy path.
 func TestMetricProcessMetric(t *testing.T) {
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	testServer := httptest.NewServer(promhttp.Handler())
 	defer testServer.Close()
 	cfg := &MetricConfig{
 		Namespace: "telemetry",
@@ -106,7 +107,7 @@ func TestMetricProcessMetric(t *testing.T) {
 }
 
 func TestMetricRecordCounter(t *testing.T) {
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	testServer := httptest.NewServer(promhttp.Handler())
 	defer testServer.Close()
 	metric := &Metric{
 		Type: Counter,
@@ -135,7 +136,7 @@ func TestMetricRecordCounter(t *testing.T) {
 }
 
 func TestMetricRecordGauge(t *testing.T) {
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	testServer := httptest.NewServer(promhttp.Handler())
 	defer testServer.Close()
 	metric := &Metric{
 		Type: Gauge,
@@ -165,7 +166,7 @@ func TestMetricRecordGauge(t *testing.T) {
 }
 
 func TestMetricRecordHistogram(t *testing.T) {
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	testServer := httptest.NewServer(promhttp.Handler())
 	defer testServer.Close()
 
 	metric := &Metric{
@@ -202,15 +203,18 @@ func TestMetricRecordHistogram(t *testing.T) {
 }
 
 func TestMetricRecordSummary(t *testing.T) {
-	testServer := httptest.NewServer(prometheus.UninstrumentedHandler())
+	testServer := httptest.NewServer(promhttp.Handler())
 	defer testServer.Close()
+	objMap := map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001}
+
 	metric := &Metric{
 		Type: Summary,
 		collector: prometheus.NewSummary(prometheus.SummaryOpts{
-			Namespace: "telemetry",
-			Subsystem: "metrics",
-			Name:      "TestMetricRecordSummary",
-			Help:      "help",
+			Namespace:  "telemetry",
+			Subsystem:  "metrics",
+			Name:       "TestMetricRecordSummary",
+			Help:       "help",
+			Objectives: objMap,
 		})}
 	prometheus.MustRegister(metric.collector)
 	patt := `telemetry_metrics_TestMetricRecordSummary{quantile="([\.0-9]*)"} ([0-9\.]*)`
@@ -266,7 +270,7 @@ func getFromTestServer(t *testing.T, testServer *httptest.Server) string {
 		t.Fatal(err)
 	} else {
 		defer res.Body.Close()
-		if resp, err := ioutil.ReadAll(res.Body); err != nil {
+		if resp, err := io.ReadAll(res.Body); err != nil {
 			t.Fatal(err)
 		} else {
 			response := string(resp)

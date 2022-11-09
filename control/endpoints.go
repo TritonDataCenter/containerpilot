@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -56,7 +55,7 @@ func (pw PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // process. Returns empty response or HTTP422.
 func (e Endpoints) PutEnviron(r *http.Request) (interface{}, int) {
 	var postEnv map[string]string
-	jsonBlob, err := ioutil.ReadAll(r.Body)
+	jsonBlob, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
 		return nil, http.StatusUnprocessableEntity
@@ -110,7 +109,7 @@ func (e Endpoints) PostDisableMaintenanceMode(r *http.Request) (interface{}, int
 // Returns empty response or HTTP422.
 func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
 	var postMetrics map[string]interface{}
-	jsonBlob, err := ioutil.ReadAll(r.Body)
+	jsonBlob, err := io.ReadAll(r.Body)
 
 	defer r.Body.Close()
 	if err != nil {
@@ -123,7 +122,7 @@ func (e Endpoints) PostMetric(r *http.Request) (interface{}, int) {
 	}
 	for metricKey, metricValue := range postMetrics {
 		eventVal := fmt.Sprintf("%v|%v", metricKey, metricValue)
-		e.bus.Publish(events.Event{events.Metric, eventVal})
+		e.bus.Publish(events.Event{Code: events.Metric, Source: eventVal})
 	}
 	return nil, http.StatusOK
 }

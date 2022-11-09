@@ -58,7 +58,7 @@ The `metrics` field is a list of user-defined metrics that the telemetry service
 The collectors can record metrics sent via the [HTTP control socket](./37-control-plane.md). If your application can't use this endpoint on its own, you can use a periodic job to record the metric value and call `containerpilot -putmetric`. An example of a good job script might be:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # check free memory
 val=$(free | awk -F' +' '/Mem/{print $3}')
 ./containerpilot -putmetric "free_memory=$val"

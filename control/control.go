@@ -81,7 +81,6 @@ func (srv *HTTPServer) Run(pctx context.Context, bus *events.EventBus) {
 	go func() {
 		defer srv.Stop()
 		<-ctx.Done()
-		return
 	}()
 }
 
