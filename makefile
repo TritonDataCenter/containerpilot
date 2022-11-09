@@ -10,7 +10,7 @@ VERSION ?= dev-build-not-for-release
 LDFLAGS := -X ${IMPORT_PATH}/version.GitHash=$(shell git rev-parse --short HEAD) -X ${IMPORT_PATH}/version.Version=${VERSION}
 
 ROOT := $(shell pwd)
-RUNNER := -v ${ROOT}:/go/src/${IMPORT_PATH} -w /go/src/${IMPORT_PATH} containerpilot_build
+RUNNER := -v containerpilot_cache:/go -v ${ROOT}:/usr/src/containerpilot -w /usr/src/containerpilot containerpilot_build
 docker := docker run --rm -e LDFLAGS="${LDFLAGS}" $(RUNNER)
 export PATH :=$(PATH):$(GOPATH)/bin
 
@@ -68,6 +68,7 @@ clean:
 	rm -rf build release cover
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
+	docker volume rm containerpilot_cache > /dev/null 2>&1 || true
 	./scripts/test.sh clean
 
 # ----------------------------------------------
