@@ -90,7 +90,7 @@ dep-update:
 tools:
 	@go version | grep 1.19 || (echo 'WARNING: go1.19 should be installed!')
 	@$(if $(value GOPATH),, $(error 'GOPATH not set'))
-	go get golang.org/x/lint/golint
+	go install honnef.co/go/tools/cmd/staticcheck@latest
 	curl --fail -Lso consul.zip "https://releases.hashicorp.com/consul/$(CONSUL_VERSION)/consul_$(CONSUL_VERSION)_$(GOOS)_$(GOARCH).zip"
 	unzip consul.zip -d "$(GOPATH)/bin"
 	rm consul.zip
