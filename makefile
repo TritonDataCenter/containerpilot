@@ -3,7 +3,7 @@ SHELL := bash
 .SHELLFLAGS := -o pipefail -euc
 .DEFAULT_GOAL := build
 
-.PHONY: clean test integration consul ship dockerfile docker cover lint local vendor dep-* tools kirby
+.PHONY: clean test integration consul ship dockerfile docker cover lint local dep-* tools kirby
 
 IMPORT_PATH := github.com/joyent/containerpilot
 VERSION ?= dev-build-not-for-release
@@ -63,34 +63,26 @@ release: build
 	@cd release && sha1sum containerpilot-$(VERSION).tar.gz > containerpilot-$(VERSION).sha1.txt
 	@echo Upload files in release/ directory to GitHub release.
 
-## remove build/test artifacts, test fixtures, and vendor directories
+## remove build/test artifacts, test fixtures
 clean:
-	rm -rf build release cover vendor
+	rm -rf build release cover
 	docker rmi -f containerpilot_build > /dev/null 2>&1 || true
 	docker rm -f containerpilot_consul > /dev/null 2>&1 || true
 	./scripts/test.sh clean
 
 # ----------------------------------------------
 # dependencies
-# NOTE: glide will be replaced with `dep` when its production-ready
-# ref https://github.com/golang/dep
 
-## install any changed packages in go.mod and go.sum
-vendor: build/update
-build/update: build/containerpilot_build go.mod
-	$(docker) go get -u ./...
+## install all packages in go.mod and go.sum
+deps: build/dep-install
+build/dep-install: build/containerpilot_build go.mod
+	$(docker) go get ./...
 	@echo date > build/update
 
-## install all dependencies
-dep-install:
+## update all dependencies (minor versions)
+dep-update:
 	$(docker) go get -u ./...
 	@echo date > build/update
-
-# Deprecated with go modules:
-# usage DEP=github.com/owner/package make dep-add
-## fetch a dependency and vendor it via `glide`
-dep-add: build/containerpilot_build
-	$(docker) bash -c "DEP=$(DEP) ./scripts/add_dep.sh"
 
 # run 'GOOS=darwin make tools' if you're installing on MacOS
 ## set up local dev environment
