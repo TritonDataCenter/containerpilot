@@ -8,7 +8,7 @@ type EventSubscriber interface {
 	Receive(Event)
 }
 
-// Subscriber represents an object which recieves events through the Event bus
+// Subscriber represents an object which receives events through the Event bus
 // through its receive channel.
 type Subscriber struct {
 	Rx  chan Event
