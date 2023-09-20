@@ -45,7 +45,7 @@ check "task3" 6 6
 # in task4 we don't know the exact number of runs because shutdown can
 # take a long time and this would make the test flaky. instead we assert
 # that we have >1 run and that the runs are at least 1 second apart (to
-# ensure we're not just continously restarting).
+# ensure we're not just continuously restarting).
 task4runs=$(wc -l < "$APP_ID.task4" | tr -d '[:space:]')
 task4steps=$(cut -f1 -d'.' < "$APP_ID.task4" | uniq -c | wc -l | tr -d '[:space:]')
 if [[ "$task4runs" -lt 2 ]] || [[ "$task4runs" -ne "$task4steps" ]]; then
